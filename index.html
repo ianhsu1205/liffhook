@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LINE 註冊</title>
+    <title>LINE通知註冊</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body {
@@ -51,7 +51,7 @@
 <body>
 
     <div class="container">
-        <h2>LINE 註冊</h2>
+        <h2>LINE通知註冊</h2>
         
         <form id="registerForm">
             <input type="text" id="company" placeholder="公司名稱" required>
@@ -91,7 +91,7 @@
                 userId: document.getElementById("userId").value
             };
 
-            fetch("https://你的API.com/register", {
+            fetch("https://1c5c-125-227-174-151.ngrok-free.app/api/User/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
