@@ -63,7 +63,7 @@
             <input type="text" id="nickname" placeholder="暱稱">
 
             <input type="hidden" id="userId">
-            <input type="hidden" id="clientId" value="固定的ClientId">
+            <input type="hidden" id="projectId" value="固定的projectId">
 
             <button type="button" onclick="submitForm()">提交</button>
         </form>
@@ -80,15 +80,15 @@
 
         async function submitForm() {
             const data = {
-                company: document.getElementById("company").value,
-                dept: document.getElementById("dept").value,
-                groupCode: document.getElementById("groupCode").value,
-                phone: document.getElementById("phone").value,
-                name: document.getElementById("name").value,
-                empId: document.getElementById("empId").value,
-                nickname: document.getElementById("nickname").value,
-                clientId: document.getElementById("clientId").value,
-                userId: document.getElementById("userId").value
+                Company: document.getElementById("company").value,
+                Dept: document.getElementById("dept").value,
+                GroupCode: document.getElementById("groupCode").value,
+                Phone: document.getElementById("phone").value,
+                Name: document.getElementById("name").value,
+                EmpId: document.getElementById("empId").value,
+                Nickname: document.getElementById("nickname").value,
+                ProjectId: document.getElementById("clientId").value,
+                UserId: document.getElementById("userId").value
             };
 
             fetch("https://1c5c-125-227-174-151.ngrok-free.app/api/User/register", {
