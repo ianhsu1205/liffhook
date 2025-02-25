@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE 註冊</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #06C755;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #04A73E;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>LINE 註冊</h2>
+        
+        <form id="registerForm">
+            <input type="text" id="company" placeholder="公司名稱" required>
+            <input type="text" id="dept" placeholder="部門" required>
+            <input type="text" id="groupCode" placeholder="群組代碼" required>
+            <input type="text" id="phone" placeholder="電話號碼" required>
+            <input type="text" id="name" placeholder="姓名">
+            <input type="text" id="empId" placeholder="員工編號">
+            <input type="text" id="nickname" placeholder="暱稱">
+
+            <input type="hidden" id="userId">
+            <input type="hidden" id="clientId" value="固定的ClientId">
+
+            <button type="button" onclick="submitForm()">提交</button>
+        </form>
+    </div>
+
+    <script>
+        async function initLIFF() {
+            await liff.init({ liffId: "你的LIFF ID" });
+
+            // 取得 LINE 使用者 ID
+            const profile = await liff.getProfile();
+            document.getElementById('userId').value = profile.userId;
+        }
+
+        async function submitForm() {
+            const data = {
+                company: document.getElementById("company").value,
+                dept: document.getElementById("dept").value,
+                groupCode: document.getElementById("groupCode").value,
+                phone: document.getElementById("phone").value,
+                name: document.getElementById("name").value,
+                empId: document.getElementById("empId").value,
+                nickname: document.getElementById("nickname").value,
+                clientId: document.getElementById("clientId").value,
+                userId: document.getElementById("userId").value
+            };
+
+            fetch("https://你的API.com/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+              .then(result => {
+                  alert("註冊成功！");
+                  liff.closeWindow();
+              })
+              .catch(error => {
+                  console.error("錯誤:", error);
+                  alert("註冊失敗，請稍後再試！");
+              });
+        }
+
+        initLIFF();
+    </script>
+
+</body>
+</html>
