@@ -107,7 +107,7 @@
               .then(result => {
                   alert("註冊成功！");
                  setTimeout(() => {
-                     window.location.reload();  // 重新加載當前頁面
+              window.location.href = "about:blank"
                         liff.closeWindow();
                      window.close();
                     }, 500);  // 延遲 500 毫秒後關閉視窗
