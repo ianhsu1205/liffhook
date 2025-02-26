@@ -94,6 +94,23 @@
             font-size: 14px;
             color: #999;
         }
+        .status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
         /* 對手機進行優化 */
         @media (max-width: 600px) {
             .container {
@@ -107,6 +124,8 @@
 
     <div class="container">
         <h2>LINE通知註冊</h2>
+        
+        <div id="statusMessage" class="status-message"></div>
         
         <form id="registerForm">
             <div class="form-group">
@@ -159,9 +178,17 @@
     </div>
 
     <script>
+        // 全局變量記錄初始化狀態
+        let liffInitialized = false;
+        
         // 初始化 LIFF
         window.onload = async function() {
-            await initLIFF();
+            try {
+                await initLIFF();
+            } catch (error) {
+                console.error("頁面載入時發生錯誤:", error);
+                showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
+            }
         };
 
         // 初始化 LIFF SDK
@@ -170,6 +197,11 @@
                 // 確保 LIFF ID 格式正確（去除可能的空格）
                 const liffId = "2006966365-94yjBGjO".trim();
                 await liff.init({ liffId: liffId });
+                
+                // 記錄初始化成功
+                liffInitialized = true;
+                console.log("LIFF 初始化成功");
+                console.log("是否在 LINE 瀏覽器中:", liff.isInClient());
                 
                 if (!liff.isLoggedIn()) {
                     console.log("用戶未登入，引導登入...");
@@ -189,7 +221,7 @@
                     console.log("用戶已登入:", profile.displayName);
                 } catch (profileError) {
                     console.error("獲取用戶資料失敗:", profileError);
-                    alert("無法獲取用戶資料，請確保已授權應用程式。");
+                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
                 }
                 
                 // 檢查 URL 參數
@@ -203,13 +235,22 @@
                 // 確保有 userId
                 if (!document.getElementById("userId").value) {
                     console.error("無法獲取 userId");
-                    alert("無法獲取用戶識別碼，請重新進入此頁面！");
+                    showStatusMessage("無法獲取用戶識別碼，請重新進入此頁面", "error");
                 }
                 
             } catch (error) {
                 console.error("LIFF 初始化失敗:", error);
-                alert("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試。錯誤訊息: " + error.message);
+                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
+                liffInitialized = false;
             }
+        }
+        
+        // 顯示狀態訊息
+        function showStatusMessage(message, type) {
+            const statusElement = document.getElementById("statusMessage");
+            statusElement.textContent = message;
+            statusElement.className = "status-message";
+            statusElement.classList.add(type);
         }
 
         // 驗證表單欄位
@@ -230,6 +271,31 @@
                     errorElement.classList.remove('visible');
                 }
                 return true;
+            }
+        }
+        
+        // 安全地關閉視窗
+        function closeWindowSafely() {
+            console.log("嘗試關閉窗口...");
+            
+            if (!liffInitialized) {
+                console.error("LIFF 未初始化，無法關閉視窗");
+                showStatusMessage("操作已完成，請手動關閉視窗", "success");
+                return;
+            }
+            
+            // 檢查是否在 LINE 瀏覽器內
+            if (liff.isInClient()) {
+                try {
+                    console.log("在 LINE 內部，使用 liff.closeWindow()");
+                    liff.closeWindow();
+                } catch (e) {
+                    console.error("關閉窗口失敗:", e);
+                    showStatusMessage("無法自動返回聊天室，請手動關閉視窗", "success");
+                }
+            } else {
+                console.log("不在 LINE 瀏覽器內，顯示提示訊息");
+                showStatusMessage("操作已完成。由於您不在 LINE 應用內，請手動關閉此視窗", "success");
             }
         }
 
@@ -258,18 +324,23 @@
             
             const userId = document.getElementById("userId").value;
             if (!userId) {
-                alert("無法獲取用戶識別碼，請重新登入後再試！");
+                showStatusMessage("無法獲取用戶識別碼，請重新登入後再試", "error");
                 return;
             }
 
+            // 禁用提交按鈕，防止重複提交
+            const submitButton = document.querySelector('button[type="button"]');
+            submitButton.disabled = true;
+            submitButton.textContent = "提交中...";
+            
             const data = {
-                company: document.getElementById("company").value,
-                dept: document.getElementById("dept").value,
-                groupCode: document.getElementById("groupCode").value,
-                phone: document.getElementById("phone").value,
-                name: document.getElementById("name").value,
-                empId: document.getElementById("empId").value,
-                nickname: document.getElementById("nickname").value,
+                company: company,
+                dept: document.getElementById("dept").value.trim(),
+                groupCode: groupCode,
+                phone: phone,
+                name: document.getElementById("name").value.trim(),
+                empId: document.getElementById("empId").value.trim(),
+                nickname: document.getElementById("nickname").value.trim(),
                 projectId: document.getElementById("projectId").value,
                 userId: userId
             };
@@ -286,21 +357,22 @@
                 const result = await response.text();
 
                 if (response.ok) {
-                    alert("註冊成功！");
+                    showStatusMessage("註冊成功！即將返回聊天室...", "success");
                     // 註冊成功後自動關閉視窗回到聊天室
-                    setTimeout(() => {
-                       liff.closeWindow();
-                    }, 1000);  // 延遲 1 秒後關閉視窗，確保用戶看到成功訊息
+                    setTimeout(closeWindowSafely, 2000);  // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
                 } else {
                     throw new Error(result || "註冊失敗，請稍後再試！");
                 }
             } catch (error) {
                 console.error("錯誤:", error);
-                alert("註冊失敗，請稍後再試！" + (error.message ? "\n錯誤詳情: " + error.message : ""));
-                // 註冊失敗也自動關閉視窗回到聊天室
-                setTimeout(() => {
-                   liff.closeWindow();
-                }, 2000);  // 延遲 2 秒後關閉視窗，讓用戶有時間看到錯誤訊息
+                showStatusMessage("註冊失敗: " + (error.message || "請稍後再試"), "error");
+                
+                // 啟用提交按鈕，允許重試
+                submitButton.disabled = false;
+                submitButton.textContent = "重新提交";
+                
+                // 延遲自動關閉，讓用戶有時間看到錯誤訊息
+                setTimeout(closeWindowSafely, 3000);
             }
         }
     </script>
