@@ -106,7 +106,9 @@
             }).then(response => response.text())
               .then(result => {
                   alert("註冊成功！");
-                  liff.closeWindow();
+                 setTimeout(() => {
+                        liff.closeWindow();
+                    }, 1000);  // 延遲 500 毫秒後關閉視窗
               })
               .catch(error => {
                   console.error("錯誤:", error);
