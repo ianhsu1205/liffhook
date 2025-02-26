@@ -70,11 +70,14 @@
     </div>
 
     <script>
-        async function initLIFF() {
-            await liff.init({ liffId: "2006966365-W2Z2BN2r" });
+        window.onload = async function() {
+            await initLIFF();
+        };
 
-            // 取得 LINE 使用者 ID
-        // 從 URL 取得 userId
+            async function initLIFF() {
+                await liff.init({ liffId: "2006966365-W2Z2BN2r" });
+            
+                // 從 URL 取得 userId
                 const urlParams = new URLSearchParams(window.location.search);
                 const userId = urlParams.get("userId");
             
@@ -83,8 +86,8 @@
                 } else {
                     alert("無法獲取 userId，請重新進入此頁面！");
                 }
-        }
-
+            }
+                            
         async function submitForm() {
             const data = {
                 company: document.getElementById("company").value,
