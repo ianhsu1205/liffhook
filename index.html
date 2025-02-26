@@ -4,47 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LINE通知註冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f5f5f5;
+            font-family: 'Noto Sans TC', Arial, sans-serif;
+            background-color: #f7f7f7;
             margin: 0;
             padding: 0;
+            color: #333;
         }
         .container {
-            max-width: 400px;
-            margin: 50px auto;
+            max-width: 500px;
+            margin: 30px auto;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
         h2 {
-            color: #333;
+            color: #06C755;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #555;
+        }
+        .required::after {
+            content: "*";
+            color: #e74c3c;
+            margin-left: 4px;
         }
         input {
             width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
             font-size: 16px;
+            transition: border 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #06C755;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+        }
+        input.error {
+            border-color: #e74c3c;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .error-message.visible {
+            display: block;
         }
         button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background-color: #06C755;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 18px;
+            font-weight: 500;
             cursor: pointer;
             transition: 0.3s;
+            margin-top: 10px;
         }
         button:hover {
             background-color: #04A73E;
+            box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
+        }
+        .line-brand {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+        /* 對手機進行優化 */
+        @media (max-width: 600px) {
+            .container {
+                margin: 15px;
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -54,18 +109,52 @@
         <h2>LINE通知註冊</h2>
         
         <form id="registerForm">
-            <input type="text" id="company" placeholder="公司名稱" required>
-            <input type="text" id="dept" placeholder="部門" required>
-            <input type="text" id="groupCode" placeholder="群組代碼" required>
-            <input type="text" id="phone" placeholder="電話號碼" required>
-            <input type="text" id="name" placeholder="姓名">
-            <input type="text" id="empId" placeholder="員工編號">
-            <input type="text" id="nickname" placeholder="暱稱">
+            <div class="form-group">
+                <label for="company" class="required">公司名稱</label>
+                <input type="text" id="company" placeholder="請輸入公司名稱">
+                <div class="error-message" id="company-error">公司名稱為必填欄位</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="dept">部門</label>
+                <input type="text" id="dept" placeholder="請輸入部門名稱">
+            </div>
+            
+            <div class="form-group">
+                <label for="groupCode" class="required">群組代碼</label>
+                <input type="text" id="groupCode" placeholder="請輸入群組代碼">
+                <div class="error-message" id="groupCode-error">群組代碼為必填欄位</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone" class="required">電話號碼</label>
+                <input type="tel" id="phone" placeholder="請輸入09開頭的10位數字">
+                <div class="error-message" id="phone-error">請輸入有效的手機號碼 (09開頭的10位數字)</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">姓名</label>
+                <input type="text" id="name" placeholder="請輸入姓名">
+            </div>
+            
+            <div class="form-group">
+                <label for="empId">員工編號</label>
+                <input type="text" id="empId" placeholder="請輸入員工編號">
+            </div>
+            
+            <div class="form-group">
+                <label for="nickname">暱稱</label>
+                <input type="text" id="nickname" placeholder="請輸入暱稱">
+            </div>
 
             <input type="hidden" id="userId">
             <input type="hidden" id="projectId" value="固定的projectId">
 
-            <button type="button" onclick="submitForm()">提交</button>
+            <button type="button" onclick="submitForm()">提交資料</button>
+            
+            <div class="line-brand">
+                LINE通知服務註冊
+            </div>
         </form>
     </div>
 
@@ -83,21 +172,24 @@
                 await liff.init({ liffId: liffId });
                 
                 if (!liff.isLoggedIn()) {
+                    console.log("用戶未登入，引導登入...");
                     // 如果用戶尚未登入 LINE，則引導登入
                     liff.login();
-                } else {
-                    // 獲取用戶資料
-                    try {
-                        const profile = await liff.getProfile();
-                        document.getElementById("userId").value = profile.userId;
-                        // 如果有需要，可以自動填入暱稱
-                        document.getElementById("nickname").value = profile.displayName || "";
-                        
-                        console.log("用戶已登入:", profile.displayName);
-                    } catch (profileError) {
-                        console.error("獲取用戶資料失敗:", profileError);
-                        alert("無法獲取用戶資料，請確保已授權應用程式。");
-                    }
+                    // 登入後會重新載入頁面，所以下面的代碼不會執行
+                    return;
+                }
+                
+                // 用戶已登入，獲取用戶資料
+                try {
+                    const profile = await liff.getProfile();
+                    document.getElementById("userId").value = profile.userId;
+                    // 自動填入暱稱
+                    document.getElementById("nickname").value = profile.displayName || "";
+                    
+                    console.log("用戶已登入:", profile.displayName);
+                } catch (profileError) {
+                    console.error("獲取用戶資料失敗:", profileError);
+                    alert("無法獲取用戶資料，請確保已授權應用程式。");
                 }
                 
                 // 檢查 URL 參數
@@ -120,16 +212,48 @@
             }
         }
 
+        // 驗證表單欄位
+        function validateField(fieldId, condition, errorMessage) {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(`${fieldId}-error`);
+            
+            if (!condition) {
+                field.classList.add('error');
+                if (errorElement) {
+                    errorElement.textContent = errorMessage;
+                    errorElement.classList.add('visible');
+                }
+                return false;
+            } else {
+                field.classList.remove('error');
+                if (errorElement) {
+                    errorElement.classList.remove('visible');
+                }
+                return true;
+            }
+        }
+
         // 提交表單
         async function submitForm() {
-            // 基本表單驗證
-            const requiredFields = ["company", "dept", "groupCode", "phone"];
-            for (const field of requiredFields) {
-                const value = document.getElementById(field).value.trim();
-                if (!value) {
-                    alert(`請填寫 ${document.getElementById(field).placeholder}`);
-                    return;
-                }
+            // 進行詳細表單驗證
+            let isValid = true;
+            
+            // 驗證公司名稱 (必填)
+            const company = document.getElementById("company").value.trim();
+            isValid = validateField("company", company !== "", "公司名稱為必填欄位") && isValid;
+            
+            // 驗證群組代碼 (必填)
+            const groupCode = document.getElementById("groupCode").value.trim();
+            isValid = validateField("groupCode", groupCode !== "", "群組代碼為必填欄位") && isValid;
+            
+            // 驗證電話號碼 (必填，09開頭共10碼數字)
+            const phone = document.getElementById("phone").value.trim();
+            const phonePattern = /^09\d{8}$/;
+            isValid = validateField("phone", phonePattern.test(phone), "請輸入有效的手機號碼 (09開頭的10位數字)") && isValid;
+            
+            // 如果有驗證失敗，則不提交表單
+            if (!isValid) {
+                return;
             }
             
             const userId = document.getElementById("userId").value;
@@ -163,18 +287,20 @@
 
                 if (response.ok) {
                     alert("註冊成功！");
+                    // 註冊成功後自動關閉視窗回到聊天室
                     setTimeout(() => {
                        liff.closeWindow();
-                    }, 500);  // 延遲 500 毫秒後關閉視窗
+                    }, 1000);  // 延遲 1 秒後關閉視窗，確保用戶看到成功訊息
                 } else {
                     throw new Error(result || "註冊失敗，請稍後再試！");
                 }
             } catch (error) {
                 console.error("錯誤:", error);
-                alert("註冊失敗，請稍後再試！");
+                alert("註冊失敗，請稍後再試！" + (error.message ? "\n錯誤詳情: " + error.message : ""));
+                // 註冊失敗也自動關閉視窗回到聊天室
                 setTimeout(() => {
                    liff.closeWindow();
-                }, 500);  // 延遲 500 毫秒後關閉視窗
+                }, 2000);  // 延遲 2 秒後關閉視窗，讓用戶有時間看到錯誤訊息
             }
         }
     </script>
