@@ -87,17 +87,16 @@
 
         async function submitForm() {
             const data = {
-                Company: document.getElementById("company").value,
-                Dept: document.getElementById("dept").value,
-                GroupCode: document.getElementById("groupCode").value,
-                Phone: document.getElementById("phone").value,
-                Name: document.getElementById("name").value,
-                EmpId: document.getElementById("empId").value,
-                Nickname: document.getElementById("nickname").value,
-                ProjectId: document.getElementById("projectId").value,
-                UserId: userId
+                company: document.getElementById("company").value,
+                dept: document.getElementById("dept").value,
+                groupCode: document.getElementById("groupCode").value,
+                phone: document.getElementById("phone").value,
+                name: document.getElementById("name").value,
+                empId: document.getElementById("empId").value,
+                nickname: document.getElementById("nickname").value,
+                projectId: document.getElementById("projectId").value,
+                userId: userId
             };
-
             fetch("https://1382-125-227-174-151.ngrok-free.app/api/User/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
