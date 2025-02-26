@@ -3,94 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LINE通知註冊</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 400px;
-            margin: 50px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #333;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #06C755;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background-color: #04A73E;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <h2>LINE通知註冊</h2>
-        
-        <form id="registerForm">
-            <input type="text" id="company" placeholder="公司名稱" required>
-            <input type="text" id="dept" placeholder="部門" required>
-            <input type="text" id="groupCode" placeholder="群組代碼" required>
-            <input type="text" id="phone" placeholder="電話號碼" required>
-            <input type="text" id="name" placeholder="姓名">
-            <input type="text" id="empId" placeholder="員工編號">
-            <input type="text" id="nickname" placeholder="暱稱">
-
-            <input type="hidden" id="userId">
-            <input type="hidden" id="projectId" value="固定的projectId">
-
-            <button type="button" onclick="submitForm()">提交</button>
-        </form>
-    </div>
-
     <script>
-        // 初始化 LIFF
-        window.onload = async function() {
-            await initLIFF();
-        };
+        // 當頁面載入時初始化 LIFF
+        async function closeWindow() {
+            try {
+                await liff.init({ liffId: "2006966365-94yjBGjO" });
 
-        // 初始化 LIFF SDK
-        async function initLIFF() {
-            await liff.init({ liffId: "2006966365-94yjBGjO" });
+                // 確認是否在 LINE 客戶端中
+                if (liff.isInClient()) {
+                    // 提交表單後，關閉視窗並回到聊天畫面
+                    liff.closeWindow();
+                } else {
+                    // 如果不在 LIFF 客戶端中，給出提示並重定向回 LINE
+                    console.log("不是在 LIFF 客戶端中，將重定向回聊天畫面");
+                    alert("請在 LINE 應用程式中使用此功能");
 
-            // 從 URL 取得 userId
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get("userId");
-
-            if (userId) {
-                document.getElementById("userId").value = userId;
-            } else {
-                alert("無法獲取 userId，請重新進入此頁面！");
+                    // 在非 LIFF 環境中將用戶重定向到 LINE 聊天頁面
+                    setTimeout(() => {
+                        window.location.href = "line://";
+                    }, 500);  // 加上延遲 500 毫秒來確保流程完成
+                }
+            } catch (error) {
+                console.error("初始化 LIFF 失敗:", error);
+                alert("無法初始化 LIFF SDK，請稍後再試");
             }
         }
 
-        // 提交表單
+        // 當表單提交後執行
         async function submitForm() {
             const data = {
                 company: document.getElementById("company").value,
@@ -103,37 +43,55 @@
                 projectId: document.getElementById("projectId").value,
                 userId: document.getElementById("userId").value
             };
+            
+            // 提交表單數據
+            fetch("https://1382-125-227-174-151.ngrok-free.app/api/User/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            }).then(response => response.text())
+              .then(result => {
+                  alert("註冊成功！");
 
-            try {
-                // 送出 POST 請求到後端
-                const response = await fetch("https://1382-125-227-174-151.ngrok-free.app/api/User/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
-
-                // 確保返回的是文字
-                const result = await response.text();
-
-                if (response.ok) {
-                    alert("註冊成功！");
-                    setTimeout(() => {
-                         window.location.href = "line://";
-                     //   window.location.href = "close.html";
-                    }, 500);  // 延遲 500 毫秒後關閉視窗
-                } else {
-                    throw new Error(result || "註冊失敗，請稍後再試！");
-                }
-            } catch (error) {
-                console.error("錯誤:", error);
-                alert("註冊失敗，請稍後再試！");
-                setTimeout(() => {
-                     window.location.href = "line://";
-                   // window.location.href = "close.html";
-                }, 500);  // 延遲 500 毫秒後關閉視窗
-            }
+                  // 提交後，延遲 500 毫秒後關閉並回到聊天畫面
+                  setTimeout(() => {
+                      closeWindow(); // 使用 liff.closeWindow() 嘗試關閉
+                  }, 500);
+              })
+              .catch(error => {
+                  console.error("錯誤:", error);
+                  alert("註冊失敗，請稍後再試！");
+                  
+                  // 如果提交失敗，則延遲並重定向回 LINE
+                  setTimeout(() => {
+                      window.location.href = "line://";
+                  }, 500);
+              });
         }
-    </script>
 
+        // 初始化並執行
+        window.onload = async function() {
+            await closeWindow();
+        };
+    </script>
+</head>
+<body>
+    <div>
+        <h2>LINE通知註冊</h2>
+        <form id="registerForm" onsubmit="submitForm(); return false;">
+            <input type="text" id="company" placeholder="公司名稱" required>
+            <input type="text" id="dept" placeholder="部門" required>
+            <input type="text" id="groupCode" placeholder="群組代碼" required>
+            <input type="text" id="phone" placeholder="電話號碼" required>
+            <input type="text" id="name" placeholder="姓名">
+            <input type="text" id="empId" placeholder="員工編號">
+            <input type="text" id="nickname" placeholder="暱稱">
+
+            <input type="hidden" id="userId">
+            <input type="hidden" id="projectId" value="固定的projectId">
+
+            <button type="submit">提交</button>
+        </form>
+    </div>
 </body>
 </html>
