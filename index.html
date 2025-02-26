@@ -327,7 +327,9 @@
         async function checkUserExists(userId) {
             try {
                 const response = await fetch(`https://1382-125-227-174-151.ngrok-free.app/api/User/checkUser?userId=${userId}`, {
-                    method: "GET"
+                     method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: userId })
                 });
                 
                 const result = await response.text();
