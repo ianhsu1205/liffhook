@@ -112,7 +112,7 @@
                     body: JSON.stringify(data)
                 });
 
-                // 確保返回的數據是 JSON 格式
+                // 確保返回的是文字
                 const result = await response.text();
 
                 if (response.ok) {
@@ -121,7 +121,7 @@
                         window.location.href = "close.html";
                     }, 500);  // 延遲 500 毫秒後關閉視窗
                 } else {
-                    throw new Error(result.message || "註冊失敗，請稍後再試！");
+                    throw new Error(result || "註冊失敗，請稍後再試！");
                 }
             } catch (error) {
                 console.error("錯誤:", error);
