@@ -95,7 +95,7 @@
                 empId: document.getElementById("empId").value,
                 nickname: document.getElementById("nickname").value,
                 projectId: document.getElementById("projectId").value,
-                userId: userId
+                userId: document.getElementById("userId").value
             };
             fetch("https://1382-125-227-174-151.ngrok-free.app/api/User/register", {
                 method: "POST",
