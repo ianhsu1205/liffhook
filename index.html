@@ -82,7 +82,8 @@
             // 從 URL 取得 userId
             const urlParams = new URLSearchParams(window.location.search);
             const userId = urlParams.get("userId");
-
+            const profile=liff.getProfile();
+            alert("hi"+profile.displayName+",userId="+profile.userId);
             if (userId) {
                 document.getElementById("userId").value = userId;
             } else {
