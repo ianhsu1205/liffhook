@@ -78,9 +78,12 @@
                 await liff.init({ liffId: "2006966365-W2Z2BN2r" });
             
                 // 從 URL 取得 userId
-                const urlParams = new URLSearchParams(window.location.search);
-                const userId = urlParams.get("userId");
-            
+              //  const urlParams = new URLSearchParams(window.location.search);
+              //  const userId = urlParams.get("userId");
+              // 取得 LINE 使用者 ID
+            const profile = await liff.getProfile();
+            const userId= profile.userId;
+            //document.getElementById('userId').value = profile.userId;
                 if (userId) {
                     document.getElementById("userId").value = userId;
                 } else {
