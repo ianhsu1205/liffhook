@@ -77,22 +77,67 @@
 
         // 初始化 LIFF SDK
         async function initLIFF() {
-            await liff.init({ liffId: "2006966365-94yjBGjO" });
-
-            // 從 URL 取得 userId
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get("userId");
-            const profile=liff.getProfile();
-            alert("hi"+profile.displayName+",userId="+profile.userId);
-            if (userId) {
-                document.getElementById("userId").value = userId;
-            } else {
-                alert("無法獲取 userId，請重新進入此頁面！");
+            try {
+                // 確保 LIFF ID 格式正確（去除可能的空格）
+                const liffId = "2006966365-94yjBGjO".trim();
+                await liff.init({ liffId: liffId });
+                
+                if (!liff.isLoggedIn()) {
+                    // 如果用戶尚未登入 LINE，則引導登入
+                    liff.login();
+                } else {
+                    // 獲取用戶資料
+                    try {
+                        const profile = await liff.getProfile();
+                        document.getElementById("userId").value = profile.userId;
+                        // 如果有需要，可以自動填入暱稱
+                        document.getElementById("nickname").value = profile.displayName || "";
+                        
+                        console.log("用戶已登入:", profile.displayName);
+                    } catch (profileError) {
+                        console.error("獲取用戶資料失敗:", profileError);
+                        alert("無法獲取用戶資料，請確保已授權應用程式。");
+                    }
+                }
+                
+                // 檢查 URL 參數
+                const urlParams = new URLSearchParams(window.location.search);
+                const userIdFromUrl = urlParams.get("userId");
+                
+                if (userIdFromUrl && !document.getElementById("userId").value) {
+                    document.getElementById("userId").value = userIdFromUrl;
+                }
+                
+                // 確保有 userId
+                if (!document.getElementById("userId").value) {
+                    console.error("無法獲取 userId");
+                    alert("無法獲取用戶識別碼，請重新進入此頁面！");
+                }
+                
+            } catch (error) {
+                console.error("LIFF 初始化失敗:", error);
+                alert("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試。錯誤訊息: " + error.message);
             }
         }
 
         // 提交表單
         async function submitForm() {
+            // 基本表單驗證
+            const requiredFields = ["company", "dept", "groupCode", "phone"];
+            for (const field of requiredFields) {
+                const value = document.getElementById(field).value.trim();
+                if (!value) {
+                    alert(`請填寫 ${document.getElementById(field).placeholder}`);
+                    return;
+                }
+            }
+            
+            const userId = document.getElementById("userId").value;
+            if (!userId) {
+                alert("無法獲取用戶識別碼，請重新登入後再試！");
+                return;
+            }
+
             const data = {
                 company: document.getElementById("company").value,
                 dept: document.getElementById("dept").value,
@@ -102,7 +147,7 @@
                 empId: document.getElementById("empId").value,
                 nickname: document.getElementById("nickname").value,
                 projectId: document.getElementById("projectId").value,
-                userId: document.getElementById("userId").value
+                userId: userId
             };
 
             try {
