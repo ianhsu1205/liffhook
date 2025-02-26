@@ -108,7 +108,8 @@
                   alert("註冊成功！");
                  setTimeout(() => {
                         liff.closeWindow();
-                    }, 1000);  // 延遲 500 毫秒後關閉視窗
+                     window.close();
+                    }, 500);  // 延遲 500 毫秒後關閉視窗
               })
               .catch(error => {
                   console.error("錯誤:", error);
