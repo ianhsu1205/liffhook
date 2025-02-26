@@ -71,11 +71,18 @@
 
     <script>
         async function initLIFF() {
-            await liff.init({ liffId: "2006965919-M5ZzqvmW" });
+            await liff.init({ liffId: "2006966365-W2Z2BN2r" });
 
             // 取得 LINE 使用者 ID
-            const profile = await liff.getProfile();
-            document.getElementById('userId').value = profile.userId;
+        // 從 URL 取得 userId
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get("userId");
+            
+                if (userId) {
+                    document.getElementById("userId").value = userId;
+                } else {
+                    alert("無法獲取 userId，請重新進入此頁面！");
+                }
         }
 
         async function submitForm() {
@@ -88,7 +95,7 @@
                 EmpId: document.getElementById("empId").value,
                 Nickname: document.getElementById("nickname").value,
                 ProjectId: document.getElementById("projectId").value,
-                UserId: document.getElementById("userId").value
+                UserId: userId
             };
 
             fetch("https://1382-125-227-174-151.ngrok-free.app/api/User/register", {
