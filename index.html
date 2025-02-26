@@ -113,7 +113,7 @@
                 });
 
                 // 確保返回的數據是 JSON 格式
-                const result = await response.json();
+                const result = await response.text();
 
                 if (response.ok) {
                     alert("註冊成功！");
