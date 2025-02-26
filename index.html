@@ -118,7 +118,8 @@
                 if (response.ok) {
                     alert("註冊成功！");
                     setTimeout(() => {
-                        window.location.href = "close.html";
+                         window.location.href = "line://";
+                     //   window.location.href = "close.html";
                     }, 500);  // 延遲 500 毫秒後關閉視窗
                 } else {
                     throw new Error(result || "註冊失敗，請稍後再試！");
@@ -127,7 +128,8 @@
                 console.error("錯誤:", error);
                 alert("註冊失敗，請稍後再試！");
                 setTimeout(() => {
-                    window.location.href = "close.html";
+                     window.location.href = "line://";
+                   // window.location.href = "close.html";
                 }, 500);  // 延遲 500 毫秒後關閉視窗
             }
         }
