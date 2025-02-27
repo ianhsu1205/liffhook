@@ -239,7 +239,7 @@
             </div>
 
             <input type="hidden" id="userId">
-            <input type="hidden" id="projectId" value="固定的projectId">
+            <input type="hidden" id="channelId">
 
             <button type="button" onclick="submitForm()">提交資料</button>
             
@@ -299,8 +299,10 @@
                 // 用戶已登入，獲取用戶資料
                 try {
                     const profile = await liff.getProfile();
+                     const context =await  liff.getContext();
                     const userId = profile.userId;
                     document.getElementById("userId").value = userId;
+                    document.getElementById("channelId").value =context.channelId;
                     // 自動填入暱稱
                     document.getElementById("nickname").value = profile.displayName || "";
                     
