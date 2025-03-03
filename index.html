@@ -45,7 +45,7 @@
             color: #e74c3c;
             margin-left: 4px;
         }
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
@@ -54,12 +54,12 @@
             transition: border 0.3s;
             box-sizing: border-box;
         }
-        input:focus {
+        input:focus, select:focus {
             border-color: #06C755;
             outline: none;
             box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
         }
-        input.error {
+        input.error, select.error {
             border-color: #e74c3c;
         }
         .error-message {
@@ -138,6 +138,14 @@
             margin-bottom: 25px;
             line-height: 1.5;
         }
+        .user-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            line-height: 1.6;
+        }
         /* 對手機進行優化 */
         @media (max-width: 600px) {
             .container {
@@ -201,6 +209,7 @@
             <div class="confirmation-message">
                 您已經綁定至通知，是否要解除綁定？
             </div>
+            <div id="userInfoDisplay" class="user-info"></div>
             <div class="button-group">
                 <button onclick="unbindUser()">是，解除綁定</button>
                 <button class="secondary-button" onclick="closeWindowSafely()">否，保持綁定</button>
@@ -218,6 +227,13 @@
             <div class="form-group">
                 <label for="dept">部門</label>
                 <input type="text" id="dept" placeholder="請輸入部門名稱">
+            </div>
+            
+            <div class="form-group">
+                <label for="job">職稱</label>
+                <select id="job">
+                    <option value="一般">一般</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -263,7 +279,7 @@
     <script>
         // 全局變量記錄初始化狀態
         let liffInitialized = false;
-        const base_url="https://3208-125-227-174-151.ngrok-free.app/";
+        const base_url="https://3f8e-202-39-28-127.ngrok-free.app/";
         const channelId="2006930199"; //不同的服務要修改
         // 初始化 LIFF
         window.onload = async function() {
@@ -363,6 +379,18 @@
                 if (response.status === 200) {
                     // 用戶已存在，顯示解除綁定確認
                     console.log("用戶已存在，顯示解除綁定確認");
+                    
+                    // 獲取返回的用戶資訊
+                    const userData = await response.json();
+                    console.log("獲取到的用戶資訊:", userData);
+                    
+                    // 顯示用戶綁定資訊
+                    const userInfoDisplay = document.getElementById("userInfoDisplay");
+                    userInfoDisplay.innerHTML = `
+                        <p><strong>${userData.NickName || '用戶'}您好：</strong></p>
+                        <p>您已綁定接受${userData.Company || ''}${userData.dept || ''}${userData.job || ''}，電話${userData.Phone || ''}，的相關業務通知。</p>
+                    `;
+                    
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
                     // 用戶不存在，顯示註冊表單
@@ -514,6 +542,7 @@
             const data = {
                 company: company,
                 dept: document.getElementById("dept").value.trim(),
+                job: document.getElementById("job").value,
                 groupCode: groupCode,
                 phone: phone,
                 name: document.getElementById("name").value.trim(),
