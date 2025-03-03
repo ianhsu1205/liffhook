@@ -281,6 +281,7 @@
         let liffInitialized = false;
         const base_url="https://3f8e-202-39-28-127.ngrok-free.app/";
         const channelId="2006930199"; //不同的服務要修改
+        const liffId = "2006966365-94yjBGjO".trim();
         // 初始化 LIFF
         window.onload = async function() {
             try {
@@ -313,7 +314,6 @@
         async function initLIFF() {
             try {
                 // 確保 LIFF ID 格式正確（去除可能的空格）
-                const liffId = "2006966365-94yjBGjO".trim();
                 await liff.init({ liffId: liffId });
                 
                 // 記錄初始化成功
@@ -366,12 +366,12 @@
         }
         
         // 檢查用戶是否已經存在
-        async function checkUserExists(userId) {
+        async function checkUserExists(userId,channelId) {
             try {
                 const response = await fetch(base_url+"api/User/checkUser", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId })
+                    body: JSON.stringify({ userId: userId,channelId:channelId })
                 });
                 
                 console.log("檢查用戶存在性回應狀態:", response.status);
