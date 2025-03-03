@@ -419,7 +419,7 @@
         async function unbindUser() {
             showLoading();
             const userId = document.getElementById("userId").value;
-            
+            const channelId = document.getElementById("channelId").value;
             if (!userId) {
                 showStatusMessage("無法獲取用戶識別碼，請重新登入後再試", "error");
                 hideLoading();
@@ -430,7 +430,7 @@
                 const response = await fetch(base_url+"api/User/unregister", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId })
+                    body: JSON.stringify({ userId: userId,channelId: channelId  })
                 });
                 
                 if (response.ok) {
