@@ -225,42 +225,30 @@
             </div>
             
             <div class="form-group">
-                <label for="dept">部門</label>
+                <label for="dept" class="required">部門</label>
                 <input type="text" id="dept" placeholder="請輸入部門名稱">
+                <div class="error-message" id="company-error">部門為必填欄位</div>
             </div>
             
-            <div class="form-group">
+            <div class="form-group" >
                 <label for="job">職稱</label>
-                <select id="job">
-                    <option value="一般">一般</option>
-                </select>
+                 <input type="text" id="job" placeholder="請輸入職稱">
             </div>
             
             <div class="form-group">
-                <label for="groupCode" class="required">群組代碼</label>
-                <input type="text" id="groupCode" placeholder="請輸入群組代碼">
-                <div class="error-message" id="groupCode-error">群組代碼為必填欄位</div>
+                <label for="groupCode" class="required">專案群組</label>
+                <input type="text" id="groupCode" placeholder="請輸入群組">
             </div>
-            
+                      
             <div class="form-group">
-                <label for="phone" class="required">電話號碼</label>
-                <input type="tel" id="phone" placeholder="請輸入09開頭的10位數字">
-                <div class="error-message" id="phone-error">請輸入有效的手機號碼 (09開頭的10位數字)</div>
+                <label for="empId" class="required">員工編號</label>
+                <input type="text" id="empId" placeholder="請輸入員工編號">
+                <div class="error-message" id="company-error">員工編號為必填欄位</div>
             </div>
             
             <div class="form-group">
                 <label for="name">姓名</label>
                 <input type="text" id="name" placeholder="請輸入姓名">
-            </div>
-            
-            <div class="form-group">
-                <label for="empId">員工編號</label>
-                <input type="text" id="empId" placeholder="請輸入員工編號">
-            </div>
-            
-            <div class="form-group">
-                <label for="nickname">暱稱</label>
-                <input type="text" id="nickname" placeholder="請輸入暱稱">
             </div>
 
             <input type="hidden" id="userId">
@@ -341,8 +329,8 @@
                     document.getElementById("userId").value = userId;
                     document.getElementById("channelId").value = channelId;
                     
-                    // 自動填入暱稱
-                    document.getElementById("nickname").value = profile.displayName || "";
+                    // 自動填入姓名
+                    document.getElementById("name").value = profile.displayName || "";
                     
                     console.log("用戶已登入:", profile.displayName);
                     
@@ -387,11 +375,11 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.nickName || '用戶'}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
-                       手機號碼：${userData.phone || ''}<br>
+                        <strong>${userData.name || '用戶'}({userData.empId || '用戶'})</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
                        公司：${userData.company || ''}<br>
-                       單位：${userData.dept || ''}<br>
+                       部門：${userData.dept || ''}<br>
                        職稱：${userData.job || ''}<br>
+                       專案群組：${userData.groupCode || ''}<br>
                        `;
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
@@ -515,14 +503,17 @@
             const company = document.getElementById("company").value.trim();
             isValid = validateField("company", company !== "", "公司名稱為必填欄位") && isValid;
             
-            // 驗證群組代碼 (必填)
-            const groupCode = document.getElementById("groupCode").value.trim();
-            isValid = validateField("groupCode", groupCode !== "", "群組代碼為必填欄位") && isValid;
-            
-            // 驗證電話號碼 (必填，09開頭共10碼數字)
-            const phone = document.getElementById("phone").value.trim();
-            const phonePattern = /^09\d{8}$/;
-            isValid = validateField("phone", phonePattern.test(phone), "請輸入有效的手機號碼 (09開頭的10位數字)") && isValid;
+            // 驗證部門 (必填)
+            const dept = document.getElementById("dept").value.trim();
+            isValid = validateField("dept", dept !== "", "部門為必填欄位") && isValid;
+
+             // 驗證員工編號 (必填)
+            const empid = document.getElementById("empId").value.trim();
+            isValid = validateField("empId", empid !== "", "員工編號為必填欄位") && isValid;
+
+           // 驗證姓名 (必填)
+            const name = document.getElementById("name").value.trim();
+            isValid = validateField("name", name !== "", "姓名為必填欄位") && isValid;
             
             // 如果有驗證失敗，則不提交表單
             if (!isValid) {
@@ -549,7 +540,6 @@
                 phone: phone,
                 name: document.getElementById("name").value.trim(),
                 empId: document.getElementById("empId").value.trim(),
-                nickname: document.getElementById("nickname").value.trim(),
                 channelId: document.getElementById("channelId").value,
                 userId: userId,
                 insert_at: new Date().toISOString() // 添加當前時間戳
