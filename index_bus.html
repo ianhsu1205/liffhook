@@ -376,7 +376,7 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'}{userData.empId || ''}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
+                        <strong>${userData.name || '用戶'}${userData.empId ? ' ' + userData.empId : ''}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
                        公司：${userData.company || ''}<br>
                        部門：${userData.dept || ''}<br>
                        職稱：${userData.job || ''}<br>
@@ -408,10 +408,11 @@
         
         // 解除用戶綁定
         async function unbindUser() {
+            showLoading();
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "解除綁定中...";
-            showLoading();
+
             const userId = document.getElementById("userId").value;
             const channelId = document.getElementById("channelId").value;
             if (!userId) {
@@ -533,10 +534,11 @@
             }
 
             // 禁用提交按鈕，防止重複提交
+            showLoading();
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "綁定中...";
-            showLoading();
+
             
             const data = {
                 company: company,
