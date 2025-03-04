@@ -376,7 +376,7 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'}({userData.empId || '用戶'})</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
+                        <strong>${userData.name || '用戶'}{userData.empId || ''}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
                        公司：${userData.company || ''}<br>
                        部門：${userData.dept || ''}<br>
                        職稱：${userData.job || ''}<br>
