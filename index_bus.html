@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>首都集團通知平台Line通知綁定</title>
+    <title>首都集團通知平台綁定</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
@@ -200,7 +200,7 @@
     </div>
 
     <div class="container">
-        <h2>首都集團通知平台Line通知綁定</h2>
+        <h2>首都集團通知平台綁定</h2>
         
         <div id="statusMessage" class="status-message"></div>
         
@@ -258,7 +258,7 @@
             <button type="button" onclick="submitForm()">提交資料</button>
             
             <div class="line-brand">
-               首都集團通知平台Line通知綁定
+               首都集團通知平台
             </div>
         </form>
         
@@ -408,6 +408,9 @@
         
         // 解除用戶綁定
         async function unbindUser() {
+            const submitButton = document.querySelector('button[type="button"]');
+            submitButton.disabled = true;
+            submitButton.textContent = "解除綁定中...";
             showLoading();
             const userId = document.getElementById("userId").value;
             const channelId = document.getElementById("channelId").value;
@@ -425,6 +428,7 @@
                 });
                 
                 if (response.ok) {
+                     window.scrollTo(0, 0);  // 滾動至頁面最上方
                     showStatusMessage("解除綁定成功！即將返回聊天室...", "success");
                     setTimeout(closeWindowSafely, 2000);
                 } else {
@@ -531,7 +535,7 @@
             // 禁用提交按鈕，防止重複提交
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
-            submitButton.textContent = "提交中...";
+            submitButton.textContent = "綁定中...";
             showLoading();
             
             const data = {
@@ -559,6 +563,7 @@
                 const result = await response.text();
 
                 if (response.ok) {
+                      window.scrollTo(0, 0);  // 滾動至頁面最上方
                     showStatusMessage("註冊成功！即將返回聊天室...", "success");
                     // 註冊成功後自動關閉視窗回到聊天室
                     setTimeout(closeWindowSafely, 2000);  // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
