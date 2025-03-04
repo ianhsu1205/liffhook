@@ -387,9 +387,12 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <p><strong>${userData.nickName || '用戶'}您好，您的手機為<strong>${userData.phone || ''}：</strong></p>
-                        <p>您目前已綁定及同意接受：</p>公司：<strong>${userData.company || ''}</strong></p>單位：<strong>${userData.dept || ''}</strong></p>職稱：<strong>${userData.job || ''}</strong></p>上述範圍的相關業務通知。</p>
-                    `;
+                         <strong>${userData.nickName || '用戶'}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
+                           手機號碼：${userData.phone || ''}<br>
+                           公司：${userData.company || ''}<br>
+                           單位：${userData.dept || ''}<br>
+                           職稱：${userData.job || ''}<br>
+                           `;
                     
                     
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
