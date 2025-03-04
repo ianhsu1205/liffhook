@@ -397,11 +397,12 @@
         
         // 解除用戶綁定
         async function unbindUser() {
+            showLoading();            
              // 禁用提交按鈕，防止重複提交
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "解除綁定中...";
-            showLoading();
+
             const userId = document.getElementById("userId").value;
             const channelId = document.getElementById("channelId").value;
             if (!userId) {
@@ -519,10 +520,11 @@
             }
 
             // 禁用提交按鈕，防止重複提交
+                        showLoading();
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "綁定中...";
-            showLoading();
+
             
             const data = {
                 company: company,
