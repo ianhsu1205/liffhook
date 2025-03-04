@@ -510,12 +510,13 @@
 
              // 驗證員工編號 (必填)
             const empid = document.getElementById("empId").value.trim();
-            isValid = validateField("empId", empid !== "", "員工編號為必填欄位") && isValid;
+             const empIdPattern = /^\d{4,6}$/;
+            isValid = validateField("empId", empIdPattern.test(empid),"員工編號為4到6碼數字") && isValid;
 
            // 驗證姓名 (必填)
             const name = document.getElementById("name").value.trim();
             isValid = validateField("name", name !== "", "姓名為必填欄位") && isValid;
-            
+           
             // 如果有驗證失敗，則不提交表單
             if (!isValid) {
                 return;
