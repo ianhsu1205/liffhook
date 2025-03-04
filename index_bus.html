@@ -535,12 +535,12 @@
             
             const data = {
                 company: company,
-                dept: document.getElementById("dept").value.trim(),
+                dept: dept,
                 job: document.getElementById("job").value,
-                groupCode: groupCode,
-                phone: phone,
-                name: document.getElementById("name").value.trim(),
-                empId: document.getElementById("empId").value.trim(),
+                groupCode: document.getElementById("groupCode").value.trim();,
+                phone: "",
+                name: name,
+                empId: empid,
                 channelId: document.getElementById("channelId").value,
                 userId: userId,
                 insert_at: new Date().toISOString() // 添加當前時間戳
