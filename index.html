@@ -383,13 +383,14 @@
                     // 獲取返回的用戶資訊
                     const userData = await response.json();
                     console.log("獲取到的用戶資訊:", userData);
-                    
+
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <p><strong>${userData.nickName || '用戶'}您好：</strong></p>
-                        <p>您已綁定接受${userData.ompany || ''}${userData.dept || ''}${userData.job || ''}，電話${userData.phone || ''}，的相關業務通知。</p>
+                        <p><strong>${userData.nickName || '用戶'}您好，您的手機為<strong>${userData.phone || ''}：</strong></p>
+                        <p>您目前已綁定及同意接受：</p>公司：<strong>${userData.company || ''}</strong></p>單位：<strong>${userData.dept || ''}</strong></p>職稱：<strong>${userData.job || ''}</strong></p>上述範圍的相關業務通知。</p>
                     `;
+                    
                     
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
