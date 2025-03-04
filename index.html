@@ -222,20 +222,8 @@
                 <label for="company" class="required">公司名稱</label>
                 <input type="text" id="company" placeholder="請輸入公司名稱">
                 <div class="error-message" id="company-error">公司名稱為必填欄位</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="dept">部門</label>
-                <input type="text" id="dept" placeholder="請輸入部門名稱">
-            </div>
-            
-            <div class="form-group">
-                <label for="job">職稱</label>
-                <select id="job">
-                    <option value="一般">一般</option>
-                </select>
-            </div>
-            
+            </div>           
+          
             <div class="form-group">
                 <label for="groupCode" class="required">群組代碼</label>
                 <input type="text" id="groupCode" placeholder="請輸入群組代碼">
@@ -246,16 +234,6 @@
                 <label for="phone" class="required">電話號碼</label>
                 <input type="tel" id="phone" placeholder="請輸入09開頭的10位數字">
                 <div class="error-message" id="phone-error">請輸入有效的手機號碼 (09開頭的10位數字)</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="name">姓名</label>
-                <input type="text" id="name" placeholder="請輸入姓名">
-            </div>
-            
-            <div class="form-group">
-                <label for="empId">員工編號</label>
-                <input type="text" id="empId" placeholder="請輸入員工編號">
             </div>
             
             <div class="form-group">
@@ -390,8 +368,6 @@
                          <strong>${userData.nickName || '用戶'}</strong>您好，您目前已綁定並同意接受以下範圍的相關業務通知：<br>
                            手機號碼：${userData.phone || ''}<br>
                            公司：${userData.company || ''}<br>
-                           單位：${userData.dept || ''}<br>
-                           職稱：${userData.job || ''}<br>
                            `;
                     
                     
@@ -545,12 +521,12 @@
             
             const data = {
                 company: company,
-                dept: document.getElementById("dept").value.trim(),
-                job: document.getElementById("job").value,
+                dept: "",
+                job: "",
                 groupCode: groupCode,
                 phone: phone,
-                name: document.getElementById("name").value.trim(),
-                empId: document.getElementById("empId").value.trim(),
+                name: "",
+                empId: "",
                 nickname: document.getElementById("nickname").value.trim(),
                 channelId: document.getElementById("channelId").value,
                 userId: userId,
