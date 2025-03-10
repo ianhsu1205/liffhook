@@ -366,8 +366,33 @@
         
         // 頁面載入
         window.onload = async function() {
+            try  {
+        await initLIFF();
+        
+        // 立即請求位置權限（只會請求一次）
+        if (liffInitialized && liff.isLoggedIn()) {
             try {
-                await initLIFF();
+                if (liff.isInClient()) {
+                    // 如果在LINE應用內，提前請求位置
+                    const position = await liff.getPosition();
+                    currentLatitude = position.latitude;
+                    currentLongitude = position.longitude;
+                    console.log("位置權限已獲取");
+                } else {
+                    // 在瀏覽器中
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            currentLatitude = position.coords.latitude;
+                            currentLongitude = position.coords.longitude;
+                            console.log("位置權限已獲取");
+                        },
+                        error => console.log("位置獲取延遲到需要時再請求")
+                    );
+                }
+            } catch (e) {
+                console.log("位置獲取延遲到需要時再請求");
+            }
+                }
             } catch (error) {
                 console.error("頁面載入時發生錯誤:", error);
                 showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
@@ -395,7 +420,17 @@
         // 初始化 LIFF
         async function initLIFF() {
             try {
-                await liff.init({ liffId: liffId });
+                // 使用persistent-geo參數
+        await liff.init({ 
+            liffId: liffId,
+            permanentLink: {
+                permanentLinkPattern: "concat",
+                permanentLinkParams: [{
+                    key: "liff.persistent-geo",
+                    value: "1"
+                }]
+            }
+        });
                 
                 liffInitialized = true;
                 console.log("LIFF 初始化成功");
@@ -468,16 +503,25 @@
             
             showLoading();
             try {
+                // 先檢查是否已經有位置
+        if (currentLatitude !== 0 && currentLongitude !== 0) {
+            console.log(`使用已保存的位置: ${currentLatitude}, ${currentLongitude}`);
+            await fetchIntersections();
+            return;
+        }
                 if (liff.isInClient()) {
                     // 在 LINE 應用內使用 LINE 的位置 API
                     const position = await liff.getPosition();
                     currentLatitude = position.latitude;
                     currentLongitude = position.longitude;
                 } else {
-                    // 在瀏覽器中使用瀏覽器的地理位置 API
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject);
-                    });
+                     // 在瀏覽器中使用瀏覽器的地理位置 API
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    maximumAge: 30000 // 允許使用最近30秒內的位置緩存
+                });
+            });
                     currentLatitude = position.coords.latitude;
                     currentLongitude = position.coords.longitude;
                 }
