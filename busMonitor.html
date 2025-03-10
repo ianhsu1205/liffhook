@@ -366,28 +366,19 @@
         
         // 頁面載入
         window.onload = async function() {
-            try  {
+       try  {
         await initLIFF();
         
-        // 立即請求位置權限（只會請求一次）
+        // 如果用戶已登入，預先請求位置權限
         if (liffInitialized && liff.isLoggedIn()) {
-            try {
-                if (liff.isInClient()) {
-                    // 如果在LINE應用內，提前請求位置
-                    const position = await liff.getPosition();
-                    currentLatitude = position.latitude;
-                    currentLongitude = position.longitude;
-                    console.log("位置權限已獲取");
-                } else {
-                    // 在瀏覽器中
-                    navigator.geolocation.getCurrentPosition(
-                        position => {
-                            currentLatitude = position.coords.latitude;
-                            currentLongitude = position.coords.longitude;
-                            console.log("位置權限已獲取");
-                        },
-                        error => console.log("位置獲取延遲到需要時再請求")
-                    );
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    console.log("位置權限已預先獲取");
+                    currentLatitude = position.coords.latitude;
+                    currentLongitude = position.coords.longitude;
+                },
+                error => console.log("位置權限請求延遲到用戶操作時")
+            );
                 }
             } catch (e) {
                 console.log("位置獲取延遲到需要時再請求");
@@ -495,48 +486,58 @@
         }
         
         // 獲取當前位置
-        async function getCurrentPosition() {
-            if (!liffInitialized) {
-                showStatusMessage("應用程式尚未初始化，請重新整理頁面", "error");
-                return;
-            }
-            
-            showLoading();
-            try {
-                // 先檢查是否已經有位置
-        if (currentLatitude !== 0 && currentLongitude !== 0) {
-            console.log(`使用已保存的位置: ${currentLatitude}, ${currentLongitude}`);
-            await fetchIntersections();
-            return;
-        }
-                if (liff.isInClient()) {
-                    // 在 LINE 應用內使用 LINE 的位置 API
-                    const position = await liff.getPosition();
-                    currentLatitude = position.latitude;
-                    currentLongitude = position.longitude;
-                } else {
-                     // 在瀏覽器中使用瀏覽器的地理位置 API
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    maximumAge: 30000 // 允許使用最近30秒內的位置緩存
-                });
-            });
-                    currentLatitude = position.coords.latitude;
-                    currentLongitude = position.coords.longitude;
+async function getCurrentPosition() {
+    if (!liffInitialized) {
+        showStatusMessage("應用程式尚未初始化，請重新整理頁面", "error");
+        return;
+    }
+    
+    showLoading();
+    try {
+        // 優先使用瀏覽器的地理位置API，不管是否在LINE應用內
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve, 
+                (error) => {
+                    // 如果瀏覽器地理位置獲取失敗，且在LINE應用內，則嘗試使用LINE的API
+                    if (liff.isInClient()) {
+                        console.log("瀏覽器定位失敗，嘗試使用LINE定位");
+                        liff.getPosition()
+                            .then(positionFromLiff => {
+                                resolve({
+                                    coords: {
+                                        latitude: positionFromLiff.latitude,
+                                        longitude: positionFromLiff.longitude
+                                    }
+                                });
+                            })
+                            .catch(reject);
+                    } else {
+                        reject(error);
+                    }
+                },
+                { 
+                    enableHighAccuracy: true,  // 要求高精度位置
+                    timeout: 10000,            // 10秒超時
+                    maximumAge: 0              // 不使用緩存
                 }
-                
-                console.log(`當前位置: ${currentLatitude}, ${currentLongitude}`);
-                
-                // 獲取附近路口
-                await fetchIntersections();
-                
-            } catch (error) {
-                console.error("獲取位置失敗:", error);
-                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
-                hideLoading();
-            }
-        }
+            );
+        });
+        
+        currentLatitude = position.coords.latitude;
+        currentLongitude = position.coords.longitude;
+        
+        console.log(`當前位置 (使用手機GPS): ${currentLatitude}, ${currentLongitude}`);
+        
+        // 獲取附近路口
+        await fetchIntersections();
+        
+    } catch (error) {
+        console.error("獲取位置失敗:", error);
+        showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
+        hideLoading();
+    }
+}
         // 獲取附近交叉路口
         async function fetchIntersections() {
             try {
