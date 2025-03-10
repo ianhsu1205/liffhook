@@ -245,9 +245,9 @@
         <!-- 監控記錄填報表單 -->
         <form id="monitorForm" class="hidden">
             <div class="form-group">
-                <label for="location" class="required">交叉路口位置</label>
+                <label for="location" class="required">我的位置</label>
                 <div class="input-group">
-                    <input type="text" id="location" readonly placeholder="點擊選擇附近交叉路口" onclick="openLocationModal()">
+                    <input type="text" id="location" readonly placeholder="點擊選擇附近路口" onclick="openLocationModal()">
                     <button type="button" class="secondary-button" onclick="refreshLocations()">重新定位</button>
                 </div>
             </div>
@@ -287,7 +287,7 @@
             <button type="button" onclick="submitForm()">送出記錄</button>
             
             <div class="line-brand">
-               首都集團監控平台
+               首都集通知控平台
             </div>
         </form>
     </div>
@@ -295,7 +295,7 @@
     <!-- 地點選擇彈窗 -->
     <div id="locationModal" class="modal">
         <div class="modal-content">
-            <h3>選擇附近交叉路口</h3>
+            <h3>選擇我的地點</h3>
             <div id="locationList"></div>
             <div class="button-group">
                 <button type="button" onclick="closeLocationModal()">關閉</button>
@@ -458,7 +458,7 @@
                 
                 console.log(`當前位置: ${currentLatitude}, ${currentLongitude}`);
                 
-                // 獲取附近交叉路口
+                // 獲取附近路口
                 await fetchIntersections();
                 
             } catch (error) {
@@ -480,17 +480,17 @@
                 
                 if (data && data.length > 0) {
                     intersections = data;
-                    console.log("找到附近交叉路口:", intersections);
+                    console.log("找到附近路口:", intersections);
                 } else {
-                    console.log("附近未找到交叉路口");
+                    console.log("附近未找到路口");
                     intersections = [];
                 }
                 
                 hideLoading();
             } catch (error) {
-                console.error("獲取交叉路口失敗:", error);
+                console.error("獲取路口失敗:", error);
                 hideLoading();
-                showStatusMessage("無法獲取附近交叉路口，請稍後再試", "error");
+                showStatusMessage("無法獲取附近路口，請稍後再試", "error");
             }
         }
         
@@ -663,7 +663,7 @@
                 item.textContent = `${bus.plateNumber} - ${bus.routeName?.chinese || ''}`;
                 item.addEventListener("click", function() {
                     document.getElementById("plateNumber").value = bus.plateNumber;
-                    document.getElementById("plateNumbCompany").value = bus.plateNumbCompany || '';
+                    document.getElementById("plateNumbCompany").value = bus.operatorID || '';
                     document.getElementById("routeName").value = bus.routeName?.chinese || '';
                     document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
                     closeBusModal();
@@ -684,7 +684,7 @@
             
             // 驗證位置
             if (!document.getElementById("location").value) {
-                showStatusMessage("請選擇交叉路口位置", "error");
+                showStatusMessage("請選擇路口位置", "error");
                 isValid = false;
             }
             
