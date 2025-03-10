@@ -364,9 +364,9 @@
         let selectedMainItem = "";
         let selectedOtherItems = [];
         
-        // 頁面載入
-        window.onload = async function() {
-       try  {
+// 頁面載入
+window.onload = async function() {
+    try {
         await initLIFF();
         
         // 如果用戶已登入，預先請求位置權限
@@ -379,16 +379,12 @@
                 },
                 error => console.log("位置權限請求延遲到用戶操作時")
             );
-                }
-            } catch (e) {
-                console.log("位置獲取延遲到需要時再請求");
-            }
-                }
-            } catch (error) {
-                console.error("頁面載入時發生錯誤:", error);
-                showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
-            }
-        };
+        }
+    } catch (error) {
+        console.error("頁面載入時發生錯誤:", error);
+        showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
+    }
+};
         
         // 顯示載入中
         function showLoading() {
