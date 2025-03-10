@@ -363,22 +363,34 @@
         let otherItems = [];
         let selectedMainItem = "";
         let selectedOtherItems = [];
+            // 在頁面載入時設置位置監聽器
+        let watchId = null;
         
-// 頁面載入
 window.onload = async function() {
     try {
+        // 嘗試從本地儲存載入最後已知位置
+        loadLastPosition();
+        
         await initLIFF();
         
-        // 如果用戶已登入，預先請求位置權限
+        // 如果用戶已登入，設置持續的位置監聽
         if (liffInitialized && liff.isLoggedIn()) {
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    console.log("位置權限已預先獲取");
-                    currentLatitude = position.coords.latitude;
-                    currentLongitude = position.coords.longitude;
-                },
-                error => console.log("位置權限請求延遲到用戶操作時")
-            );
+            // 使用 watchPosition 替代單次的位置請求
+            if (!window.watchId) {
+                window.watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        console.log("位置已更新");
+                        currentLatitude = position.coords.latitude;
+                        currentLongitude = position.coords.longitude;
+                        savePosition(currentLatitude, currentLongitude);
+                    },
+                    error => console.log("位置監聽錯誤:", error),
+                    { 
+                        enableHighAccuracy: true,
+                        maximumAge: 30000 // 允許30秒內的位置緩存
+                    }
+                );
+            }
         }
     } catch (error) {
         console.error("頁面載入時發生錯誤:", error);
@@ -408,17 +420,12 @@ window.onload = async function() {
         async function initLIFF() {
             try {
                 // 使用persistent-geo參數
-        await liff.init({ 
-            liffId: liffId,
-            permanentLink: {
-                permanentLinkPattern: "concat",
-                permanentLinkParams: [{
-                    key: "liff.persistent-geo",
-                    value: "1"
-                }]
-            }
-        });
-                
+                    await liff.init({ 
+                        liffId: liffId,
+                        // 使用更簡單的方式添加persistent-geo參數
+                        persistentGeo: true
+                    });
+                                    
                 liffInitialized = true;
                 console.log("LIFF 初始化成功");
                 
@@ -481,11 +488,20 @@ window.onload = async function() {
             }
         }
         
-        // 獲取當前位置
+// 獲取當前位置
 async function getCurrentPosition() {
     if (!liffInitialized) {
         showStatusMessage("應用程式尚未初始化，請重新整理頁面", "error");
         return;
+    }
+    
+    // 如果已有位置信息且不超過5分鐘，直接使用
+    if (currentLatitude !== 0 && currentLongitude !== 0) {
+        const lastPositionTime = localStorage.getItem('lastPositionTimestamp');
+        if (lastPositionTime && (Date.now() - lastPositionTime < 5 * 60 * 1000)) {
+            console.log(`使用已有的位置: ${currentLatitude}, ${currentLongitude}`);
+            return;
+        }
     }
     
     showLoading();
@@ -515,7 +531,7 @@ async function getCurrentPosition() {
                 { 
                     enableHighAccuracy: true,  // 要求高精度位置
                     timeout: 10000,            // 10秒超時
-                    maximumAge: 0              // 不使用緩存
+                    maximumAge: 60000          // 允許1分鐘的緩存
                 }
             );
         });
@@ -523,7 +539,10 @@ async function getCurrentPosition() {
         currentLatitude = position.coords.latitude;
         currentLongitude = position.coords.longitude;
         
-        console.log(`當前位置 (使用手機GPS): ${currentLatitude}, ${currentLongitude}`);
+        // 保存位置到本地儲存
+        savePosition(currentLatitude, currentLongitude);
+        
+        console.log(`當前位置: ${currentLatitude}, ${currentLongitude}`);
         
         // 獲取附近路口
         await fetchIntersections();
@@ -691,11 +710,20 @@ async function getCurrentPosition() {
         }
         
         // 打開位置選擇彈窗
-        function openLocationModal() {
-            // 獲取位置並顯示彈窗
-            getCurrentPosition();
-            document.getElementById("locationModal").style.display = "block";
-        }
+            // 打開位置選擇彈窗
+            function openLocationModal() {
+                // 如果已有位置信息，直接使用
+                if (currentLatitude !== 0 && currentLongitude !== 0) {
+                    fetchIntersections().then(() => {
+                        document.getElementById("locationModal").style.display = "block";
+                    });
+                } else {
+                    // 否則才獲取位置
+                    getCurrentPosition().then(() => {
+                        document.getElementById("locationModal").style.display = "block";
+                    });
+                }
+            }
         
         // 關閉位置選擇彈窗
         function closeLocationModal() {
@@ -724,13 +752,20 @@ async function getCurrentPosition() {
             });
         }
         
-        // 打開車輛選擇彈窗
+      // 打開車輛選擇彈窗
         function openBusModal() {
-            // 先獲取位置
-            getCurrentPosition().then(() => {
-                fetchBuses();
-                document.getElementById("busModal").style.display = "block";
-            });
+            // 如果已有位置信息，直接使用
+            if (currentLatitude !== 0 && currentLongitude !== 0) {
+                fetchBuses().then(() => {
+                    document.getElementById("busModal").style.display = "block";
+                });
+            } else {
+                // 否則才獲取位置
+                getCurrentPosition().then(() => {
+                    fetchBuses();
+                    document.getElementById("busModal").style.display = "block";
+                });
+            }
         }
         
         // 關閉車輛選擇彈窗
@@ -762,7 +797,37 @@ async function getCurrentPosition() {
                 container.appendChild(item);
             });
         }
-        
+        // 當獲取到新位置時，存入 localStorage
+        function savePosition(latitude, longitude) {
+            try {
+                localStorage.setItem('lastKnownLatitude', latitude);
+                localStorage.setItem('lastKnownLongitude', longitude);
+                localStorage.setItem('lastPositionTimestamp', Date.now());
+            } catch (e) {
+                console.log("無法儲存位置到本地儲存");
+            }
+        }
+        // 嘗試從 localStorage 讀取位置
+        function loadLastPosition() {
+            try {
+                const lastLat = localStorage.getItem('lastKnownLatitude');
+                const lastLng = localStorage.getItem('lastKnownLongitude');
+                const timestamp = localStorage.getItem('lastPositionTimestamp');
+                
+                if (lastLat && lastLng && timestamp) {
+                    // 檢查時間戳是否在過去30分鐘內
+                    const thirtyMinutes = 30 * 60 * 1000;
+                    if (Date.now() - timestamp < thirtyMinutes) {
+                        currentLatitude = parseFloat(lastLat);
+                        currentLongitude = parseFloat(lastLng);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.log("無法從本地儲存讀取位置");
+            }
+            return false;
+        }
         // 提交表單
         async function submitForm() {
             // 表單驗證
