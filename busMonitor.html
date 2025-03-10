@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路口查核記錄</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        h2 {
+            color: #06C755;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #555;
+        }
+        .required::after {
+            content: "*";
+            color: #e74c3c;
+            margin-left: 4px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #06C755;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+        }
+        input.error, select.error {
+            border-color: #e74c3c;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .error-message.visible {
+            display: block;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #06C755;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #04A73E;
+            box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
+        }
+        .secondary-button {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        .secondary-button:hover {
+            background-color: #e5e5e5;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .line-brand {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+        .status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .status-message.info {
+            background-color: #e7f3fe;
+            color: #004085;
+            display: block;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #06C755;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+        
+        /* 自定義選單樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+        }
+        
+        /* 主要項目卡片樣式 */
+        .main-item-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .main-item-card {
+            flex: 1 0 30%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .main-item-card.selected {
+            background-color: #06C755;
+            color: white;
+            border-color: #06C755;
+        }
+        
+        /* 其他項目卡片樣式 */
+        .other-item-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .other-item-card {
+            flex: 1 0 45%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .other-item-card.selected {
+            background-color: #e7f3fe;
+            color: #004085;
+            border-color: #b8daff;
+        }
+        
+        /* 位置選擇器樣式 */
+        .location-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .location-item:hover {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <h2>監控紀錄填報</h2>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <!-- 監控記錄填報表單 -->
+        <form id="monitorForm" class="hidden">
+            <div class="form-group">
+                <label for="location" class="required">交叉路口位置</label>
+                <div class="input-group">
+                    <input type="text" id="location" readonly placeholder="點擊選擇附近交叉路口" onclick="openLocationModal()">
+                    <button type="button" class="secondary-button" onclick="refreshLocations()">重新定位</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="plateNumber" class="required">車輛號碼</label>
+                <input type="text" id="plateNumber" readonly placeholder="點擊選擇附近車輛" onclick="openBusModal()">
+            </div>
+            
+            <div class="form-group">
+                <label for="plateNumbCompany">公司</label>
+                <input type="text" id="plateNumbCompany" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="routeName">路線名稱</label>
+                <input type="text" id="routeName" readonly>
+            </div>
+            
+            <input type="hidden" id="positionLat">
+            <input type="hidden" id="userId">
+            
+            <div class="form-group">
+                <label class="required">主要項目</label>
+                <div class="main-item-cards" id="mainItemContainer">
+                    <!-- 主要項目將由 JS 動態填充 -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>其他項目</label>
+                <div class="other-item-cards" id="otherItemContainer">
+                    <!-- 其他項目將由 JS 動態填充 -->
+                </div>
+            </div>
+
+            <button type="button" onclick="submitForm()">送出記錄</button>
+            
+            <div class="line-brand">
+               首都集團監控平台
+            </div>
+        </form>
+    </div>
+    
+    <!-- 地點選擇彈窗 -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <h3>選擇附近交叉路口</h3>
+            <div id="locationList"></div>
+            <div class="button-group">
+                <button type="button" onclick="closeLocationModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 車輛選擇彈窗 -->
+    <div id="busModal" class="modal">
+        <div class="modal-content">
+            <h3>選擇附近車輛</h3>
+            <div id="busList"></div>
+            <div class="button-group">
+                <button type="button" onclick="closeBusModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+	    <script>
+        // 全局變數
+        let liffInitialized = false;
+        const base_url = "https://35.221.146.143.nip.io/linehook/";
+        const channelId = "2006992891";
+        const liffId = "2006993665-PVAXZjA1".trim();
+        let currentLatitude = 0;
+        let currentLongitude = 0;
+        let intersections = [];
+        let buses = [];
+        let otherItems = [];
+        let selectedMainItem = "";
+        let selectedOtherItems = [];
+        
+        // 頁面載入
+        window.onload = async function() {
+            try {
+                await initLIFF();
+            } catch (error) {
+                console.error("頁面載入時發生錯誤:", error);
+                showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
+                hideLoading();
+            }
+        };
+        
+        // 顯示載入中
+        function showLoading() {
+            document.getElementById("loading-overlay").classList.remove("hidden");
+        }
+        
+        // 隱藏載入中
+        function hideLoading() {
+            document.getElementById("loading-overlay").classList.add("hidden");
+        }
+        
+        // 顯示狀態訊息
+        function showStatusMessage(message, type) {
+            const statusElement = document.getElementById("statusMessage");
+            statusElement.textContent = message;
+            statusElement.className = "status-message";
+            statusElement.classList.add(type);
+        }
+
+        // 初始化 LIFF
+        async function initLIFF() {
+            try {
+                await liff.init({ liffId: liffId });
+                
+                liffInitialized = true;
+                console.log("LIFF 初始化成功");
+                
+                if (!liff.isLoggedIn()) {
+                    console.log("用戶未登入，引導登入...");
+                    liff.login();
+                    return;
+                }
+                
+                try {
+                    // 檢查用戶是否已綁定
+                    const profile = await liff.getProfile();
+                    const userId = profile.userId;
+                    
+                    document.getElementById("userId").value = userId;
+                    
+                    await checkUserExists(userId, channelId);
+                } catch (profileError) {
+                    console.error("獲取用戶資料失敗:", profileError);
+                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
+                    hideLoading();
+                }
+                
+                // 主要項目預設值
+                setupMainItems();
+                
+                // 獲取其他項目列表
+                await fetchOtherItems();
+                
+            } catch (error) {
+                console.error("LIFF 初始化失敗:", error);
+                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
+                liffInitialized = false;
+                hideLoading();
+            }
+        }
+        
+        // 檢查用戶是否已存在/註冊
+        async function checkUserExists(userId, channelId) {
+            try {
+                const response = await fetch(base_url + "User/checkUser", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: userId, channelId: channelId })
+                });
+                
+                if (response.status === 200) {
+                    // 用戶已存在，顯示表單
+                    document.getElementById("monitorForm").classList.remove("hidden");
+                    
+                    // 獲取地理位置並加載附近交叉路口
+                    getCurrentPosition();
+                    
+                } else if (response.status === 404) {
+                    // 用戶不存在，導向註冊頁面
+                    liff.openWindow({
+                        url: 'https://liff.line.me/2006993665-PVAXZjA1',
+                        external: true
+                    });
+                } else {
+                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+                }
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error("檢查用戶存在性失敗:", error);
+                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+                hideLoading();
+            }
+        }
+        
+        // 獲取當前位置
+        async function getCurrentPosition() {
+            if (!liffInitialized) {
+                showStatusMessage("應用程式尚未初始化，請重新整理頁面", "error");
+                return;
+            }
+            
+            showLoading();
+            try {
+                if (liff.isInClient()) {
+                    // 在 LINE 應用內使用 LINE 的位置 API
+                    const position = await liff.getPosition();
+                    currentLatitude = position.latitude;
+                    currentLongitude = position.longitude;
+                } else {
+                    // 在瀏覽器中使用瀏覽器的地理位置 API
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+                    currentLatitude = position.coords.latitude;
+                    currentLongitude = position.coords.longitude;
+                }
+                
+                console.log(`當前位置: ${currentLatitude}, ${currentLongitude}`);
+                
+                // 獲取附近交叉路口
+                await fetchIntersections();
+                
+            } catch (error) {
+                console.error("獲取位置失敗:", error);
+                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
+                hideLoading();
+            }
+        }
+		        // 獲取附近交叉路口
+        async function fetchIntersections() {
+            try {
+                const response = await fetch(`${base_url}api/monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=1000&limit=15`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    intersections = data;
+                    console.log("找到附近交叉路口:", intersections);
+                } else {
+                    console.log("附近未找到交叉路口");
+                    intersections = [];
+                }
+                
+                hideLoading();
+            } catch (error) {
+                console.error("獲取交叉路口失敗:", error);
+                hideLoading();
+                showStatusMessage("無法獲取附近交叉路口，請稍後再試", "error");
+            }
+        }
+        
+        // 獲取附近車輛
+        async function fetchBuses() {
+            showLoading();
+            try {
+                const response = await fetch(`${base_url}api/monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=500`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.buses && data.buses.length > 0) {
+                    buses = data.buses;
+                    console.log("找到附近車輛:", buses);
+                } else {
+                    console.log("附近未找到車輛");
+                    buses = [];
+                }
+                
+                hideLoading();
+                
+                // 更新車輛列表
+                updateBusList();
+            } catch (error) {
+                console.error("獲取車輛失敗:", error);
+                hideLoading();
+                showStatusMessage("無法獲取附近車輛，請稍後再試", "error");
+            }
+        }
+        
+        // 獲取其他項目
+        async function fetchOtherItems() {
+            try {
+                const response = await fetch(`${base_url}api/monitor/otherItem`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    otherItems = data;
+                    console.log("獲取其他項目:", otherItems);
+                    
+                    // 更新其他項目列表
+                    updateOtherItemList();
+                } else {
+                    console.log("未找到其他項目");
+                    otherItems = [];
+                }
+            } catch (error) {
+                console.error("獲取其他項目失敗:", error);
+                showStatusMessage("無法獲取項目列表，請稍後再試", "error");
+            }
+        }
+        
+        // 設置主要項目
+        function setupMainItems() {
+            const mainItems = [
+                "左轉未停",
+                "右轉未停",
+                "未指差，末停且未指差"
+            ];
+            
+            const container = document.getElementById("mainItemContainer");
+            container.innerHTML = "";
+            
+            mainItems.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "main-item-card";
+                card.textContent = item;
+                card.addEventListener("click", function() {
+                    // 取消之前的選擇
+                    document.querySelectorAll(".main-item-card").forEach(c => c.classList.remove("selected"));
+                    // 選擇當前項目
+                    this.classList.add("selected");
+                    selectedMainItem = item;
+                });
+                container.appendChild(card);
+            });
+        }
+        
+        // 更新其他項目列表
+        function updateOtherItemList() {
+            const container = document.getElementById("otherItemContainer");
+            container.innerHTML = "";
+            
+            otherItems.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "other-item-card";
+                card.textContent = item.itemName;
+                card.addEventListener("click", function() {
+                    // 切換選擇狀態
+                    this.classList.toggle("selected");
+                    
+                    if (this.classList.contains("selected")) {
+                        selectedOtherItems.push({itemName: item.itemName});
+                    } else {
+                        selectedOtherItems = selectedOtherItems.filter(i => i.itemName !== item.itemName);
+                    }
+                });
+                container.appendChild(card);
+            });
+        }
+        
+        // 打開位置選擇彈窗
+        function openLocationModal() {
+            document.getElementById("locationModal").style.display = "block";
+            updateLocationList();
+        }
+        
+        // 關閉位置選擇彈窗
+        function closeLocationModal() {
+            document.getElementById("locationModal").style.display = "none";
+        }
+        
+        // 更新位置列表
+        function updateLocationList() {
+            const container = document.getElementById("locationList");
+            container.innerHTML = "";
+            
+            if (intersections.length === 0) {
+                container.innerHTML = "<p>附近未找到交叉路口，請嘗試重新定位</p>";
+                return;
+            }
+            
+            intersections.forEach(intersection => {
+                const item = document.createElement("div");
+                item.className = "location-item";
+                item.textContent = intersection.name;
+                item.addEventListener("click", function() {
+                    document.getElementById("location").value = intersection.name;
+                    closeLocationModal();
+                });
+                container.appendChild(item);
+            });
+        }
+        
+        // 打開車輛選擇彈窗
+        function openBusModal() {
+            fetchBuses();
+            document.getElementById("busModal").style.display = "block";
+        }
+        
+        // 關閉車輛選擇彈窗
+        function closeBusModal() {
+            document.getElementById("busModal").style.display = "none";
+        }
+        
+        // 更新車輛列表
+        function updateBusList() {
+            const container = document.getElementById("busList");
+            container.innerHTML = "";
+            
+            if (buses.length === 0) {
+                container.innerHTML = "<p>附近未找到車輛，請稍後再試</p>";
+                return;
+            }
+            
+            buses.forEach(bus => {
+                const item = document.createElement("div");
+                item.className = "location-item";
+                item.textContent = `${bus.plateNumber} - ${bus.routeName?.chinese || ''}`;
+                item.addEventListener("click", function() {
+                    document.getElementById("plateNumber").value = bus.plateNumber;
+                    document.getElementById("plateNumbCompany").value = bus.plateNumbCompany || '';
+                    document.getElementById("routeName").value = bus.routeName?.chinese || '';
+                    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
+                    closeBusModal();
+                });
+                container.appendChild(item);
+            });
+        }
+        
+        // 重新定位並重新獲取附近交叉路口
+        function refreshLocations() {
+            getCurrentPosition();
+        }
+        
+        // 提交表單
+        async function submitForm() {
+            // 表單驗證
+            let isValid = true;
+            
+            // 驗證位置
+            if (!document.getElementById("location").value) {
+                showStatusMessage("請選擇交叉路口位置", "error");
+                isValid = false;
+            }
+            
+            // 驗證車號
+            if (!document.getElementById("plateNumber").value) {
+                showStatusMessage("請選擇車輛號碼", "error");
+                isValid = false;
+            }
+            
+            // 驗證主要項目
+            if (!selectedMainItem) {
+                showStatusMessage("請選擇主要項目", "error");
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                return;
+            }
+            
+            // 禁用提交按鈕，防止重複提交
+            showLoading();
+            const submitButton = document.querySelector('button[type="button"]');
+            submitButton.disabled = true;
+            submitButton.textContent = "送出中...";
+            
+            const data = {
+                userId: document.getElementById("userId").value,
+                location: document.getElementById("location").value,
+                plateNumbCompany: document.getElementById("plateNumbCompany").value,
+                routeName: document.getElementById("routeName").value,
+                plateNumber: document.getElementById("plateNumber").value,
+                positionLat: document.getElementById("positionLat").value,
+                mainItem: selectedMainItem,
+                otherItem: selectedOtherItems
+            };
+            
+            try {
+                const response = await fetch(base_url + "api/monitor/records", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    window.scrollTo(0, 0);
+                    showStatusMessage("記錄已成功送出！", "success");
+                    
+                    // 重設表單
+                    document.getElementById("location").value = "";
+                    document.getElementById("plateNumber").value = "";
+                    document.getElementById("plateNumbCompany").value = "";
+                    document.getElementById("routeName").value = "";
+                    document.getElementById("positionLat").value = "";
+                    
+                    document.querySelectorAll(".main-item-card").forEach(c => c.classList.remove("selected"));
+                    document.querySelectorAll(".other-item-card").forEach(c => c.classList.remove("selected"));
+                    
+                    selectedMainItem = "";
+                    selectedOtherItems = [];
+                    
+                    // 延遲關閉頁面
+                    setTimeout(() => {
+                        if (liffInitialized && liff.isInClient()) {
+                            liff.closeWindow();
+                        }
+                    }, 3000);
+                    
+                } else {
+                    const error = await response.text();
+                    throw new Error(error || "送出記錄失敗");
+                }
+            } catch (error) {
+                console.error("送出記錄失敗:", error);
+                showStatusMessage("送出記錄失敗: " + error.message, "error");
+            } finally {
+                hideLoading();
+                submitButton.disabled = false;
+                submitButton.textContent = "送出記錄";
+            }
+        }
+    </script>
+</body>
+</html>
