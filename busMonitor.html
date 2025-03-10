@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>路口查核記錄</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body {
@@ -44,6 +45,35 @@
             content: "*";
             color: #e74c3c;
             margin-left: 4px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .input-group input {
+            flex: 1;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .input-group .icon-button {
+            width: 46px;
+            height: 46px;
+            border: 1px solid #ddd;
+            border-left: none;
+            background-color: #f8f9fa;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .input-group .icon-button:hover {
+            background-color: #e9ecef;
+        }
+        .input-group .icon-button i {
+            color: #06C755;
         }
         input, select, textarea {
             width: 100%;
@@ -233,7 +263,7 @@
     </style>
 </head>
 <body>
-    <div id="loading-overlay" class="loading-overlay">
+    <div id="loading-overlay" class="loading-overlay hidden">
         <div class="spinner"></div>
     </div>
 
@@ -243,18 +273,25 @@
         <div id="statusMessage" class="status-message"></div>
         
         <!-- 監控記錄填報表單 -->
-        <form id="monitorForm" class="hidden">
+        <form id="monitorForm">
             <div class="form-group">
                 <label for="location" class="required">我的位置</label>
                 <div class="input-group">
-                    <input type="text" id="location" readonly placeholder="點擊選擇附近路口" onclick="openLocationModal()">
-                    <button type="button" class="secondary-button" onclick="refreshLocations()">重新定位</button>
+                    <input type="text" id="location" readonly placeholder="選擇附近路口">
+                    <div class="icon-button" onclick="openLocationModal()">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
                 </div>
             </div>
             
             <div class="form-group">
                 <label for="plateNumber" class="required">車輛號碼</label>
-                <input type="text" id="plateNumber" readonly placeholder="點擊選擇附近車輛" onclick="openBusModal()">
+                <div class="input-group">
+                    <input type="text" id="plateNumber" readonly placeholder="選擇附近車輛">
+                    <div class="icon-button" onclick="openBusModal()">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -271,14 +308,14 @@
             <input type="hidden" id="userId">
             
             <div class="form-group">
-                <label class="required">主要項目</label>
+                <label class="required">缺失項目</label>
                 <div class="main-item-cards" id="mainItemContainer">
                     <!-- 主要項目將由 JS 動態填充 -->
                 </div>
             </div>
             
             <div class="form-group">
-                <label>其他項目</label>
+                <label>其他缺失</label>
                 <div class="other-item-cards" id="otherItemContainer">
                     <!-- 其他項目將由 JS 動態填充 -->
                 </div>
@@ -287,7 +324,7 @@
             <button type="button" onclick="submitForm()">送出記錄</button>
             
             <div class="line-brand">
-               首都集通知控平台
+               首都集團監控平台
             </div>
         </form>
     </div>
@@ -313,7 +350,7 @@
             </div>
         </div>
     </div>
-	    <script>
+        <script>
         // 全局變數
         let liffInitialized = false;
         const base_url = "https://35.221.146.143.nip.io/linehook/";
@@ -334,7 +371,6 @@
             } catch (error) {
                 console.error("頁面載入時發生錯誤:", error);
                 showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
-                hideLoading();
             }
         };
         
@@ -381,7 +417,6 @@
                 } catch (profileError) {
                     console.error("獲取用戶資料失敗:", profileError);
                     showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
-                    hideLoading();
                 }
                 
                 // 主要項目預設值
@@ -394,7 +429,6 @@
                 console.error("LIFF 初始化失敗:", error);
                 showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
                 liffInitialized = false;
-                hideLoading();
             }
         }
         
@@ -409,11 +443,7 @@
                 
                 if (response.status === 200) {
                     // 用戶已存在，顯示表單
-                    document.getElementById("monitorForm").classList.remove("hidden");
-                    
-                    // 獲取地理位置並加載附近交叉路口
-                    getCurrentPosition();
-                    
+                    // 不執行 getCurrentPosition() 避免畫面被阻擋
                 } else if (response.status === 404) {
                     // 用戶不存在，導向註冊頁面
                     liff.openWindow({
@@ -423,13 +453,9 @@
                 } else {
                     showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
                 }
-                
-                hideLoading();
-                
             } catch (error) {
                 console.error("檢查用戶存在性失敗:", error);
                 showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                hideLoading();
             }
         }
         
@@ -467,10 +493,10 @@
                 hideLoading();
             }
         }
-		        // 獲取附近交叉路口
+        // 獲取附近交叉路口
         async function fetchIntersections() {
             try {
-                const response = await fetch(`${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=1000&limit=15`);
+                const response = await fetch(`${base_url}api/monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=1000&limit=15`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
@@ -487,6 +513,10 @@
                 }
                 
                 hideLoading();
+                // 如果已經開啟了位置選擇彈窗，更新列表
+                if (document.getElementById("locationModal").style.display === "block") {
+                    updateLocationList();
+                }
             } catch (error) {
                 console.error("獲取路口失敗:", error);
                 hideLoading();
@@ -498,7 +528,7 @@
         async function fetchBuses() {
             showLoading();
             try {
-                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=500`);
+                const response = await fetch(`${base_url}api/monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=500`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
@@ -528,27 +558,43 @@
         // 獲取其他項目
         async function fetchOtherItems() {
             try {
-                const response = await fetch(`${base_url}monitor/otherItem`);
+                const defaultItems = [
+                    { id: "1", itemName: "未依規定減速慢行" },
+                    { id: "2", itemName: "未依規定按鳴喇叭" },
+                    { id: "3", itemName: "閃示燈故障" },
+                    { id: "4", itemName: "方向燈故障" },
+                    { id: "5", itemName: "超速行駛" }
+                ];
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
+                const response = await fetch(`${base_url}api/monitor/otherItem`);
                 
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    otherItems = data;
-                    console.log("獲取其他項目:", otherItems);
-                    
-                    // 更新其他項目列表
-                    updateOtherItemList();
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.data && data.data.length > 0) {
+                        otherItems = data.data;
+                        console.log("獲取其他項目:", otherItems);
+                    } else {
+                        console.log("使用預設其他項目");
+                        otherItems = defaultItems;
+                    }
                 } else {
-                    console.log("未找到其他項目");
-                    otherItems = [];
+                    console.log("API回應錯誤，使用預設其他項目");
+                    otherItems = defaultItems;
                 }
+                
+                // 更新其他項目列表
+                updateOtherItemList();
             } catch (error) {
                 console.error("獲取其他項目失敗:", error);
-                showStatusMessage("無法獲取項目列表，請稍後再試", "error");
+                // 使用預設項目
+                otherItems = [
+                    { id: "1", itemName: "未依規定減速慢行" },
+                    { id: "2", itemName: "未依規定按鳴喇叭" },
+                    { id: "3", itemName: "閃示燈故障" },
+                    { id: "4", itemName: "方向燈故障" },
+                    { id: "5", itemName: "超速行駛" }
+                ];
+                updateOtherItemList();
             }
         }
         
@@ -558,8 +604,8 @@
                 "左轉未停",
                 "右轉未停",
                 "未指差",
-		"末停且未指差",
-		"無缺失"
+                "末停且未指差",
+                "無缺失"
             ];
             
             const container = document.getElementById("mainItemContainer");
@@ -594,9 +640,9 @@
                     this.classList.toggle("selected");
                     
                     if (this.classList.contains("selected")) {
-                        selectedOtherItems.push({itemName: item.itemName});
+                        selectedOtherItems.push(item.itemName);
                     } else {
-                        selectedOtherItems = selectedOtherItems.filter(i => i.itemName !== item.itemName);
+                        selectedOtherItems = selectedOtherItems.filter(i => i !== item.itemName);
                     }
                 });
                 container.appendChild(card);
@@ -605,8 +651,9 @@
         
         // 打開位置選擇彈窗
         function openLocationModal() {
+            // 獲取位置並顯示彈窗
+            getCurrentPosition();
             document.getElementById("locationModal").style.display = "block";
-            updateLocationList();
         }
         
         // 關閉位置選擇彈窗
@@ -638,8 +685,11 @@
         
         // 打開車輛選擇彈窗
         function openBusModal() {
-            fetchBuses();
-            document.getElementById("busModal").style.display = "block";
+            // 先獲取位置
+            getCurrentPosition().then(() => {
+                fetchBuses();
+                document.getElementById("busModal").style.display = "block";
+            });
         }
         
         // 關閉車輛選擇彈窗
@@ -672,11 +722,6 @@
             });
         }
         
-        // 重新定位並重新獲取附近交叉路口
-        function refreshLocations() {
-            getCurrentPosition();
-        }
-        
         // 提交表單
         async function submitForm() {
             // 表單驗證
@@ -696,7 +741,7 @@
             
             // 驗證主要項目
             if (!selectedMainItem) {
-                showStatusMessage("請選擇主要項目", "error");
+                showStatusMessage("請選擇缺失項目", "error");
                 isValid = false;
             }
             
@@ -718,11 +763,11 @@
                 plateNumber: document.getElementById("plateNumber").value,
                 positionLat: document.getElementById("positionLat").value,
                 mainItem: selectedMainItem,
-                otherItem: selectedOtherItems
+                otherItem: selectedOtherItems.join(', ') // 將陣列轉為字串
             };
             
             try {
-                const response = await fetch(base_url + "monitor/records", {
+                const response = await fetch(base_url + "api/monitor/records", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
@@ -733,7 +778,6 @@
                     showStatusMessage("記錄已成功送出！", "success");
                     
                     // 重設表單
-                   // document.getElementById("location").value = "";
                     document.getElementById("plateNumber").value = "";
                     document.getElementById("plateNumbCompany").value = "";
                     document.getElementById("routeName").value = "";
