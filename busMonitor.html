@@ -559,11 +559,11 @@
         async function fetchOtherItems() {
             try {
                 const defaultItems = [
-                    { id: "1", itemName: "未依規定減速慢行" },
-                    { id: "2", itemName: "未依規定按鳴喇叭" },
-                    { id: "3", itemName: "閃示燈故障" },
-                    { id: "4", itemName: "方向燈故障" },
-                    { id: "5", itemName: "超速行駛" }
+                    { id: "1", itemName: "車身未清潔" },
+                    { id: "2", itemName: "車輛燈號故障" },
+                    { id: "3", itemName: "闖紅燈" },
+                    { id: "4", itemName: "LED故障" },
+                    { id: "5", itemName: "無動態" }
                 ];
                 
                 const response = await fetch(`${base_url}api/monitor/otherItem`);
@@ -588,11 +588,11 @@
                 console.error("獲取其他項目失敗:", error);
                 // 使用預設項目
                 otherItems = [
-                    { id: "1", itemName: "未依規定減速慢行" },
-                    { id: "2", itemName: "未依規定按鳴喇叭" },
-                    { id: "3", itemName: "閃示燈故障" },
-                    { id: "4", itemName: "方向燈故障" },
-                    { id: "5", itemName: "超速行駛" }
+                    { id: "1", itemName: "車身未清潔" },
+                    { id: "2", itemName: "車輛燈號故障" },
+                    { id: "3", itemName: "闖紅燈" },
+                    { id: "4", itemName: "LED故障" },
+                    { id: "5", itemName: "無動態" }
                 ];
                 updateOtherItemList();
             }
@@ -757,7 +757,7 @@
             
             const data = {
                 userId: document.getElementById("userId").value,
-                location: document.getElementById("location").value,
+                //location: document.getElementById("location").value,
                 plateNumbCompany: document.getElementById("plateNumbCompany").value,
                 routeName: document.getElementById("routeName").value,
                 plateNumber: document.getElementById("plateNumber").value,
@@ -790,11 +790,11 @@
                     selectedOtherItems = [];
                     
                     // 延遲關閉頁面
-                    setTimeout(() => {
-                        if (liffInitialized && liff.isInClient()) {
-                            liff.closeWindow();
-                        }
-                    }, 3000);
+                   // setTimeout(() => {
+                   //     if (liffInitialized && liff.isInClient()) {
+                  //          liff.closeWindow();
+                 //       }
+                 //   }, 2000);
                     
                 } else {
                     const error = await response.text();
