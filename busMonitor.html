@@ -582,71 +582,57 @@ function stopLocationWatching() {
 // 獲取當前位置
 async function getCurrentPosition() {
     showLoading();
+    
     // 創建一個超時Promise
     const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("位置獲取超時")), 8000)
     );
+    
     try {
-        // 先檢查LIFF環境
+        // 檢查是否有緩存位置，如果有則優先使用
+        if (loadLastPosition()) {
+            console.log("使用緩存位置:", currentLatitude, currentLongitude);
+            hideLoading();
+            return true;
+        }
+        
+        // 在LINE環境中使用LINE的位置API
         if (liff.isInClient()) {
             try {
-                // 使用Promise.race在LIFF位置請求和超時之間競爭
+                console.log("嘗試使用LINE位置API...");
                 const position = await Promise.race([
                     liff.getPosition(),
                     timeoutPromise
                 ]);
+                
                 currentLatitude = position.latitude;
                 currentLongitude = position.longitude;
-                console.log("使用LIFF獲取位置成功:", currentLatitude, currentLongitude);
+                console.log("LINE位置API獲取成功:", currentLatitude, currentLongitude);
                 savePosition(currentLatitude, currentLongitude);
                 hideLoading();
                 return true;
-            } catch (liffError) {
-                console.log("LIFF位置獲取失敗，嘗試瀏覽器API:", liffError);
-                // 繼續使用瀏覽器API
+            } catch (error) {
+                console.error("LINE位置獲取失敗:", error);
+                hideLoading();
+                showStatusMessage("無法獲取LINE位置，請確保已授權位置權限", "error");
+                return false;
             }
-        }
-        // 嘗試從本地儲存加載最近位置
-        if (loadLastPosition()) {
-            console.log("使用本地儲存的位置:", currentLatitude, currentLongitude);
+        } 
+        // 非LINE環境則使用設備原生方法(透過第三方插件或直接調用原生API)
+        else {
+            // 這裡可以集成第三方位置庫或使用其他方法
+            // 例如Capacitor.Plugins.Geolocation或cordova-plugin-geolocation
+            
+            // 暫時使用預設位置或提示用戶
+            console.warn("非LINE環境，無法使用LINE位置API");
             hideLoading();
-            return true;
+            showStatusMessage("請在LINE應用內開啟本功能", "info");
+            return false;
         }
-        // 使用瀏覽器的地理位置API
-        return new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    currentLatitude = position.coords.latitude;
-                    currentLongitude = position.coords.longitude;
-                    savePosition(currentLatitude, currentLongitude);
-                    console.log("使用瀏覽器API獲取位置成功:", currentLatitude, currentLongitude);
-                    hideLoading();
-                    resolve(true);
-                },
-                (error) => {
-                    console.error("位置獲取失敗:", error.code, error.message);                
-                    hideLoading();
-                    reject(error);
-                },
-                { 
-                    enableHighAccuracy: true,
-                    timeout: 7000,
-                    maximumAge: 5000
-                }
-            );
-        });
     } catch (error) {
         console.error("位置獲取過程中發生錯誤:", error);
-        let errorMsg = "無法獲取您的位置";
-        if (error.code === 1) {
-            errorMsg = "請授權位置權限後重試";
-        } else if (error.code === 2) {
-            errorMsg = "位置獲取失敗，請確保GPS已開啟";
-        } else if (error.code === 3 || error.message === "位置獲取超時") {
-            errorMsg = "位置請求超時，請重試";
-        }
-        showStatusMessage(errorMsg, "error");
         hideLoading();
+        showStatusMessage("位置獲取失敗: " + (error.message || "未知錯誤"), "error");
         return false;
     }
 }
