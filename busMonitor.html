@@ -738,7 +738,7 @@ async function fetchLastLocation(userId) {
             return null;
         }
         
-        const response = await fetch(`${base_url}lastLocation/${userId}`);
+        const response = await fetch(`${base_url}monitor/lastLocation/${userId}`);
         
         if (!response.ok) {
             throw new Error(`HTTP 錯誤 ${response.status}`);
