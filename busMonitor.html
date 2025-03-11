@@ -228,7 +228,28 @@
             color: white;
             border-color: #06C755;
         }
-        
+        /* 公司快速選擇按鈕樣式 */
+        .company-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .company-button {
+            flex: 1 0 18%;
+            padding: 8px 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .company-button:hover {
+            background-color: #e9ecef;
+            border-color: #06C755;
+        }
         /* 其他項目卡片樣式 */
         .other-item-cards {
             display: flex;
@@ -287,21 +308,28 @@
             <div class="form-group">
                 <label for="plateNumber" class="required">車輛號碼</label>
                 <div class="input-group">
-                    <input type="text" id="plateNumber"  placeholder="選擇附近車輛">
+                   <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
                     <div class="icon-button" onclick="openBusModal()">
                         <i class="fas fa-bus"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="form-group">
-                <label for="plateNumbCompany">公司</label>
-                <input type="text" id="plateNumbCompany" readonly>
+        <div class="form-group">
+            <label for="plateNumbCompany">公司</label>
+            <input type="text" id="plateNumbCompany" readonly>
+            <div class="company-buttons">
+                <div class="company-button" onclick="setCompany('首都客運')">首</div>
+                <div class="company-button" onclick="setCompany('臺北客運')">北</div>
+                <div class="company-button" onclick="setCompany('大都會客運')">大</div>
+                <div class="company-button" onclick="setCompany('三重客運')">三</div>
+                <div class="company-button" onclick="setCompany('台中客運')">中</div>
             </div>
+        </div>
             
             <div class="form-group">
                 <label for="routeName">路線名稱</label>
-                <input type="text" id="routeName" readonly>
+             <input type="text" id="routeName" oninput="convertToUpperCase(this)">
             </div>
             
             <input type="hidden" id="positionLat">
@@ -355,7 +383,8 @@
         let liffInitialized = false;
         const base_url = "https://35.221.146.143.nip.io/linehook/";
         const channelId = "2006992891";
-        const liffId = "2006993665-PVAXZjA1".trim();
+        //const liffId = "2006993665-PVAXZjA1".trim();
+        const liffId = "2006993665-1Nvo0AvX".trim(); // 更新的LIFFID
         let currentLatitude = 0;
         let currentLongitude = 0;
         let intersections = [];
@@ -405,7 +434,40 @@ function startLocationWatching() {
 window.addEventListener('beforeunload', function() {
     stopLocationWatching();
 });
+// 設定公司函數
+function setCompany(companyName) {
+    document.getElementById("plateNumbCompany").value = companyName;
+}
 
+// 車號格式化函數
+function formatPlateNumber() {
+    const plateNumberInput = document.getElementById("plateNumber");
+    let plateNumber = plateNumberInput.value.trim().toUpperCase();
+    
+    // 檢查是否已有連字符，如果沒有且符合格式要求則添加
+    if (!plateNumber.includes('-')) {
+        // 尋找字母和數字的分界點
+        let letterIndex = -1;
+        for (let i = 0; i < plateNumber.length; i++) {
+            if (plateNumber[i].match(/[0-9]/)) {
+                letterIndex = i;
+                break;
+            }
+        }
+        
+        // 如果找到分界點且前面有字母，則在分界點前添加連字符
+        if (letterIndex > 0) {
+            plateNumber = plateNumber.substring(0, letterIndex) + '-' + plateNumber.substring(letterIndex);
+        }
+    }
+    
+    plateNumberInput.value = plateNumber;
+}
+
+// 轉換為大寫函數
+function convertToUpperCase(input) {
+    input.value = input.value.toUpperCase();
+}
 // 停止位置監視
 function stopLocationWatching() {
     if (window.watchId) {
