@@ -909,7 +909,7 @@ function openBusModal() {
                 item.textContent = `${bus.routeName?.chinese || '' } -- ${bus.plateNumber}`;
                 item.addEventListener("click", function() {
                     document.getElementById("plateNumber").value = bus.plateNumber;
-                    document.getElementById("plateNumbCompany").value = bus.operatorID || '';
+                    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
                     document.getElementById("routeName").value = bus.routeName?.chinese || '';
                     document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
                     closeBusModal();
