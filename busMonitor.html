@@ -506,12 +506,17 @@ function stopLocationWatching() {
         // 初始化 LIFF
         async function initLIFF() {
             try {
+                 console.log("初始化LIFF...");
+                const isInClient = liff.isInClient();
+                console.log("是否在LINE環境中:", isInClient);
                 // 使用persistent-geo參數
-                    await liff.init({ 
-                        liffId: liffId,
-                        persistentGeo: true
-                    });               
+                const liffInfo = {
+                  liffId: liffId,
+                  withLoginOnExternalBrowser: true,  // 確保在外部瀏覽器中也能登入
+                  persistentGeo: true  // 強調需要持續位置權限
+                };            
                 liffInitialized = true;
+                await liff.init(liffInfo);
                 console.log("LIFF 初始化成功");
                 
                 if (!liff.isLoggedIn()) {
@@ -519,7 +524,15 @@ function stopLocationWatching() {
                     liff.login();
                     return;
                 }
-                
+                    // 確認LIFF版本
+                    const liffVersion = liff.getVersion();
+                    console.log("LIFF版本:", liffVersion);
+                    
+                    // 檢查LINE是否支持getOS
+                    if (liff.getOS) {
+                      const os = liff.getOS();
+                      console.log("運行平台:", os);
+                    }
                 try {
                     // 檢查用戶是否已綁定
                     const profile = await liff.getProfile();
@@ -581,60 +594,65 @@ function stopLocationWatching() {
         
 // 獲取當前位置
 async function getCurrentPosition() {
-    showLoading();
-    
-    // 創建一個超時Promise
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("位置獲取超時")), 8000)
-    );
-    
-    try {
-        // 檢查是否有緩存位置，如果有則優先使用
-        if (loadLastPosition()) {
-            console.log("使用緩存位置:", currentLatitude, currentLongitude);
-            hideLoading();
-            return true;
-        }
-        
-        // 在LINE環境中使用LINE的位置API
-        if (liff.isInClient()) {
-            try {
-                console.log("嘗試使用LINE位置API...");
-                const position = await Promise.race([
-                    liff.getPosition(),
-                    timeoutPromise
-                ]);
-                
-                currentLatitude = position.latitude;
-                currentLongitude = position.longitude;
-                console.log("LINE位置API獲取成功:", currentLatitude, currentLongitude);
-                savePosition(currentLatitude, currentLongitude);
-                hideLoading();
-                return true;
-            } catch (error) {
-                console.error("LINE位置獲取失敗:", error);
-                hideLoading();
-                showStatusMessage("無法獲取LINE位置，請確保已授權位置權限", "error");
-                return false;
-            }
-        } 
-        // 非LINE環境則使用設備原生方法(透過第三方插件或直接調用原生API)
-        else {
-            // 這裡可以集成第三方位置庫或使用其他方法
-            // 例如Capacitor.Plugins.Geolocation或cordova-plugin-geolocation
-            
-            // 暫時使用預設位置或提示用戶
-            console.warn("非LINE環境，無法使用LINE位置API");
-            hideLoading();
-            showStatusMessage("請在LINE應用內開啟本功能", "info");
-            return false;
-        }
-    } catch (error) {
-        console.error("位置獲取過程中發生錯誤:", error);
-        hideLoading();
-        showStatusMessage("位置獲取失敗: " + (error.message || "未知錯誤"), "error");
-        return false;
+  showLoading();
+  console.log("開始獲取位置...");
+  
+  // 檢查LINE環境
+  const isInLineApp = liff.isInClient();
+  console.log("是否在LINE環境中:", isInLineApp);
+  
+  try {
+    // 1. 首先嘗試從本地存儲讀取最近位置
+    if (loadLastPosition()) {
+      console.log("使用本地緩存位置成功");
+      hideLoading();
+      return true;
     }
+    
+    // 2. 然後在LINE環境中使用LIFF API
+    if (isInLineApp) {
+      console.log("嘗試使用LIFF位置API...");
+      
+      // 設置超時
+      const positionPromise = liff.getPosition();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("LIFF位置獲取超時")), 8000);
+      });
+      
+      try {
+        const position = await Promise.race([
+          positionPromise,
+          timeoutPromise
+        ]);
+        
+        // 成功獲取位置
+        console.log("LIFF位置獲取成功", position);
+        currentLatitude = position.latitude;
+        currentLongitude = position.longitude;
+        savePosition(currentLatitude, currentLongitude);
+        hideLoading();
+        return true;
+      } catch (liffError) {
+        console.error("LIFF位置API錯誤:", liffError);
+        // 繼續嘗試下一個方法
+      }
+    }
+    
+    // 3. 使用默認位置作為後備
+    console.log("使用預設位置作為後備");
+    currentLatitude = 25.033;  // 假設的台北市中心位置
+    currentLongitude = 121.565;
+    savePosition(currentLatitude, currentLongitude);
+    hideLoading();
+    showStatusMessage("無法準確獲取位置，使用預設位置", "info");
+    return true;
+    
+  } catch (error) {
+    console.error("位置獲取完全失敗:", error);
+    hideLoading();
+    showStatusMessage("無法獲取位置，請確保已授權LINE位置權限", "error");
+    return false;
+  }
 }
 // 更新後的獲取附近交叉路口函數，始終使用最新位置
 async function fetchIntersections() {
@@ -838,24 +856,19 @@ function openLocationModal() {
         
 // 修改後的打開車輛選擇彈窗函數
 function openBusModal() {
-      document.getElementById("busModal").style.display = "block";
-    getCurrentPosition().then(success => {
-        if (success) {
-            fetchBuses().then(() => {
-                document.getElementById("busModal").style.display = "block";
-            });
-        }
-    }).catch(error => {
-        // 檢查是否有有效的緩存位置
-        if (loadLastPosition()) {
-            console.log("使用緩存位置:", currentLatitude, currentLongitude);
-            fetchBuses().then(() => {
-                document.getElementById("busModal").style.display = "block";
-            });
-        }
-    });
+  document.getElementById("busModal").style.display = "block";
+  getCurrentPosition().then(success => {
+    if (success) {
+      fetchBuses();  // 移除重複顯示
+    }
+  }).catch(error => {
+    if (loadLastPosition()) {
+      console.log("使用緩存位置:", currentLatitude, currentLongitude);
+      fetchBuses();  // 移除重複顯示
+    }
+  });
 }
-        // 檢查位置權限
+// 檢查位置權限
 function checkLocationPermission() {
     if (!navigator.permissions) {
         console.log("瀏覽器不支持權限檢查API");
