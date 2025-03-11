@@ -392,12 +392,7 @@ function startLocationWatching() {
                 currentLatitude = position.coords.latitude;
                 currentLongitude = position.coords.longitude;
                 savePosition(currentLatitude, currentLongitude);
-                
-                // 如果用戶已經打開位置選擇框，更新附近路口
-                if (document.getElementById("locationModal").style.display === "block") {
-                    fetchIntersections();
-                }
-            },
+                            },
             error => console.log("位置監聽錯誤:", error),
             { 
                 enableHighAccuracy: true,
