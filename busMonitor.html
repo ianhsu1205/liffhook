@@ -548,6 +548,12 @@ function stopLocationWatching() {
                     const userId = profile.userId;                    
                     document.getElementById("userId").value = userId;                
                     await checkUserExists(userId, channelId);
+                    const lastLocation = await fetchLastLocation(userId);
+                    if (lastLocation) {
+                        // 填入最後記錄的位置
+                        document.getElementById("location").value = lastLocation;
+                        console.log("已填入今日最後記錄位置:", lastLocation);
+                    }
                 } catch (profileError) {
                     console.error("獲取用戶資料失敗:", profileError);
                     showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
@@ -724,7 +730,34 @@ async function fetchIntersections() {
                 showStatusMessage("無法獲取附近車輛，請稍後再試", "error");
             }
         }
+        // 獲取用戶今日最後位置記錄
+async function fetchLastLocation(userId) {
+    try {
+        if (!userId) {
+            console.log("獲取最後位置失敗: 用戶ID為空");
+            return null;
+        }
         
+        const response = await fetch(`${base_url}lastLocation/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.location) {
+            console.log("成功獲取最後記錄位置:", data.location);
+            return data.location;
+        } else {
+            console.log("今天沒有位置記錄:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("獲取最後位置記錄失敗:", error);
+        return null;
+    }
+}
         // 獲取其他項目
         async function fetchOtherItems() {
             try {
