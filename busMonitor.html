@@ -397,19 +397,17 @@
         
 // 在頁面載入時初始化位置監視
 window.onload = async function() {
-    try {
-        // 嘗試從本地儲存載入最後已知位置
-        loadLastPosition();
-        
+   try {
+         checkLocationPermission();
+        // 確保調用順序正確
         await initLIFF();
-        
-        // 頁面載入後立即開始監視位置
         if (liffInitialized && liff.isLoggedIn()) {
+            // 初始化成功後開始監視位置
             startLocationWatching();
         }
     } catch (error) {
         console.error("頁面載入時發生錯誤:", error);
-        showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
+        showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
     }
 };
 // 開始持續監視位置
@@ -503,7 +501,8 @@ function stopLocationWatching() {
                         // 使用更簡單的方式添加persistent-geo參數
                         persistentGeo: true
                     });
-                                    
+                        // 在LIFF初始化成功後立即請求位置權限
+        await getCurrentPosition();                    
                 liffInitialized = true;
                 console.log("LIFF 初始化成功");
                 
@@ -568,67 +567,63 @@ function stopLocationWatching() {
         
 // 獲取當前位置
 async function getCurrentPosition() {
-    if (!liffInitialized) {
-        showStatusMessage("應用程式尚未初始化，請重新整理頁面", "error");
-        return;
-    }
-    
-    // 如果已有位置信息且不超過30秒，直接使用
-    if (currentLatitude !== 0 && currentLongitude !== 0) {
-        const lastPositionTime = localStorage.getItem('lastPositionTimestamp');
-        if (lastPositionTime && (Date.now() - lastPositionTime < 30 * 1000)) {
-            console.log(`使用已有的位置: ${currentLatitude}, ${currentLongitude}`);
-            return;
-        }
-    }
-    
     showLoading();
     try {
-        // 優先使用瀏覽器的地理位置API，不管是否在LINE應用內
-        const position = await new Promise((resolve, reject) => {
+        // 先檢查LIFF環境
+        if (liff.isInClient()) {
+            try {
+                // 優先使用LIFF的位置API
+                const position = await liff.getPosition();
+                currentLatitude = position.latitude;
+                currentLongitude = position.longitude;
+                console.log("使用LIFF獲取位置成功:", currentLatitude, currentLongitude);
+                savePosition(currentLatitude, currentLongitude);
+                hideLoading();
+                return true;
+            } catch (liffError) {
+                console.log("LIFF位置獲取失敗，嘗試瀏覽器API:", liffError);
+                // 繼續使用瀏覽器API
+            }
+        }
+        
+        // 使用瀏覽器的地理位置API
+        return new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
-                resolve, 
+                (position) => {
+                    currentLatitude = position.coords.latitude;
+                    currentLongitude = position.coords.longitude;
+                    savePosition(currentLatitude, currentLongitude);
+                    console.log("使用瀏覽器API獲取位置成功:", currentLatitude, currentLongitude);
+                    hideLoading();
+                    resolve(true);
+                },
                 (error) => {
-                    // 如果瀏覽器地理位置獲取失敗，且在LINE應用內，則嘗試使用LINE的API
-                    if (liff.isInClient()) {
-                        console.log("瀏覽器定位失敗，嘗試使用LINE定位");
-                        liff.getPosition()
-                            .then(positionFromLiff => {
-                                resolve({
-                                    coords: {
-                                        latitude: positionFromLiff.latitude,
-                                        longitude: positionFromLiff.longitude
-                                    }
-                                });
-                            })
-                            .catch(reject);
-                    } else {
-                        reject(error);
+                    console.error("位置獲取失敗:", error.code, error.message);
+                    // 根據錯誤代碼提供更具體的錯誤信息
+                    let errorMsg = "無法獲取您的位置";
+                    if (error.code === 1) {
+                        errorMsg = "請授權位置權限後重試";
+                    } else if (error.code === 2) {
+                        errorMsg = "位置獲取失敗，請確保GPS已開啟";
+                    } else if (error.code === 3) {
+                        errorMsg = "位置請求超時，請重試";
                     }
+                    showStatusMessage(errorMsg, "error");
+                    hideLoading();
+                    reject(error);
                 },
                 { 
-                    enableHighAccuracy: true,  // 要求高精度位置
-                    timeout: 10000,            // 10秒超時
-                    maximumAge: 10000          // 允許1分鐘的緩存
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 5000
                 }
             );
         });
-        
-        currentLatitude = position.coords.latitude;
-        currentLongitude = position.coords.longitude;
-        
-        // 保存位置到本地儲存
-        savePosition(currentLatitude, currentLongitude);
-        
-        console.log(`當前位置: ${currentLatitude}, ${currentLongitude}`);
-        
-        // 獲取附近路口
-        await fetchIntersections();
-        
     } catch (error) {
-        console.error("獲取位置失敗:", error);
-        showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
+        console.error("位置獲取過程中發生錯誤:", error);
+        showStatusMessage("位置服務異常，請重新整理頁面", "error");
         hideLoading();
+        return false;
     }
 }
 // 更新後的獲取附近交叉路口函數，始終使用最新位置
@@ -789,39 +784,21 @@ async function fetchIntersections() {
         
 // 修改後的打開位置選擇框函數
 function openLocationModal() {
-    // 不管是否已有位置，都嘗試獲取最新位置
-    showLoading();
-    navigator.geolocation.getCurrentPosition(
-        position => {
-            // 更新為最新位置
-            currentLatitude = position.coords.latitude;
-            currentLongitude = position.coords.longitude;
-            savePosition(currentLatitude, currentLongitude);
-            console.log(`使用最新位置獲取路口: ${currentLatitude}, ${currentLongitude}`);
-            
+    getCurrentPosition().then(success => {
+        if (success) {
             fetchIntersections().then(() => {
                 document.getElementById("locationModal").style.display = "block";
             });
-        },
-        error => {
-            console.error("獲取最新位置失敗:", error);
-            // 如果獲取失敗但有舊位置，使用舊位置
-            if (currentLatitude !== 0 && currentLongitude !== 0) {
-                console.log(`使用已有位置獲取路口: ${currentLatitude}, ${currentLongitude}`);
-                fetchIntersections().then(() => {
-                    document.getElementById("locationModal").style.display = "block";
-                });
-            } else {
-                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
-                hideLoading();
-            }
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0  // 設為0表示不使用緩存，強制獲取最新位置
         }
-    );
+    }).catch(error => {
+        // 檢查是否有有效的緩存位置
+        if (loadLastPosition()) {
+            console.log("使用緩存位置:", currentLatitude, currentLongitude);
+            fetchIntersections().then(() => {
+                document.getElementById("locationModal").style.display = "block";
+            });
+        }
+    });
 }
         
         // 關閉位置選擇彈窗
@@ -853,41 +830,39 @@ function openLocationModal() {
         
 // 修改後的打開車輛選擇彈窗函數
 function openBusModal() {
-    // 不管是否已有位置，都嘗試獲取最新位置
-    showLoading();
-    navigator.geolocation.getCurrentPosition(
-        position => {
-            // 更新為最新位置
-            currentLatitude = position.coords.latitude;
-            currentLongitude = position.coords.longitude;
-            savePosition(currentLatitude, currentLongitude);
-            console.log(`使用最新位置獲取車輛: ${currentLatitude}, ${currentLongitude}`);
-            
+    getCurrentPosition().then(success => {
+        if (success) {
             fetchBuses().then(() => {
                 document.getElementById("busModal").style.display = "block";
             });
-        },
-        error => {
-            console.error("獲取最新位置失敗:", error);
-            // 如果獲取失敗但有舊位置，使用舊位置
-            if (currentLatitude !== 0 && currentLongitude !== 0) {
-                console.log(`使用已有位置獲取車輛: ${currentLatitude}, ${currentLongitude}`);
-                fetchBuses().then(() => {
-                    document.getElementById("busModal").style.display = "block";
-                });
-            } else {
-                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
-                hideLoading();
-            }
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0  // 設為0表示不使用緩存，強制獲取最新位置
         }
-    );
+    }).catch(error => {
+        // 檢查是否有有效的緩存位置
+        if (loadLastPosition()) {
+            console.log("使用緩存位置:", currentLatitude, currentLongitude);
+            fetchBuses().then(() => {
+                document.getElementById("busModal").style.display = "block";
+            });
+        }
+    });
 }
-        
+        // 檢查位置權限
+function checkLocationPermission() {
+    if (!navigator.permissions) {
+        console.log("瀏覽器不支持權限檢查API");
+        return;
+    }
+    
+    navigator.permissions.query({ name: 'geolocation' }).then(result => {
+        if (result.state === 'denied') {
+            showStatusMessage("位置權限已被拒絕，請在瀏覽器或LINE設置中允許位置訪問", "error");
+        } else if (result.state === 'prompt') {
+            console.log("位置權限將在需要時提示用戶");
+        } else if (result.state === 'granted') {
+            console.log("位置權限已授予");
+        }
+    });
+}
         // 關閉車輛選擇彈窗
         function closeBusModal() {
             document.getElementById("busModal").style.display = "none";
@@ -935,7 +910,7 @@ function openBusModal() {
                 const timestamp = localStorage.getItem('lastPositionTimestamp');
                 
                 if (lastLat && lastLng && timestamp) {
-                    // 檢查時間戳是否在過去30分鐘內
+                    // 30分鐘改為30000毫秒(30秒)，與其他地方的設置保持一致
                     const thirtyMinutes = 30 * 1000;
                     if (Date.now() - timestamp < thirtyMinutes) {
                         currentLatitude = parseFloat(lastLat);
