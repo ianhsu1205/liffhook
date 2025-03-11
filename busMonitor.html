@@ -659,7 +659,7 @@ async function getCurrentPosition() {
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
-    showStatusMessage("暫時無法獲取位置，請至室外", "error");
+    showStatusMessage("暫時無法獲取位置，請至室外", "info");
     return false;
   }
 }
