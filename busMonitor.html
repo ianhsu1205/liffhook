@@ -849,7 +849,7 @@ function openBusModal() {
             buses.forEach(bus => {
                 const item = document.createElement("div");
                 item.className = "location-item";
-                item.textContent = `${bus.routeName?.chinese || '' -- ${bus.plateNumber} }`;
+                item.textContent = `${bus.routeName?.chinese || '' } -- ${bus.plateNumber}`;
                 item.addEventListener("click", function() {
                     document.getElementById("plateNumber").value = bus.plateNumber;
                     document.getElementById("plateNumbCompany").value = bus.operatorID || '';
