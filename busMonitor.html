@@ -366,6 +366,7 @@
             // 在頁面載入時設置位置監聽器
         let watchId = null;
         
+// 在頁面載入時初始化位置監視
 window.onload = async function() {
     try {
         // 嘗試從本地儲存載入最後已知位置
@@ -373,31 +374,51 @@ window.onload = async function() {
         
         await initLIFF();
         
-        // 如果用戶已登入，設置持續的位置監聽
+        // 頁面載入後立即開始監視位置
         if (liffInitialized && liff.isLoggedIn()) {
-            // 使用 watchPosition 替代單次的位置請求
-            if (!window.watchId) {
-                window.watchId = navigator.geolocation.watchPosition(
-                    position => {
-                        console.log("位置已更新");
-                        currentLatitude = position.coords.latitude;
-                        currentLongitude = position.coords.longitude;
-                        savePosition(currentLatitude, currentLongitude);
-                    },
-                    error => console.log("位置監聽錯誤:", error),
-                    { 
-                        enableHighAccuracy: true,
-                        maximumAge: 30000 // 允許30秒內的位置緩存
-                    }
-                );
-            }
+            startLocationWatching();
         }
     } catch (error) {
         console.error("頁面載入時發生錯誤:", error);
         showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
     }
 };
-        
+// 開始持續監視位置
+function startLocationWatching() {
+    if (!window.watchId && navigator.geolocation) {
+        window.watchId = navigator.geolocation.watchPosition(
+            position => {
+                console.log("位置已更新");
+                currentLatitude = position.coords.latitude;
+                currentLongitude = position.coords.longitude;
+                savePosition(currentLatitude, currentLongitude);
+                
+                // 如果用戶已經打開位置選擇框，更新附近路口
+                if (document.getElementById("locationModal").style.display === "block") {
+                    fetchIntersections();
+                }
+            },
+            error => console.log("位置監聽錯誤:", error),
+            { 
+                enableHighAccuracy: true,
+                maximumAge: 10000 // 允許30秒內的位置緩存
+            }
+        );
+    }
+}
+// 頁面關閉時停止位置監視
+window.addEventListener('beforeunload', function() {
+    stopLocationWatching();
+});
+
+// 停止位置監視
+function stopLocationWatching() {
+    if (window.watchId) {
+        navigator.geolocation.clearWatch(window.watchId);
+        window.watchId = null;
+        console.log("已停止位置監視");
+    }
+}
         // 顯示載入中
         function showLoading() {
             document.getElementById("loading-overlay").classList.remove("hidden");
@@ -495,10 +516,10 @@ async function getCurrentPosition() {
         return;
     }
     
-    // 如果已有位置信息且不超過5分鐘，直接使用
+    // 如果已有位置信息且不超過30秒，直接使用
     if (currentLatitude !== 0 && currentLongitude !== 0) {
         const lastPositionTime = localStorage.getItem('lastPositionTimestamp');
-        if (lastPositionTime && (Date.now() - lastPositionTime < 5 * 60 * 1000)) {
+        if (lastPositionTime && (Date.now() - lastPositionTime < 30 * 1000)) {
             console.log(`使用已有的位置: ${currentLatitude}, ${currentLongitude}`);
             return;
         }
@@ -531,7 +552,7 @@ async function getCurrentPosition() {
                 { 
                     enableHighAccuracy: true,  // 要求高精度位置
                     timeout: 10000,            // 10秒超時
-                    maximumAge: 60000          // 允許1分鐘的緩存
+                    maximumAge: 10000          // 允許1分鐘的緩存
                 }
             );
         });
@@ -553,42 +574,42 @@ async function getCurrentPosition() {
         hideLoading();
     }
 }
-        // 獲取附近交叉路口
-        async function fetchIntersections() {
-            try {
-                const response = await fetch(`${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=800&limit=15`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    intersections = data;
-                    console.log("找到附近路口:", intersections);
-                } else {
-                    console.log("附近未找到路口");
-                    intersections = [];
-                }
-                
-                hideLoading();
-                // 如果已經開啟了位置選擇彈窗，更新列表
-                if (document.getElementById("locationModal").style.display === "block") {
-                    updateLocationList();
-                }
-            } catch (error) {
-                console.error("獲取路口失敗:", error);
-                hideLoading();
-                showStatusMessage("無法獲取附近路口，請稍後再試", "error");
-            }
+// 更新後的獲取附近交叉路口函數，始終使用最新位置
+async function fetchIntersections() {
+    showLoading();
+    try {
+        // 始終使用最新的坐標
+        const response = await fetch(`${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=800&limit=15`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            intersections = data;
+            console.log("找到附近路口:", intersections);
+        } else {
+            console.log("附近未找到路口");
+            intersections = [];
+        }
+        
+        // 更新位置選擇框中的路口列表
+        updateLocationList();
+        hideLoading();
+    } catch (error) {
+        console.error("獲取路口失敗:", error);
+        hideLoading();
+        showStatusMessage("無法獲取附近路口，請稍後再試", "error");
+    }
+}
         
         // 獲取附近車輛
         async function fetchBuses() {
             showLoading();
             try {
-                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=300`);
+                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=150`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
@@ -709,21 +730,42 @@ async function getCurrentPosition() {
             });
         }
         
-        // 打開位置選擇彈窗
-            // 打開位置選擇彈窗
-            function openLocationModal() {
-                // 如果已有位置信息，直接使用
-                if (currentLatitude !== 0 && currentLongitude !== 0) {
-                    fetchIntersections().then(() => {
-                        document.getElementById("locationModal").style.display = "block";
-                    });
-                } else {
-                    // 否則才獲取位置
-                    getCurrentPosition().then(() => {
-                        document.getElementById("locationModal").style.display = "block";
-                    });
-                }
+// 修改後的打開位置選擇框函數
+function openLocationModal() {
+    // 不管是否已有位置，都嘗試獲取最新位置
+    showLoading();
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            // 更新為最新位置
+            currentLatitude = position.coords.latitude;
+            currentLongitude = position.coords.longitude;
+            savePosition(currentLatitude, currentLongitude);
+            console.log(`使用最新位置獲取路口: ${currentLatitude}, ${currentLongitude}`);
+            
+            fetchIntersections().then(() => {
+                document.getElementById("locationModal").style.display = "block";
+            });
+        },
+        error => {
+            console.error("獲取最新位置失敗:", error);
+            // 如果獲取失敗但有舊位置，使用舊位置
+            if (currentLatitude !== 0 && currentLongitude !== 0) {
+                console.log(`使用已有位置獲取路口: ${currentLatitude}, ${currentLongitude}`);
+                fetchIntersections().then(() => {
+                    document.getElementById("locationModal").style.display = "block";
+                });
+            } else {
+                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
+                hideLoading();
             }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0  // 設為0表示不使用緩存，強制獲取最新位置
+        }
+    );
+}
         
         // 關閉位置選擇彈窗
         function closeLocationModal() {
@@ -752,21 +794,42 @@ async function getCurrentPosition() {
             });
         }
         
-      // 打開車輛選擇彈窗
-        function openBusModal() {
-            // 如果已有位置信息，直接使用
+// 修改後的打開車輛選擇彈窗函數
+function openBusModal() {
+    // 不管是否已有位置，都嘗試獲取最新位置
+    showLoading();
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            // 更新為最新位置
+            currentLatitude = position.coords.latitude;
+            currentLongitude = position.coords.longitude;
+            savePosition(currentLatitude, currentLongitude);
+            console.log(`使用最新位置獲取車輛: ${currentLatitude}, ${currentLongitude}`);
+            
+            fetchBuses().then(() => {
+                document.getElementById("busModal").style.display = "block";
+            });
+        },
+        error => {
+            console.error("獲取最新位置失敗:", error);
+            // 如果獲取失敗但有舊位置，使用舊位置
             if (currentLatitude !== 0 && currentLongitude !== 0) {
+                console.log(`使用已有位置獲取車輛: ${currentLatitude}, ${currentLongitude}`);
                 fetchBuses().then(() => {
                     document.getElementById("busModal").style.display = "block";
                 });
             } else {
-                // 否則才獲取位置
-                getCurrentPosition().then(() => {
-                    fetchBuses();
-                    document.getElementById("busModal").style.display = "block";
-                });
+                showStatusMessage("無法獲取您的位置，請確保已授權位置權限", "error");
+                hideLoading();
             }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0  // 設為0表示不使用緩存，強制獲取最新位置
         }
+    );
+}
         
         // 關閉車輛選擇彈窗
         function closeBusModal() {
@@ -786,7 +849,7 @@ async function getCurrentPosition() {
             buses.forEach(bus => {
                 const item = document.createElement("div");
                 item.className = "location-item";
-                item.textContent = `${bus.plateNumber} - ${bus.routeName?.chinese || ''}`;
+                item.textContent = `${bus.routeName?.chinese || '' -- ${bus.plateNumber} }`;
                 item.addEventListener("click", function() {
                     document.getElementById("plateNumber").value = bus.plateNumber;
                     document.getElementById("plateNumbCompany").value = bus.operatorID || '';
@@ -816,7 +879,7 @@ async function getCurrentPosition() {
                 
                 if (lastLat && lastLng && timestamp) {
                     // 檢查時間戳是否在過去30分鐘內
-                    const thirtyMinutes = 30 * 60 * 1000;
+                    const thirtyMinutes = 30 * 1000;
                     if (Date.now() - timestamp < thirtyMinutes) {
                         currentLatitude = parseFloat(lastLat);
                         currentLongitude = parseFloat(lastLng);
