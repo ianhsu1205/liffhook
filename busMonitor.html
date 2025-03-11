@@ -319,11 +319,11 @@
             <label for="plateNumbCompany">公司</label>
             <input type="text" id="plateNumbCompany" readonly>
             <div class="company-buttons">
-                <div class="company-button" onclick="setCompany('首都客運')">首</div>
-                <div class="company-button" onclick="setCompany('臺北客運')">北</div>
-                <div class="company-button" onclick="setCompany('大都會客運')">大</div>
-                <div class="company-button" onclick="setCompany('三重客運')">三</div>
-                <div class="company-button" onclick="setCompany('台中客運')">中</div>
+                <div class="company-button" onclick="setCompany('首都客運')">首都</div>
+                <div class="company-button" onclick="setCompany('臺北客運')">北客</div>
+                <div class="company-button" onclick="setCompany('大都會客運')">大都會</div>
+                <div class="company-button" onclick="setCompany('三重客運')">三重</div>
+                <div class="company-button" onclick="setCompany('台中客運')">中客</div>
             </div>
         </div>
             
@@ -438,26 +438,35 @@ function setCompany(companyName) {
     document.getElementById("plateNumbCompany").value = companyName;
 }
 
-// 車號格式化函數
+// 車號格式化函數 - 改良版
 function formatPlateNumber() {
     const plateNumberInput = document.getElementById("plateNumber");
     let plateNumber = plateNumberInput.value.trim().toUpperCase();
     
-    // 檢查是否已有連字符，如果沒有且符合格式要求則添加
-    if (!plateNumber.includes('-')) {
-        // 尋找字母和數字的分界點
-        let letterIndex = -1;
-        for (let i = 0; i < plateNumber.length; i++) {
-            if (plateNumber[i].match(/[0-9]/)) {
-                letterIndex = i;
-                break;
-            }
-        }
+    // 如果輸入中已有連字符，不做進一步處理
+    if (plateNumber.includes('-')) {
+        plateNumberInput.value = plateNumber;
+        return;
+    }
+    
+    // 找出字母與數字的轉換點
+    let changePoints = [];
+    
+    for (let i = 0; i < plateNumber.length - 1; i++) {
+        const current = plateNumber[i];
+        const next = plateNumber[i + 1];
         
-        // 如果找到分界點且前面有字母，則在分界點前添加連字符
-        if (letterIndex > 0) {
-            plateNumber = plateNumber.substring(0, letterIndex) + '-' + plateNumber.substring(letterIndex);
+        // 檢查是否從字母轉為數字，或從數字轉為字母
+        if ((current.match(/[A-Z]/) && next.match(/[0-9]/)) || 
+            (current.match(/[0-9]/) && next.match(/[A-Z]/))) {
+            changePoints.push(i + 1);
         }
+    }
+    
+    // 如果找到轉換點，在第一個轉換點處添加連字符
+    if (changePoints.length > 0) {
+        const insertPosition = changePoints[0];
+        plateNumber = plateNumber.substring(0, insertPosition) + '-' + plateNumber.substring(insertPosition);
     }
     
     plateNumberInput.value = plateNumber;
@@ -650,7 +659,7 @@ async function getCurrentPosition() {
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
-    showStatusMessage("無法獲取位置，請確保已授權LINE位置權限", "error");
+    showStatusMessage("暫時無法獲取位置，請至室外", "error");
     return false;
   }
 }
