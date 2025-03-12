@@ -593,7 +593,7 @@
 
                 // 填充表格視圖
                 records.forEach(record => {
-                     let companyName = record.PlateNumbCompany || "-";
+                     let companyName = record.plateNumbCompany || "-";
                     companyName = companyName.replace('客運', '');
                     const row = document.createElement("tr");
                     row.innerHTML = `
