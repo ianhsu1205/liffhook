@@ -396,15 +396,17 @@
     </div>
     
     <!-- 車輛選擇彈窗 -->
-    <div id="busModal" class="modal">
-        <div class="modal-content">
-            <h3>選擇車輛</h3>
-            <div id="busList"></div>
-            <div class="button-group">
-                <button type="button" onclick="closeBusModal()">關閉</button>
-            </div>
+<div id="busModal" class="modal">
+    <div class="modal-content">
+        <h3>選擇車輛</h3>
+        <div id="busList">
+            <!-- 这里会通过JS添加"偵測車輛"按钮和车辆列表 -->
+        </div>
+        <div class="button-group">
+            <button type="button" onclick="closeBusModal()">關閉</button>
         </div>
     </div>
+</div>
         <script>
         // 全局變數
         let liffInitialized = false;
@@ -431,7 +433,7 @@ window.onload = async function() {
         await initLIFF();
         if (liffInitialized && liff.isLoggedIn()) {
             // 初始化成功後開始監視位置
-            startLocationWatching();
+            startLocationWatching(true);
         }
     } catch (error) {
         console.error("頁面載入時發生錯誤:", error);
@@ -439,7 +441,7 @@ window.onload = async function() {
     }
 };
 // 開始持續監視位置
-function startLocationWatching() {
+function startLocationWatching(silent = false) {
     if (!window.watchId && navigator.geolocation) {
         window.watchId = navigator.geolocation.watchPosition(
             position => {
@@ -447,11 +449,16 @@ function startLocationWatching() {
                 currentLatitude = position.coords.latitude;
                 currentLongitude = position.coords.longitude;
                 savePosition(currentLatitude, currentLongitude);
-                            },
-            error => console.log("位置監聽錯誤:", error),
+            },
+            error => {
+                console.log("位置監聽錯誤:", error);
+                if (!silent) {
+                    showStatusMessage("暫時無法獲取位置，請至室外", "info");
+                }
+            },
             { 
                 enableHighAccuracy: true,
-                maximumAge: 10000 // 允許30秒內的位置緩存
+                maximumAge: 10000 // 允许10秒内的位置缓存
             }
         );
     }
@@ -640,7 +647,7 @@ function stopLocationWatching() {
         }
         
 // 獲取當前位置
-async function getCurrentPosition() {
+async function getCurrentPosition(silent = false) {
   showLoading();
   console.log("開始獲取位置...");
   
@@ -691,16 +698,23 @@ async function getCurrentPosition() {
     currentLongitude = 121.565;
     savePosition(currentLatitude, currentLongitude);
     hideLoading();
-    showStatusMessage("無法準確獲取位置，使用預設位置", "info");
+    // 只有在非静默模式下显示消息
+    if (!silent) {
+      showStatusMessage("無法準確獲取位置，使用預設位置", "info");
+    }
     return true;
     
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
-    showStatusMessage("暫時無法獲取位置，請至室外", "info");
+    // 只有在非静默模式下显示消息
+    if (!silent) {
+      showStatusMessage("暫時無法獲取位置，請至室外", "info");
+    }
     return false;
   }
 }
+
 // 更新後的獲取附近交叉路口函數，始終使用最新位置
 async function fetchIntersections() {
     showLoading();
@@ -736,7 +750,7 @@ async function fetchIntersections() {
         async function fetchBuses() {
             showLoading();
             try {
-                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=150`);
+                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
@@ -886,9 +900,9 @@ async function fetchLastLocation(userId) {
         
 // 修改後的打開位置選擇框函數
 function openLocationModal() {
-        // 先顯示對話框，不等待位置
+    // 先顯示對話框，不等待位置
     document.getElementById("locationModal").style.display = "block";
-    getCurrentPosition().then(success => {
+    getCurrentPosition(false).then(success => { // 这里不是静默模式
         if (success) {
             fetchIntersections();
         } 
@@ -928,16 +942,78 @@ function openLocationModal() {
 // 修改後的打開車輛選擇彈窗函數
 function openBusModal() {
   document.getElementById("busModal").style.display = "block";
-  getCurrentPosition().then(success => {
+  
+  // 更新车辆列表modal的内容，添加"偵測車輛"按钮
+  const busList = document.getElementById("busList");
+  
+  // 检查是否已经有偵測按钮，如果没有才添加
+  if (!document.getElementById("detectBusButton")) {
+    // 创建按钮容器
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.marginBottom = "15px";
+    buttonContainer.style.textAlign = "center";
+    
+    // 创建偵測車輛按钮
+    const detectButton = document.createElement("button");
+    detectButton.id = "detectBusButton";
+    detectButton.className = "secondary-button";
+    detectButton.style.width = "auto"; // 覆盖默认的 width: 100%
+    detectButton.style.padding = "10px 15px";
+    detectButton.style.margin = "0 auto";
+    detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
+    detectButton.onclick = function() {
+      refreshBusList();
+    };
+    
+    buttonContainer.appendChild(detectButton);
+    
+    // 将按钮添加到列表之前
+    if (busList.firstChild) {
+      busList.insertBefore(buttonContainer, busList.firstChild);
+    } else {
+      busList.appendChild(buttonContainer);
+    }
+  }
+  
+  getCurrentPosition(true).then(success => { // 使用静默模式
     if (success) {
-      fetchBuses();  // 移除重複顯示
+      fetchBuses();
     }
   }).catch(error => {
     if (loadLastPosition()) {
       console.log("使用緩存位置:", currentLatitude, currentLongitude);
-      fetchBuses();  // 移除重複顯示
+      fetchBuses();
     }
   });
+}
+
+            function refreshBusList() {
+  // 更新按钮状态，显示正在加载
+  const detectButton = document.getElementById("detectBusButton");
+  if (detectButton) {
+    const originalText = detectButton.innerHTML;
+    detectButton.disabled = true;
+    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+    
+    // 获取位置并刷新车辆列表
+    getCurrentPosition(false).then(success => {
+      if (success) {
+        fetchBuses().finally(() => {
+          // 无论成功与否，恢复按钮状态
+          detectButton.disabled = false;
+          detectButton.innerHTML = originalText;
+        });
+      } else {
+        // 位置获取失败
+        detectButton.disabled = false;
+        detectButton.innerHTML = originalText;
+      }
+    }).catch(error => {
+      // 出错时也恢复按钮状态
+      detectButton.disabled = false;
+      detectButton.innerHTML = originalText;
+    });
+  }
 }
 // 檢查位置權限
 function checkLocationPermission() {
