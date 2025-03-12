@@ -306,6 +306,62 @@
     margin-top: 15px;
     width: 100%;
 }
+        /* 车辆列表项样式增强 */
+.bus-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 10px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+}
+
+.bus-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.bus-item:hover {
+    background-color: #f9f9f9;
+}
+
+.bus-item:last-child {
+    border-bottom: none;
+}
+
+.route-name {
+    flex-grow: 1;
+}
+
+.plate-number {
+    font-weight: bold;
+    color: #06C755;
+    margin-left: 10px;
+    font-size: 16px;
+}
+
+/* 检测按钮容器样式 */
+.detect-button-container {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.detect-button {
+    width: auto !important;
+    padding: 10px 15px !important;
+    margin: 0 auto !important;
+}
+
+/* 无数据提示样式 */
+.no-data-message {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+    font-style: italic;
+}
     </style>
 </head>
 <body>
@@ -314,7 +370,7 @@
     </div>
 
     <div class="container">
-        <h2>路口查核紀錄填報</h2>
+        <h2>路口查核記錄</h2>
         
         <div id="statusMessage" class="status-message"></div>
         
@@ -940,54 +996,27 @@ function openLocationModal() {
         }
         
 // 修改後的打開車輛選擇彈窗函數
+// 修改openBusModal函数，简化了之前的代码
 function openBusModal() {
-  document.getElementById("busModal").style.display = "block";
-  
-  // 更新车辆列表modal的内容，添加"偵測車輛"按钮
-  const busList = document.getElementById("busList");
-  
-  // 检查是否已经有偵測按钮，如果没有才添加
-  if (!document.getElementById("detectBusButton")) {
-    // 创建按钮容器
-    const buttonContainer = document.createElement("div");
-    buttonContainer.style.marginBottom = "15px";
-    buttonContainer.style.textAlign = "center";
+    document.getElementById("busModal").style.display = "block";
     
-    // 创建偵測車輛按钮
-    const detectButton = document.createElement("button");
-    detectButton.id = "detectBusButton";
-    detectButton.className = "secondary-button";
-    detectButton.style.width = "auto"; // 覆盖默认的 width: 100%
-    detectButton.style.padding = "10px 15px";
-    detectButton.style.margin = "0 auto";
-    detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
-    detectButton.onclick = function() {
-      refreshBusList();
-    };
-    
-    buttonContainer.appendChild(detectButton);
-    
-    // 将按钮添加到列表之前
-    if (busList.firstChild) {
-      busList.insertBefore(buttonContainer, busList.firstChild);
-    } else {
-      busList.appendChild(buttonContainer);
-    }
-  }
-  
-  getCurrentPosition(true).then(success => { // 使用静默模式
-    if (success) {
-      fetchBuses();
-    }
-  }).catch(error => {
-    if (loadLastPosition()) {
-      console.log("使用緩存位置:", currentLatitude, currentLongitude);
-      fetchBuses();
-    }
-  });
+    // 直接调用刷新函数，它会添加按钮并获取车辆
+    getCurrentPosition(true).then(success => {
+        if (success) {
+            fetchBuses();
+        }
+    }).catch(error => {
+        if (loadLastPosition()) {
+            console.log("使用緩存位置:", currentLatitude, currentLongitude);
+            fetchBuses();
+        } else {
+            // 确保即使没有位置，也会显示UI（包括按钮）
+            updateBusList();
+        }
+    });
 }
 
-            function refreshBusList() {
+  function refreshBusList() {
   // 更新按钮状态，显示正在加载
   const detectButton = document.getElementById("detectBusButton");
   if (detectButton) {
@@ -1037,30 +1066,96 @@ function checkLocationPermission() {
             document.getElementById("busModal").style.display = "none";
         }
         
-        // 更新車輛列表
-        function updateBusList() {
-            const container = document.getElementById("busList");
-            container.innerHTML = "";
-            
-            if (buses.length === 0) {
-                container.innerHTML = "<p>附近未找到車輛，請稍後再試</p>";
-                return;
-            }
-            
-            buses.forEach(bus => {
-                const item = document.createElement("div");
-                item.className = "location-item";
-                item.textContent = `${bus.routeName?.chinese || '' } -- ${bus.plateNumber}`;
-                item.addEventListener("click", function() {
-                    document.getElementById("plateNumber").value = bus.plateNumber;
-                    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
-                    document.getElementById("routeName").value = bus.routeName?.chinese || '';
-                    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
-                    closeBusModal();
-                });
-                container.appendChild(item);
-            });
-        }
+function updateBusList() {
+    const container = document.getElementById("busList");
+    
+    // 保存之前的偵測按鈕容器（如果存在）
+    let buttonContainer = document.getElementById("detectButtonContainer");
+    
+    // 清空内容，但保留按钮容器的引用
+    container.innerHTML = "";
+    
+    // 如果之前没有按钮容器，创建一个
+    if (!buttonContainer) {
+        buttonContainer = document.createElement("div");
+        buttonContainer.id = "detectButtonContainer";
+        buttonContainer.style.marginBottom = "15px";
+        buttonContainer.style.textAlign = "center";
+        
+        // 创建偵測車輛按钮
+        const detectButton = document.createElement("button");
+        detectButton.id = "detectBusButton";
+        detectButton.className = "secondary-button";
+        detectButton.style.width = "auto"; // 覆盖默认的 width: 100%
+        detectButton.style.padding = "10px 15px";
+        detectButton.style.margin = "0 auto";
+        detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
+        detectButton.onclick = function() {
+            refreshBusList();
+        };
+        
+        buttonContainer.appendChild(detectButton);
+    }
+    
+    // 在容器的最前面添加按钮容器
+    container.appendChild(buttonContainer);
+    
+    // 添加车辆列表或"未找到"消息
+    if (buses.length === 0) {
+        const noDataMsg = document.createElement("p");
+        noDataMsg.textContent = "附近未找到車輛，請稍後再試";
+        container.appendChild(noDataMsg);
+        return;
+    }
+    
+    // 创建列表容器
+    const listContainer = document.createElement("div");
+    listContainer.style.maxHeight = "400px";
+    listContainer.style.overflowY = "auto";
+    listContainer.style.marginTop = "10px";
+    
+    buses.forEach(bus => {
+        const item = document.createElement("div");
+        item.className = "location-item";
+        
+        // 创建内容容器，使用flex布局
+        const contentContainer = document.createElement("div");
+        contentContainer.style.display = "flex";
+        contentContainer.style.justifyContent = "space-between";
+        contentContainer.style.alignItems = "center";
+        
+        // 路线名称 - 左侧
+        const routeSpan = document.createElement("span");
+        routeSpan.textContent = bus.routeName?.chinese || '未知路線';
+        routeSpan.style.flexGrow = "1";
+        
+        // 车号 - 右侧，使用粗体和不同颜色突出显示
+        const plateSpan = document.createElement("span");
+        plateSpan.textContent = bus.plateNumber || '無車號';
+        plateSpan.style.fontWeight = "bold";
+        plateSpan.style.color = "#06C755"; // 使用绿色突出显示
+        plateSpan.style.marginLeft = "10px";
+        plateSpan.style.fontSize = "16px";
+        
+        // 组合元素
+        contentContainer.appendChild(routeSpan);
+        contentContainer.appendChild(plateSpan);
+        item.appendChild(contentContainer);
+        
+        item.addEventListener("click", function() {
+            document.getElementById("plateNumber").value = bus.plateNumber;
+            document.getElementById("plateNumbCompany").value = bus.operatorName || '';
+            document.getElementById("routeName").value = bus.routeName?.chinese || '';
+            document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
+            closeBusModal();
+        });
+        
+        listContainer.appendChild(item);
+    });
+    
+    container.appendChild(listContainer);
+}
+
         // 當獲取到新位置時，存入 localStorage
         function savePosition(latitude, longitude) {
             try {
