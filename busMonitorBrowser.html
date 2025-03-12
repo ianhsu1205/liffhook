@@ -324,7 +324,7 @@
     </div>
 
     <div class="container">
-        <h2>監控記錄查詢</h2>
+        <h2>查核記錄查詢</h2>
         
         <div id="statusMessage" class="status-message"></div>
         
@@ -339,7 +339,7 @@
         
         <!-- 資訊顯示區域 -->
         <div id="infoSection" class="info-section hidden">
-            <div id="locationInfo" class="info-item">查核路口: </div>
+            <div id="locationInfo" class="info-item">查核地點: </div>
             <div id="dateInfo" class="info-item">查核日期: </div>
         </div>
         
@@ -402,24 +402,24 @@
         let userId = "";
         
         // 在頁面載入時初始化
-        window.onload = async function() {
-            try {
-                showLoading();
-                // 設置今天的日期作為默認值
-                document.getElementById("searchDate").value = formatDate(new Date());
-                
-                // 初始化 LIFF
-                await initLIFF();
-                if (liffInitialized && liff.isLoggedIn()) {
-                    // 獲取用戶ID後自動查詢今日記錄
-                    searchRecords();
-                }
-            } catch (error) {
-                console.error("頁面載入時發生錯誤:", error);
-                showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
-                hideLoading();
-            }
-        };
+   window.onload = async function() {
+    try {
+        showLoading();
+        // 设置今天的日期作为默认值
+        document.getElementById("searchDate").value = formatDate(new Date());
+        
+        // 初始化 LIFF
+        await initLIFF();
+        if (liffInitialized && liff.isLoggedIn()) {
+            // 获取用户ID后自动查询今日记录，使用当前日期
+            searchRecords(true);
+        }
+    } catch (error) {
+        console.error("頁面載入時發生錯誤:", error);
+        showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
+        hideLoading();
+    }
+};
         
         // 格式化日期為yyyy-MM-dd
         function formatDate(date) {
@@ -540,53 +540,60 @@
         }
         
         // 搜尋記錄
-        async function searchRecords() {
-            showLoading();
-            
-            try {
-                if (!userId) {
-                    throw new Error("用戶ID未獲取，請重新登入");
-                }
-                
-                const searchDate = document.getElementById("searchDate").value;
-                
-                if (!searchDate) {
-                    showStatusMessage("請選擇查詢日期", "error");
-                    hideLoading();
-                    return;
-                }
-                
-                const response = await fetch(`${base_url}monitor/records/user/${userId}?date=${searchDate}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // 保存全局記錄
-                    globalRecords = data.data || [];
-                    
-                    // 顯示查詢結果
-                    updateRecordsDisplay(data);
-                } else {
-                    throw new Error(data.message || "查詢失敗");
-                }
-            } catch (error) {
-                console.error("查詢記錄失敗:", error);
-                showStatusMessage("查詢記錄失敗: " + error.message, "error");
-                // 清空記錄顯示
-                document.getElementById("recordsList").innerHTML = "";
-                document.getElementById("cardView").innerHTML = "";
-                document.getElementById("infoSection").classList.add("hidden");
-                document.getElementById("noRecordsMessage").classList.remove("hidden");
-            } finally {
-                hideLoading();
-            }
+       async function searchRecords(useCurrentDate = false) {
+    showLoading();
+    
+    try {
+        if (!userId) {
+            throw new Error("用戶ID未獲取，請重新登入");
         }
         
-        // 更新記錄顯示
+        const searchDateElement = document.getElementById("searchDate");
+        
+        // 如果不是使用当前日期且输入框中有值，则保持现有值
+        // 否则（例如页面第一次加载时）设置为今天的日期
+        if (useCurrentDate) {
+            searchDateElement.value = formatDate(new Date());
+        }
+        
+        const searchDate = searchDateElement.value;
+        
+        if (!searchDate) {
+            showStatusMessage("請選擇查詢日期", "error");
+            hideLoading();
+            return;
+        }
+        
+        const response = await fetch(`${base_url}monitor/records/user/${userId}?date=${searchDate}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 保存全局记录
+            globalRecords = data.data || [];
+            
+            // 显示查询结果
+            updateRecordsDisplay(data);
+        } else {
+            throw new Error(data.message || "查詢失敗");
+        }
+    } catch (error) {
+        console.error("查詢記錄失敗:", error);
+        showStatusMessage("查詢記錄失敗: " + error.message, "error");
+        // 清空记录显示
+        document.getElementById("recordsList").innerHTML = "";
+        document.getElementById("cardView").innerHTML = "";
+        document.getElementById("infoSection").classList.add("hidden");
+        document.getElementById("noRecordsMessage").classList.remove("hidden");
+    } finally {
+        hideLoading();
+    }
+}
+        
 // 修改 updateRecordsDisplay 函數部分
 function updateRecordsDisplay(data) {
     const records = data.data || [];
@@ -647,11 +654,11 @@ function updateRecordsDisplay(data) {
                 </div>
                 <div class="data-card-body">
                     <div class="data-card-item">
-                        <div class="data-card-label">查核結果</div>
+                        <div class="data-card-label"><strong>查核結果:</strong></div>
                         <div class="data-card-value">${record.mainItem || "-"}</div>
                     </div>
                     <div class="data-card-item">
-                        <div class="data-card-label">其它缺失</div>
+                        <div class="data-card-label"><strong>其它缺失:</strong></div>
                         <div class="data-card-value">${record.otherItem || "-"}</div>
                     </div>
                 </div>
@@ -691,33 +698,34 @@ function updateRecordsDisplay(data) {
         
         // 刪除記錄
         async function deleteRecord(recordId) {
-            showLoading();
-            closeConfirmModal();
-            
-            try {
-                const response = await fetch(`${base_url}monitor/records/${recordId}`, {
-                    method: "DELETE"
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatusMessage("記錄已成功刪除", "success");
-                    // 刷新記錄列表
-                    searchRecords();
-                } else {
-                    throw new Error(data.message || "刪除失敗");
-                }
-            } catch (error) {
-                console.error("刪除記錄失敗:", error);
-                showStatusMessage("刪除記錄失敗: " + error.message, "error");
-                hideLoading();
-            }
+    showLoading();
+    closeConfirmModal();
+    
+    try {
+        const response = await fetch(`${base_url}monitor/records/${recordId}`, {
+            method: "DELETE"
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
         }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showStatusMessage("記錄已成功刪除", "success");
+            // 刷新记录列表但保持当前日期
+            searchRecords(false);
+        } else {
+            throw new Error(data.message || "刪除失敗");
+        }
+    } catch (error) {
+        console.error("刪除記錄失敗:", error);
+        showStatusMessage("刪除記錄失敗: " + error.message, "error");
+        hideLoading();
+    }
+}
+
     </script>
 </body>
 </html>
