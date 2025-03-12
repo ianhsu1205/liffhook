@@ -597,9 +597,9 @@
                     companyName = companyName.replace('客運', '');
                     const row = document.createElement("tr");
                     row.innerHTML = `
-                        <td>${record.plateNumber || "-"}</td>
                         <td>${companyName || "-"}</td>
                         <td>${record.routeName || "-"}</td>
+                        <td>${record.plateNumber || "-"}</td>
                         <td>${record.mainItem || "-"}</td>
                         <td>${record.otherItem || "-"}</td>
                         <td>${record.createdTime || "-"}</td>
