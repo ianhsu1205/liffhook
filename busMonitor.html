@@ -258,7 +258,7 @@
             margin-bottom: 20px;
         }
         .other-item-card {
-            flex: 1 0 45%;
+            flex: 1 0 30%;
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 12px;
@@ -565,11 +565,11 @@ function stopLocationWatching() {
                 // 獲取其他項目列表
                 await fetchOtherItems();
               // 最後嘗試獲取位置，如果失敗也不阻塞其他功能
-                setTimeout(() => {
-                    getCurrentPosition().catch(error => {
-                        console.log("初始位置獲取失敗，但不影響其他功能:", error);
-                    });
-                }, 500);  
+           //     setTimeout(() => {
+           //         getCurrentPosition().catch(error => {
+          //              console.log("初始位置獲取失敗，但不影響其他功能:", error);
+           //         });
+           //     }, 500);  
             } catch (error) {
                 console.error("LIFF 初始化失敗:", error);
                 showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
