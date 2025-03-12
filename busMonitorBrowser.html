@@ -332,7 +332,7 @@
             <table id="recordsTable" class="records-table">
                 <thead>
                     <tr>
-                        <th>公司別</th>
+                        <th>業者</th>
                         <th>路線</th>
                         <th>車號</th>
                         <th>查核結果</th>
@@ -593,7 +593,7 @@
 
                 // 填充表格視圖
                 records.forEach(record => {
-                     let companyName = record.plateNumbCompany || "-";
+                     let companyName = record.PlateNumbCompany || "-";
                     companyName = companyName.replace('客運', '');
                     const row = document.createElement("tr");
                     row.innerHTML = `
@@ -608,9 +608,6 @@
                         </td>
                     `;
                     tableBody.appendChild(row);
-
-                    let companyName = record.plateNumbCompany || "-";
-                    companyName = companyName.replace('客運', '');
                     // 填充卡片視圖
                     const card = document.createElement("div");
                     card.className = "data-card";
@@ -621,8 +618,8 @@
                         </div>
                         <div class="data-card-body">
                             <div class="data-card-item">
-                                <div class="data-card-label">公司別</div>
-                                <div class="data-card-value">${record.plateNumbCompany || "-"}</div>
+                                <div class="data-card-label">業者</div>
+                                <div class="data-card-value">${companyName || "-"}</div>
                             </div>
                             <div class="data-card-item">
                                 <div class="data-card-label">路線</div>
