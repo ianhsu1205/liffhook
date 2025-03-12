@@ -334,6 +334,7 @@
                     <tr>
                         <th>公司別</th>
                         <th>路線</th>
+                        <th>車號</th>
                         <th>查核結果</th>
                         <th>其它缺失</th>
                         <th>時間</th>
@@ -589,12 +590,14 @@
                 // 獲取最近一筆記錄的位置
                 const latestRecord = records[records.length - 1];
                 document.getElementById("locationInfo").textContent = `查核路口: ${latestRecord.location || "未知"}`;
-                
+                let companyName = record.plateNumbCompany || "-";
+                    companyName = companyName.replace('客運', '');
                 // 填充表格視圖
                 records.forEach(record => {
                     const row = document.createElement("tr");
                     row.innerHTML = `
-                        <td>${record.plateNumbCompany || "-"}</td>
+                        <td>${record.plateNumber || "-"}</td>
+                        <td>${companyName || "-"}</td>
                         <td>${record.routeName || "-"}</td>
                         <td>${record.mainItem || "-"}</td>
                         <td>${record.otherItem || "-"}</td>
@@ -604,11 +607,17 @@
                         </td>
                     `;
                     tableBody.appendChild(row);
-                    
+
+                    let companyName = record.plateNumbCompany || "-";
+                    companyName = companyName.replace('客運', '');
                     // 填充卡片視圖
                     const card = document.createElement("div");
                     card.className = "data-card";
                     card.innerHTML = `
+                        <div class="data-card-header">
+                        <span>${record.plateNumber || "無車號"}</span>
+                        <span>${record.createdTime || "-"}</span>
+                    </div>
                         <div class="data-card-header">
                             <span>${record.plateNumber || "無車號"}</span>
                             <span>${record.createdTime || "-"}</span>
