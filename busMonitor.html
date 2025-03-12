@@ -281,6 +281,22 @@
         .location-item:hover {
             background-color: #f9f9f9;
         }
+        /* 雙欄布局 */
+.two-columns {
+    display: flex;
+    gap: 10px;
+}
+.column {
+    flex: 1;
+}
+/* 突顯區域 */
+.highlighted-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 20px;
+}
     </style>
 </head>
 <body>
@@ -306,7 +322,7 @@
             </div>
             
             <div class="form-group">
-                <label for="plateNumber" class="required">車輛號碼</label>
+                <label for="plateNumber" class="required">車號</label>
                 <div class="input-group">
                    <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
                     <div class="icon-button" onclick="openBusModal()">
@@ -315,7 +331,10 @@
                 </div>
             </div>
             
-        <div class="form-group">
+<!-- 原本的公司和路線名稱部分改為以下代碼 -->
+<div class="form-group highlighted-section">
+    <div class="two-columns">
+        <div class="column">
             <label for="plateNumbCompany">公司</label>
             <input type="text" id="plateNumbCompany" readonly>
             <div class="company-buttons">
@@ -326,11 +345,12 @@
                 <div class="company-button" onclick="setCompany('台中客運')">中客</div>
             </div>
         </div>
-            
-            <div class="form-group">
-                <label for="routeName">路線名稱</label>
-             <input type="text" id="routeName" oninput="convertToUpperCase(this)">
-            </div>
+        <div class="column">
+            <label for="routeName">路線名稱</label>
+            <input type="text" id="routeName" oninput="convertToUpperCase(this)">
+        </div>
+    </div>
+</div>
             
             <input type="hidden" id="positionLat">
             <input type="hidden" id="userId">
@@ -510,6 +530,11 @@ function stopLocationWatching() {
             statusElement.textContent = message;
             statusElement.className = "status-message";
             statusElement.classList.add(type);
+             // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
         }
 
         // 初始化 LIFF
@@ -991,19 +1016,19 @@ function checkLocationPermission() {
             
             // 驗證位置
             if (!document.getElementById("location").value) {
-                showStatusMessage("請選擇路口位置", "error");
+                showStatusMessage("沒有輸入查核路口", "error");
                 isValid = false;
             }
             
             // 驗證車號
             if (!document.getElementById("plateNumber").value) {
-                showStatusMessage("請選擇車輛號碼", "error");
+                showStatusMessage("沒有輸入車號", "error");
                 isValid = false;
             }
             
             // 驗證主要項目
             if (!selectedMainItem) {
-                showStatusMessage("請選擇缺失項目", "error");
+                showStatusMessage("沒有選擇主要查核結果", "error");
                 isValid = false;
             }
             
