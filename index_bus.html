@@ -218,21 +218,72 @@
         
         <!-- 註冊表單 -->
         <form id="registerForm" class="hidden">
-            <div class="form-group">
-                <label for="company" class="required">公司名稱</label>
-                <input type="text" id="company" placeholder="請輸入公司名稱">
-                <div class="error-message" id="company-error">公司名稱為必填欄位</div>
+          <div class="form-group">
+                <label for="company" class="required">公司別</label>
+                <select id="company">
+                    <option value="">請選擇公司別</option>
+                    <option value="首都客運">首都客運</option>
+                    <option value="臺北客運">臺北客運</option>
+                    <option value="三重客運">三重客運</option>
+                    <option value="大都會客運">大都會客運</option>
+                    <option value="台中客運">台中客運</option>
+                </select>
+                <div class="error-message" id="company-error">公司別為必填欄位</div>
             </div>
             
             <div class="form-group">
                 <label for="dept" class="required">部門</label>
-                <input type="text" id="dept" placeholder="請輸入部門名稱">
+                <select id="dept">
+                    <option value="">請選擇部門</option>
+                    <option value="董事長室">董事長室</option>
+                    <option value="總經理室">總經理室</option>
+                    <option value="企業工會">企業工會</option>
+                    <option value="業務部">業務部</option>
+                    <option value="人資部">人資部</option>
+                    <option value="財務部">財務部</option>
+                    <option value="機務部">機務部</option>
+                    <option value="修理廠">修理廠</option>
+                    <option value="總務部">總務部</option>
+                    <option value="資訊中心">資訊中心</option>
+                    <option value="勞安室">勞安室</option>
+                    <option value="其它單位">其它單位</option>
+                </select>
                 <div class="error-message" id="dept-error">部門為必填欄位</div>
             </div>
             
-            <div class="form-group" >
+            <div class="form-group">
                 <label for="job">職稱</label>
-                 <input type="text" id="job" placeholder="請輸入職稱">
+                <select id="job">
+                    <option value="">請選擇職稱</option>
+                    <option value="董事長">董事長</option>
+                    <option value="執董">執董</option>
+                    <option value="總經理">總經理</option>
+                    <option value="協理">協理</option>
+                    <option value="經理">經理</option>
+                    <option value="副理">副理</option>
+                    <option value="主任">主任</option>
+                    <option value="副主任">副主任</option>
+                    <option value="秘書">秘書</option>
+                    <option value="襄理">襄理</option>
+                    <option value="課長">課長</option>
+                    <option value="副課長">副課長</option>
+                    <option value="股長">股長</option>
+                    <option value="組長">組長</option>
+                    <option value="副組長">副組長</option>
+                    <option value="專員">專員</option>
+                    <option value="業務員">業務員</option>
+                    <option value="事務員">事務員</option>
+                    <option value="技術員">技術員</option>
+                    <option value="廠長">廠長</option>
+                    <option value="營業車駕駛長">營業車駕駛長</option>
+                    <option value="油車駕駛長">油車駕駛長</option>
+                    <option value="收銀員">收銀員</option>
+                    <option value="站長">站長</option>
+                    <option value="副站長">副站長</option>
+                    <option value="站務">站務</option>
+                    <option value="助理站務">助理站務</option>
+                    <option value="其它同仁">其它同仁</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -513,6 +564,7 @@
             const dept = document.getElementById("dept").value.trim();
             isValid = validateField("dept", dept !== "", "部門為必填欄位") && isValid;
 
+            
              // 驗證員工編號 (必填)
             const empid = document.getElementById("empId").value.trim();
              const empIdPattern = /^\d{4,6}$/;
