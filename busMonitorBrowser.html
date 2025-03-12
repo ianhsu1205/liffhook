@@ -590,10 +590,11 @@
                 // 獲取最近一筆記錄的位置
                 const latestRecord = records[records.length - 1];
                 document.getElementById("locationInfo").textContent = `查核路口: ${latestRecord.location || "未知"}`;
-                let companyName = record.plateNumbCompany || "-";
-                    companyName = companyName.replace('客運', '');
+
                 // 填充表格視圖
                 records.forEach(record => {
+                     let companyName = record.plateNumbCompany || "-";
+                    companyName = companyName.replace('客運', '');
                     const row = document.createElement("tr");
                     row.innerHTML = `
                         <td>${record.plateNumber || "-"}</td>
@@ -614,10 +615,6 @@
                     const card = document.createElement("div");
                     card.className = "data-card";
                     card.innerHTML = `
-                        <div class="data-card-header">
-                        <span>${record.plateNumber || "無車號"}</span>
-                        <span>${record.createdTime || "-"}</span>
-                    </div>
                         <div class="data-card-header">
                             <span>${record.plateNumber || "無車號"}</span>
                             <span>${record.createdTime || "-"}</span>
