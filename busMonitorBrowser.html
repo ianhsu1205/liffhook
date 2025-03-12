@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>監控記錄查詢</title>
+    <title>路口查核記錄查詢</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -294,7 +294,23 @@
                 font-size: 14px;
             }
         }
-        
+.header-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.data-card-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 12px;
+}
+
+.data-card {
+    padding: 15px;
+    margin-bottom: 12px;
+}
         @media (min-width: 769px) {
             .card-view {
                 display: none;
@@ -571,84 +587,89 @@
         }
         
         // 更新記錄顯示
-        function updateRecordsDisplay(data) {
-            const records = data.data || [];
-            const tableBody = document.getElementById("recordsList");
-            const cardView = document.getElementById("cardView");
-            const infoSection = document.getElementById("infoSection");
-            const noRecordsMessage = document.getElementById("noRecordsMessage");
+// 修改 updateRecordsDisplay 函數部分
+function updateRecordsDisplay(data) {
+    const records = data.data || [];
+    const recordCount = records.length;
+    const tableBody = document.getElementById("recordsList");
+    const cardView = document.getElementById("cardView");
+    const infoSection = document.getElementById("infoSection");
+    const noRecordsMessage = document.getElementById("noRecordsMessage");
+    
+    // 清空現有內容
+    tableBody.innerHTML = "";
+    cardView.innerHTML = "";
+    
+    if (recordCount > 0) {
+        // 顯示查詢信息，加入查核筆數
+        infoSection.classList.remove("hidden");
+        document.getElementById("dateInfo").textContent = `查核日期: ${data.date}`;
+        
+        // 獲取最近一筆記錄的位置
+        const latestRecord = records[records.length - 1];
+        document.getElementById("locationInfo").textContent = `查核路口: ${latestRecord.location || "未知"} (${recordCount}筆)`;
+        
+        // 填充表格視圖
+        records.forEach(record => {
+            let companyName = record.plateNumbCompany || "-";
+            companyName = companyName.replace('客運', '');
             
-            // 清空現有內容
-            tableBody.innerHTML = "";
-            cardView.innerHTML = "";
+            // 格式化時間，只顯示時:分
+            const timeFormatted = record.createdTime ? 
+                record.createdTime.split(':').slice(0, 2).join(':') : 
+                "-";
             
-            if (records.length > 0) {
-                // 顯示查詢信息
-                infoSection.classList.remove("hidden");
-                document.getElementById("dateInfo").textContent = `查核日期: ${data.date}`;
-                
-                // 獲取最近一筆記錄的位置
-                const latestRecord = records[records.length - 1];
-                document.getElementById("locationInfo").textContent = `查核路口: ${latestRecord.location || "未知"}`;
-
-                // 填充表格視圖
-                records.forEach(record => {
-                     let companyName = record.plateNumbCompany || "-";
-                    companyName = companyName.replace('客運', '');
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${companyName || "-"}</td>
-                        <td>${record.routeName || "-"}</td>
-                        <td>${record.plateNumber || "-"}</td>
-                        <td>${record.mainItem || "-"}</td>
-                        <td>${record.otherItem || "-"}</td>
-                        <td>${record.createdTime || "-"}</td>
-                        <td>
-                            <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                    // 填充卡片視圖
-                    const card = document.createElement("div");
-                    card.className = "data-card";
-                    card.innerHTML = `
-                        <div class="data-card-header">
-                            <span>${record.plateNumber || "無車號"}</span>
-                            <span>${record.createdTime || "-"}</span>
-                        </div>
-                        <div class="data-card-body">
-                            <div class="data-card-item">
-                                <div class="data-card-label">業者</div>
-                                <div class="data-card-value">${companyName || "-"}</div>
-                            </div>
-                            <div class="data-card-item">
-                                <div class="data-card-label">路線</div>
-                                <div class="data-card-value">${record.routeName || "-"}</div>
-                            </div>
-                            <div class="data-card-item">
-                                <div class="data-card-label">查核結果</div>
-                                <div class="data-card-value">${record.mainItem || "-"}</div>
-                            </div>
-                            <div class="data-card-item">
-                                <div class="data-card-label">其它缺失</div>
-                                <div class="data-card-value">${record.otherItem || "-"}</div>
-                            </div>
-                        </div>
-                        <div class="data-card-footer">
-                            <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
-                        </div>
-                    `;
-                    cardView.appendChild(card);
-                });
-                
-                noRecordsMessage.classList.add("hidden");
-            } else {
-                // 無記錄時顯示提示
-                infoSection.classList.add("hidden");
-                noRecordsMessage.classList.remove("hidden");
-                noRecordsMessage.textContent = `${data.date} 沒有查詢到記錄`;
-            }
-        }
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${companyName}</td>
+                <td>${record.routeName || "-"}</td>
+                <td>${record.plateNumber || "-"}</td>
+                <td>${record.mainItem || "-"}</td>
+                <td>${record.otherItem || "-"}</td>
+                <td>${timeFormatted}</td>
+                <td>
+                    <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+            
+            // 填充卡片視圖 - 修改為更精簡的版本
+            const card = document.createElement("div");
+            card.className = "data-card";
+            card.innerHTML = `
+                <div class="data-card-header">
+                    <div class="header-grid">
+                        <span><strong>業者:</strong> ${companyName}</span>
+                        <span><strong>路線:</strong> ${record.routeName || "-"}</span>
+                        <span><strong>車號:</strong> ${record.plateNumber || "-"}</span>
+                        <span><strong>時間:</strong> ${timeFormatted}</span>
+                    </div>
+                </div>
+                <div class="data-card-body">
+                    <div class="data-card-item">
+                        <div class="data-card-label">查核結果</div>
+                        <div class="data-card-value">${record.mainItem || "-"}</div>
+                    </div>
+                    <div class="data-card-item">
+                        <div class="data-card-label">其它缺失</div>
+                        <div class="data-card-value">${record.otherItem || "-"}</div>
+                    </div>
+                </div>
+                <div class="data-card-footer">
+                    <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
+                </div>
+            `;
+            cardView.appendChild(card);
+        });
+        
+        noRecordsMessage.classList.add("hidden");
+    } else {
+        // 無記錄時顯示提示
+        infoSection.classList.add("hidden");
+        noRecordsMessage.classList.remove("hidden");
+        noRecordsMessage.textContent = `${data.date} 沒有查詢到記錄`;
+    }
+}
         
         // 顯示刪除確認框
         function showDeleteConfirm(recordId) {
