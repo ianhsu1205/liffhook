@@ -285,6 +285,7 @@
 .two-columns {
     display: flex;
     gap: 10px;
+    margin-top: 15px;
 }
 .column {
     flex: 1;
@@ -296,6 +297,14 @@
     padding: 15px;
     border: 1px solid #e9ecef;
     margin-bottom: 20px;
+}
+        /* 全寬公司按鈕樣式 */
+.company-buttons-full {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    width: 100%;
 }
     </style>
 </head>
@@ -320,35 +329,33 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="plateNumber" class="required">車號</label>
-                <div class="input-group">
-                   <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
-                    <div class="icon-button" onclick="openBusModal()">
-                        <i class="fas fa-bus"></i>
-                    </div>
-                </div>
-            </div>
-            
-<!-- 原本的公司和路線名稱部分改為以下代碼 -->
 <div class="form-group highlighted-section">
+    <label for="plateNumber" class="required">車號</label>
+    <div class="input-group">
+        <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
+        <div class="icon-button" onclick="openBusModal()">
+            <i class="fas fa-bus"></i>
+        </div>
+    </div>
+    
     <div class="two-columns">
         <div class="column">
             <label for="plateNumbCompany">公司</label>
             <input type="text" id="plateNumbCompany" readonly>
-            <div class="company-buttons">
-                <div class="company-button" onclick="setCompany('首都客運')">首都</div>
-                <div class="company-button" onclick="setCompany('臺北客運')">北客</div>
-                <div class="company-button" onclick="setCompany('大都會客運')">大都會</div>
-                <div class="company-button" onclick="setCompany('三重客運')">三重</div>
-                <div class="company-button" onclick="setCompany('台中客運')">中客</div>
-            </div>
         </div>
         <div class="column">
             <label for="routeName">路線名稱</label>
             <input type="text" id="routeName" oninput="convertToUpperCase(this)">
         </div>
+    </div>
+    
+    <!-- 公司按鈕跨越整個區域 -->
+    <div class="company-buttons-full">
+        <div class="company-button" onclick="setCompany('首都客運')">首都</div>
+        <div class="company-button" onclick="setCompany('臺北客運')">北客</div>
+        <div class="company-button" onclick="setCompany('大都會客運')">大都會</div>
+        <div class="company-button" onclick="setCompany('三重客運')">三重</div>
+        <div class="company-button" onclick="setCompany('台中客運')">中客</div>
     </div>
 </div>
             
