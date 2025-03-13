@@ -362,6 +362,12 @@
     color: #6c757d;
     font-style: italic;
 }
+        /* 為了增加對比度，讓按鈕在不同狀態下更明顯 */
+.secondary-button:disabled {
+    background-color: #e9ecef;
+    color: #adb5bd;
+    cursor: not-allowed;
+}
     </style>
 </head>
 <body>
@@ -996,53 +1002,146 @@ function openLocationModal() {
         }
         
 // 修改後的打開車輛選擇彈窗函數
-// 修改openBusModal函数，简化了之前的代码
 function openBusModal() {
+    // 先顯示模態窗
     document.getElementById("busModal").style.display = "block";
     
-    // 直接调用刷新函数，它会添加按钮并获取车辆
+    // 確保列表容器存在
+    const container = document.getElementById("busList");
+    if (!container) return;
+    
+    // 無論如何都先清空內容並添加檢測按鈕
+    container.innerHTML = "";
+    
+    // 創建按鈕容器
+    const buttonContainer = document.createElement("div");
+    buttonContainer.id = "detectButtonContainer";
+    buttonContainer.className = "detect-button-container";
+    
+    // 創建偵測車輛按鈕
+    const detectButton = document.createElement("button");
+    detectButton.id = "detectBusButton";
+    detectButton.className = "secondary-button detect-button";
+    detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
+    detectButton.onclick = function() {
+        refreshBusList();
+    };
+    
+    buttonContainer.appendChild(detectButton);
+    container.appendChild(buttonContainer);
+    
+    // 添加載入中提示
+    const loadingMsg = document.createElement("p");
+    loadingMsg.id = "busListLoading";
+    loadingMsg.className = "no-data-message";
+    loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在載入附近車輛...';
+    container.appendChild(loadingMsg);
+    
+    // 嘗試獲取位置和車輛
     getCurrentPosition(true).then(success => {
         if (success) {
             fetchBuses();
+        } else {
+            // 位置獲取失敗，移除載入中提示，顯示錯誤訊息
+            if (document.getElementById("busListLoading")) {
+                document.getElementById("busListLoading").remove();
+            }
+            showBusListError("無法獲取位置，請手動輸入車號");
         }
     }).catch(error => {
+        // 處理錯誤，確保UI總是顯示某些信息
+        if (document.getElementById("busListLoading")) {
+            document.getElementById("busListLoading").remove();
+        }
+        
         if (loadLastPosition()) {
             console.log("使用緩存位置:", currentLatitude, currentLongitude);
             fetchBuses();
         } else {
-            // 确保即使没有位置，也会显示UI（包括按钮）
-            updateBusList();
+            showBusListError("無法獲取位置，請手動輸入車號");
         }
     });
 }
-
-  function refreshBusList() {
-  // 更新按钮状态，显示正在加载
-  const detectButton = document.getElementById("detectBusButton");
-  if (detectButton) {
-    const originalText = detectButton.innerHTML;
-    detectButton.disabled = true;
-    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+// 顯示車輛列表錯誤訊息
+function showBusListError(message) {
+    const container = document.getElementById("busList");
+    // 先檢查是否已經有錯誤訊息
+    let errorMsg = document.getElementById("busListError");
     
-    // 获取位置并刷新车辆列表
-    getCurrentPosition(false).then(success => {
-      if (success) {
-        fetchBuses().finally(() => {
-          // 无论成功与否，恢复按钮状态
-          detectButton.disabled = false;
-          detectButton.innerHTML = originalText;
+    if (!errorMsg) {
+        errorMsg = document.createElement("p");
+        errorMsg.id = "busListError";
+        errorMsg.className = "no-data-message";
+        container.appendChild(errorMsg);
+    }
+    
+    errorMsg.textContent = message;
+}
+
+function refreshBusList() {
+    // 更新按鈕狀態，顯示正在加載
+    const detectButton = document.getElementById("detectBusButton");
+    if (detectButton) {
+        const originalText = detectButton.innerHTML;
+        detectButton.disabled = true;
+        detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+        
+        // 移除任何存在的錯誤或無數據消息
+        const errorMsg = document.getElementById("busListError");
+        if (errorMsg) errorMsg.remove();
+        
+        const noDataMsg = document.getElementById("busListNoData");
+        if (noDataMsg) noDataMsg.remove();
+        
+        // 移除現有的車輛列表容器
+        const existingListContainer = document.getElementById("busListContainer");
+        if (existingListContainer) existingListContainer.remove();
+        
+        // 添加載入中提示
+        const container = document.getElementById("busList");
+        let loadingMsg = document.getElementById("busListLoading");
+        
+        if (!loadingMsg) {
+            loadingMsg = document.createElement("p");
+            loadingMsg.id = "busListLoading";
+            loadingMsg.className = "no-data-message";
+            loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在載入附近車輛...';
+            container.appendChild(loadingMsg);
+        }
+        
+        // 獲取位置並刷新車輛列表
+        getCurrentPosition(false).then(success => {
+            if (success) {
+                fetchBuses().finally(() => {
+                    // 無論成功與否，恢復按鈕狀態
+                    detectButton.disabled = false;
+                    detectButton.innerHTML = originalText;
+                });
+            } else {
+                // 位置獲取失敗
+                detectButton.disabled = false;
+                detectButton.innerHTML = originalText;
+                
+                // 移除載入中提示
+                if (document.getElementById("busListLoading")) {
+                    document.getElementById("busListLoading").remove();
+                }
+                
+                showBusListError("無法獲取位置，請手動輸入車號");
+            }
+        }).catch(error => {
+            // 出錯時也恢復按鈕狀態
+            detectButton.disabled = false;
+            detectButton.innerHTML = originalText;
+            
+            // 移除載入中提示
+            if (document.getElementById("busListLoading")) {
+                document.getElementById("busListLoading").remove();
+            }
+            
+            showBusListError("獲取位置時發生錯誤，請手動輸入車號");
         });
-      } else {
-        // 位置获取失败
-        detectButton.disabled = false;
-        detectButton.innerHTML = originalText;
-      }
-    }).catch(error => {
-      // 出错时也恢复按钮状态
-      detectButton.disabled = false;
-      detectButton.innerHTML = originalText;
-    });
-  }
+    }
 }
 // 檢查位置權限
 function checkLocationPermission() {
@@ -1066,81 +1165,59 @@ function checkLocationPermission() {
             document.getElementById("busModal").style.display = "none";
         }
         
+// 更新車輛列表
 function updateBusList() {
     const container = document.getElementById("busList");
+    if (!container) return;
     
-    // 保存之前的偵測按鈕容器（如果存在）
-    let buttonContainer = document.getElementById("detectButtonContainer");
+    // 移除載入中提示
+    const loadingMsg = document.getElementById("busListLoading");
+    if (loadingMsg) loadingMsg.remove();
     
-    // 清空内容，但保留按钮容器的引用
-    container.innerHTML = "";
+    // 移除之前的車輛列表容器
+    const existingListContainer = document.getElementById("busListContainer");
+    if (existingListContainer) existingListContainer.remove();
     
-    // 如果之前没有按钮容器，创建一个
-    if (!buttonContainer) {
-        buttonContainer = document.createElement("div");
-        buttonContainer.id = "detectButtonContainer";
-        buttonContainer.style.marginBottom = "15px";
-        buttonContainer.style.textAlign = "center";
-        
-        // 创建偵測車輛按钮
-        const detectButton = document.createElement("button");
-        detectButton.id = "detectBusButton";
-        detectButton.className = "secondary-button";
-        detectButton.style.width = "auto"; // 覆盖默认的 width: 100%
-        detectButton.style.padding = "10px 15px";
-        detectButton.style.margin = "0 auto";
-        detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
-        detectButton.onclick = function() {
-            refreshBusList();
-        };
-        
-        buttonContainer.appendChild(detectButton);
-    }
+    // 移除之前的錯誤訊息
+    const errorMsg = document.getElementById("busListError");
+    if (errorMsg) errorMsg.remove();
     
-    // 在容器的最前面添加按钮容器
-    container.appendChild(buttonContainer);
+    // 移除之前的無數據訊息
+    const noDataMsg = document.getElementById("busListNoData");
+    if (noDataMsg) noDataMsg.remove();
     
-    // 添加车辆列表或"未找到"消息
+    // 檢查是否找到車輛
     if (buses.length === 0) {
-        const noDataMsg = document.createElement("p");
-        noDataMsg.textContent = "附近未找到車輛，請稍後再試";
-        container.appendChild(noDataMsg);
+        const noDataElement = document.createElement("p");
+        noDataElement.id = "busListNoData";
+        noDataElement.className = "no-data-message";
+        noDataElement.textContent = "附近未找到車輛，請稍後再試或手動輸入車號";
+        container.appendChild(noDataElement);
         return;
     }
     
-    // 创建列表容器
+    // 創建列表容器
     const listContainer = document.createElement("div");
-    listContainer.style.maxHeight = "400px";
-    listContainer.style.overflowY = "auto";
-    listContainer.style.marginTop = "10px";
+    listContainer.id = "busListContainer";
+    listContainer.className = "bus-list-container";
     
     buses.forEach(bus => {
         const item = document.createElement("div");
-        item.className = "location-item";
+        item.className = "bus-item";
         
-        // 创建内容容器，使用flex布局
-        const contentContainer = document.createElement("div");
-        contentContainer.style.display = "flex";
-        contentContainer.style.justifyContent = "space-between";
-        contentContainer.style.alignItems = "center";
-        
-        // 路线名称 - 左侧
+        // 路線名稱
         const routeSpan = document.createElement("span");
+        routeSpan.className = "route-name";
         routeSpan.textContent = bus.routeName?.chinese || '未知路線';
-        routeSpan.style.flexGrow = "1";
         
-        // 车号 - 右侧，使用粗体和不同颜色突出显示
+        // 車號
         const plateSpan = document.createElement("span");
+        plateSpan.className = "plate-number";
         plateSpan.textContent = bus.plateNumber || '無車號';
-        plateSpan.style.fontWeight = "bold";
-        plateSpan.style.color = "#06C755"; // 使用绿色突出显示
-        plateSpan.style.marginLeft = "10px";
-        plateSpan.style.fontSize = "16px";
         
-        // 组合元素
-        contentContainer.appendChild(routeSpan);
-        contentContainer.appendChild(plateSpan);
-        item.appendChild(contentContainer);
+        // 組合元素
+        item.appendChild(routeSpan);
+        item.appendChild(plateSpan);
         
         item.addEventListener("click", function() {
             document.getElementById("plateNumber").value = bus.plateNumber;
