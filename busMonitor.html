@@ -364,12 +364,15 @@ button:hover {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
+    padding: 15px 12px; /* 增加內邊距 */
     border-bottom: 1px solid #eee;
     cursor: pointer;
+   transition: all 0.2s ease;
 }
 .bus-item:hover {
-    background-color: #f9f9f9;
+    background-color: #f0f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 .bus-item:last-child {
     border-bottom: none;
@@ -420,6 +423,33 @@ button:hover {
     50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
+ /* 公司列表容器樣式 */
+.company-list-container {
+    margin-bottom: 15px;
+}
+.company-list-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.company-list-item:hover {
+    background-color: #f5f5f5;
+}
+.company-list-item:last-child {
+    border-bottom: none;
+}      
+
+/* 新增：突顯車號的樣式 */
+.highlighted-plate {
+    font-size: 16px;
+    font-weight: bold;
+    padding: 3px 6px;
+    background-color: #ffeb3b;
+    color: #000;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
     </style>
 </head>
 <body>
@@ -466,18 +496,9 @@ button:hover {
             <label for="plateNumbCompany">公司</label>
             <div class="input-group">
                 <input type="text" id="plateNumbCompany" readonly>
-                <div class="icon-button" onclick="toggleCompanySelector()">
+                <div class="icon-button" onclick="openCompanyModal()">
                     <i class="fas fa-building"></i>
                 </div>
-            </div>
-        </div>
-        <div class="column company-selector">
-            <div class="company-buttons">
-                <div class="company-button" data-company="首都客運" onclick="selectCompany(this)">首都</div>
-                <div class="company-button" data-company="臺北客運" onclick="selectCompany(this)">北客</div>
-                <div class="company-button" data-company="大都會客運" onclick="selectCompany(this)">大都會</div>
-                <div class="company-button" data-company="三重客運" onclick="selectCompany(this)">三重</div>
-                <div class="company-button" data-company="台中客運" onclick="selectCompany(this)">中客</div>
             </div>
         </div>
     </div>
@@ -506,7 +527,18 @@ button:hover {
        首都集團資訊平台
     </div>
 </form>
-    
+    <!-- 公司選擇彈窗 -->
+<div id="companyModal" class="modal">
+    <div class="modal-content">
+        <h3>選擇公司</h3>
+        <div id="companyList" class="company-list-container">
+            <!-- 公司列表將由JS動態填充 -->
+        </div>
+        <div class="button-group">
+            <button type="button" onclick="closeCompanyModal()">關閉</button>
+        </div>
+    </div>
+</div>
     <!-- 地點選擇彈窗 -->
     <div id="locationModal" class="modal">
         <div class="modal-content">
@@ -547,7 +579,14 @@ button:hover {
         let globalLoadingTimeout = null;
             // 在頁面載入時設置位置監聽器
         let watchId = null;
-        
+        // 公司列表數據
+const companies = [
+    { id: "1", name: "首都客運" },
+    { id: "2", name: "臺北客運" },
+    { id: "3", name: "大都會客運" },
+    { id: "4", name: "三重客運" },
+    { id: "5", name: "台中客運" }
+];
 // 在頁面載入時初始化位置監視
 window.onload = async function() {
    try {
@@ -592,28 +631,6 @@ window.addEventListener('beforeunload', function() {
 });
 // 設定公司函數
 // 新增的公司選擇函數
-function selectCompany(element) {
-    // 移除其他按鈕的選中狀態
-    document.querySelectorAll('.company-button').forEach(button => {
-        button.classList.remove('selected');
-    });
-    
-    // 添加當前按鈕的選中狀態
-    element.classList.add('selected');
-
-    // 獲取完整公司名稱
-    const companyName = element.getAttribute('data-company');
-    
-    // 設置隱藏輸入框的值
-    document.getElementById("plateNumbCompany").value = companyName;
-
-        // 提供視覺反饋
-    element.style.animation = 'pulse 0.5s';
-    setTimeout(() => {
-        element.style.animation = '';
-    }, 500);
-}
-
 // 車號格式化函數 - 改良版
 function formatPlateNumber() {
     const plateNumberInput = document.getElementById("plateNumber");
@@ -654,17 +671,7 @@ function selectBus(bus) {
     document.getElementById("plateNumbCompany").value = bus.operatorName || '';
     document.getElementById("routeName").value = bus.routeName?.chinese || '';
     document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
-    
-    // 同時選中對應的公司按鈕
-    const companyName = bus.operatorName || '';
-    const companyButtons = document.querySelectorAll('.company-button');
-    
-    companyButtons.forEach(button => {
-        const buttonCompany = button.getAttribute('data-company');
-        if (buttonCompany === companyName) {
-            selectCompany(button);
-        }
-    });
+
     
     closeBusModal();
 }
@@ -1059,7 +1066,7 @@ async function fetchLastLocation(userId) {
                 container.appendChild(card);
             });
         }
-        
+
 // 修改後的打開位置選擇框函數
 function openLocationModal() {
     // 先顯示對話框，不等待位置
@@ -1100,7 +1107,40 @@ function openLocationModal() {
                 container.appendChild(item);
             });
         }
+
+            // 打開公司選擇視窗函數
+function openCompanyModal() {
+    document.getElementById("companyModal").style.display = "block";
+    updateCompanyList();
+}
+
+// 關閉公司選擇視窗函數
+function closeCompanyModal() {
+    document.getElementById("companyModal").style.display = "none";
+}
+
+// 更新公司列表顯示
+function updateCompanyList() {
+    const container = document.getElementById("companyList");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    companies.forEach(company => {
+        const item = document.createElement("div");
+        item.className = "company-list-item";
+        item.textContent = company.name.replace(/客運$/, ''); // 顯示時移除"客運"兩字
+        item.dataset.fullName = company.name; // 保存完整名稱
         
+        item.addEventListener("click", function() {
+            document.getElementById("plateNumbCompany").value = this.dataset.fullName;
+            closeCompanyModal();
+        });
+        
+        container.appendChild(item);
+    });
+}
+            
 // 修改後的打開車輛選擇彈窗函數
 function openBusModal() {
     // 先顯示模態窗
@@ -1321,7 +1361,7 @@ function updateBusList() {
         
         // 車號
         const plateSpan = document.createElement("span");
-        plateSpan.className = "plate-number";
+        plateSpan.className = "plate-number highlighted-plate";
         plateSpan.textContent = bus.plateNumber || '無車號';
         
         // 組合元素
@@ -1343,33 +1383,7 @@ function updateBusList() {
     
     container.appendChild(listContainer);
 }
-// 切換公司選擇器顯示
-function toggleCompanySelector() {
-    const companySelector = document.querySelector('.company-selector');
-    if (companySelector) {
-        companySelector.classList.toggle('active');
-        
-        // 如果激活了選擇器，添加一個點擊監聽器以在點擊外部時關閉它
-        if (companySelector.classList.contains('active')) {
-            setTimeout(() => {
-                document.addEventListener('click', closeCompanySelector);
-            }, 10);
-        }
-    }
-}
-// 關閉公司選擇器
-function closeCompanySelector(event) {
-    const companySelector = document.querySelector('.company-selector');
-    const companyInput = document.getElementById('plateNumbCompany');
-    const companyButton = document.querySelector('.icon-button');
-    
-    // 如果點擊的不是公司選擇器及其子元素、公司輸入框或按鈕，則關閉選擇器
-    if (companySelector && !companySelector.contains(event.target) && 
-        event.target !== companyInput && event.target !== companyButton) {
-        companySelector.classList.remove('active');
-        document.removeEventListener('click', closeCompanySelector);
-    }
-}
+
         // 當獲取到新位置時，存入 localStorage
 function savePosition(latitude, longitude) {
     try {
