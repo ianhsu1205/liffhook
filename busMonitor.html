@@ -233,8 +233,13 @@ button:hover {
 
 /* 改良的公司選擇器樣式 */
 .company-selector {
-    margin-top: 15px;
-    padding: 10px;
+    display: flex;
+    align-items: flex-end;
+    transition: all 0.3s ease;
+}
+ .company-selector.active .company-button {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .company-header {
     display: flex;
@@ -254,12 +259,12 @@ button:hover {
 .company-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 5px;
+    width: 100%;
 }
 .company-button {
     flex: 1;
-    min-width: 60px;
+    min-width: 0;
     padding: 8px 5px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -277,6 +282,9 @@ button:hover {
     background-color: #06C755;
     color: white;
     border-color: #06C755;
+    font-weight: bold;
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(6, 199, 85, 0.3);
 }
 
 /* 其他項目卡片樣式 */
@@ -310,7 +318,11 @@ button:hover {
 .location-item:hover {
     background-color: #f9f9f9;
 }
-
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
 /* 雙欄布局 */
 .two-columns {
     display: flex;
@@ -403,6 +415,11 @@ button:hover {
     color: #adb5bd;
     cursor: not-allowed;
 }
+        @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
     </style>
 </head>
 <body>
@@ -428,7 +445,7 @@ button:hover {
     </div>
     
 <div class="highlighted-section">
-    <div class="two-columns">
+    <div class="form-row">
         <div class="column">
             <label for="plateNumber" class="required">車號</label>
             <div class="input-group">
@@ -444,18 +461,24 @@ button:hover {
         </div>
     </div>
     
-    <!-- 2. 改良的公司選擇器 -->
-    <div class="company-selector">
-        <div class="company-header">
-            <label for="plateNumbCompany">公司:</label>
-            <input type="text" id="plateNumbCompany" readonly>
+    <div class="form-row">
+        <div class="column">
+            <label for="plateNumbCompany">公司</label>
+            <div class="input-group">
+                <input type="text" id="plateNumbCompany" readonly>
+                <div class="icon-button" onclick="toggleCompanySelector()">
+                    <i class="fas fa-building"></i>
+                </div>
+            </div>
         </div>
-        <div class="company-buttons">
-            <div class="company-button" data-company="首都客運" onclick="selectCompany(this)">首都</div>
-            <div class="company-button" data-company="臺北客運" onclick="selectCompany(this)">北客</div>
-            <div class="company-button" data-company="大都會客運" onclick="selectCompany(this)">大都會</div>
-            <div class="company-button" data-company="三重客運" onclick="selectCompany(this)">三重</div>
-            <div class="company-button" data-company="台中客運" onclick="selectCompany(this)">中客</div>
+        <div class="column company-selector">
+            <div class="company-buttons">
+                <div class="company-button" data-company="首都客運" onclick="selectCompany(this)">首都</div>
+                <div class="company-button" data-company="臺北客運" onclick="selectCompany(this)">北客</div>
+                <div class="company-button" data-company="大都會客運" onclick="selectCompany(this)">大都會</div>
+                <div class="company-button" data-company="三重客運" onclick="selectCompany(this)">三重</div>
+                <div class="company-button" data-company="台中客運" onclick="selectCompany(this)">中客</div>
+            </div>
         </div>
     </div>
 </div>
@@ -583,6 +606,12 @@ function selectCompany(element) {
     
     // 設置隱藏輸入框的值
     document.getElementById("plateNumbCompany").value = companyName;
+
+        // 提供視覺反饋
+    element.style.animation = 'pulse 0.5s';
+    setTimeout(() => {
+        element.style.animation = '';
+    }, 500);
 }
 
 // 車號格式化函數 - 改良版
@@ -595,7 +624,7 @@ function formatPlateNumber() {
         plateNumberInput.value = plateNumber;
         return;
     }
-    
+
     // 找出字母與數字的轉換點
     let changePoints = [];
     
@@ -619,6 +648,26 @@ function formatPlateNumber() {
     plateNumberInput.value = plateNumber;
 }
 
+// 改進的車輛選擇處理
+function selectBus(bus) {
+    document.getElementById("plateNumber").value = bus.plateNumber;
+    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
+    document.getElementById("routeName").value = bus.routeName?.chinese || '';
+    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
+    
+    // 同時選中對應的公司按鈕
+    const companyName = bus.operatorName || '';
+    const companyButtons = document.querySelectorAll('.company-button');
+    
+    companyButtons.forEach(button => {
+        const buttonCompany = button.getAttribute('data-company');
+        if (buttonCompany === companyName) {
+            selectCompany(button);
+        }
+    });
+    
+    closeBusModal();
+}
 // 轉換為大寫函數
 function convertToUpperCase(input) {
     input.value = input.value.toUpperCase();
@@ -1255,7 +1304,7 @@ function updateBusList() {
     buses.forEach(bus => {
         const item = document.createElement("div");
         item.className = "bus-item";
-
+        
         // 處理公司名稱 - 移除"客運"兩字
         let companyName = bus.operatorName || '未知公司';
         companyName = companyName.replace(/客運$/, '');
@@ -1264,6 +1313,7 @@ function updateBusList() {
         const companySpan = document.createElement("span");
         companySpan.className = "bus-company";
         companySpan.textContent = companyName;
+        
         // 路線名稱
         const routeSpan = document.createElement("span");
         routeSpan.className = "route-name";
@@ -1275,16 +1325,17 @@ function updateBusList() {
         plateSpan.textContent = bus.plateNumber || '無車號';
         
         // 組合元素
-        item.appendChild(companyDiv);
+        item.appendChild(companySpan);
         item.appendChild(routeSpan);
         item.appendChild(plateSpan);
         
         item.addEventListener("click", function() {
-            document.getElementById("plateNumber").value = bus.plateNumber;
-            document.getElementById("plateNumbCompany").value = bus.operatorName || '';
-            document.getElementById("routeName").value = bus.routeName?.chinese || '';
-            document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
-            closeBusModal();
+          //  document.getElementById("plateNumber").value = bus.plateNumber;
+        //    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
+         //   document.getElementById("routeName").value = bus.routeName?.chinese || '';
+        //    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
+        //    closeBusModal();
+                selectBus(bus);  // 使用新的 selectBus 函數
         });
         
         listContainer.appendChild(item);
@@ -1292,7 +1343,33 @@ function updateBusList() {
     
     container.appendChild(listContainer);
 }
-
+// 切換公司選擇器顯示
+function toggleCompanySelector() {
+    const companySelector = document.querySelector('.company-selector');
+    if (companySelector) {
+        companySelector.classList.toggle('active');
+        
+        // 如果激活了選擇器，添加一個點擊監聽器以在點擊外部時關閉它
+        if (companySelector.classList.contains('active')) {
+            setTimeout(() => {
+                document.addEventListener('click', closeCompanySelector);
+            }, 10);
+        }
+    }
+}
+// 關閉公司選擇器
+function closeCompanySelector(event) {
+    const companySelector = document.querySelector('.company-selector');
+    const companyInput = document.getElementById('plateNumbCompany');
+    const companyButton = document.querySelector('.icon-button');
+    
+    // 如果點擊的不是公司選擇器及其子元素、公司輸入框或按鈕，則關閉選擇器
+    if (companySelector && !companySelector.contains(event.target) && 
+        event.target !== companyInput && event.target !== companyButton) {
+        companySelector.classList.remove('active');
+        document.removeEventListener('click', closeCompanySelector);
+    }
+}
         // 當獲取到新位置時，存入 localStorage
 function savePosition(latitude, longitude) {
     try {
