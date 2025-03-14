@@ -209,8 +209,8 @@
         
         /* 主要項目卡片樣式 */
         .main-item-cards {
-            display: flex;
-            flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin-bottom: 20px;
         }
@@ -252,8 +252,8 @@
         }
         /* 其他項目卡片樣式 */
         .other-item-cards {
-            display: flex;
-            flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin-bottom: 20px;
         }
@@ -316,9 +316,9 @@
 }
 
 .bus-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     padding: 12px;
     border-bottom: 1px solid #eee;
     cursor: pointer;
@@ -331,16 +331,23 @@
 .bus-item:last-child {
     border-bottom: none;
 }
-
+.bus-company {
+    grid-column: 1 / 3;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
 .route-name {
     flex-grow: 1;
+    grid-row: 2;
 }
 
 .plate-number {
+    grid-column: 2;
+    grid-row: 2;
     font-weight: bold;
     color: #06C755;
-    margin-left: 10px;
-    font-size: 16px;
+    text-align: right;
 }
 
 /* 检测按钮容器样式 */
@@ -380,71 +387,71 @@
         
         <div id="statusMessage" class="status-message"></div>
         
-        <!-- 監控記錄填報表單 -->
-        <form id="monitorForm">
-            <div class="form-group">
-                <label for="location" class="required">我的位置</label>
+<!-- 監控記錄填報表單 -->
+<form id="monitorForm">
+    <div class="form-group">
+        <label for="location" class="required">我的位置</label>
+        <div class="input-group">
+            <input type="text" id="location" placeholder="選擇附近路口">
+            <div class="icon-button" onclick="openLocationModal()">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="highlighted-section">
+        <div class="two-columns">
+            <div class="column">
+                <label for="plateNumber" class="required">車號</label>
                 <div class="input-group">
-                    <input type="text" id="location"  placeholder="選擇附近路口">
-                    <div class="icon-button" onclick="openLocationModal()">
-                        <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
+                    <div class="icon-button" onclick="openBusModal()">
+                        <i class="fas fa-bus"></i>
                     </div>
                 </div>
             </div>
-<div class="form-group highlighted-section">
-    <label for="plateNumber" class="required">車號</label>
-    <div class="input-group">
-        <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
-        <div class="icon-button" onclick="openBusModal()">
-            <i class="fas fa-bus"></i>
+            <div class="column">
+                <label for="routeName">路線名稱</label>
+                <input type="text" id="routeName" oninput="convertToUpperCase(this)">
+            </div>
+        </div>
+        
+        <div class="company-selector">
+            <label for="plateNumbCompany">公司:</label>
+            <div class="company-buttons">
+                <div class="company-button" data-company="首都客運" onclick="selectCompany(this)">首都</div>
+                <div class="company-button" data-company="臺北客運" onclick="selectCompany(this)">北客</div>
+                <div class="company-button" data-company="大都會客運" onclick="selectCompany(this)">大都會</div>
+                <div class="company-button" data-company="三重客運" onclick="selectCompany(this)">三重</div>
+                <div class="company-button" data-company="台中客運" onclick="selectCompany(this)">中客</div>
+            </div>
+            <input type="text" id="plateNumbCompany" value="" style="display:none;">
         </div>
     </div>
     
-    <div class="two-columns">
-        <div class="column">
-            <label for="plateNumbCompany">公司</label>
-            <input type="text" id="plateNumbCompany" readonly>
-        </div>
-        <div class="column">
-            <label for="routeName">路線名稱</label>
-            <input type="text" id="routeName" oninput="convertToUpperCase(this)">
+    <input type="hidden" id="positionLat">
+    <input type="hidden" id="userId">
+    
+    <div class="form-group">
+        <label class="required">缺失項目</label>
+        <div class="main-item-cards" id="mainItemContainer">
+            <!-- 主要項目將由 JS 動態填充 -->
         </div>
     </div>
     
-    <!-- 公司按鈕跨越整個區域 -->
-    <div class="company-buttons-full">
-        <div class="company-button" onclick="setCompany('首都客運')">首都</div>
-        <div class="company-button" onclick="setCompany('臺北客運')">北客</div>
-        <div class="company-button" onclick="setCompany('大都會客運')">大都會</div>
-        <div class="company-button" onclick="setCompany('三重客運')">三重</div>
-        <div class="company-button" onclick="setCompany('台中客運')">中客</div>
+    <div class="form-group">
+        <label>其他缺失</label>
+        <div class="other-item-cards" id="otherItemContainer">
+            <!-- 其他項目將由 JS 動態填充 -->
+        </div>
     </div>
-</div>
-            
-            <input type="hidden" id="positionLat">
-            <input type="hidden" id="userId">
-            
-            <div class="form-group">
-                <label class="required">缺失項目</label>
-                <div class="main-item-cards" id="mainItemContainer">
-                    <!-- 主要項目將由 JS 動態填充 -->
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>其他缺失</label>
-                <div class="other-item-cards" id="otherItemContainer">
-                    <!-- 其他項目將由 JS 動態填充 -->
-                </div>
-            </div>
-
-            <button type="button" onclick="submitForm()">送出記錄</button>
-            
-            <div class="line-brand">
-               首都集團資訊平台
-            </div>
-        </form>
+    
+    <button type="button" onclick="submitForm()">送出記錄</button>
+    
+    <div class="line-brand">
+       首都集團資訊平台
     </div>
+</form>
     
     <!-- 地點選擇彈窗 -->
     <div id="locationModal" class="modal">
@@ -530,8 +537,18 @@ window.addEventListener('beforeunload', function() {
     stopLocationWatching();
 });
 // 設定公司函數
-function setCompany(companyName) {
-    document.getElementById("plateNumbCompany").value = companyName;
+// 新增的公司選擇函數
+function selectCompany(element) {
+    // 移除其他按鈕的選中狀態
+    document.querySelectorAll('.company-button').forEach(button => {
+        button.classList.remove('selected');
+    });
+    
+    // 添加當前按鈕的選中狀態
+    element.classList.add('selected');
+    
+    // 設置隱藏輸入框的值
+    document.getElementById("plateNumbCompany").value = element.getAttribute('data-company');
 }
 
 // 車號格式化函數 - 改良版
@@ -1204,6 +1221,11 @@ function updateBusList() {
     buses.forEach(bus => {
         const item = document.createElement("div");
         item.className = "bus-item";
+
+        // 公司名稱
+        const companyDiv = document.createElement("div");
+        companyDiv.className = "bus-company";
+        companyDiv.textContent = bus.operatorName || '未知公司';
         
         // 路線名稱
         const routeSpan = document.createElement("span");
@@ -1216,6 +1238,7 @@ function updateBusList() {
         plateSpan.textContent = bus.plateNumber || '無車號';
         
         // 組合元素
+        item.appendChild(companyDiv);
         item.appendChild(routeSpan);
         item.appendChild(plateSpan);
         
@@ -1234,15 +1257,23 @@ function updateBusList() {
 }
 
         // 當獲取到新位置時，存入 localStorage
-        function savePosition(latitude, longitude) {
-            try {
-                localStorage.setItem('lastKnownLatitude', latitude);
-                localStorage.setItem('lastKnownLongitude', longitude);
-                localStorage.setItem('lastPositionTimestamp', Date.now());
-            } catch (e) {
-                console.log("無法儲存位置到本地儲存");
-            }
+function savePosition(latitude, longitude) {
+    try {
+        localStorage.setItem('lastKnownLatitude', latitude);
+        localStorage.setItem('lastKnownLongitude', longitude);
+        localStorage.setItem('lastPositionTimestamp', Date.now());
+        
+        // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
+        const statusElement = document.getElementById("statusMessage");
+        if (statusElement.textContent.includes("無法獲取位置") || 
+            statusElement.textContent.includes("暫時無法獲取位置")) {
+            statusElement.textContent = "";
+            statusElement.className = "status-message";
         }
+    } catch (e) {
+        console.log("無法儲存位置到本地儲存");
+    }
+}
         // 嘗試從 localStorage 讀取位置
         function loadLastPosition() {
             try {
