@@ -192,13 +192,16 @@
             color: #666;
             display: none;
         }
+        select:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
-
     <div class="container">
         <h2>首都集團問卷中心註冊</h2>
         
@@ -218,83 +221,30 @@
         
         <!-- 註冊表單 -->
         <form id="registerForm" class="hidden">
-          <div class="form-group">
+            <div class="form-group">
                 <label for="company" class="required">公司別</label>
-                <select id="company">
+                <select id="company" onchange="loadStations()">
                     <option value="">請選擇公司別</option>
-                    <option value="首都客運">首都客運</option>
-                    <option value="臺北客運">臺北客運</option>
-                    <option value="三重客運">三重客運</option>
-                    <option value="大都會客運">大都會客運</option>
                 </select>
                 <div class="error-message" id="company-error">公司別為必填欄位</div>
             </div>
             
             <div class="form-group">
-                <label for="dept" class="required">部門</label>
-                <select id="dept">
-                    <option value="">請選擇部門</option>
-                    <option value="董事長室">董事長室</option>
-                    <option value="總經理室">總經理室</option>
-                    <option value="企業工會">企業工會</option>
-                    <option value="業務部">業務部</option>
-                    <option value="人資部">人資部</option>
-                    <option value="財務部">財務部</option>
-                    <option value="機務部">機務部</option>
-                    <option value="修理廠">修理廠</option>
-                    <option value="總務部">總務部</option>
-                    <option value="資訊中心">資訊中心</option>
-                    <option value="勞安室">勞安室</option>
-                    <option value="其它單位">其它單位</option>
+                <label for="station" class="required">站別</label>
+                <select id="station" onchange="loadRoutes()" disabled>
+                    <option value="">請選擇站別</option>
                 </select>
-                <div class="error-message" id="dept-error">部門為必填欄位</div>
+                <div class="error-message" id="station-error">站別為必填欄位</div>
             </div>
             
             <div class="form-group">
-                <label for="job">職稱</label>
-                <select id="job">
-                    <option value="">請選擇職稱</option>
-                    <option value="董事長">董事長</option>
-                    <option value="執董">執董</option>
-                    <option value="總經理">總經理</option>
-                    <option value="特助">特助</option>
-                    <option value="協理">協理</option>
-                    <option value="經理">經理</option>
-                    <option value="副理">副理</option>
-                    <option value="主任">主任</option>
-                    <option value="副主任">副主任</option>
-                    <option value="秘書">秘書</option>
-                    <option value="襄理">襄理</option>
-                    <option value="課長">課長</option>
-                    <option value="副課長">副課長</option>
-                    <option value="股長">股長</option>
-                    <option value="組長">組長</option>
-                    <option value="副組長">副組長</option>
-                    <option value="專員">專員</option>
-                    <option value="業務員">業務員</option>
-                    <option value="事務員">事務員</option>
-                    <option value="技術員">技術員</option>
-                    <option value="廠長">廠長</option>
-                    <option value="總監工">總監工</option>
-                    <option value="營業車駕駛長">營業車駕駛長</option>
-                    <option value="油車駕駛長">油車駕駛長</option>
-                    <option value="收銀員">收銀員</option>
-                    <option value="站長">站長</option>
-                    <option value="副站長">副站長</option>
-                    <option value="站務">站務</option>
-                    <option value="稽查員">稽查員</option>
-                    <option value="辦事員">辦事員</option>
-                    <option value="庶物員">庶物員</option>
-                    <option value="事務員">事務員</option>             
-                    <option value="其它同仁">其它同仁</option>
+                <label for="route" class="required">路線</label>
+                <select id="route" disabled>
+                    <option value="">請選擇路線</option>
                 </select>
+                <div class="error-message" id="route-error">路線為必填欄位</div>
             </div>
             
-            <div class="form-group">
-                <label for="groupCode">專案群組</label>
-                <input type="text" id="groupCode" placeholder="請輸入群組">
-            </div>
-                      
             <div class="form-group">
                 <label for="empId" class="required">員工編號</label>
                 <input type="tel" id="empId" placeholder="請輸入員工編號">
@@ -302,14 +252,13 @@
             </div>
             
             <div class="form-group">
-                <label for="name"  class="required">姓名</label>
+                <label for="name" class="required">姓名</label>
                 <input type="text" id="name" placeholder="請輸入姓名">
                 <div class="error-message" id="name-error">姓名為必填欄位</div>
             </div>
-
+            
             <input type="hidden" id="userId">
             <input type="hidden" id="channelId">
-
             <button type="button" onclick="submitForm()">提交資料</button>
             
             <div class="line-brand">
@@ -319,13 +268,13 @@
         
         <div id="debugInfo" class="debug-info"></div>
     </div>
-
     <script>
         // 全局變量記錄初始化狀態
         let liffInitialized = false;
-        const base_url="https://35.221.146.143.nip.io/linehook/";
+        const base_url="https://35.221.146.143.nip.io/linehookEx/";
         const channelId="2007058536"; //不同的服務要修改
-        const liffId = "2006993665-54NBxJN9".trim();
+        const liffId = "2006993665-PVAXZjA1".trim();
+        
         // 初始化 LIFF
         window.onload = async function() {
             try {
@@ -353,7 +302,7 @@
             debugElement.style.display = "block";
             debugElement.innerHTML += info + "<br>";
         }
-
+        
         // 初始化 LIFF SDK
         async function initLIFF() {
             try {
@@ -391,7 +340,10 @@
                     console.log("用戶已登入:", profile.displayName);
                     
                     // 檢查用戶是否已存在
-                    await checkUserExists(userId,channelId);
+                    await checkUserExists(userId, channelId);
+                    
+                    // 載入公司列表
+                    await loadCompanies();
                     
                 } catch (profileError) {
                     console.error("獲取用戶資料失敗:", profileError);
@@ -410,12 +362,12 @@
         }
         
         // 檢查用戶是否已經存在
-        async function checkUserExists(userId,channelId) {
+        async function checkUserExists(userId, channelId) {
             try {
                 const response = await fetch(base_url+"User/checkUser", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId,channelId:channelId })
+                    body: JSON.stringify({ userId: userId, channelId: channelId })
                 });
                 
                 console.log("檢查用戶存在性回應狀態:", response.status);
@@ -432,11 +384,10 @@
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
                         <strong>${userData.name || '用戶'}${userData.empId ? ' ' + userData.empId : ''}</strong>您好，您目前已綁定並同意接受以下範圍的通知：<br>
-                       公司：${userData.company || ''}<br>
-                       部門：${userData.dept || ''}<br>
-                       職稱：${userData.job || ''}<br>
-                       群組：${userData.groupCode || ''}<br>
-                       `;
+                        公司：${userData.company || ''}<br>
+                        站別：${userData.station || ''}<br>
+                        路線：${userData.route || ''}<br>
+                    `;
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
                     // 用戶不存在，顯示註冊表單
@@ -467,7 +418,6 @@
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "解除綁定中...";
-
             const userId = document.getElementById("userId").value;
             const channelId = document.getElementById("channelId").value;
             if (!userId) {
@@ -480,11 +430,11 @@
                 const response = await fetch(base_url+"User/unregister", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId ,channelId: channelId})
+                    body: JSON.stringify({ userId: userId, channelId: channelId })
                 });
                 
                 if (response.ok) {
-                     window.scrollTo(0, 0);  // 滾動至頁面最上方
+                    window.scrollTo(0, 0);  // 滾動至頁面最上方
                     showStatusMessage("解除綁定成功！即將返回聊天室...", "success");
                     setTimeout(closeWindowSafely, 2000);
                 } else {
@@ -508,7 +458,7 @@
             statusElement.className = "status-message";
             statusElement.classList.add(type);
         }
-
+        
         // 驗證表單欄位
         function validateField(fieldId, condition, errorMessage) {
             const field = document.getElementById(fieldId);
@@ -554,7 +504,129 @@
                 showStatusMessage("操作已完成。由於您不在 LINE 應用內，請手動關閉此視窗", "success");
             }
         }
-
+        
+        // 載入公司列表
+        async function loadCompanies() {
+            try {
+                showLoading();
+                const response = await fetch(base_url + "Org/companies");
+                
+                if (!response.ok) {
+                    throw new Error("無法獲取公司列表");
+                }
+                
+                const data = await response.json();
+                const companySelect = document.getElementById("company");
+                
+                // 保留第一個默認選項
+                companySelect.innerHTML = '<option value="">請選擇公司別</option>';
+                
+                // 添加公司選項
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.company;
+                    option.textContent = item.company;
+                    companySelect.appendChild(option);
+                });
+                
+                hideLoading();
+            } catch (error) {
+                console.error("載入公司列表失敗:", error);
+                showStatusMessage("無法載入公司列表，請稍後再試", "error");
+                hideLoading();
+            }
+        }
+        
+        // 載入站別列表
+        async function loadStations() {
+            const companySelect = document.getElementById("company");
+            const stationSelect = document.getElementById("station");
+            const routeSelect = document.getElementById("route");
+            
+            // 重置站別和路線選擇器
+            stationSelect.innerHTML = '<option value="">請選擇站別</option>';
+            routeSelect.innerHTML = '<option value="">請選擇路線</option>';
+            
+            // 如果未選擇公司，禁用站別和路線選擇器
+            if (!companySelect.value) {
+                stationSelect.disabled = true;
+                routeSelect.disabled = true;
+                return;
+            }
+            
+            try {
+                showLoading();
+                const response = await fetch(base_url + `Org/stations/${companySelect.value}`);
+                
+                if (!response.ok) {
+                    throw new Error("無法獲取站別列表");
+                }
+                
+                const data = await response.json();
+                
+                // 啟用站別選擇器
+                stationSelect.disabled = false;
+                
+                // 添加站別選項
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.station;
+                    option.textContent = item.station;
+                    stationSelect.appendChild(option);
+                });
+                
+                hideLoading();
+            } catch (error) {
+                console.error("載入站別列表失敗:", error);
+                showStatusMessage("無法載入站別列表，請稍後再試", "error");
+                hideLoading();
+            }
+        }
+        
+        // 載入路線列表
+        async function loadRoutes() {
+            const companySelect = document.getElementById("company");
+            const stationSelect = document.getElementById("station");
+            const routeSelect = document.getElementById("route");
+            
+            // 重置路線選擇器
+            routeSelect.innerHTML = '<option value="">請選擇路線</option>';
+            
+            // 如果未選擇站別，禁用路線選擇器
+            if (!stationSelect.value) {
+                routeSelect.disabled = true;
+                return;
+            }
+            
+            try {
+                showLoading();
+                const response = await fetch(base_url + `Org/routes/${companySelect.value}/${stationSelect.value}`);
+                
+                if (!response.ok) {
+                    throw new Error("無法獲取路線列表");
+                }
+                
+                const data = await response.json();
+                
+                // 啟用路線選擇器
+                routeSelect.disabled = false;
+                
+                // 添加路線選項
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.route;
+                    option.textContent = item.route;
+                    routeSelect.appendChild(option);
+                });
+                
+                hideLoading();
+            } catch (error) {
+                console.error("載入路線列表失敗:", error);
+                showStatusMessage("無法載入路線列表，請稍後再試", "error");
+                hideLoading();
+            }
+        }
+        
         // 提交表單
         async function submitForm() {
             // 進行詳細表單驗證
@@ -564,17 +636,20 @@
             const company = document.getElementById("company").value.trim();
             isValid = validateField("company", company !== "", "公司名稱為必填欄位") && isValid;
             
-            // 驗證部門 (必填)
-            const dept = document.getElementById("dept").value.trim();
-            isValid = validateField("dept", dept !== "", "部門為必填欄位") && isValid;
-
+            // 驗證站別 (必填)
+            const station = document.getElementById("station").value.trim();
+            isValid = validateField("station", station !== "", "站別為必填欄位") && isValid;
             
-             // 驗證員工編號 (必填)
+            // 驗證路線 (必填)
+            const route = document.getElementById("route").value.trim();
+            isValid = validateField("route", route !== "", "路線為必填欄位") && isValid;
+            
+            // 驗證員工編號 (必填)
             const empid = document.getElementById("empId").value.trim();
-             const empIdPattern = /^\d{4,6}$/;
-            isValid = validateField("empId", empIdPattern.test(empid),"員工編號為4到6碼數字") && isValid;
-
-           // 驗證姓名 (必填)
+            const empIdPattern = /^\d{4,6}$/;
+            isValid = validateField("empId", empIdPattern.test(empid), "員工編號為4到6碼數字") && isValid;
+            
+            // 驗證姓名 (必填)
             const name = document.getElementById("name").value.trim();
             isValid = validateField("name", name !== "", "姓名為必填欄位") && isValid;
            
@@ -588,40 +663,37 @@
                 showStatusMessage("無法獲取用戶識別碼，請重新登入後再試", "error");
                 return;
             }
-
+            
             // 禁用提交按鈕，防止重複提交
             showLoading();
             const submitButton = document.querySelector('button[type="button"]');
             submitButton.disabled = true;
             submitButton.textContent = "綁定中...";
-
             
             const data = {
                 company: company,
-                dept: dept,
-                job: document.getElementById("job").value,
-                groupCode: document.getElementById("groupCode").value.trim(),
-                phone: "",
+                station: station,
+                route: route,
                 name: name,
                 empId: empid,
                 channelId: document.getElementById("channelId").value,
                 userId: userId,
                 insert_at: new Date().toISOString() // 添加當前時間戳
             };
-
+            
             try {
                 // 送出 POST 請求到後端
-                const response = await fetch(base_url+"User/register", {
+                const response = await fetch(base_url + "User/register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
                 });
-
+                
                 // 確保返回的是文字
                 const result = await response.text();
-
+                
                 if (response.ok) {
-                      window.scrollTo(0, 0);  // 滾動至頁面最上方
+                    window.scrollTo(0, 0);  // 滾動至頁面最上方
                     showStatusMessage("註冊成功！即將返回聊天室...", "success");
                     // 註冊成功後自動關閉視窗回到聊天室
                     setTimeout(closeWindowSafely, 2000);  // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
@@ -644,6 +716,5 @@
             }
         }
     </script>
-
 </body>
 </html>
