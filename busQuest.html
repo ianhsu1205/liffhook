@@ -707,7 +707,7 @@ async function checkUserExists(userId, channelId) {
             try {
                 showLoading();
                 
-                const response = await fetch(`${base_url}/Survey/Survey/${surveyId}`);
+                const response = await fetch(`${base_url}Survey/Survey/${surveyId}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
