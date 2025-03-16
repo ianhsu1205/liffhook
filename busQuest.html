@@ -580,7 +580,7 @@
         // 檢查用戶是否已存在/註冊
         async function checkUserExists(userId, channelId) {
             try {
-                const response = await fetch(base_url + "User/checkUser", {
+                const response = await fetch(base_url + "Emp/checkUser", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: userId, channelId: channelId })
