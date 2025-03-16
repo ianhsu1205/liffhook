@@ -707,7 +707,7 @@ async function checkUserExists(userId, channelId) {
             try {
                 showLoading();
                 
-                const response = await fetch(`${base_url}Survey/${surveyId}`);
+                const response = await fetch(`${base_url}/Survey/Survey/${surveyId}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP 錯誤 ${response.status}`);
@@ -742,9 +742,9 @@ async function checkUserExists(userId, channelId) {
                 
                 hideLoading();
             } catch (error) {
-                console.error("獲取問卷詳情失敗:", error);
+                console.error("載入問卷失敗:", error);
                 hideLoading();
-                showStatusMessage("獲取問卷詳情失敗，請重新整理頁面", "error");
+                showStatusMessage("載入問卷失敗，請重新整理頁面", "error");
             }
         }
 // 檢查用戶是否已完成問卷
