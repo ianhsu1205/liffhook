@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>註冊</title>
+    <title>問卷調查</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body {
@@ -14,99 +15,338 @@
             padding: 0;
             color: #333;
         }
+        
         .container {
             max-width: 500px;
-            margin: 30px auto;
+            margin: 20px auto;
             background: white;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
+        
         h2 {
             color: #06C755;
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             font-weight: 600;
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 15px;
         }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
+        
+        h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 18px;
         }
-        label {
-            display: block;
-            margin-bottom: 6px;
+        
+        .survey-info {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .survey-info p {
+            margin: 5px 0;
+        }
+        
+        .survey-description {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #06C755;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: right;
+            font-size: 14px;
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        /* 部分樣式，後續會繼續補充 */
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <div class="container">
+        <h2>問卷調查</h2>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <!-- 問卷選擇區域 -->
+        <div id="surveySelectionContainer">
+            <h3>請選擇問卷</h3>
+            <div id="surveyList" class="options-container">
+                <!-- 問卷列表將由 JS 動態填充 -->
+                <p>載入中，請稍候...</p>
+            </div>
+        </div>
+        
+        <!-- 問卷詳情及分類選擇區域 -->
+        <div id="surveyDetailsContainer" class="hidden">
+            <div id="surveyInfo" class="survey-info">
+                <!-- 問卷訊息將由 JS 動態填充 -->
+            </div>
+            
+            <div class="category-selector">
+                <h3>請選擇問題類別</h3>
+                <div id="categoryContainer" class="category-grid">
+                    <!-- 類別將由 JS 動態填充 -->
+                </div>
+            </div>
+            
+            <div class="navigation-buttons">
+                <button id="backToSurveysButton" class="nav-button back-button">
+                    <i class="fas fa-arrow-left"></i> 返回
+                </button>
+                <button id="startSurveyButton" class="nav-button next-button button-disabled">
+                    開始作答 <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+<!-- 問題作答區域 -->
+        <div id="questionContainer" class="hidden">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div id="progressText" class="progress-text">0/0</div>
+            </div>
+            
+            <div id="currentQuestion" class="question-container">
+                <!-- 當前問題將由 JS 動態填充 -->
+            </div>
+            
+            <div class="navigation-buttons">
+                <button id="prevQuestionButton" class="nav-button back-button">
+                    <i class="fas fa-arrow-left"></i> 上一題
+                </button>
+                <button id="nextQuestionButton" class="nav-button next-button">
+                    下一題 <i class="fas fa-arrow-right"></i>
+                </button>
+                <button id="submitSurveyButton" class="nav-button submit-button hidden">
+                    提交問卷 <i class="fas fa-check"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 問卷完成區域 -->
+        <div id="completionContainer" class="hidden completion-container">
+            <div class="completion-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="completion-title">問卷已成功提交</h3>
+            <p class="completion-message">感謝您的參與和寶貴意見！</p>
+            <button id="finishButton" class="nav-button next-button">
+                完成 <i class="fas fa-check"></i>
+            </button>
+        </div>
+        
+        <div class="line-brand">
+            首都集團資訊平台
+        </div>
+    </div>
+    
+    <style>
+        /* 第一部分 CSS 之後的樣式 */
+        .category-selector {
+            margin-bottom: 25px;
+        }
+        
+        .category-title {
             font-weight: 500;
+            margin-bottom: 10px;
             color: #555;
         }
-        .required::after {
-            content: "*";
-            color: #e74c3c;
-            margin-left: 4px;
+        
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        input, select {
+        
+        .category-button {
+            padding: 12px 20px;
+            background-color: #f1f1f1;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            flex-grow: 1;
+            text-align: center;
+        }
+        
+        .category-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .category-button.active {
+            background-color: #06C755;
+            color: white;
+            box-shadow: 0 2px 4px rgba(6, 199, 85, 0.2);
+        }
+        
+        .question-container {
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .question-text {
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .required-label {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        
+        .question-category {
+            font-size: 14px;
+            color: #06C755;
+            margin-bottom: 10px;
+            display: inline-block;
+            background-color: rgba(6, 199, 85, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .question-type {
+            font-size: 13px;
+            color: #777;
+            margin-left: 10px;
+        }
+                .options-container {
+            margin-top: 15px;
+        }
+        
+        .option-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .option-item:hover {
+            border-color: #06C755;
+            background-color: rgba(6, 199, 85, 0.05);
+        }
+        
+        .option-item.selected {
+            border-color: #06C755;
+            background-color: rgba(6, 199, 85, 0.1);
+        }
+        
+        .option-item input[type="checkbox"],
+        .option-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        
+        textarea.text-answer {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 16px;
+            min-height: 120px;
+            resize: vertical;
             transition: border 0.3s;
             box-sizing: border-box;
+            font-family: inherit;
+            font-size: 16px;
         }
-        input:focus, select:focus {
+        
+        textarea.text-answer:focus {
             border-color: #06C755;
             outline: none;
             box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
         }
-        input.error, select.error {
-            border-color: #e74c3c;
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
         }
-        .error-message {
-            color: #e74c3c;
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
-        .error-message.visible {
-            display: block;
-        }
-        button {
-            width: 100%;
-            padding: 14px;
-            background-color: #06C755;
-            color: white;
+        
+        .nav-button {
+            padding: 12px 20px;
             border: none;
             border-radius: 6px;
-            font-size: 18px;
-            font-weight: 500;
             cursor: pointer;
-            transition: 0.3s;
-            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
-        button:hover {
-            background-color: #04A73E;
-            box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
-        }
-        .secondary-button {
+        
+        .back-button {
             background-color: #f1f1f1;
             color: #333;
         }
-        .secondary-button:hover {
-            background-color: #e5e5e5;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        
+        .back-button:hover {
+            background-color: #e0e0e0;
         }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
+        
+        .next-button {
+            background-color: #06C755;
+            color: white;
         }
-        .line-brand {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #999;
+        
+        .next-button:hover {
+            background-color: #04A73E;
+            box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
         }
+        
+        .submit-button {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .submit-button:hover {
+            background-color: #0d8aee;
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
+        }
+        
+        .button-disabled {
+            opacity: 0.6;
+            cursor: not-allowed !important;
+        }
+        
         .status-message {
             margin-top: 15px;
             padding: 10px;
@@ -114,60 +354,38 @@
             text-align: center;
             display: none;
         }
+        
         .status-message.success {
             background-color: #d4edda;
             color: #155724;
             display: block;
         }
+        
         .status-message.error {
             background-color: #f8d7da;
             color: #721c24;
             display: block;
         }
+        
         .status-message.info {
             background-color: #e7f3fe;
             color: #004085;
             display: block;
         }
-        .confirmation-dialog {
-            text-align: center;
-            padding: 20px 0;
-        }
-        .confirmation-message {
-            font-size: 18px;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-        .user-info {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            text-align: left;
-            line-height: 1.6;
-        }
-        /* 對手機進行優化 */
-        @media (max-width: 600px) {
-            .container {
-                margin: 15px;
-                padding: 20px;
-            }
-            .button-group {
-                flex-direction: column;
-            }
-        }
+        
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.8);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
+            z-index: 1000;
         }
+        
         .spinner {
             width: 40px;
             height: 40px;
@@ -176,164 +394,118 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
         .hidden {
             display: none;
         }
-        .debug-info {
+        
+        .line-brand {
+            text-align: center;
             margin-top: 20px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-size: 12px;
+            font-size: 14px;
+            color: #999;
+        }
+        
+        /* 問卷完成頁面樣式 */
+        .completion-container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .completion-icon {
+            font-size: 80px;
+            color: #06C755;
+            margin-bottom: 20px;
+        }
+        
+        .completion-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .completion-message {
+            font-size: 16px;
             color: #666;
-            display: none;
+            margin-bottom: 30px;
+        }
+        
+        /* 類別選擇器卡片化 */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+        }
+        
+        .category-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #e0e0e0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-color: #06C755;
+        }
+        
+        .category-card.active {
+            background-color: #06C755;
+            color: white;
+            border-color: #06C755;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(6, 199, 85, 0.2);
+        }
+        
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
         }
     </style>
-</head>
-<body>
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
-    </div>
-
-    <div class="container">
-        <h2>首都集團問卷中心註冊</h2>
-        
-        <div id="statusMessage" class="status-message"></div>
-        
-        <!-- 確認解除綁定的對話框 -->
-        <div id="unbindConfirmation" class="confirmation-dialog hidden">
-            <div class="confirmation-message">
-                您已經註冊，是否要解除？
-            </div>
-            <div id="userInfoDisplay" class="user-info"></div>
-            <div class="button-group">
-                <button onclick="unbindUser()">是，解除註冊</button>
-                <button class="secondary-button" onclick="closeWindowSafely()">否，保持註冊</button>
-            </div>
-        </div>
-        
-        <!-- 註冊表單 -->
-        <form id="registerForm" class="hidden">
-          <div class="form-group">
-                <label for="company" class="required">公司別</label>
-                <select id="company">
-                    <option value="">請選擇公司別</option>
-                    <option value="首都客運">首都客運</option>
-                    <option value="臺北客運">臺北客運</option>
-                    <option value="三重客運">三重客運</option>
-                    <option value="大都會客運">大都會客運</option>
-                </select>
-                <div class="error-message" id="company-error">公司別為必填欄位</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="dept" class="required">部門</label>
-                <select id="dept">
-                    <option value="">請選擇部門</option>
-                    <option value="董事長室">董事長室</option>
-                    <option value="總經理室">總經理室</option>
-                    <option value="企業工會">企業工會</option>
-                    <option value="業務部">業務部</option>
-                    <option value="人資部">人資部</option>
-                    <option value="財務部">財務部</option>
-                    <option value="機務部">機務部</option>
-                    <option value="修理廠">修理廠</option>
-                    <option value="總務部">總務部</option>
-                    <option value="資訊中心">資訊中心</option>
-                    <option value="勞安室">勞安室</option>
-                    <option value="其它單位">其它單位</option>
-                </select>
-                <div class="error-message" id="dept-error">部門為必填欄位</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="job">職稱</label>
-                <select id="job">
-                    <option value="">請選擇職稱</option>
-                    <option value="董事長">董事長</option>
-                    <option value="執董">執董</option>
-                    <option value="總經理">總經理</option>
-                    <option value="特助">特助</option>
-                    <option value="協理">協理</option>
-                    <option value="經理">經理</option>
-                    <option value="副理">副理</option>
-                    <option value="主任">主任</option>
-                    <option value="副主任">副主任</option>
-                    <option value="秘書">秘書</option>
-                    <option value="襄理">襄理</option>
-                    <option value="課長">課長</option>
-                    <option value="副課長">副課長</option>
-                    <option value="股長">股長</option>
-                    <option value="組長">組長</option>
-                    <option value="副組長">副組長</option>
-                    <option value="專員">專員</option>
-                    <option value="業務員">業務員</option>
-                    <option value="事務員">事務員</option>
-                    <option value="技術員">技術員</option>
-                    <option value="廠長">廠長</option>
-                    <option value="總監工">總監工</option>
-                    <option value="營業車駕駛長">營業車駕駛長</option>
-                    <option value="油車駕駛長">油車駕駛長</option>
-                    <option value="收銀員">收銀員</option>
-                    <option value="站長">站長</option>
-                    <option value="副站長">副站長</option>
-                    <option value="站務">站務</option>
-                    <option value="稽查員">稽查員</option>
-                    <option value="辦事員">辦事員</option>
-                    <option value="庶物員">庶物員</option>
-                    <option value="事務員">事務員</option>             
-                    <option value="其它同仁">其它同仁</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="groupCode">專案群組</label>
-                <input type="text" id="groupCode" placeholder="請輸入群組">
-            </div>
-                      
-            <div class="form-group">
-                <label for="empId" class="required">員工編號</label>
-                <input type="tel" id="empId" placeholder="請輸入員工編號">
-                <div class="error-message" id="empId-error">員工編號為必填欄位</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="name"  class="required">姓名</label>
-                <input type="text" id="name" placeholder="請輸入姓名">
-                <div class="error-message" id="name-error">姓名為必填欄位</div>
-            </div>
-
-            <input type="hidden" id="userId">
-            <input type="hidden" id="channelId">
-
-            <button type="button" onclick="submitForm()">提交資料</button>
-            
-            <div class="line-brand">
-               首都集團資訊平台
-            </div>
-        </form>
-        
-        <div id="debugInfo" class="debug-info"></div>
-    </div>
-
     <script>
-        // 全局變量記錄初始化狀態
+        // 全局變數
+        const base_url = "https://35.221.146.143.nip.io/linehook/";
+        const channelId = "2007058536";
+        const liffId = "2006993665-57X0DVXy";
+        
         let liffInitialized = false;
-        const base_url="https://35.221.146.143.nip.io/linehook/";
-        const channelId="2006992891"; //不同的服務要修改
-        const liffId = "2006993665-PVAXZjA1".trim();
-        // 初始化 LIFF
+        let userId = "";
+        let userName = "";
+        
+        let surveys = [];
+        let selectedSurvey = null;
+        let categories = [];
+        let selectedCategory = null;
+        
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = {};
+        
+        // 頁面載入時初始化
         window.onload = async function() {
             try {
                 await initLIFF();
+                if (liffInitialized && liff.isLoggedIn()) {
+                    // 初始化成功後加載問卷列表
+                    await fetchSurveys();
+                }
             } catch (error) {
                 console.error("頁面載入時發生錯誤:", error);
-                showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error");
-                hideLoading();
+                showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
             }
         };
         
@@ -347,303 +519,759 @@
             document.getElementById("loading-overlay").classList.add("hidden");
         }
         
-        // 顯示調試信息
-        function showDebugInfo(info) {
-            const debugElement = document.getElementById("debugInfo");
-            debugElement.style.display = "block";
-            debugElement.innerHTML += info + "<br>";
-        }
-
-        // 初始化 LIFF SDK
-        async function initLIFF() {
-            try {
-                // 確保 LIFF ID 格式正確（去除可能的空格）
-                await liff.init({ liffId: liffId });
-                
-                // 記錄初始化成功
-                liffInitialized = true;
-                console.log("LIFF 初始化成功");
-                console.log("是否在 LINE 瀏覽器中:", liff.isInClient());
-                console.log("LIFF SDK 版本:", liff.getVersion());
-                console.log("裝置資訊:", navigator.userAgent);
-                
-                if (!liff.isLoggedIn()) {
-                    console.log("用戶未登入，引導登入...");
-                    // 如果用戶尚未登入 LINE，則引導登入
-                    liff.login();
-                    // 登入後會重新載入頁面，所以下面的代碼不會執行
-                    return;
-                }
-                
-                // 用戶已登入，獲取用戶資料
-                try {
-                    const profile = await liff.getProfile();
-                                       
-                    showDebugInfo("ChannelId: " + channelId);
-                    
-                    const userId = profile.userId;
-                    document.getElementById("userId").value = userId;
-                    document.getElementById("channelId").value = channelId;
-                    
-                    // 自動填入姓名
-                    document.getElementById("name").value = profile.displayName || "";
-                    
-                    console.log("用戶已登入:", profile.displayName);
-                    
-                    // 檢查用戶是否已存在
-                    await checkUserExists(userId,channelId);
-                    
-                } catch (profileError) {
-                    console.error("獲取用戶資料失敗:", profileError);
-                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
-                    showDebugInfo("獲取用戶資料失敗: " + profileError.message);
-                    hideLoading();
-                }
-                
-            } catch (error) {
-                console.error("LIFF 初始化失敗:", error);
-                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
-                showDebugInfo("LIFF 初始化失敗: " + error.message);
-                liffInitialized = false;
-                hideLoading();
-            }
-        }
-        
-        // 檢查用戶是否已經存在
-        async function checkUserExists(userId,channelId) {
-            try {
-                const response = await fetch(base_url+"User/checkUser", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId,channelId:channelId })
-                });
-                
-                console.log("檢查用戶存在性回應狀態:", response.status);
-                
-                if (response.status === 200) {
-                    // 用戶已存在，顯示解除綁定確認
-                    console.log("用戶已存在，顯示解除綁定確認");
-                    
-                    // 獲取返回的用戶資訊
-                    const userData = await response.json();
-                    console.log("獲取到的用戶資訊:", userData);
-                    
-                    // 顯示用戶綁定資訊
-                    const userInfoDisplay = document.getElementById("userInfoDisplay");
-                    userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'}${userData.empId ? ' ' + userData.empId : ''}</strong>您好，您目前已綁定並同意接受以下範圍的通知：<br>
-                       公司：${userData.company || ''}<br>
-                       部門：${userData.dept || ''}<br>
-                       職稱：${userData.job || ''}<br>
-                       群組：${userData.groupCode || ''}<br>
-                       `;
-                    document.getElementById("unbindConfirmation").classList.remove("hidden");
-                } else if (response.status === 404) {
-                    // 用戶不存在，顯示註冊表單
-                    console.log("用戶不存在，顯示註冊表單");
-                    document.getElementById("registerForm").classList.remove("hidden");
-                } else {
-                    // 其他錯誤情況
-                    console.error("檢查用戶存在性返回非預期狀態:", response.status);
-                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                    document.getElementById("registerForm").classList.remove("hidden");
-                }
-                
-                hideLoading();
-                
-            } catch (error) {
-                console.error("檢查用戶存在性失敗:", error);
-                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                showDebugInfo("檢查用戶存在性失敗: " + error.message);
-                // 默認顯示註冊表單
-                document.getElementById("registerForm").classList.remove("hidden");
-                hideLoading();
-            }
-        }
-        
-        // 解除用戶綁定
-        async function unbindUser() {
-            showLoading();
-            const submitButton = document.querySelector('button[type="button"]');
-            submitButton.disabled = true;
-            submitButton.textContent = "解除綁定中...";
-
-            const userId = document.getElementById("userId").value;
-            const channelId = document.getElementById("channelId").value;
-            if (!userId) {
-                showStatusMessage("無法獲取用戶識別碼，請重新登入後再試", "error");
-                hideLoading();
-                return;
-            }
-            
-            try {
-                const response = await fetch(base_url+"User/unregister", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId ,channelId: channelId})
-                });
-                
-                if (response.ok) {
-                     window.scrollTo(0, 0);  // 滾動至頁面最上方
-                    showStatusMessage("解除綁定成功！即將返回聊天室...", "success");
-                    setTimeout(closeWindowSafely, 2000);
-                } else {
-                    const errorText = await response.text();
-                    throw new Error(errorText || "解除綁定失敗");
-                }
-                
-            } catch (error) {
-                console.error("解除綁定失敗:", error);
-                showStatusMessage("解除綁定失敗: " + (error.message || "請稍後再試"), "error");
-                setTimeout(closeWindowSafely, 3000);
-            } finally {
-                hideLoading();
-            }
-        }
-        
         // 顯示狀態訊息
         function showStatusMessage(message, type) {
             const statusElement = document.getElementById("statusMessage");
             statusElement.textContent = message;
             statusElement.className = "status-message";
             statusElement.classList.add(type);
-        }
-
-        // 驗證表單欄位
-        function validateField(fieldId, condition, errorMessage) {
-            const field = document.getElementById(fieldId);
-            const errorElement = document.getElementById(`${fieldId}-error`);
+            statusElement.style.display = "block";
             
-            if (!condition) {
-                field.classList.add('error');
-                if (errorElement) {
-                    errorElement.textContent = errorMessage;
-                    errorElement.classList.add('visible');
+            // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // 初始化 LIFF
+        async function initLIFF() {
+            try {
+                showLoading();
+                console.log("初始化LIFF...");
+                
+                await liff.init({
+                    liffId: liffId,
+                    withLoginOnExternalBrowser: true
+                });
+                
+                liffInitialized = true;
+                console.log("LIFF 初始化成功");
+                
+                if (!liff.isLoggedIn()) {
+                    console.log("用戶未登入，引導登入...");
+                    liff.login();
+                    return;
                 }
-                return false;
-            } else {
-                field.classList.remove('error');
-                if (errorElement) {
-                    errorElement.classList.remove('visible');
+                
+                try {
+                    // 檢查用戶是否已綁定
+                    const profile = await liff.getProfile();
+                    userId = profile.userId;
+                    userName = profile.displayName;
+                    
+                    console.log("獲取用戶資料成功:", profile.displayName);
+                    
+                    await checkUserExists(userId, channelId);
+                } catch (profileError) {
+                    console.error("獲取用戶資料失敗:", profileError);
+                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
                 }
-                return true;
+                
+                hideLoading();
+            } catch (error) {
+                console.error("LIFF 初始化失敗:", error);
+                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
+                hideLoading();
+                liffInitialized = false;
             }
         }
         
-        // 安全地關閉視窗
-        function closeWindowSafely() {
-            console.log("嘗試關閉窗口...");
-            
-            if (!liffInitialized) {
-                console.error("LIFF 未初始化，無法關閉視窗");
-                showStatusMessage("操作已完成，請手動關閉視窗", "success");
-                return;
-            }
-            
-            // 檢查是否在 LINE 瀏覽器內
-            if (liff.isInClient()) {
-                try {
-                    console.log("在 LINE 內部，使用 liff.closeWindow()");
-                    liff.closeWindow();
-                } catch (e) {
-                    console.error("關閉窗口失敗:", e);
-                    showStatusMessage("無法自動返回聊天室，請手動關閉視窗", "success");
-                }
-            } else {
-                console.log("不在 LINE 瀏覽器內，顯示提示訊息");
-                showStatusMessage("操作已完成。由於您不在 LINE 應用內，請手動關閉此視窗", "success");
-            }
-        }
-
-        // 提交表單
-        async function submitForm() {
-            // 進行詳細表單驗證
-            let isValid = true;
-            
-            // 驗證公司名稱 (必填)
-            const company = document.getElementById("company").value.trim();
-            isValid = validateField("company", company !== "", "公司名稱為必填欄位") && isValid;
-            
-            // 驗證部門 (必填)
-            const dept = document.getElementById("dept").value.trim();
-            isValid = validateField("dept", dept !== "", "部門為必填欄位") && isValid;
-
-            
-             // 驗證員工編號 (必填)
-            const empid = document.getElementById("empId").value.trim();
-             const empIdPattern = /^\d{4,6}$/;
-            isValid = validateField("empId", empIdPattern.test(empid),"員工編號為4到6碼數字") && isValid;
-
-           // 驗證姓名 (必填)
-            const name = document.getElementById("name").value.trim();
-            isValid = validateField("name", name !== "", "姓名為必填欄位") && isValid;
-           
-            // 如果有驗證失敗，則不提交表單
-            if (!isValid) {
-                return;
-            }
-            
-            const userId = document.getElementById("userId").value;
-            if (!userId) {
-                showStatusMessage("無法獲取用戶識別碼，請重新登入後再試", "error");
-                return;
-            }
-
-            // 禁用提交按鈕，防止重複提交
-            showLoading();
-            const submitButton = document.querySelector('button[type="button"]');
-            submitButton.disabled = true;
-            submitButton.textContent = "綁定中...";
-
-            
-            const data = {
-                company: company,
-                dept: dept,
-                job: document.getElementById("job").value,
-                groupCode: document.getElementById("groupCode").value.trim(),
-                phone: "",
-                name: name,
-                empId: empid,
-                channelId: document.getElementById("channelId").value,
-                userId: userId,
-                insert_at: new Date().toISOString() // 添加當前時間戳
-            };
-
+        // 檢查用戶是否已存在/註冊
+        async function checkUserExists(userId, channelId) {
             try {
-                // 送出 POST 請求到後端
-                const response = await fetch(base_url+"User/register", {
+                const response = await fetch(base_url + "User/checkUser", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ userId: userId, channelId: channelId })
                 });
-
-                // 確保返回的是文字
-                const result = await response.text();
-
-                if (response.ok) {
-                      window.scrollTo(0, 0);  // 滾動至頁面最上方
-                    showStatusMessage("註冊成功！即將返回聊天室...", "success");
-                    // 註冊成功後自動關閉視窗回到聊天室
-                    setTimeout(closeWindowSafely, 2000);  // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
+                
+                if (response.status === 200) {
+                    // 用戶已存在，繼續操作
+                    console.log("用戶驗證成功");
+                } else if (response.status === 404) {
+                    // 用戶不存在，導向註冊頁面
+                    console.log("用戶未註冊，導向註冊頁面");
+                    liff.openWindow({
+                        url: 'https://liff.line.me/2006993665-54NBxJN9',
+                        external: true
+                    });
                 } else {
-                    throw new Error(result || "註冊失敗，請稍後再試！");
+                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
                 }
             } catch (error) {
-                console.error("錯誤:", error);
-                showStatusMessage("註冊失敗: " + (error.message || "請稍後再試"), "error");
-                showDebugInfo("註冊失敗: " + error.message);
+                console.error("檢查用戶存在性失敗:", error);
+                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+            }
+        }
+        
+        // 獲取問卷列表
+        async function fetchSurveys() {
+            try {
+                showLoading();
                 
-                // 啟用提交按鈕，允許重試
-                submitButton.disabled = false;
-                submitButton.textContent = "重新提交";
+                const response = await fetch(`${base_url}Survey`);
                 
-                // 延遲自動關閉，讓用戶有時間看到錯誤訊息
-                setTimeout(closeWindowSafely, 3000);
-            } finally {
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}`);
+                }
+                
+                surveys = await response.json();
+                
+                if (surveys && surveys.length > 0) {
+                    console.log("獲取問卷列表成功:", surveys);
+                    renderSurveyList();
+                } else {
+                    console.log("沒有可用的問卷");
+                    document.getElementById("surveyList").innerHTML = "<p>目前沒有可用的問卷</p>";
+                }
+                
                 hideLoading();
+            } catch (error) {
+                console.error("獲取問卷列表失敗:", error);
+                document.getElementById("surveyList").innerHTML = "<p>獲取問卷列表失敗，請重新整理頁面</p>";
+                hideLoading();
+                showStatusMessage("獲取問卷列表失敗，請重新整理頁面", "error");
+            }
+        }
+        
+        // 渲染問卷列表
+        function renderSurveyList() {
+            const container = document.getElementById("surveyList");
+            container.innerHTML = "";
+            
+            // 只顯示活躍的問卷
+            const activeSurveys = surveys.filter(survey => survey.isActive);
+            
+            if (activeSurveys.length === 0) {
+                container.innerHTML = "<p>目前沒有可用的問卷</p>";
+                return;
+            }
+            
+            activeSurveys.forEach(survey => {
+                const item = document.createElement("div");
+                item.className = "option-item";
+                item.innerHTML = `
+                    <div>
+                        <strong>${survey.title}</strong>
+                        <div style="margin-top: 5px; font-size: 14px; color: #666;">
+                            ${survey.description || "無描述"}
+                        </div>
+                        <div style="margin-top: 5px; font-size: 12px; color: #999;">
+                            問題數量: ${survey.questionCount} | 
+                            創建日期: ${formatDate(survey.createdDate)}
+                            ${survey.expiredDate ? ` | 截止日期: ${formatDate(survey.expiredDate)}` : ""}
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener("click", function() {
+                    document.querySelectorAll(".option-item").forEach(el => el.classList.remove("selected"));
+                    this.classList.add("selected");
+                    
+                    selectedSurvey = survey;
+                    selectSurvey(survey.id);
+                });
+                
+                container.appendChild(item);
+            });
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            if (!dateString) return "";
+            
+            const date = new Date(dateString);
+            if (isNaN(date)) {
+                // 嘗試解析其他可能的格式 (yyyy-MM-dd HH:mm:ss)
+                const parts = dateString.split(/[- :]/);
+                if (parts.length >= 6) {
+                    const formattedDate = new Date(
+                        parts[0], parts[1]-1, parts[2], 
+                        parts[3], parts[4], parts[5]
+                    );
+                    
+                    if (!isNaN(formattedDate)) {
+                        return formattedDate.toLocaleDateString('zh-TW');
+                    }
+                }
+                return dateString;
+            }
+            
+            return date.toLocaleDateString('zh-TW');
+        }
+        
+        // 選擇問卷
+        async function selectSurvey(surveyId) {
+            try {
+                showLoading();
+                
+                const response = await fetch(`${base_url}Survey/${surveyId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤 ${response.status}`);
+                }
+                
+                const surveyDetail = await response.json();
+                console.log("獲取問卷詳情成功:", surveyDetail);
+                
+                // 設置選中的問卷
+                selectedSurvey = surveyDetail;
+                
+                // 提取問題類別
+                categories = [];
+                surveyDetail.questions.forEach(question => {
+                    if (!categories.includes(question.category)) {
+                        categories.push(question.category);
+                    }
+                });
+                
+                // 檢查用戶是否已回答過該問卷
+                await checkSurveyCompletion(surveyId);
+                
+                // 顯示問卷詳情和類別選擇
+                document.getElementById("surveySelectionContainer").classList.add("hidden");
+                document.getElementById("surveyDetailsContainer").classList.remove("hidden");
+                
+                // 渲染問卷資訊
+                renderSurveyInfo(surveyDetail);
+                
+                // 渲染類別選擇
+                renderCategorySelection();
+                
+                hideLoading();
+            } catch (error) {
+                console.error("獲取問卷詳情失敗:", error);
+                hideLoading();
+                showStatusMessage("獲取問卷詳情失敗，請重新整理頁面", "error");
+            }
+        }
+// 檢查用戶是否已完成問卷
+        async function checkSurveyCompletion(surveyId) {
+            try {
+                const response = await fetch(`${base_url}SurveyResponse/check/${userId}/survey/${surveyId}`);
+                
+                if (!response.ok) {
+                    console.log("檢查問卷完成狀態出錯，假設未完成");
+                    return;
+                }
+                
+                const result = await response.json();
+                
+                if (result.isCompleted) {
+                    showStatusMessage(`您已於 ${formatDate(result.submitDate)} 完成此問卷`, "info");
+                }
+            } catch (error) {
+                console.error("檢查問卷完成狀態失敗:", error);
+                // 忽略錯誤，假設未完成
+            }
+        }
+        
+        // 渲染問卷資訊
+        function renderSurveyInfo(survey) {
+            const container = document.getElementById("surveyInfo");
+            
+            container.innerHTML = `
+                <h3>${survey.title}</h3>
+                ${survey.description ? `<p class="survey-description">${survey.description}</p>` : ""}
+                <p><strong>創建日期:</strong> ${formatDate(survey.createdDate)}</p>
+                ${survey.expiredDate ? `<p><strong>截止日期:</strong> ${formatDate(survey.expiredDate)}</p>` : ""}
+                <p><strong>問題數量:</strong> ${survey.questions.length}</p>
+            `;
+        }
+        
+        // 渲染類別選擇
+        function renderCategorySelection() {
+            const container = document.getElementById("categoryContainer");
+            container.innerHTML = "";
+            
+            // 定義類別圖標映射
+            const categoryIcons = {
+                "基本信息": "fa-user",
+                "工作體驗": "fa-briefcase",
+                "滿意度調查": "fa-smile",
+                "建議與反饋": "fa-comment",
+                "個人發展": "fa-chart-line",
+                "健康與福利": "fa-heart",
+                "公司文化": "fa-building",
+                "培訓需求": "fa-graduation-cap",
+                "職業規劃": "fa-road",
+                "團隊合作": "fa-users"
+            };
+            
+            // 為所有類別創建默認圖標
+            const defaultIcons = [
+                "fa-clipboard-list", "fa-tasks", "fa-question-circle", 
+                "fa-folder", "fa-star", "fa-file-alt", "fa-list-alt"
+            ];
+            
+            let iconIndex = 0;
+            
+            categories.forEach((category, index) => {
+                const card = document.createElement("div");
+                card.className = "category-card";
+                
+                // 選擇圖標
+                let iconClass = categoryIcons[category] || defaultIcons[iconIndex % defaultIcons.length];
+                iconIndex++;
+                
+                card.innerHTML = `
+                    <div class="category-icon">
+                        <i class="fas ${iconClass}"></i>
+                    </div>
+                    <div>${category}</div>
+                `;
+                
+                card.addEventListener("click", function() {
+                    document.querySelectorAll(".category-card").forEach(el => el.classList.remove("active"));
+                    this.classList.add("active");
+                    
+                    selectedCategory = category;
+                    
+                    // 啟用開始按鈕
+                    document.getElementById("startSurveyButton").classList.remove("button-disabled");
+                });
+                
+                container.appendChild(card);
+            });
+            
+            // 添加所有類別的選項
+            if (categories.length > 1) {
+                const allCard = document.createElement("div");
+                allCard.className = "category-card";
+                allCard.innerHTML = `
+                    <div class="category-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>所有類別</div>
+                `;
+                
+                allCard.addEventListener("click", function() {
+                    document.querySelectorAll(".category-card").forEach(el => el.classList.remove("active"));
+                    this.classList.add("active");
+                    
+                    selectedCategory = "all";
+                    
+                    // 啟用開始按鈕
+                    document.getElementById("startSurveyButton").classList.remove("button-disabled");
+                });
+                
+                container.appendChild(allCard);
+            }
+            
+            // 添加事件監聽器到開始按鈕
+            document.getElementById("startSurveyButton").addEventListener("click", startSurvey);
+            
+            // 添加事件監聽器到返回按鈕
+            document.getElementById("backToSurveysButton").addEventListener("click", function() {
+                document.getElementById("surveyDetailsContainer").classList.add("hidden");
+                document.getElementById("surveySelectionContainer").classList.remove("hidden");
+                
+                selectedSurvey = null;
+                selectedCategory = null;
+                
+                // 清空狀態訊息
+                document.getElementById("statusMessage").className = "status-message";
+                document.getElementById("statusMessage").style.display = "none";
+            });
+        }
+        
+        // 開始問卷
+        function startSurvey() {
+            if (!selectedCategory) {
+                showStatusMessage("請選擇一個問題類別", "error");
+                return;
+            }
+            
+            // 初始化問題和答案
+            filterQuestionsByCategory();
+            initializeAnswers();
+            
+            // 顯示問題區域
+            document.getElementById("surveyDetailsContainer").classList.add("hidden");
+            document.getElementById("questionContainer").classList.remove("hidden");
+            
+            // 顯示第一個問題
+            currentQuestionIndex = 0;
+            showCurrentQuestion();
+            updateProgressBar();
+            
+            // 添加事件監聽器
+            document.getElementById("prevQuestionButton").addEventListener("click", showPreviousQuestion);
+            document.getElementById("nextQuestionButton").addEventListener("click", showNextQuestion);
+            document.getElementById("submitSurveyButton").addEventListener("click", submitSurvey);
+        }
+        
+        // 按類別過濾問題
+        function filterQuestionsByCategory() {
+            // 清空當前問題列表
+            currentQuestions = [];
+            
+            // 獲取問題並排序
+            const questions = [...selectedSurvey.questions].sort((a, b) => a.displayOrder - b.displayOrder);
+            
+            // 按類別過濾
+            if (selectedCategory === "all") {
+                currentQuestions = questions;
+            } else {
+                currentQuestions = questions.filter(q => q.category === selectedCategory);
+            }
+            
+            console.log(`已過濾 ${currentQuestions.length} 個問題，類別: ${selectedCategory}`);
+        }
+        
+        // 初始化用戶答案
+        function initializeAnswers() {
+            userAnswers = {};
+            
+            currentQuestions.forEach(question => {
+                userAnswers[question.id] = {
+                    questionId: question.id,
+                    selectedOptions: [],
+                    textAnswer: ""
+                };
+            });
+        }
+        
+        // 顯示當前問題
+        function showCurrentQuestion() {
+            const question = currentQuestions[currentQuestionIndex];
+            const container = document.getElementById("currentQuestion");
+            
+            if (!question) {
+                console.error("問題不存在");
+                return;
+            }
+            
+            // 構建問題 HTML
+            let questionHTML = `
+                <span class="question-category">${question.category}</span>
+                <span class="question-type">${getQuestionTypeText(question.questionType)}</span>
+                <div class="question-text">
+                    ${question.questionText}
+                    ${question.isRequired ? '<span class="required-label">*必填</span>' : ''}
+                </div>
+            `;
+            
+            // 根據問題類型顯示不同的輸入控件
+            if (question.questionType === "SingleChoice") {
+                questionHTML += '<div class="options-container">';
+                
+                // 獲取非空選項
+                const options = getOptions(question);
+                options.forEach((option, index) => {
+                    const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
+                    questionHTML += `
+                        <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
+                            <input type="radio" name="question-${question.id}" id="option-${question.id}-${index + 1}" 
+                                ${isSelected ? 'checked' : ''}>
+                            <label for="option-${question.id}-${index + 1}">${option}</label>
+                        </div>
+                    `;
+                });
+                
+                questionHTML += '</div>';
+            } else if (question.questionType === "MultipleChoice") {
+                questionHTML += '<div class="options-container">';
+                
+                // 獲取非空選項
+                const options = getOptions(question);
+                options.forEach((option, index) => {
+                    const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
+                    questionHTML += `
+                        <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
+                            <input type="checkbox" name="question-${question.id}" id="option-${question.id}-${index + 1}"
+                                ${isSelected ? 'checked' : ''}>
+                            <label for="option-${question.id}-${index + 1}">${option}</label>
+                        </div>
+                    `;
+                });
+                
+                questionHTML += '</div>';
+            } else if (question.questionType === "Text") {
+                questionHTML += `
+                    <textarea class="text-answer" placeholder="請輸入您的回答">${userAnswers[question.id].textAnswer}</textarea>
+                `;
+            }
+            
+            container.innerHTML = questionHTML;
+            
+            // 添加選項點擊事件
+            if (question.questionType === "SingleChoice") {
+                container.querySelectorAll(".option-item").forEach(item => {
+                    item.addEventListener("click", function() {
+                        const optionValue = parseInt(this.getAttribute("data-option"));
+                        
+                        // 移除所有選項的選中狀態
+                        container.querySelectorAll(".option-item").forEach(el => el.classList.remove("selected"));
+                        container.querySelectorAll("input[type='radio']").forEach(el => el.checked = false);
+                        
+                        // 設置當前選項為選中
+                        this.classList.add("selected");
+                        this.querySelector("input[type='radio']").checked = true;
+                        
+                        // 更新用戶答案
+                        userAnswers[question.id].selectedOptions = [optionValue];
+                    });
+                });
+            } else if (question.questionType === "MultipleChoice") {
+                container.querySelectorAll(".option-item").forEach(item => {
+                    item.addEventListener("click", function() {
+                        const optionValue = parseInt(this.getAttribute("data-option"));
+                        const checkbox = this.querySelector("input[type='checkbox']");
+                        
+                        // 切換選中狀態
+                        this.classList.toggle("selected");
+                        checkbox.checked = !checkbox.checked;
+                        
+                        // 更新用戶答案
+                        const selectedOptions = userAnswers[question.id].selectedOptions;
+                        const index = selectedOptions.indexOf(optionValue);
+                        
+                        if (index === -1) {
+                            selectedOptions.push(optionValue);
+                        } else {
+                            selectedOptions.splice(index, 1);
+                        }
+                    });
+                });
+            } else if (question.questionType === "Text") {
+                container.querySelector("textarea").addEventListener("input", function() {
+                    userAnswers[question.id].textAnswer = this.value;
+                });
+            }
+            
+            // 更新導航按鈕狀態
+            updateNavigationButtons();
+        }
+        
+        // 獲取問題類型文字
+        function getQuestionTypeText(type) {
+            switch (type) {
+                case "SingleChoice": return "單選題";
+                case "MultipleChoice": return "多選題";
+                case "Text": return "文字題";
+                default: return type;
+            }
+        }
+        
+        // 獲取問題選項
+        function getOptions(question) {
+            const options = [];
+            for (let i = 1; i <= 10; i++) {
+                const option = question[`option${i}`];
+                if (option) {
+                    options.push(option);
+                }
+            }
+            return options;
+        }
+        
+        // 更新進度條
+        function updateProgressBar() {
+            const progress = (currentQuestionIndex + 1) / currentQuestions.length * 100;
+            document.getElementById("progressFill").style.width = `${progress}%`;
+            document.getElementById("progressText").textContent = `${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+        }
+        
+        // 更新導航按鈕狀態
+        function updateNavigationButtons() {
+            // 上一題按鈕
+            const prevButton = document.getElementById("prevQuestionButton");
+            if (currentQuestionIndex === 0) {
+                prevButton.classList.add("button-disabled");
+            } else {
+                prevButton.classList.remove("button-disabled");
+            }
+            
+            // 下一題和提交按鈕
+            const nextButton = document.getElementById("nextQuestionButton");
+            const submitButton = document.getElementById("submitSurveyButton");
+            
+            if (currentQuestionIndex === currentQuestions.length - 1) {
+                // 最後一題，顯示提交按鈕，隱藏下一題按鈕
+                nextButton.classList.add("hidden");
+                submitButton.classList.remove("hidden");
+            } else {
+                // 不是最後一題，顯示下一題按鈕，隱藏提交按鈕
+                nextButton.classList.remove("hidden");
+                submitButton.classList.add("hidden");
+            }
+        }
+// 顯示上一題
+        function showPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showCurrentQuestion();
+                updateProgressBar();
+            }
+        }
+        
+        // 顯示下一題
+        function showNextQuestion() {
+            const currentQuestion = currentQuestions[currentQuestionIndex];
+            
+            // 檢查必填問題是否已回答
+            if (currentQuestion.isRequired) {
+                if (!validateCurrentAnswer()) {
+                    showStatusMessage("此題為必填題，請作答後再繼續", "error");
+                    return;
+                }
+            }
+            
+            if (currentQuestionIndex < currentQuestions.length - 1) {
+                currentQuestionIndex++;
+                showCurrentQuestion();
+                updateProgressBar();
+                
+                // 清除錯誤訊息
+                document.getElementById("statusMessage").className = "status-message";
+                document.getElementById("statusMessage").style.display = "none";
+            }
+        }
+        
+        // 驗證當前答案
+        function validateCurrentAnswer() {
+            const question = currentQuestions[currentQuestionIndex];
+            const answer = userAnswers[question.id];
+            
+            if (question.questionType === "SingleChoice" || question.questionType === "MultipleChoice") {
+                return answer.selectedOptions.length > 0;
+            } else if (question.questionType === "Text") {
+                return answer.textAnswer.trim() !== "";
+            }
+            
+            return true;
+        }
+        
+        // 驗證所有必填問題
+        function validateAllRequiredQuestions() {
+            const unansweredQuestions = [];
+            
+            currentQuestions.forEach((question, index) => {
+                if (question.isRequired) {
+                    const answer = userAnswers[question.id];
+                    
+                    let isAnswered = false;
+                    if (question.questionType === "SingleChoice" || question.questionType === "MultipleChoice") {
+                        isAnswered = answer.selectedOptions.length > 0;
+                    } else if (question.questionType === "Text") {
+                        isAnswered = answer.textAnswer.trim() !== "";
+                    }
+                    
+                    if (!isAnswered) {
+                        unansweredQuestions.push({
+                            index: index,
+                            question: question
+                        });
+                    }
+                }
+            });
+            
+            if (unansweredQuestions.length > 0) {
+                const firstUnanswered = unansweredQuestions[0];
+                currentQuestionIndex = firstUnanswered.index;
+                showCurrentQuestion();
+                updateProgressBar();
+                
+                showStatusMessage(`有 ${unansweredQuestions.length} 題必填問題尚未回答`, "error");
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 提交問卷
+        async function submitSurvey() {
+            // 檢查必填問題
+            if (!validateAllRequiredQuestions()) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // 將用戶答案轉換為提交格式
+                const answers = [];
+                for (const questionId in userAnswers) {
+                    const answer = userAnswers[questionId];
+                    
+                    if (answer.selectedOptions.length > 0 || answer.textAnswer.trim() !== "") {
+                        answers.push({
+                            questionId: questionId,
+                            selectedOptions: answer.selectedOptions,
+                            textAnswer: answer.textAnswer
+                        });
+                    }
+                }
+                
+                // 創建提交數據
+                const submitData = {
+                    surveyId: selectedSurvey.id,
+                    userId: userId,
+                    userName: userName,
+                    isCompleted: true,
+                    answers: answers
+                };
+                
+                console.log("提交數據:", submitData);
+                
+                // 發送請求
+                const response = await fetch(`${base_url}SurveyResponse`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(submitData)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || `HTTP 錯誤 ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log("提交成功:", result);
+                
+                // 顯示完成頁面
+                document.getElementById("questionContainer").classList.add("hidden");
+                document.getElementById("completionContainer").classList.remove("hidden");
+                
+                // 添加完成按鈕事件
+                document.getElementById("finishButton").addEventListener("click", function() {
+                    if (liff.isInClient()) {
+                        liff.closeWindow();
+                    } else {
+                        // 在外部瀏覽器中返回問卷列表
+                        document.getElementById("completionContainer").classList.add("hidden");
+                        document.getElementById("surveySelectionContainer").classList.remove("hidden");
+                        
+                        // 重新獲取問卷列表
+                        fetchSurveys();
+                    }
+                });
+                
+                hideLoading();
+            } catch (error) {
+                console.error("提交問卷失敗:", error);
+                hideLoading();
+                
+                let errorMessage = "提交問卷失敗，請稍後再試";
+                if (error.message) {
+                    try {
+                        // 嘗試解析錯誤訊息
+                        const errorObj = JSON.parse(error.message);
+                        if (errorObj.message) {
+                            errorMessage = errorObj.message;
+                        }
+                    } catch (e) {
+                        errorMessage = error.message;
+                    }
+                }
+                
+                showStatusMessage(errorMessage, "error");
             }
         }
     </script>
-
 </body>
 </html>
