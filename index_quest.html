@@ -271,7 +271,7 @@
     <script>
         // 全局變量記錄初始化狀態
         let liffInitialized = false;
-        const base_url="https://35.221.146.143.nip.io/linehookEx/";
+        const base_url="https://35.221.146.143.nip.io/linehook/";
         const channelId="2007058536"; //不同的服務要修改
         const liffId = "2006993665-54NBxJN9".trim();
         
@@ -364,7 +364,7 @@
         // 檢查用戶是否已經存在
         async function checkUserExists(userId, channelId) {
             try {
-                const response = await fetch(base_url+"User/checkUser", {
+                const response = await fetch(base_url+"Emp/checkUser", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: userId, channelId: channelId })
@@ -427,7 +427,7 @@
             }
             
             try {
-                const response = await fetch(base_url+"User/unregister", {
+                const response = await fetch(base_url+"Emp/unregister", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: userId, channelId: channelId })
@@ -683,7 +683,7 @@
             
             try {
                 // 送出 POST 請求到後端
-                const response = await fetch(base_url + "User/register", {
+                const response = await fetch(base_url + "Emp/register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
