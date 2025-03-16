@@ -578,32 +578,33 @@
         }
         
         // 檢查用戶是否已存在/註冊
-        async function checkUserExists(userId, channelId) {
-            try {
-                const response = await fetch(base_url + "Emp/checkUser", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId, channelId: channelId })
-                });
-                
-                if (response.status === 200) {
-                    // 用戶已存在，繼續操作
-                    console.log("用戶驗證成功");
-                } else if (response.status === 404) {
-                    // 用戶不存在，導向註冊頁面
-                    console.log("用戶未註冊，導向註冊頁面");
-                    liff.openWindow({
-                        url: 'https://liff.line.me/2006993665-54NBxJN9',
-                        external: true
-                    });
-                } else {
-                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                }
-            } catch (error) {
-                console.error("檢查用戶存在性失敗:", error);
-                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-            }
+async function checkUserExists(userId, channelId) {
+    try {
+        const response = await fetch(base_url + "Emp/checkUser", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: userId, channelId: channelId })
+        });
+        
+        if (response.status === 200) {
+            // 用戶已存在，繼續操作
+            console.log("用戶驗證成功");
+            // 不需要任何導向動作
+        } else if (response.status === 404) {
+            // 用戶不存在，導向註冊頁面
+            console.log("用戶未註冊，導向註冊頁面");
+            liff.openWindow({
+                url: 'https://liff.line.me/2006993665-54NBxJN9',
+                external: true
+            });
+        } else {
+            showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
         }
+    } catch (error) {
+        console.error("檢查用戶存在性失敗:", error);
+        showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+    }
+}
         
         // 獲取問卷列表
         async function fetchSurveys() {
