@@ -82,7 +82,30 @@
             margin-top: 5px;
             color: #666;
         }
-        
+        .option-hint {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.category-markers {
+    display: flex;
+    margin-top: 2px;
+    position: relative;
+    height: 4px;
+}
+
+.category-marker {
+    position: absolute;
+    height: 100%;
+    background-color: #ddd;
+    border-radius: 2px;
+}
+
+.category-marker.active {
+    background-color: #06C755;
+}
         /* 部分樣式，後續會繼續補充 */
     </style>
 </head>
@@ -656,7 +679,7 @@ async function checkUserExists(userId, channelId) {
                     <div>
                         <strong>${survey.title}</strong>
                         <div style="margin-top: 5px; font-size: 14px; color: #666;">
-                            ${survey.description || "無描述"}
+                            ${survey.description || ""}
                         </div>
                         <div style="margin-top: 5px; font-size: 12px; color: #999;">
                             問題數量: ${survey.questionCount} | 
@@ -671,7 +694,7 @@ async function checkUserExists(userId, channelId) {
                     this.classList.add("selected");
                     
                     selectedSurvey = survey;
-                    selectSurvey(survey.id);
+                    selectAndStartSurvey(survey.id);
                 });
                 
                 container.appendChild(item);
@@ -703,50 +726,54 @@ async function checkUserExists(userId, channelId) {
         }
         
         // 選擇問卷
-        async function selectSurvey(surveyId) {
-            try {
-                showLoading();
-                
-                const response = await fetch(`${base_url}Survey/${surveyId}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
-                
-                const surveyDetail = await response.json();
-                console.log("獲取問卷詳情成功:", surveyDetail);
-                
-                // 設置選中的問卷
-                selectedSurvey = surveyDetail;
-                
-                // 提取問題類別
-                categories = [];
-                surveyDetail.questions.forEach(question => {
-                    if (!categories.includes(question.category)) {
-                        categories.push(question.category);
-                    }
-                });
-                
-                // 檢查用戶是否已回答過該問卷
-                await checkSurveyCompletion(surveyId);
-                
-                // 顯示問卷詳情和類別選擇
-                document.getElementById("surveySelectionContainer").classList.add("hidden");
-                document.getElementById("surveyDetailsContainer").classList.remove("hidden");
-                
-                // 渲染問卷資訊
-                renderSurveyInfo(surveyDetail);
-                
-                // 渲染類別選擇
-                renderCategorySelection();
-                
-                hideLoading();
-            } catch (error) {
-                console.error("載入問卷失敗:", error);
-                hideLoading();
-                showStatusMessage("載入問卷失敗，請重新整理頁面", "error");
-            }
+// 新增一個函數，合併 selectSurvey 和 startSurvey 的功能
+async function selectAndStartSurvey(surveyId) {
+    try {
+        showLoading();
+        
+        const response = await fetch(`${base_url}Survey/${surveyId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
         }
+        
+        const surveyDetail = await response.json();
+        console.log("獲取問卷詳情成功:", surveyDetail);
+        
+        // 設置選中的問卷
+        selectedSurvey = surveyDetail;
+        
+        // 檢查用戶是否已回答過該問卷
+        await checkSurveyCompletion(surveyId);
+        
+        // 跳過類別選擇，直接開始問卷
+        selectedCategory = "all"; // 使用 "all" 類別代表所有問題
+        
+        // 初始化問題和答案
+        filterQuestionsByCategory();
+        initializeAnswers();
+        
+        // 直接顯示問題區域，跳過問卷詳情和類別選擇
+        document.getElementById("surveySelectionContainer").classList.add("hidden");
+        document.getElementById("questionContainer").classList.remove("hidden");
+        
+        // 顯示第一個問題
+        currentQuestionIndex = 0;
+        showCurrentQuestion();
+        updateProgressBar();
+        
+        // 添加事件監聽器
+        document.getElementById("prevQuestionButton").addEventListener("click", showPreviousQuestion);
+        document.getElementById("nextQuestionButton").addEventListener("click", showNextQuestion);
+        document.getElementById("submitSurveyButton").addEventListener("click", submitSurvey);
+        
+        hideLoading();
+    } catch (error) {
+        console.error("載入問卷失敗:", error);
+        hideLoading();
+        showStatusMessage("載入問卷失敗，請重新整理頁面", "error");
+    }
+}
 // 檢查用戶是否已完成問卷
         async function checkSurveyCompletion(surveyId) {
             try {
@@ -935,116 +962,112 @@ async function checkUserExists(userId, channelId) {
         }
         
         // 顯示當前問題
-        function showCurrentQuestion() {
-            const question = currentQuestions[currentQuestionIndex];
-            const container = document.getElementById("currentQuestion");
-            
-            if (!question) {
-                console.error("問題不存在");
-                return;
-            }
-            
-            // 構建問題 HTML
-            let questionHTML = `
-                <span class="question-category">${question.category}</span>
-                <span class="question-type">${getQuestionTypeText(question.questionType)}</span>
-                <div class="question-text">
-                    ${question.questionText}
-                    ${question.isRequired ? '<span class="required-label">*必填</span>' : ''}
+function showCurrentQuestion() {
+    const question = currentQuestions[currentQuestionIndex];
+    const container = document.getElementById("currentQuestion");
+    
+    if (!question) {
+        console.error("問題不存在");
+        return;
+    }
+    
+    // 構建問題 HTML
+    let questionHTML = `
+        <span class="question-category">${question.category}</span>
+        <span class="question-type">${getQuestionTypeText(question.questionType)}</span>
+        <div class="question-text">
+            ${question.questionText}
+            ${question.isRequired ? '<span class="required-label">*必填</span>' : ''}
+        </div>
+    `;
+    
+    // 根據問題類型顯示不同的輸入控件
+    if (question.questionType === "SingleChoice") {
+        questionHTML += '<div class="options-container">';
+        
+        // 獲取非空選項
+        const options = getOptions(question);
+        options.forEach((option, index) => {
+            const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
+            questionHTML += `
+                <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
+                    <label>${option}</label>
                 </div>
             `;
-            
-            // 根據問題類型顯示不同的輸入控件
-            if (question.questionType === "SingleChoice") {
-                questionHTML += '<div class="options-container">';
+        });
+        
+        questionHTML += '</div>';
+    } else if (question.questionType === "MultipleChoice") {
+        const minRequired = question.minSelectCount || 1;
+        questionHTML += `
+            <div class="options-container">
+            <p class="option-hint">請至少選擇 ${minRequired} 項</p>
+        `;
+        
+        // 獲取非空選項
+        const options = getOptions(question);
+        options.forEach((option, index) => {
+            const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
+            questionHTML += `
+                <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
+                    <label>${option}</label>
+                </div>
+            `;
+        });
+        
+        questionHTML += '</div>';
+    } else if (question.questionType === "Text") {
+        questionHTML += `
+            <textarea class="text-answer" placeholder="請輸入您的回答">${userAnswers[question.id].textAnswer}</textarea>
+        `;
+    }
+    
+    container.innerHTML = questionHTML;
+    
+    // 添加選項點擊事件
+    if (question.questionType === "SingleChoice") {
+        container.querySelectorAll(".option-item").forEach(item => {
+            item.addEventListener("click", function() {
+                const optionValue = parseInt(this.getAttribute("data-option"));
                 
-                // 獲取非空選項
-                const options = getOptions(question);
-                options.forEach((option, index) => {
-                    const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
-                    questionHTML += `
-                        <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
-                            <input type="radio" name="question-${question.id}" id="option-${question.id}-${index + 1}" 
-                                ${isSelected ? 'checked' : ''}>
-                            <label for="option-${question.id}-${index + 1}">${option}</label>
-                        </div>
-                    `;
-                });
+                // 移除所有選項的選中狀態
+                container.querySelectorAll(".option-item").forEach(el => el.classList.remove("selected"));
                 
-                questionHTML += '</div>';
-            } else if (question.questionType === "MultipleChoice") {
-                questionHTML += '<div class="options-container">';
+                // 設置當前選項為選中
+                this.classList.add("selected");
                 
-                // 獲取非空選項
-                const options = getOptions(question);
-                options.forEach((option, index) => {
-                    const isSelected = userAnswers[question.id].selectedOptions.includes(index + 1);
-                    questionHTML += `
-                        <div class="option-item ${isSelected ? 'selected' : ''}" data-option="${index + 1}">
-                            <input type="checkbox" name="question-${question.id}" id="option-${question.id}-${index + 1}"
-                                ${isSelected ? 'checked' : ''}>
-                            <label for="option-${question.id}-${index + 1}">${option}</label>
-                        </div>
-                    `;
-                });
+                // 更新用戶答案
+                userAnswers[question.id].selectedOptions = [optionValue];
+            });
+        });
+    } else if (question.questionType === "MultipleChoice") {
+        container.querySelectorAll(".option-item").forEach(item => {
+            item.addEventListener("click", function() {
+                const optionValue = parseInt(this.getAttribute("data-option"));
                 
-                questionHTML += '</div>';
-            } else if (question.questionType === "Text") {
-                questionHTML += `
-                    <textarea class="text-answer" placeholder="請輸入您的回答">${userAnswers[question.id].textAnswer}</textarea>
-                `;
-            }
-            
-            container.innerHTML = questionHTML;
-            
-            // 添加選項點擊事件
-            if (question.questionType === "SingleChoice") {
-                container.querySelectorAll(".option-item").forEach(item => {
-                    item.addEventListener("click", function() {
-                        const optionValue = parseInt(this.getAttribute("data-option"));
-                        
-                        // 移除所有選項的選中狀態
-                        container.querySelectorAll(".option-item").forEach(el => el.classList.remove("selected"));
-                        container.querySelectorAll("input[type='radio']").forEach(el => el.checked = false);
-                        
-                        // 設置當前選項為選中
-                        this.classList.add("selected");
-                        this.querySelector("input[type='radio']").checked = true;
-                        
-                        // 更新用戶答案
-                        userAnswers[question.id].selectedOptions = [optionValue];
-                    });
-                });
-            } else if (question.questionType === "MultipleChoice") {
-                container.querySelectorAll(".option-item").forEach(item => {
-                    item.addEventListener("click", function() {
-                        const optionValue = parseInt(this.getAttribute("data-option"));
-                        const checkbox = this.querySelector("input[type='checkbox']");
-                        
-                        // 切換選中狀態
-                        this.classList.toggle("selected");
-                        checkbox.checked = !checkbox.checked;
-                        
-                        // 更新用戶答案
-                        const selectedOptions = userAnswers[question.id].selectedOptions;
-                        const index = selectedOptions.indexOf(optionValue);
-                        
-                        if (index === -1) {
-                            selectedOptions.push(optionValue);
-                        } else {
-                            selectedOptions.splice(index, 1);
-                        }
-                    });
-                });
-            } else if (question.questionType === "Text") {
-                container.querySelector("textarea").addEventListener("input", function() {
-                    userAnswers[question.id].textAnswer = this.value;
-                });
-            }
-            
-            // 更新導航按鈕狀態
-            updateNavigationButtons();
-        }
+                // 切換選中狀態
+                this.classList.toggle("selected");
+                
+                // 更新用戶答案
+                const selectedOptions = userAnswers[question.id].selectedOptions;
+                const index = selectedOptions.indexOf(optionValue);
+                
+                if (index === -1) {
+                    selectedOptions.push(optionValue);
+                } else {
+                    selectedOptions.splice(index, 1);
+                }
+            });
+        });
+    } else if (question.questionType === "Text") {
+        container.querySelector("textarea").addEventListener("input", function() {
+            userAnswers[question.id].textAnswer = this.value;
+        });
+    }
+    
+    // 更新導航按鈕狀態
+    updateNavigationButtons();
+}
         
         // 獲取問題類型文字
         function getQuestionTypeText(type) {
@@ -1069,12 +1092,82 @@ async function checkUserExists(userId, channelId) {
         }
         
         // 更新進度條
-        function updateProgressBar() {
-            const progress = (currentQuestionIndex + 1) / currentQuestions.length * 100;
-            document.getElementById("progressFill").style.width = `${progress}%`;
-            document.getElementById("progressText").textContent = `${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+// 更新進度條和文字，添加類別進度顯示
+function updateProgressBar() {
+    const progress = (currentQuestionIndex + 1) / currentQuestions.length * 100;
+    document.getElementById("progressFill").style.width = `${progress}%`;
+    
+    // 更新進度文字，添加當前類別
+    const currentQuestion = currentQuestions[currentQuestionIndex];
+    const categoryText = currentQuestion ? currentQuestion.category : "";
+    document.getElementById("progressText").textContent = 
+        `${currentQuestionIndex + 1} / ${currentQuestions.length} - ${categoryText}`;
+    
+    // 額外添加類別進度標記
+    updateCategoryProgressMarkers();
+}
+ // 添加類別進度標記的函數
+function updateCategoryProgressMarkers() {
+    // 獲取或創建類別標記容器
+    let categoryMarkers = document.getElementById("categoryProgressMarkers");
+    if (!categoryMarkers) {
+        categoryMarkers = document.createElement("div");
+        categoryMarkers.id = "categoryProgressMarkers";
+        categoryMarkers.className = "category-markers";
+        
+        // 插入到進度條下方
+        const progressContainer = document.querySelector(".progress-container");
+        progressContainer.appendChild(categoryMarkers);
+    }
+    
+    // 清空現有標記
+    categoryMarkers.innerHTML = "";
+    
+    // 創建類別分組信息
+    const categoryGroups = {};
+    let currentCategory = null;
+    let categoryStartIndex = 0;
+    
+    currentQuestions.forEach((question, index) => {
+        if (question.category !== currentCategory) {
+            if (currentCategory !== null) {
+                categoryGroups[currentCategory] = {
+                    start: categoryStartIndex,
+                    end: index - 1
+                };
+            }
+            currentCategory = question.category;
+            categoryStartIndex = index;
+        }
+    });
+    
+    // 添加最後一個類別
+    if (currentCategory !== null) {
+        categoryGroups[currentCategory] = {
+            start: categoryStartIndex,
+            end: currentQuestions.length - 1
+        };
+    }
+    
+    // 創建類別標記
+    Object.entries(categoryGroups).forEach(([category, range]) => {
+        const startPercent = (range.start / currentQuestions.length) * 100;
+        const width = ((range.end - range.start + 1) / currentQuestions.length) * 100;
+        
+        const marker = document.createElement("div");
+        marker.className = "category-marker";
+        marker.style.left = `${startPercent}%`;
+        marker.style.width = `${width}%`;
+        marker.setAttribute("data-category", category);
+        
+        // 高亮當前問題所屬類別
+        if (currentQuestionIndex >= range.start && currentQuestionIndex <= range.end) {
+            marker.classList.add("active");
         }
         
+        categoryMarkers.appendChild(marker);
+    });
+}       
         // 更新導航按鈕狀態
         function updateNavigationButtons() {
             // 上一題按鈕
@@ -1132,55 +1225,75 @@ async function checkUserExists(userId, channelId) {
         }
         
         // 驗證當前答案
-        function validateCurrentAnswer() {
-            const question = currentQuestions[currentQuestionIndex];
-            const answer = userAnswers[question.id];
-            
-            if (question.questionType === "SingleChoice" || question.questionType === "MultipleChoice") {
-                return answer.selectedOptions.length > 0;
-            } else if (question.questionType === "Text") {
-                return answer.textAnswer.trim() !== "";
+            function validateCurrentAnswer() {
+                const question = currentQuestions[currentQuestionIndex];
+                const answer = userAnswers[question.id];
+                
+                if (question.questionType === "SingleChoice") {
+                    return answer.selectedOptions.length > 0;
+                } else if (question.questionType === "MultipleChoice") {
+                    // 檢查是否滿足最少選擇數量要求
+                    const minRequired = question.minSelectCount || 1;
+                    return answer.selectedOptions.length >= minRequired;
+                } else if (question.questionType === "Text") {
+                    return answer.textAnswer.trim() !== "";
+                }
+                
+                return true;
             }
-            
-            return true;
-        }
         
         // 驗證所有必填問題
-        function validateAllRequiredQuestions() {
-            const unansweredQuestions = [];
+function validateAllRequiredQuestions() {
+    const unansweredQuestions = [];
+    
+    currentQuestions.forEach((question, index) => {
+        if (question.isRequired) {
+            const answer = userAnswers[question.id];
             
-            currentQuestions.forEach((question, index) => {
-                if (question.isRequired) {
-                    const answer = userAnswers[question.id];
-                    
-                    let isAnswered = false;
-                    if (question.questionType === "SingleChoice" || question.questionType === "MultipleChoice") {
-                        isAnswered = answer.selectedOptions.length > 0;
-                    } else if (question.questionType === "Text") {
-                        isAnswered = answer.textAnswer.trim() !== "";
-                    }
-                    
-                    if (!isAnswered) {
-                        unansweredQuestions.push({
-                            index: index,
-                            question: question
-                        });
-                    }
-                }
-            });
-            
-            if (unansweredQuestions.length > 0) {
-                const firstUnanswered = unansweredQuestions[0];
-                currentQuestionIndex = firstUnanswered.index;
-                showCurrentQuestion();
-                updateProgressBar();
-                
-                showStatusMessage(`有 ${unansweredQuestions.length} 題必填問題尚未回答`, "error");
-                return false;
+            let isAnswered = false;
+            if (question.questionType === "SingleChoice") {
+                isAnswered = answer.selectedOptions.length > 0;
+            } else if (question.questionType === "MultipleChoice") {
+                // 檢查是否滿足最少選擇數量要求
+                const minRequired = question.minSelectCount || 1;
+                isAnswered = answer.selectedOptions.length >= minRequired;
+            } else if (question.questionType === "Text") {
+                isAnswered = answer.textAnswer.trim() !== "";
             }
             
-            return true;
+            if (!isAnswered) {
+                unansweredQuestions.push({
+                    index: index,
+                    question: question
+                });
+            }
         }
+    });
+    
+    if (unansweredQuestions.length > 0) {
+        const firstUnanswered = unansweredQuestions[0];
+        currentQuestionIndex = firstUnanswered.index;
+        showCurrentQuestion();
+        updateProgressBar();
+        
+        // 更新錯誤訊息，顯示更明確的提示
+        const question = firstUnanswered.question;
+        let errorMsg = "此題為必填題，";
+        
+        if (question.questionType === "MultipleChoice") {
+            const minRequired = question.minSelectCount || 1;
+            errorMsg += `請至少選擇 ${minRequired} 個選項`;
+        } else {
+            errorMsg += "請作答後再繼續";
+        }
+        
+        showStatusMessage(errorMsg, "error");
+        return false;
+    }
+    
+    return true;
+}
+
         
         // 提交問卷
         async function submitSurvey() {
