@@ -181,11 +181,12 @@
             <div class="completion-icon">
                 <i class="fas fa-check-circle"></i>
             </div>
-            <h3 class="completion-title">問卷已成功提交</h3>
-            <p class="completion-message">感謝您的參與和寶貴意見！</p>
-            <button id="finishButton" class="nav-button next-button">
-                完成 <i class="fas fa-check"></i>
-            </button>
+                <h3 class="completion-title">問卷已成功提交</h3>
+                <p class="completion-message">感謝您對首都集團的問卷調查提供寶貴意見！</p>
+                <p class="completion-message">您的回饋將幫助我們提供更好的服務。</p>
+                <button id="finishButton" class="nav-button next-button">
+                    關閉 <i class="fas fa-times"></i>
+                </button>
         </div>
         
         <div class="line-brand">
@@ -293,7 +294,10 @@
         
         .option-item.selected {
             border-color: #06C755;
-            background-color: rgba(6, 199, 85, 0.1);
+            background-color: rgba(6, 199, 85, 0.15);
+            box-shadow: 0 2px 5px rgba(6, 199, 85, 0.2);
+            font-weight: 500;
+            transform: translateY(-1px);
         }
         
         .option-item input[type="checkbox"],
@@ -560,9 +564,8 @@
         // 初始化 LIFF
         async function initLIFF() {
             try {
-                showLoading();
                 console.log("初始化LIFF...");
-                
+                hideLoading();
                 await liff.init({
                     liffId: liffId,
                     withLoginOnExternalBrowser: true
@@ -576,7 +579,8 @@
                     liff.login();
                     return;
                 }
-                
+                  // 初始化後再顯示 loading
+                    showLoading();
                 try {
                     // 檢查用戶是否已綁定
                     const profile = await liff.getProfile();
@@ -744,7 +748,11 @@ async function selectAndStartSurvey(surveyId) {
         selectedSurvey = surveyDetail;
         
         // 檢查用戶是否已回答過該問卷
-        await checkSurveyCompletion(surveyId);
+            const isCompleted = await checkSurveyCompletion(surveyId);
+            if (isCompleted) {
+                hideLoading();
+                return; // 如果已完成，中止後續處理
+            }
         
         // 跳過類別選擇，直接開始問卷
         selectedCategory = "all"; // 使用 "all" 類別代表所有問題
@@ -787,14 +795,20 @@ async function selectAndStartSurvey(surveyId) {
                 const result = await response.json();
                 
                 if (result.isCompleted) {
-                    showStatusMessage(`您已於 ${formatDate(result.submitDate)} 完成此問卷`, "info");
-                }
+                    showStatusMessage(`感謝您已於 ${formatDate(result.submitDate)} 完成問卷，無需再填寫`, "info");
+                    // 延遲後返回問卷列表
+                    setTimeout(() => {
+                        document.getElementById("questionContainer").classList.add("hidden");
+                        document.getElementById("surveySelectionContainer").classList.remove("hidden");
+                    }, 2000);
+            return true; // 已完成
+        }   
+        return false; // 未完成
             } catch (error) {
                 console.error("檢查問卷完成狀態失敗:", error);
-                // 忽略錯誤，假設未完成
+                return false; // 未完成
             }
         }
-        
         // 渲染問卷資訊
         function renderSurveyInfo(survey) {
             const container = document.getElementById("surveyInfo");
