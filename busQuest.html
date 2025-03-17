@@ -106,7 +106,50 @@
 .category-marker.active {
     background-color: #06C755;
 }
-        /* 部分樣式，後續會繼續補充 */
+.user-info {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    text-align: left;
+    line-height: 1.8; /* 增加行距 */
+    font-size: 18px; /* 增加字體大小 */
+}
+
+.user-info strong {
+    font-size: 20px; /* 增加強調文字的大小 */
+    color: #06C755; /* 使用 LINE 綠色 */
+}
+        .option-item strong {
+    font-size: 20px; /* 增加問卷標題大小 */
+    color: #333;
+    display: block;
+    margin-bottom: 8px;
+}
+.option-item .description {
+    font-size: 16px; /* 增加描述文字大小 */
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.option-item .meta-info {
+    font-size: 14px; /* 調整元資訊大小 */
+    color: #999;
+    margin-top: 8px;
+}
+
+/* 增加選中問卷的視覺效果 */
+.option-item.selected {
+    border-color: #06C755;
+    background-color: rgba(6, 199, 85, 0.15);
+    box-shadow: 0 3px 8px rgba(6, 199, 85, 0.2);
+    transform: translateY(-2px);
+}
+
+.option-item.selected strong {
+    color: #06C755;
+}
     </style>
 </head>
 <body>
@@ -682,14 +725,14 @@ async function checkUserExists(userId, channelId) {
                 item.innerHTML = `
                     <div>
                         <strong>${survey.title}</strong>
-                        <div style="margin-top: 5px; font-size: 14px; color: #666;">
-                            ${survey.description || ""}
-                        </div>
-                        <div style="margin-top: 5px; font-size: 12px; color: #999;">
-                            問題數量: ${survey.questionCount} | 
-                            創建日期: ${formatDate(survey.createdDate)}
-                            ${survey.expiredDate ? ` | 截止日期: ${formatDate(survey.expiredDate)}` : ""}
-                        </div>
+                             <div class="description">
+                                                ${survey.description || ""}
+                            </div>
+                <div class="meta-info">
+                    問題數量: ${survey.questionCount} | 
+                    創建日期: ${formatDate(survey.createdDate)}
+                    ${survey.expiredDate ? ` | 截止日期: ${formatDate(survey.expiredDate)}` : ""}
+                </div>
                     </div>
                 `;
                 
