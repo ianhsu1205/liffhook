@@ -475,23 +475,23 @@ button:hover {
     </div>
     
 <div class="highlighted-section">
-    <div class="form-row">
-        <div class="column">
-            <label for="plateNumber" class="required">車號</label>
-            <div class="input-group">
-                <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
-                <div class="icon-button" onclick="openBusModal()">
-                    <i class="fas fa-bus"></i>
-                </div>
+    <!-- 車號 on its own line -->
+    <div class="form-group">
+        <label for="plateNumber" class="required">車號</label>
+        <div class="input-group">
+            <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
+            <div class="icon-button" onclick="openBusModal()">
+                <i class="fas fa-bus"></i>
             </div>
         </div>
+    </div>
+    
+    <!-- 路線 and 公司 on the same line in two columns -->
+    <div class="form-row">
         <div class="column">
             <label for="routeName">路線</label>
             <input type="text" id="routeName" oninput="convertToUpperCase(this)">
         </div>
-    </div>
-    
-    <div class="form-row">
         <div class="column">
             <label for="plateNumbCompany">公司</label>
             <div class="input-group">
