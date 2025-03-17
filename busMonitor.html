@@ -539,16 +539,23 @@ button:hover {
         </div>
     </div>
 </div>
-    <!-- 地點選擇彈窗 -->
-    <div id="locationModal" class="modal">
-        <div class="modal-content">
-            <h3>我的位置</h3>
-            <div id="locationList"></div>
-            <div class="button-group">
-                <button type="button" onclick="closeLocationModal()">關閉</button>
-            </div>
+
+<!-- 地點選擇彈窗 -->
+<div id="locationModal" class="modal">
+    <div class="modal-content">
+        <h3>我的位置</h3>
+        <!-- 添加重新偵測按鈕 -->
+        <div id="detectLocationButtonContainer" class="detect-button-container">
+            <button id="detectLocationButton" type="button" class="secondary-button detect-button" onclick="refreshLocationList()">
+                <i class="fas fa-sync-alt"></i> 重新偵測位置
+            </button>
+        </div>
+        <div id="locationList"></div>
+        <div class="button-group">
+            <button type="button" onclick="closeLocationModal()">關閉</button>
         </div>
     </div>
+</div>
     
     <!-- 車輛選擇彈窗 -->
 <div id="busModal" class="modal">
@@ -883,7 +890,62 @@ async function getCurrentPosition(silent = false) {
     return false;
   }
 }
-
+// 刷新位置列表
+function refreshLocationList() {
+    // 更新按鈕狀態，顯示正在加載
+    const detectButton = document.getElementById("detectLocationButton");
+    if (detectButton) {
+        const originalText = detectButton.innerHTML;
+        detectButton.disabled = true;
+        detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+        
+        // 移除任何存在的錯誤或無數據消息
+        const errorMsg = document.getElementById("locationListError");
+        if (errorMsg) errorMsg.remove();
+        
+        // 清空位置列表，添加載入中提示
+        const container = document.getElementById("locationList");
+        container.innerHTML = "";
+        const loadingMsg = document.createElement("p");
+        loadingMsg.id = "locationListLoading";
+        loadingMsg.className = "no-data-message";
+        loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+        container.appendChild(loadingMsg);
+        
+        // 獲取位置並刷新路口列表
+        getCurrentPosition(false).then(success => {
+            if (success) {
+                fetchIntersections().finally(() => {
+                    // 無論成功與否，恢復按鈕狀態
+                    detectButton.disabled = false;
+                    detectButton.innerHTML = originalText;
+                });
+            } else {
+                // 位置獲取失敗
+                detectButton.disabled = false;
+                detectButton.innerHTML = originalText;
+                
+                // 移除載入中提示
+                if (document.getElementById("locationListLoading")) {
+                    document.getElementById("locationListLoading").remove();
+                }
+                
+                showLocationListError("無法獲取位置，請稍後再試");
+            }
+        }).catch(error => {
+            // 出錯時也恢復按鈕狀態
+            detectButton.disabled = false;
+            detectButton.innerHTML = originalText;
+            
+            // 移除載入中提示
+            if (document.getElementById("locationListLoading")) {
+                document.getElementById("locationListLoading").remove();
+            }
+            
+            showLocationListError("獲取位置時發生錯誤，請稍後再試");
+        });
+    }
+}
 // 更新後的獲取附近交叉路口函數，始終使用最新位置
 async function fetchIntersections() {
     showLoading();
@@ -1071,42 +1133,100 @@ async function fetchLastLocation(userId) {
 function openLocationModal() {
     // 先顯示對話框，不等待位置
     document.getElementById("locationModal").style.display = "block";
-    getCurrentPosition(false).then(success => { // 这里不是静默模式
+    
+    // 添加載入中提示
+    const container = document.getElementById("locationList");
+    container.innerHTML = "";
+    const loadingMsg = document.createElement("p");
+    loadingMsg.id = "locationListLoading";
+    loadingMsg.className = "no-data-message";
+    loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+    container.appendChild(loadingMsg);
+    
+    // 獲取位置並獲取附近路口
+    getCurrentPosition(false).then(success => {
         if (success) {
             fetchIntersections();
-        } 
+        } else {
+            // 移除載入中提示
+            if (document.getElementById("locationListLoading")) {
+                document.getElementById("locationListLoading").remove();
+            }
+            showLocationListError("無法獲取位置，請點擊重新偵測");
+        }
     }).catch(error => {
         // 位置獲取失敗，但對話框已顯示
-        showStatusMessage("無法獲取位置，顯示可能不完整", "info");
+        if (document.getElementById("locationListLoading")) {
+            document.getElementById("locationListLoading").remove();
+        }
+        showLocationListError("無法獲取位置，請點擊重新偵測");
     });
 }
-        
+        // 顯示位置列表錯誤訊息
+function showLocationListError(message) {
+    const container = document.getElementById("locationList");
+    // 先檢查是否已經有錯誤訊息
+    let errorMsg = document.getElementById("locationListError");
+    
+    if (!errorMsg) {
+        errorMsg = document.createElement("p");
+        errorMsg.id = "locationListError";
+        errorMsg.className = "no-data-message";
+        container.appendChild(errorMsg);
+    }
+    
+    errorMsg.textContent = message;
+}
+
         // 關閉位置選擇彈窗
         function closeLocationModal() {
             document.getElementById("locationModal").style.display = "none";
         }
         
-        // 更新位置列表
-        function updateLocationList() {
-            const container = document.getElementById("locationList");
-            container.innerHTML = "";
-            
-            if (intersections.length === 0) {
-                container.innerHTML = "<p>附近未找到交叉路口，請嘗試重新定位</p>";
-                return;
-            }
-            
-            intersections.forEach(intersection => {
-                const item = document.createElement("div");
-                item.className = "location-item";
-                item.textContent = intersection.name;
-                item.addEventListener("click", function() {
-                    document.getElementById("location").value = intersection.name;
-                    closeLocationModal();
-                });
-                container.appendChild(item);
-            });
-        }
+ // 更新位置列表
+function updateLocationList() {
+    const container = document.getElementById("locationList");
+    
+    // 移除載入中提示
+    const loadingMsg = document.getElementById("locationListLoading");
+    if (loadingMsg) loadingMsg.remove();
+    
+    // 檢查是否找到路口
+    if (intersections.length === 0) {
+        // 移除任何存在的錯誤訊息
+        const errorMsg = document.getElementById("locationListError");
+        if (errorMsg) errorMsg.remove();
+        
+        // 顯示無數據訊息
+        const noDataElement = document.createElement("p");
+        noDataElement.id = "locationListNoData";
+        noDataElement.className = "no-data-message";
+        noDataElement.textContent = "附近未找到交叉路口，請點擊重新偵測";
+        container.appendChild(noDataElement);
+        return;
+    }
+    
+    // 清空容器，準備添加路口列表
+    container.innerHTML = "";
+    
+    // 創建列表容器
+    const listContainer = document.createElement("div");
+    listContainer.id = "intersectionListContainer";
+    listContainer.className = "bus-list-container"; // 重用現有樣式
+    
+    intersections.forEach(intersection => {
+        const item = document.createElement("div");
+        item.className = "location-item";
+        item.textContent = intersection.name;
+        item.addEventListener("click", function() {
+            document.getElementById("location").value = intersection.name;
+            closeLocationModal();
+        });
+        listContainer.appendChild(item);
+    });
+    
+    container.appendChild(listContainer);
+}
 
             // 打開公司選擇視窗函數
 function openCompanyModal() {
