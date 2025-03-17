@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>通知綁定</title>
+    <title>綁定註冊</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
@@ -200,7 +200,7 @@
     </div>
 
     <div class="container">
-        <h2>首都集團資訊平台通知綁定</h2>
+        <h2>首都集團路口查核平台註冊綁定</h2>
         
         <div id="statusMessage" class="status-message"></div>
         
@@ -290,12 +290,7 @@
                     <option value="其它同仁">其它同仁</option>
                 </select>
             </div>
-            
-            <div class="form-group">
-                <label for="groupCode">專案群組</label>
-                <input type="text" id="groupCode" placeholder="請輸入群組">
-            </div>
-                      
+
             <div class="form-group">
                 <label for="empId" class="required">員工編號</label>
                 <input type="tel" id="empId" placeholder="請輸入員工編號">
@@ -314,7 +309,7 @@
             <button type="button" onclick="submitForm()">提交資料</button>
             
             <div class="line-brand">
-               首都集團資訊平台
+                 首都集團路口查核平台
             </div>
         </form>
         
@@ -432,11 +427,10 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'}${userData.empId ? ' ' + userData.empId : ''}</strong>您好，您目前已綁定並同意接受以下範圍的通知：<br>
+                        <strong>${userData.name || '用戶'}${userData.empId ? ' ' + userData.empId : ''}</strong>您好，您目前已綁定並可使用路口查核功能：<br>
                        公司：${userData.company || ''}<br>
                        部門：${userData.dept || ''}<br>
                        職稱：${userData.job || ''}<br>
-                       群組：${userData.groupCode || ''}<br>
                        `;
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
@@ -601,7 +595,7 @@
                 company: company,
                 dept: dept,
                 job: document.getElementById("job").value,
-                groupCode: document.getElementById("groupCode").value.trim(),
+                groupCode: null,
                 phone: "",
                 name: name,
                 empId: empid,
