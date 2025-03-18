@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>註冊</title>
+    <title>登入</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
@@ -219,23 +219,23 @@
         <div class="spinner"></div>
     </div>
     <div class="container">
-        <h2>首都集團問卷中心註冊</h2>
+        <h2>首都集團問卷中心登入</h2>
         
         <div id="statusMessage" class="status-message"></div>
         
         <!-- 確認解除綁定的對話框 -->
         <div id="unbindConfirmation" class="confirmation-dialog hidden">
             <div class="confirmation-message">
-                您已經註冊，是否要解除？
+                您已經登入，是否要解除？
             </div>
             <div id="userInfoDisplay" class="user-info"></div>
             <div class="button-group">
-                <button onclick="unbindUser()">是，解除註冊</button>
-                <button class="secondary-button" onclick="closeWindowSafely()">否，保持註冊</button>
+                <button onclick="unbindUser()">是，解除登入</button>
+                <button class="secondary-button" onclick="closeWindowSafely()">否，保持登入</button>
             </div>
         </div>
         
-        <!-- 註冊表單 -->
+        <!-- 登入表單 -->
         <form id="registerForm" class="hidden">
             <div class="form-group">
                 <label for="company" class="required">公司別</label>
@@ -399,7 +399,7 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'} 您好，感謝您同意並協助進行問卷，以下是您已登記的資料：</strong><br>
+                        <strong>${userData.name || '用戶'} 您好，感謝您同意並協助進行問卷，以下是您已登入的資料：</strong><br>
                         公司名稱：${userData.company || ''}<br>
                         員工編號：${userData.empId || ''}<br>
                         所屬場站：${userData.station || ''}<br>
@@ -407,8 +407,8 @@
                     `;
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
-                    // 用戶不存在，顯示註冊表單
-                    console.log("用戶不存在，顯示註冊表單");
+                    // 用戶不存在，顯示登入表單
+                    console.log("用戶不存在，顯示登入表單");
                     document.getElementById("registerForm").classList.remove("hidden");
                 } else {
                     // 其他錯誤情況
@@ -423,7 +423,7 @@
                 console.error("檢查用戶存在性失敗:", error);
                 showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
                 showDebugInfo("檢查用戶存在性失敗: " + error.message);
-                // 默認顯示註冊表單
+                // 默認顯示登入表單
                 document.getElementById("registerForm").classList.remove("hidden");
                 hideLoading();
             }
@@ -473,7 +473,7 @@ async function unbindUser() {
         showStatusMessage("解除綁定失敗: " + (error.message || "請稍後再試"), "error");
         // 恢復按鈕狀態，允許重試
         unbindButton.disabled = false;
-        unbindButton.textContent = "是，解除註冊";
+        unbindButton.textContent = "是，解除登入";
         setTimeout(closeWindowSafely, 3000);
     } finally {
         hideLoading();
@@ -723,16 +723,16 @@ async function submitForm() {
         
         if (response.ok) {
             window.scrollTo(0, 0);  // 滾動至頁面最上方
-            showStatusMessage("註冊成功！即將返回聊天室...", "success");
+            showStatusMessage("登入成功！即將返回聊天室...", "success");
             // 不恢復按鈕狀態，保持禁用
             setTimeout(closeWindowSafely, 2000);  // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
         } else {
-            throw new Error(result || "註冊失敗，請稍後再試！");
+            throw new Error(result || "登入失敗，請稍後再試！");
         }
     } catch (error) {
         console.error("錯誤:", error);
-        showStatusMessage("註冊失敗: " + (error.message || "請稍後再試"), "error");
-        showDebugInfo("註冊失敗: " + error.message);
+        showStatusMessage("登入失敗: " + (error.message || "請稍後再試"), "error");
+        showDebugInfo("登入失敗: " + error.message);
         
         // 恢復提交按鈕，允許重試
         submitButton.disabled = false;
