@@ -1349,15 +1349,14 @@ function showNextQuestion() {
     // 獲取當前問題的已選擇選項數
     const selectedCount = userAnswers[currentQuestion.id].selectedOptions.length;
     
-    // 對於多選題的特殊處理
+    // 對於多選題的處理 - 必須選擇至少3個選項
     if (currentQuestion.questionType === "MultipleChoice") {
-        // 如果用戶已經選擇了至少一個選項，但少於最低要求
-        if (selectedCount > 0 && selectedCount < MULTIPLE_CHOICE_MIN_REQUIRED) {
-            showStatusMessage(`已開始回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項才能繼續`, "error");
+        if (selectedCount < MULTIPLE_CHOICE_MIN_REQUIRED) {
+            showStatusMessage(`請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項`, "error");
             return;
         }
     } 
-    // 針對其他必填題的一般驗證
+    // 其他必填題的一般驗證
     else if (currentQuestion.isRequired && !validateCurrentAnswer()) {
         showStatusMessage("此題為必填題，請作答後再繼續", "error");
         return;
@@ -1414,15 +1413,14 @@ function validateAllRequiredQuestions() {
             }
         }
         
-        // 對於多選題的特殊檢查 - 如果有選擇但不夠3個
+        // 對於多選題 - 必須選擇至少3個選項
         if (question.questionType === "MultipleChoice" && 
-            answer.selectedOptions.length > 0 && 
             answer.selectedOptions.length < MULTIPLE_CHOICE_MIN_REQUIRED) {
             
             unansweredQuestions.push({
                 index: index,
                 question: question,
-                partiallyAnswered: true
+                isMultipleChoice: true
             });
         }
     });
@@ -1436,8 +1434,8 @@ function validateAllRequiredQuestions() {
         // 更新錯誤訊息，顯示更明確的提示
         let errorMsg;
         
-        if (firstUnanswered.partiallyAnswered) {
-            errorMsg = `已開始回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 個選項才能提交`;
+        if (firstUnanswered.isMultipleChoice) {
+            errorMsg = `請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 個選項才能提交`;
         } else {
             errorMsg = "此題為必填題，請作答後再繼續";
         }
