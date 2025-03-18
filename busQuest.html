@@ -564,15 +564,11 @@
         let currentQuestions = [];
         let currentQuestionIndex = 0;
         let userAnswers = {};
-        
+        let isRedirecting = false; // 添加到全局變數處
         // 頁面載入時初始化
         window.onload = async function() {
             try {
                 await initLIFF();
-                if (liffInitialized && liff.isLoggedIn()) {
-                    // 初始化成功後加載問卷列表
-                    await fetchSurveys();
-                }
             } catch (error) {
                 console.error("頁面載入時發生錯誤:", error);
                 showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
@@ -605,47 +601,52 @@
         }
         
         // 初始化 LIFF
-        async function initLIFF() {
-            try {
-                console.log("初始化LIFF...");
-                hideLoading();
-                await liff.init({
-                    liffId: liffId,
-                    withLoginOnExternalBrowser: true
-                });
-                
-                liffInitialized = true;
-                console.log("LIFF 初始化成功");
-                
-                if (!liff.isLoggedIn()) {
-                    console.log("用戶未登入，引導登入...");
-                    liff.login();
-                    return;
-                }
-                  // 初始化後再顯示 loading
-                    showLoading();
-                try {
-                    // 檢查用戶是否已綁定
-                    const profile = await liff.getProfile();
-                    userId = profile.userId;
-                    userName = profile.displayName;
-                    
-                    console.log("獲取用戶資料成功:", profile.displayName);
-                    
-                    await checkUserExists(userId, channelId);
-                } catch (profileError) {
-                    console.error("獲取用戶資料失敗:", profileError);
-                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
-                }
-                
-                hideLoading();
-            } catch (error) {
-                console.error("LIFF 初始化失敗:", error);
-                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
-                hideLoading();
-                liffInitialized = false;
-            }
+async function initLIFF() {
+    try {
+        console.log("初始化LIFF...");
+        hideLoading();
+        await liff.init({
+            liffId: liffId,
+            withLoginOnExternalBrowser: true
+        });
+        
+        liffInitialized = true;
+        console.log("LIFF 初始化成功");
+        
+        if (!liff.isLoggedIn()) {
+            console.log("用戶未登入，引導登入...");
+            liff.login();
+            return;
         }
+        
+        // 初始化後再顯示 loading
+        showLoading();
+        try {
+            // 檢查用戶是否已綁定
+            const profile = await liff.getProfile();
+            userId = profile.userId;
+            userName = profile.displayName;
+            
+            console.log("獲取用戶資料成功:", profile.displayName);
+            
+            // 確保用戶檢查通過後才獲取問卷
+            const userExists = await checkUserExists(userId, channelId);
+            if (userExists) {
+                await fetchSurveys();
+            }
+        } catch (profileError) {
+            console.error("獲取用戶資料失敗:", profileError);
+            showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
+        }
+        
+        hideLoading();
+    } catch (error) {
+        console.error("LIFF 初始化失敗:", error);
+        showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
+        hideLoading();
+        liffInitialized = false;
+    }
+}
         
         // 檢查用戶是否已存在/註冊
 async function checkUserExists(userId, channelId) {
@@ -656,23 +657,50 @@ async function checkUserExists(userId, channelId) {
             body: JSON.stringify({ userId: userId, channelId: channelId })
         });
         
-        if (response.status === 200) {
-            // 用戶已存在，繼續操作
-            console.log("用戶驗證成功");
-            // 不需要任何導向動作
-        } else if (response.status === 404) {
-            // 用戶不存在，導向註冊頁面
-            console.log("用戶未註冊，導向註冊頁面");
-            liff.openWindow({
-                url: 'https://liff.line.me/2007071630-JpP3WnXL',
-                external: true
-            });
-        } else {
-            showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+        // 首先檢查網絡響應
+        if (!response.ok) {
+            // 如果是 404 (用戶不存在)，則導向註冊頁面
+            if (response.status === 404) {
+                console.log("用戶未註冊，導向註冊頁面");
+                isRedirecting = true; // 設置標誌
+                // 加入延遲確保導向完成
+                setTimeout(() => {
+                    liff.openWindow({
+                        url: 'https://liff.line.me/2007071630-JpP3WnXL',
+                        external: false // 改為 false 讓它在 LINE 內部開啟
+                    });
+                }, 500);
+                return false; // 返回 false 表示檢查未通過
+            } else {
+                // 其他 HTTP 錯誤
+                console.error("API 錯誤:", response.status);
+                showStatusMessage("檢查用戶信息時發生錯誤 (HTTP " + response.status + ")，請重新嘗試", "error");
+                return false;
+            }
         }
+        
+        // 嘗試解析響應
+        const data = await response.json();
+        console.log("用戶檢查響應:", data);
+        
+        // 檢查響應中的用戶狀態
+        if (data && data.isRegistered === false) {
+            console.log("用戶未註冊，導向註冊頁面");
+            setTimeout(() => {
+                liff.openWindow({
+                    url: 'https://liff.line.me/2007071630-JpP3WnXL',
+                    external: false
+                });
+            }, 500);
+            return false;
+        }
+        
+        console.log("用戶驗證成功");
+        return true; // 返回 true 表示檢查通過
     } catch (error) {
         console.error("檢查用戶存在性失敗:", error);
-        showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+        showStatusMessage("檢查用戶信息時發生錯誤: " + error.message, "error");
+        return false;
     }
 }
         
