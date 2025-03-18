@@ -540,10 +540,10 @@
                     </div>
                     <ul id="companyList" class="item-list">
                         <li onclick="selectCompany('首都客運')">首都客運</li>
-                        <li onclick="selectCompany('大都會客運')">大都會客運</li>
                         <li onclick="selectCompany('臺北客運')">臺北客運</li>
-                        <li onclick="selectCompany('欣欣客運')">欣欣客運</li>
-                        <li onclick="selectCompany('基隆客運')">基隆客運</li>
+                        <li onclick="selectCompany('大都會客運')">大都會客運</li>
+                        <li onclick="selectCompany('三重客運')">三重客運</li>
+                        <li onclick="selectCompany('台中客運')">台中客運</li>
                     </ul>
                 </div>
             </div>
@@ -618,7 +618,7 @@
                             // 設置定期刷新
                             setInterval(() => {
                                 fetchBuses();
-                            }, 30000); // 每30秒自動刷新一次
+                            }, 100000); // 每30秒自動刷新一次
                         }
                     } catch (error) {
                         console.error("頁面載入時發生錯誤:", error);
