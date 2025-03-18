@@ -1346,7 +1346,7 @@ function updateCategoryProgressMarkers() {
             // 檢查必填問題是否已回答
             if (currentQuestion.isRequired) {
                 if (!validateCurrentAnswer()) {
-                    showStatusMessage("此題為必填題，請作答後再繼續", "error");
+                    showStatusMessage("此題請至少選擇3項，請作答後再繼續", "error");
                     return;
                 }
             }
@@ -1420,7 +1420,7 @@ function validateAllRequiredQuestions() {
         
         if (question.questionType === "MultipleChoice") {
             const minRequired = question.minSelectCount || 3;
-            errorMsg += `請至少選擇 ${minRequired} 個選項`;
+            errorMsg += `此題請至少選擇 ${minRequired} 個選項`;
         } else {
             errorMsg += "請作答後再繼續";
         }
