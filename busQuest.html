@@ -989,7 +989,9 @@ function renderQuestionTypeList(types) {
 async function startQuestionsBasedOnTypes() {
     try {
         showLoading();
-        
+        // 清除之前的錯誤訊息
+        document.getElementById("statusMessage").className = "status-message";
+        document.getElementById("statusMessage").style.display = "none";
         // 使用已獲取的問題數據，無需再次發送請求
         if (allQuestions.length === 0) {
             throw new Error("沒有獲取到問題數據");
