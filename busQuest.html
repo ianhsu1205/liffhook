@@ -1010,7 +1010,7 @@ async function startQuestionsBasedOnTypes() {
         
         // 顯示第一個問題
         currentQuestionIndex = 0;
-        showCurrentQuestion();
+        showCurrentQuestion(); 
         updateProgressBar();
         
         // 添加事件監聽器
@@ -1371,7 +1371,7 @@ function updateCategoryProgressMarkers() {
                     return answer.selectedOptions.length > 0;
                 } else if (question.questionType === "MultipleChoice") {
                     // 檢查是否滿足最少選擇數量要求
-                    const minRequired = question.minSelectCount || 1;
+                    const minRequired = question.minSelectCount || 3;
                     return answer.selectedOptions.length >= minRequired;
                 } else if (question.questionType === "Text") {
                     return answer.textAnswer.trim() !== "";
@@ -1393,7 +1393,7 @@ function validateAllRequiredQuestions() {
                 isAnswered = answer.selectedOptions.length > 0;
             } else if (question.questionType === "MultipleChoice") {
                 // 檢查是否滿足最少選擇數量要求
-                const minRequired = question.minSelectCount || 1;
+                const minRequired = question.minSelectCount || 3;
                 isAnswered = answer.selectedOptions.length >= minRequired;
             } else if (question.questionType === "Text") {
                 isAnswered = answer.textAnswer.trim() !== "";
@@ -1419,7 +1419,7 @@ function validateAllRequiredQuestions() {
         let errorMsg = "此題為必填題，";
         
         if (question.questionType === "MultipleChoice") {
-            const minRequired = question.minSelectCount || 1;
+            const minRequired = question.minSelectCount || 3;
             errorMsg += `請至少選擇 ${minRequired} 個選項`;
         } else {
             errorMsg += "請作答後再繼續";
