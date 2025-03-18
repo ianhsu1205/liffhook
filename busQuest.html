@@ -648,7 +648,8 @@ async function initLIFF() {
     }
 }
         
-        // 檢查用戶是否已存在/註冊
+        // 檢查用戶是否已存在/登入
+// 檢查用戶是否已存在/登入
 async function checkUserExists(userId, channelId) {
     try {
         const response = await fetch(base_url + "Emp/checkUser", {
@@ -659,17 +660,22 @@ async function checkUserExists(userId, channelId) {
         
         // 首先檢查網絡響應
         if (!response.ok) {
-            // 如果是 404 (用戶不存在)，則導向註冊頁面
+            // 如果是 404 (用戶不存在)，則顯示提示訊息並導向登入頁面
             if (response.status === 404) {
-                console.log("用戶未註冊，導向註冊頁面");
+                console.log("用戶未登入，導向登入頁面");
                 isRedirecting = true; // 設置標誌
-                // 加入延遲確保導向完成
+                
+                // 顯示提示訊息
+                showStatusMessage("請先登入才能進行問卷，將帶你先到登入頁面...", "info");
+                
+                // 5秒後導向登入頁面
                 setTimeout(() => {
                     liff.openWindow({
                         url: 'https://liff.line.me/2007071630-JpP3WnXL',
                         external: false // 改為 false 讓它在 LINE 內部開啟
                     });
-                }, 500);
+                }, 5000); // 5秒後導向
+                
                 return false; // 返回 false 表示檢查未通過
             } else {
                 // 其他 HTTP 錯誤
@@ -685,13 +691,20 @@ async function checkUserExists(userId, channelId) {
         
         // 檢查響應中的用戶狀態
         if (data && data.isRegistered === false) {
-            console.log("用戶未註冊，導向註冊頁面");
+            console.log("用戶未登入，導向登入頁面");
+            isRedirecting = true; // 設置標誌
+            
+            // 顯示提示訊息
+            showStatusMessage("請先登入才能進行問卷，將帶你先到登入頁面...", "info");
+            
+            // 5秒後導向登入頁面
             setTimeout(() => {
                 liff.openWindow({
                     url: 'https://liff.line.me/2007071630-JpP3WnXL',
                     external: false
                 });
-            }, 500);
+            }, 5000); // 5秒後導向
+            
             return false;
         }
         
