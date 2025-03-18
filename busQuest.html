@@ -231,7 +231,23 @@
                     關閉 <i class="fas fa-times"></i>
                 </button>
         </div>
-        
+        <!-- 添加問題類型選擇區域 -->
+<div id="questionTypeSelectionContainer" class="hidden">
+    <h3>搭公車常被問的問題種類，請選5項</h3>
+    <div class="selection-count">已選擇: <span id="selectedCount">0</span>/5</div>
+    <div id="questionTypeList" class="options-container">
+        <!-- 問題類型列表將由JS動態填充 -->
+    </div>
+    
+    <div class="navigation-buttons">
+        <button id="backToSurveysButton2" class="nav-button back-button">
+            <i class="fas fa-arrow-left"></i> 返回
+        </button>
+        <button id="startQuestionsButton" class="nav-button next-button button-disabled">
+            開始作答 <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+</div>
         <div class="line-brand">
             首都集團問卷中心
         </div>
@@ -545,6 +561,21 @@
             font-size: 24px;
             margin-bottom: 10px;
         }
+        .selection-count {
+    margin: 15px 0;
+    font-weight: 500;
+    color: #06C755;
+}
+
+#questionTypeList .option-item.selected {
+    border-color: #06C755;
+    background-color: rgba(6, 199, 85, 0.15);
+    box-shadow: 0 3px 8px rgba(6, 199, 85, 0.2);
+}
+
+#questionTypeList .option-item.selected strong {
+    color: #06C755;
+}
     </style>
     <script>
         // 全局變數
@@ -565,6 +596,9 @@
         let currentQuestionIndex = 0;
         let userAnswers = {};
         let isRedirecting = false; // 添加到全局變數處
+        let selectedQuestionTypes = [];
+        let maxSelectableTypes = 5;
+        let allQuestions = []; 
         // 頁面載入時初始化
         window.onload = async function() {
             try {
@@ -814,7 +848,6 @@ async function checkUserExists(userId, channelId) {
         }
         
         // 選擇問卷
-// 新增一個函數，合併 selectSurvey 和 startSurvey 的功能
 async function selectAndStartSurvey(surveyId) {
     try {
         showLoading();
@@ -832,21 +865,147 @@ async function selectAndStartSurvey(surveyId) {
         selectedSurvey = surveyDetail;
         
         // 檢查用戶是否已回答過該問卷
-            const isCompleted = await checkSurveyCompletion(surveyId);
-            if (isCompleted) {
-                hideLoading();
-                return; // 如果已完成，中止後續處理
+        const isCompleted = await checkSurveyCompletion(surveyId);
+        if (isCompleted) {
+            hideLoading();
+            return; // 如果已完成，中止後續處理
+        }
+        
+        // 獲取問題類型
+        await fetchQuestionTypes(surveyId);
+        
+        // 顯示問題類型選擇區域
+        document.getElementById("surveySelectionContainer").classList.add("hidden");
+        document.getElementById("questionTypeSelectionContainer").classList.remove("hidden");
+        
+        hideLoading();
+    } catch (error) {
+        console.error("載入問卷失敗:", error);
+        hideLoading();
+        showStatusMessage("載入問卷失敗，請重新整理頁面", "error");
+    }
+}
+
+// 添加獲取問題類型的函數
+// 添加獲取問題類型的函數
+async function fetchQuestionTypes(surveyId) {
+    try {
+        const response = await fetch(`${base_url}Survey/${surveyId}/questions`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
+        }
+        
+        // 保存所有問題
+        allQuestions = await response.json();
+        console.log("獲取問題成功:", allQuestions);
+        
+        // 提取不重複的問題類型
+        const types = [...new Set(allQuestions.map(q => q.category))];
+        console.log("問題類型:", types);
+        
+        // 渲染問題類型列表
+        renderQuestionTypeList(types);
+        
+        // 重置選擇
+        selectedQuestionTypes = [];
+        updateSelectedCount();
+    } catch (error) {
+        console.error("獲取問題類型失敗:", error);
+        showStatusMessage("獲取問題類型失敗，請重新整理頁面", "error");
+    }
+}
+ // 更新已選擇數量
+function updateSelectedCount() {
+    document.getElementById("selectedCount").textContent = selectedQuestionTypes.length;
+    
+    // 啟用或禁用開始按鈕
+    const startButton = document.getElementById("startQuestionsButton");
+    if (selectedQuestionTypes.length === maxSelectableTypes) {
+        startButton.classList.remove("button-disabled");
+    } else {
+        startButton.classList.add("button-disabled");
+    }
+}
+// 渲染問題類型列表
+function renderQuestionTypeList(types) {
+    const container = document.getElementById("questionTypeList");
+    container.innerHTML = "";
+    
+    types.forEach(type => {
+        const item = document.createElement("div");
+        item.className = "option-item";
+        item.setAttribute("data-type", type);
+        
+        item.innerHTML = `
+            <div>
+                <strong>${type}</strong>
+            </div>
+        `;
+        
+        item.addEventListener("click", function() {
+            const isSelected = this.classList.contains("selected");
+            
+            if (isSelected) {
+                // 取消選擇
+                this.classList.remove("selected");
+                const index = selectedQuestionTypes.indexOf(type);
+                if (index !== -1) {
+                    selectedQuestionTypes.splice(index, 1);
+                }
+            } else {
+                // 新選擇，檢查是否已達上限
+                if (selectedQuestionTypes.length >= maxSelectableTypes) {
+                    showStatusMessage(`最多只能選擇 ${maxSelectableTypes} 項問題類型`, "error");
+                    return;
+                }
+                
+                this.classList.add("selected");
+                selectedQuestionTypes.push(type);
             }
+            
+            updateSelectedCount();
+        });
         
-        // 跳過類別選擇，直接開始問卷
-        selectedCategory = "all"; // 使用 "all" 類別代表所有問題
+        container.appendChild(item);
+    });
+    
+    // 添加事件監聽器
+    document.getElementById("backToSurveysButton2").addEventListener("click", function() {
+        document.getElementById("questionTypeSelectionContainer").classList.add("hidden");
+        document.getElementById("surveySelectionContainer").classList.remove("hidden");
+    });
+    
+    document.getElementById("startQuestionsButton").addEventListener("click", function() {
+        if (selectedQuestionTypes.length !== maxSelectableTypes) {
+            showStatusMessage(`請選擇 ${maxSelectableTypes} 項問題類型`, "error");
+            return;
+        }
         
-        // 初始化問題和答案
-        filterQuestionsByCategory();
+        startQuestionsBasedOnTypes();
+    });
+}       
+// 根據選擇的問題類型開始問卷
+async function startQuestionsBasedOnTypes() {
+    try {
+        showLoading();
+        
+        // 使用已獲取的問題數據，無需再次發送請求
+        if (allQuestions.length === 0) {
+            throw new Error("沒有獲取到問題數據");
+        }
+        
+        // 根據選擇的類型過濾問題
+        currentQuestions = allQuestions.filter(q => selectedQuestionTypes.includes(q.category))
+                                     .sort((a, b) => a.displayOrder - b.displayOrder);
+        
+        console.log(`已過濾 ${currentQuestions.length} 個問題，類別: ${selectedQuestionTypes.join(", ")}`);
+        
+        // 初始化答案
         initializeAnswers();
         
-        // 直接顯示問題區域，跳過問卷詳情和類別選擇
-        document.getElementById("surveySelectionContainer").classList.add("hidden");
+        // 顯示問題區域
+        document.getElementById("questionTypeSelectionContainer").classList.add("hidden");
         document.getElementById("questionContainer").classList.remove("hidden");
         
         // 顯示第一個問題
@@ -861,9 +1020,9 @@ async function selectAndStartSurvey(surveyId) {
         
         hideLoading();
     } catch (error) {
-        console.error("載入問卷失敗:", error);
+        console.error("載入問題失敗:", error);
         hideLoading();
-        showStatusMessage("載入問卷失敗，請重新整理頁面", "error");
+        showStatusMessage("載入問題失敗，請重新整理頁面", "error");
     }
 }
 // 檢查用戶是否已完成問卷
@@ -906,128 +1065,9 @@ async function selectAndStartSurvey(surveyId) {
             `;
         }
         
-        // 渲染類別選擇
-        function renderCategorySelection() {
-            const container = document.getElementById("categoryContainer");
-            container.innerHTML = "";
-            
-            // 定義類別圖標映射
-            const categoryIcons = {
-                "基本信息": "fa-user",
-                "工作體驗": "fa-briefcase",
-                "滿意度調查": "fa-smile",
-                "建議與反饋": "fa-comment",
-                "個人發展": "fa-chart-line",
-                "健康與福利": "fa-heart",
-                "公司文化": "fa-building",
-                "培訓需求": "fa-graduation-cap",
-                "職業規劃": "fa-road",
-                "團隊合作": "fa-users"
-            };
-            
-            // 為所有類別創建默認圖標
-            const defaultIcons = [
-                "fa-clipboard-list", "fa-tasks", "fa-question-circle", 
-                "fa-folder", "fa-star", "fa-file-alt", "fa-list-alt"
-            ];
-            
-            let iconIndex = 0;
-            
-            categories.forEach((category, index) => {
-                const card = document.createElement("div");
-                card.className = "category-card";
-                
-                // 選擇圖標
-                let iconClass = categoryIcons[category] || defaultIcons[iconIndex % defaultIcons.length];
-                iconIndex++;
-                
-                card.innerHTML = `
-                    <div class="category-icon">
-                        <i class="fas ${iconClass}"></i>
-                    </div>
-                    <div>${category}</div>
-                `;
-                
-                card.addEventListener("click", function() {
-                    document.querySelectorAll(".category-card").forEach(el => el.classList.remove("active"));
-                    this.classList.add("active");
-                    
-                    selectedCategory = category;
-                    
-                    // 啟用開始按鈕
-                    document.getElementById("startSurveyButton").classList.remove("button-disabled");
-                });
-                
-                container.appendChild(card);
-            });
-            
-            // 添加所有類別的選項
-            if (categories.length > 1) {
-                const allCard = document.createElement("div");
-                allCard.className = "category-card";
-                allCard.innerHTML = `
-                    <div class="category-icon">
-                        <i class="fas fa-layer-group"></i>
-                    </div>
-                    <div>所有類別</div>
-                `;
-                
-                allCard.addEventListener("click", function() {
-                    document.querySelectorAll(".category-card").forEach(el => el.classList.remove("active"));
-                    this.classList.add("active");
-                    
-                    selectedCategory = "all";
-                    
-                    // 啟用開始按鈕
-                    document.getElementById("startSurveyButton").classList.remove("button-disabled");
-                });
-                
-                container.appendChild(allCard);
-            }
-            
-            // 添加事件監聽器到開始按鈕
-            document.getElementById("startSurveyButton").addEventListener("click", startSurvey);
-            
-            // 添加事件監聽器到返回按鈕
-            document.getElementById("backToSurveysButton").addEventListener("click", function() {
-                document.getElementById("surveyDetailsContainer").classList.add("hidden");
-                document.getElementById("surveySelectionContainer").classList.remove("hidden");
-                
-                selectedSurvey = null;
-                selectedCategory = null;
-                
-                // 清空狀態訊息
-                document.getElementById("statusMessage").className = "status-message";
-                document.getElementById("statusMessage").style.display = "none";
-            });
-        }
-        
+
         // 開始問卷
-        function startSurvey() {
-            if (!selectedCategory) {
-                showStatusMessage("請選擇一個問題類別", "error");
-                return;
-            }
-            
-            // 初始化問題和答案
-            filterQuestionsByCategory();
-            initializeAnswers();
-            
-            // 顯示問題區域
-            document.getElementById("surveyDetailsContainer").classList.add("hidden");
-            document.getElementById("questionContainer").classList.remove("hidden");
-            
-            // 顯示第一個問題
-            currentQuestionIndex = 0;
-            showCurrentQuestion();
-            updateProgressBar();
-            
-            // 添加事件監聽器
-            document.getElementById("prevQuestionButton").addEventListener("click", showPreviousQuestion);
-            document.getElementById("nextQuestionButton").addEventListener("click", showNextQuestion);
-            document.getElementById("submitSurveyButton").addEventListener("click", submitSurvey);
-        }
-        
+       
         // 按類別過濾問題
         function filterQuestionsByCategory() {
             // 清空當前問題列表
@@ -1096,7 +1136,7 @@ function showCurrentQuestion() {
         
         questionHTML += '</div>';
     } else if (question.questionType === "MultipleChoice") {
-        const minRequired = question.minSelectCount || 1;
+        const minRequired = question.minSelectCount || 3;
         questionHTML += `
             <div class="options-container">
             <p class="option-hint">請至少選擇 ${minRequired} 項</p>
