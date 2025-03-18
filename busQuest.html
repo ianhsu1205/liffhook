@@ -599,6 +599,7 @@
         let selectedQuestionTypes = [];
         let maxSelectableTypes = 5;
         let allQuestions = []; 
+        const MULTIPLE_CHOICE_MIN_REQUIRED = 3;
         // 頁面載入時初始化
         window.onload = async function() {
             try {
@@ -1138,10 +1139,10 @@ function showCurrentQuestion() {
         
         questionHTML += '</div>';
     } else if (question.questionType === "MultipleChoice") {
-        const minRequired = question.minSelectCount || 3;
+       
         questionHTML += `
             <div class="options-container">
-            <p class="option-hint">請至少選擇 ${minRequired} 項</p>
+            <p class="option-hint">請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項</p>
         `;
         
         // 獲取非空選項
@@ -1347,10 +1348,14 @@ function updateCategoryProgressMarkers() {
             
             // 檢查必填問題是否已回答
             if (currentQuestion.isRequired) {
-                if (!validateCurrentAnswer()) {
-                    showStatusMessage("此題請至少選擇3項，請作答後再繼續", "error");
-                    return;
-                }
+                    if (!validateCurrentAnswer()) {
+                        if (currentQuestion.questionType === "MultipleChoice") {
+                            showStatusMessage(`此題為必填題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項後再繼續`, "error");
+                        } else {
+                            showStatusMessage("此題為必填題，請作答後再繼續", "error");
+                        }
+                        return;
+                    }
             }
             
             if (currentQuestionIndex < currentQuestions.length - 1) {
@@ -1373,8 +1378,7 @@ function updateCategoryProgressMarkers() {
                     return answer.selectedOptions.length > 0;
                 } else if (question.questionType === "MultipleChoice") {
                     // 檢查是否滿足最少選擇數量要求
-                    const minRequired = question.minSelectCount || 3;
-                    return answer.selectedOptions.length >= minRequired;
+                    return answer.selectedOptions.length >= MULTIPLE_CHOICE_MIN_REQUIRED;
                 } else if (question.questionType === "Text") {
                     return answer.textAnswer.trim() !== "";
                 }
@@ -1394,9 +1398,8 @@ function validateAllRequiredQuestions() {
             if (question.questionType === "SingleChoice") {
                 isAnswered = answer.selectedOptions.length > 0;
             } else if (question.questionType === "MultipleChoice") {
-                // 檢查是否滿足最少選擇數量要求
-                const minRequired = question.minSelectCount || 3;
-                isAnswered = answer.selectedOptions.length >= minRequired;
+                // 使用固定的最小選擇數量
+                isAnswered = answer.selectedOptions.length >= MULTIPLE_CHOICE_MIN_REQUIRED;
             } else if (question.questionType === "Text") {
                 isAnswered = answer.textAnswer.trim() !== "";
             }
@@ -1422,7 +1425,7 @@ function validateAllRequiredQuestions() {
         
         if (question.questionType === "MultipleChoice") {
             const minRequired = question.minSelectCount || 3;
-            errorMsg += `此題請至少選擇 ${minRequired} 個選項`;
+            errorMsg += `此題請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 個選項`;
         } else {
             errorMsg += "請作答後再繼續";
         }
