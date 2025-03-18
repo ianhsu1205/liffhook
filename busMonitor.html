@@ -569,11 +569,11 @@
                 // 新增: 用於存儲已偵測車輛和已處理車輛
                 let detectedVehicles = []; // 用於存儲已偵測但尚未處理的車輛
                 let processedVehicles = new Set(); // 用於存儲已處理過的車號，避免重複顯示
-        
+                 const liffId = "2006993665-1Nvo0AvX".trim(); // 更新的LIFFID
                 // 初始化LIFF
                 async function initLIFF() {
                     try {
-                        await liff.init({ liffId: "2001413703-LXBPama8" });
+                        await liff.init({ liffId:liffId});
                         liffInitialized = true;
         
                         if (!liff.isLoggedIn()) {
