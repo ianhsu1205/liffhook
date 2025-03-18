@@ -1142,7 +1142,7 @@ function showCurrentQuestion() {
        
     questionHTML += `
         <div class="options-container">
-        <p class="option-hint">${question.isRequired ? '必填' : '非必填'}：至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項</p>
+        <p class="option-hint">請選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項</p>
     `;
         
         // 獲取非空選項
@@ -1343,7 +1343,7 @@ function updateCategoryProgressMarkers() {
         }
         
         // 顯示下一題
- function showNextQuestion() {
+function showNextQuestion() {
     const currentQuestion = currentQuestions[currentQuestionIndex];
     
     // 獲取當前問題的已選擇選項數
@@ -1353,11 +1353,11 @@ function updateCategoryProgressMarkers() {
     if (currentQuestion.questionType === "MultipleChoice") {
         // 如果用戶已經選擇了至少一個選項，但少於最低要求
         if (selectedCount > 0 && selectedCount < MULTIPLE_CHOICE_MIN_REQUIRED) {
-            showStatusMessage(`如果要回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項`, "error");
+            showStatusMessage(`已開始回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 項才能繼續`, "error");
             return;
         }
     } 
-    // 針對必填題的一般驗證
+    // 針對其他必填題的一般驗證
     else if (currentQuestion.isRequired && !validateCurrentAnswer()) {
         showStatusMessage("此題為必填題，請作答後再繼續", "error");
         return;
@@ -1373,7 +1373,6 @@ function updateCategoryProgressMarkers() {
         document.getElementById("statusMessage").style.display = "none";
     }
 }
-        
         // 驗證當前答案
             function validateCurrentAnswer() {
                 const question = currentQuestions[currentQuestionIndex];
@@ -1398,8 +1397,8 @@ function validateAllRequiredQuestions() {
     currentQuestions.forEach((question, index) => {
         const answer = userAnswers[question.id];
         
-        // 對於必填題的檢查
-        if (question.isRequired) {
+        // 對於必填題的檢查（非多選題）
+        if (question.isRequired && question.questionType !== "MultipleChoice") {
             let isAnswered = false;
             if (question.questionType === "SingleChoice") {
                 isAnswered = answer.selectedOptions.length > 0;
@@ -1435,12 +1434,11 @@ function validateAllRequiredQuestions() {
         updateProgressBar();
         
         // 更新錯誤訊息，顯示更明確的提示
-        const question = firstUnanswered.question;
         let errorMsg;
         
         if (firstUnanswered.partiallyAnswered) {
-            errorMsg = `如果要回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 個選項`;
-        } else if (question.isRequired) {
+            errorMsg = `已開始回答此題，請至少選擇 ${MULTIPLE_CHOICE_MIN_REQUIRED} 個選項才能提交`;
+        } else {
             errorMsg = "此題為必填題，請作答後再繼續";
         }
         
