@@ -1,836 +1,1186 @@
 <!DOCTYPE html>
 <html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>路口查核記錄</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-body {
-    font-family: 'Noto Sans TC', Arial, sans-serif;
-    background-color: #f7f7f7;
-    margin: 0;
-    padding: 0;
-    color: #333;
-}
-.container {
-    max-width: 500px;
-    margin: 30px auto;
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-h2 {
-    color: #06C755;
-    text-align: center;
-    margin-bottom: 25px;
-    font-weight: 600;
-    border-bottom: 2px solid #f0f0f0;
-    padding-bottom: 15px;
-}
-.form-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #555;
-}
-.required::after {
-    content: "*";
-    color: #e74c3c;
-    margin-left: 4px;
-}
-.input-group {
-    display: flex;
-    align-items: center;
-}
-.input-group input {
-    flex: 1;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-.input-group .icon-button {
-    width: 46px;
-    height: 46px;
-    border: 1px solid #ddd;
-    border-left: none;
-    background-color: #f8f9fa;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.input-group .icon-button:hover {
-    background-color: #e9ecef;
-}
-.input-group .icon-button i {
-    color: #06C755;
-}
-input, select, textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 16px;
-    transition: border 0.3s;
-    box-sizing: border-box;
-}
-input:focus, select:focus, textarea:focus {
-    border-color: #06C755;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
-}
-input.error, select.error {
-    border-color: #e74c3c;
-}
-.error-message {
-    color: #e74c3c;
-    font-size: 14px;
-    margin-top: 5px;
-    display: none;
-}
-.error-message.visible {
-    display: block;
-}
-button {
-    width: 100%;
-    padding: 14px;
-    background-color: #06C755;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 18px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: 0.3s;
-    margin-top: 10px;
-}
-button:hover {
-    background-color: #04A73E;
-    box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
-}
-.secondary-button {
-    background-color: #f1f1f1;
-    color: #333;
-}
-.secondary-button:hover {
-    background-color: #e5e5e5;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-.line-brand {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 14px;
-    color: #999;
-}
-.status-message {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    text-align: center;
-    display: none;
-}
-.status-message.success {
-    background-color: #d4edda;
-    color: #155724;
-    display: block;
-}
-.status-message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    display: block;
-}
-.status-message.info {
-    background-color: #e7f3fe;
-    color: #004085;
-    display: block;
-}
+      body {
+        font-family: "Noto Sans TC", Arial, sans-serif;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
 
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #06C755;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-.hidden {
-    display: none;
-}
+      .container {
+        max-width: 500px;
+        margin: 30px auto;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
 
-/* 自定義選單樣式 */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 100;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-}
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 10px;
-    width: 80%;
-    max-height: 70vh;
-    overflow-y: auto;
-}
+      h2 {
+        color: #06c755;
+        text-align: center;
+        margin-bottom: 25px;
+        font-weight: 600;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+      }
 
-/* 主要項目卡片樣式 */
-.main-item-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.main-item-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-}
-.main-item-card.selected {
-    background-color: #06C755;
-    color: white;
-    border-color: #06C755;
-}
+      .form-group {
+        margin-bottom: 20px;
+        text-align: left;
+      }
 
-/* 改良的公司選擇器樣式 */
-.company-selector {
-    display: flex;
-    align-items: flex-end;
-    transition: all 0.3s ease;
-}
- .company-selector.active .company-button {
-    transform: scale(1.05);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-.company-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
-.company-header label {
-    margin-bottom: 0;
-    margin-right: 10px;
-    white-space: nowrap;
-}
-.company-header input {
-    flex: 1;
-    height: 36px;
-    padding: 6px 10px;
-}
-.company-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    width: 100%;
-}
-.company-button {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    text-align: center;
-    cursor: pointer;
-    background-color: #f8f9fa;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-.company-button:hover {
-    background-color: #e9ecef;
-    border-color: #06C755;
-}
-.company-button.selected {
-    background-color: #06C755;
-    color: white;
-    border-color: #06C755;
-    font-weight: bold;
-    transform: scale(1.05);
-    box-shadow: 0 2px 4px rgba(6, 199, 85, 0.3);
-}
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #555;
+      }
 
-/* 其他項目卡片樣式 */
-.other-item-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.other-item-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-}
-.other-item-card.selected {
-    background-color: #e7f3fe;
-    color: #004085;
-    border-color: #b8daff;
-}
+      .required::after {
+        content: "*";
+        color: #e74c3c;
+        margin-left: 4px;
+      }
 
-/* 位置選擇器樣式 */
-.location-item {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-}
-.location-item:hover {
-    background-color: #f9f9f9;
-}
-.form-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-/* 雙欄布局 */
-.two-columns {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-.column {
-    flex: 1;
-}
+      /* 輸入框樣式 */
+      .input-group {
+        display: flex;
+        align-items: center;
+      }
 
-/* 突顯區域 */
-.highlighted-section {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid #e9ecef;
-    margin-bottom: 20px;
-}
+      .input-group input {
+        flex: 1;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
 
-/* 全寬公司按鈕樣式 */
-.company-buttons-full {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 15px;
-    width: 100%;
-}
+      .input-group .icon-button {
+        width: 46px;
+        height: 46px;
+        border: 1px solid #ddd;
+        border-left: none;
+        background-color: #f8f9fa;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
 
-/* 車輛列表項目樣式增強 */
-.bus-list-container {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 10px;
-    border: 1px solid #f0f0f0;
-    border-radius: 8px;
-}
-.bus-item {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 12px; /* 增加內邊距 */
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-   transition: all 0.2s ease;
-}
-.bus-item:hover {
-    background-color: #f0f9ff;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-.bus-item:last-child {
-    border-bottom: none;
-}
-.bus-company {
-    color: #06C755;
-    font-weight: bold;
-    margin-right: 10px;
-    white-space: nowrap;
-}
-.route-name {
-    flex-grow: 1;
-    margin-right: 10px;
-}
-.plate-number {
-    font-weight: bold;
-    color: #555;
-    text-align: right;
-}
+      .input-group .icon-button:hover {
+        background-color: #e9ecef;
+      }
 
-/* 檢測按鈕容器樣式 */
-.detect-button-container {
-    margin-bottom: 15px;
-    text-align: center;
-}
-.detect-button {
-    width: auto !important;
-    padding: 10px 15px !important;
-    margin: 0 auto !important;
-}
+      .input-group .icon-button i {
+        color: #06c755;
+      }
 
-/* 無數據提示樣式 */
-.no-data-message {
-    text-align: center;
-    padding: 15px;
-    color: #6c757d;
-    font-style: italic;
-}
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border 0.3s;
+        box-sizing: border-box;
+      }
 
-/* 為了增加對比度，讓按鈕在不同狀態下更明顯 */
-.secondary-button:disabled {
-    background-color: #e9ecef;
-    color: #adb5bd;
-    cursor: not-allowed;
-}
-        @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
- /* 公司列表容器樣式 */
-.company-list-container {
-    margin-bottom: 15px;
-}
-.company-list-item {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.company-list-item:hover {
-    background-color: #f5f5f5;
-}
-.company-list-item:last-child {
-    border-bottom: none;
-}      
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #06c755;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+      }
 
-/* 新增：突顯車號的樣式 */
-.highlighted-plate {
-    font-size: 16px;
-    font-weight: bold;
-    padding: 3px 6px;
-    background-color: #ffeb3b;
-    color: #000;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-}
+      /* 新增：檢測車輛卡片樣式 */
+      .bus-card {
+        background-color: #fff;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin-bottom: 15px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .bus-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .bus-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
+      }
+
+      .bus-card-company {
+        font-weight: bold;
+        color: #06c755;
+      }
+
+      .bus-card-plate {
+        font-weight: bold;
+        background-color: #ffeb3b;
+        padding: 3px 8px;
+        border-radius: 4px;
+      }
+
+      .bus-card-body {
+        padding: 15px;
+      }
+
+      .bus-card-route {
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+
+      .bus-card-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 14px;
+        background-color: #06c755;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.3s;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background-color: #04a73e;
+        box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
+      }
+
+      .secondary-button {
+        background-color: #f1f1f1;
+        color: #333;
+      }
+
+      .secondary-button:hover {
+        background-color: #e5e5e5;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 簡化選項樣式 */
+      .quick-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .quick-item {
+        background-color: #f1f1f1;
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid #ddd;
+        transition: all 0.2s ease;
+      }
+
+      .quick-item.selected {
+        background-color: #06c755;
+        color: white;
+        border-color: #06c755;
+      }
+      
+      /* 其他項目簡化樣式 */
+      .quick-other-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      
+      .quick-other-item {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        cursor: pointer;
+        border: 1px solid #eee;
+        transition: all 0.2s ease;
+      }
+      
+      .quick-other-item.selected {
+        background-color: #e7f3fe;
+        color: #004085;
+        border-color: #b8daff;
+      }
+
+      .status-message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        display: none;
+      }
+
+      .status-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        display: block;
+      }
+
+      .status-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        display: block;
+      }
+
+      .status-message.info {
+        background-color: #e7f3fe;
+        color: #004085;
+        display: block;
+      }
+
+      /* 即時偵測結果小卡 */
+      .real-time-detection {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #06c755;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 30px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 99;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .real-time-detection.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .detection-count {
+        background-color: white;
+        color: #06c755;
+        font-weight: bold;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* 動作按鈕樣式 */
+      .action-button {
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .submit-button {
+        background-color: #06c755;
+        color: white;
+      }
+      
+      .submit-button:hover {
+        background-color: #04a73e;
+      }
+      
+      .remove-button {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      
+      .remove-button:hover {
+        background-color: #f5c6cb;
+      }
+      
+      /* 輔助按鈕容器 */
+      .utility-buttons {
+        margin: 20px 0;
+        display: flex;
+        gap: 10px;
+      }
+      
+      .utility-button {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        border-radius: 6px;
+        background-color: #f1f1f1;
+        color: #333;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid #ddd;
+      }
+      
+      .utility-button:hover {
+        background-color: #e5e5e5;
+      }
+      
+      .utility-button.primary {
+        background-color: #e7f3fe;
+        color: #004085;
+        border-color: #b8daff;
+      }
+      
+      .utility-button.primary:hover {
+        background-color: #d1e7ff;
+      }
+      
+      /* 無檢測結果時的樣式 */
+      .no-buses-message {
+        text-align: center;
+        padding: 30px 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        color: #6c757d;
+        margin: 20px 0;
+      }
+      
+      /* 已提交卡片樣式 */
+      .bus-card.submitted {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+      
+      .submitted-label {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      /* 查詢歷史樣式 */
+      .history-list {
+        margin-top: 15px;
+      }
+      
+      .history-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .history-time {
+        color: #6c757d;
+        font-size: 12px;
+      }
+      
+      /* 狀態標籤 */
+      .status-tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-left: 5px;
+      }
+      
+      .status-processing {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      
+      .status-submitted {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      
+      /* 位置項目樣式 */
+      .location-item {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+      }
+      
+      .location-item:hover {
+        background-color: #f9f9f9;
+      }
+      
+      /* 檢測按鈕容器樣式 */
+      .detect-button-container {
+        margin-bottom: 15px;
+        text-align: center;
+      }
+      
+      .detect-button {
+        width: auto !important;
+        padding: 10px 15px !important;
+        margin: 0 auto !important;
+      }
+      
+      /* 無數據提示樣式 */
+      .no-data-message {
+        text-align: center;
+        padding: 15px;
+        color: #6c757d;
+        font-style: italic;
+      }
+      
+      /* 彈窗模態樣式補充 */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.3s ease;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 500px;
+        max-height: 70vh;
+        overflow-y: auto;
+        animation: slideDown 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+      
+      @keyframes slideDown {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      
+      /* 載入中覆蓋層樣式補充 */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #06c755;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .hidden {
+        display: none;
+      }
+      
+      /* 公司信息與品牌 */
+      .line-brand {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+        color: #999;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+      }
+      
+      /* 檢測結果區域 */
+      .detected-buses-container {
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+      
+      .detection-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      
+      .detection-header h3 {
+        margin: 0;
+        color: #06c755;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
+      <div class="spinner"></div>
     </div>
 
     <div class="container">
-        <h2>路口查核</h2>
-        
-        <div id="statusMessage" class="status-message"></div>
-        
-<!-- 監控記錄填報表單 -->
-<form id="monitorForm">
-    <div class="form-group">
+      <h2>路口查核</h2>
+
+      <div id="statusMessage" class="status-message"></div>
+
+      <!-- 即時偵測懸浮顯示 -->
+      <div
+        id="realTimeDetection"
+        class="real-time-detection"
+        onclick="showDetectedBuses()"
+      >
+        <span id="detectionCount" class="detection-count">0</span>
+        <span>個新偵測結果</span>
+      </div>
+
+      <!-- 位置選擇 -->
+      <div class="form-group">
         <label for="location" class="required">我的位置</label>
         <div class="input-group">
-            <input type="text" id="location" placeholder="選擇附近路口">
-            <div class="icon-button" onclick="openLocationModal()">
-                <i class="fas fa-map-marker-alt"></i>
-            </div>
+          <input type="text" id="location" placeholder="選擇附近路口" />
+          <div class="icon-button" onclick="openLocationModal()">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
         </div>
-    </div>
-    
-<div class="highlighted-section">
-    <!-- 車號 on its own line -->
-    <div class="form-group">
-        <label for="plateNumber" class="required">車號</label>
-        <div class="input-group">
-            <input type="text" id="plateNumber" placeholder="車號" onblur="formatPlateNumber()" oninput="convertToUpperCase(this)">
-            <div class="icon-button" onclick="openBusModal()">
-                <i class="fas fa-bus"></i>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 路線 and 公司 on the same line in two columns -->
-    <div class="form-row">
-        <div class="column">
-            <label for="routeName">路線</label>
-            <input type="text" id="routeName" oninput="convertToUpperCase(this)">
-        </div>
-        <div class="column">
-            <label for="plateNumbCompany">公司</label>
-            <div class="input-group">
-                <input type="text" id="plateNumbCompany" readonly>
-                <div class="icon-button" onclick="openCompanyModal()">
-                    <i class="fas fa-building"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-    
-    <input type="hidden" id="positionLat">
-    <input type="hidden" id="userId">
-    
-    <div class="form-group">
-        <label class="required">缺失項目</label>
-        <div class="main-item-cards" id="mainItemContainer">
-            <!-- 主要項目將由 JS 動態填充 -->
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label>其他缺失</label>
-        <div class="other-item-cards" id="otherItemContainer">
-            <!-- 其他項目將由 JS 動態填充 -->
-        </div>
-    </div>
-    
-    <button type="button" onclick="submitForm()">送出記錄</button>
-    
-    <div class="line-brand">
-       首都集團路口查核平台
-    </div>
-</form>
-    <!-- 公司選擇彈窗 -->
-<div id="companyModal" class="modal">
-    <div class="modal-content">
-        <h3>選擇公司</h3>
-        <div id="companyList" class="company-list-container">
-            <!-- 公司列表將由JS動態填充 -->
-        </div>
-        <div class="button-group">
-            <button type="button" onclick="closeCompanyModal()">關閉</button>
-        </div>
-    </div>
-</div>
+      </div>
 
-<!-- 地點選擇彈窗 -->
-<div id="locationModal" class="modal">
-    <div class="modal-content">
+      <!-- 輔助按鈕 -->
+      <div class="utility-buttons">
+        <div class="utility-button primary" onclick="detectBuses()">
+          <i class="fas fa-search"></i> 偵測車輛
+        </div>
+        <div class="utility-button" onclick="openSubmittedHistoryModal()">
+          <i class="fas fa-history"></i> 查詢紀錄
+        </div>
+      </div>
+
+      <!-- 隱藏欄位 -->
+      <input type="hidden" id="positionLat" />
+      <input type="hidden" id="userId" />
+
+      <!-- 檢測到的車輛容器 -->
+      <div id="detectedBusesContainer" class="detected-buses-container">
+        <div class="detection-header">
+          <h3>偵測車輛</h3>
+          <span id="busCount" class="status-tag status-processing">0 輛</span>
+        </div>
+
+        <div id="detectedBusesList">
+          <!-- 檢測到的車輛卡片將在這裡動態顯示 -->
+          <div class="no-buses-message">
+            <i
+              class="fas fa-bus"
+              style="font-size: 24px; color: #adb5bd; margin-bottom: 10px"
+            ></i>
+            <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="line-brand">首都集團路口查核平台</div>
+    </div>
+
+    <!-- 位置選擇彈窗 -->
+    <div id="locationModal" class="modal">
+      <div class="modal-content">
         <h3>我的位置</h3>
         <!-- 添加重新偵測按鈕 -->
         <div id="detectLocationButtonContainer" class="detect-button-container">
-            <button id="detectLocationButton" type="button" class="secondary-button detect-button" onclick="refreshLocationList()">
-                <i class="fas fa-sync-alt"></i> 偵測位置
-            </button>
+          <button
+            id="detectLocationButton"
+            type="button"
+            class="secondary-button detect-button"
+            onclick="refreshLocationList()"
+          >
+            <i class="fas fa-sync-alt"></i> 偵測位置
+          </button>
         </div>
         <div id="locationList"></div>
         <div class="button-group">
-            <button type="button" onclick="closeLocationModal()">關閉</button>
+          <button type="button" onclick="closeLocationModal()">關閉</button>
         </div>
+      </div>
     </div>
-</div>
-    
-    <!-- 車輛選擇彈窗 -->
-<div id="busModal" class="modal">
-    <div class="modal-content">
-        <h3>選擇車輛</h3>
-        <div id="busList">
-            <!-- 这里会通过JS添加"偵測車輛"按钮和车辆列表 -->
+
+    <!-- 歷史紀錄彈窗 -->
+    <div id="historyModal" class="modal">
+      <div class="modal-content">
+        <h3>今日紀錄</h3>
+        <div id="historyList" class="history-list">
+          <!-- 歷史紀錄將在這裡動態顯示 -->
         </div>
         <div class="button-group">
-            <button type="button" onclick="closeBusModal()">關閉</button>
+          <button type="button" onclick="closeHistoryModal()">關閉</button>
         </div>
+      </div>
     </div>
-</div>
-        <script>
-        // 全局變數
-        let liffInitialized = false;
-        const base_url = "https://35.221.146.143.nip.io/linehook/";
-        const channelId = "2006992891";
-        //const liffId = "2006993665-PVAXZjA1".trim();
-        const liffId = "2006993665-1Nvo0AvX".trim(); // 更新的LIFFID
-        let currentLatitude = 0;
-        let currentLongitude = 0;
-        let intersections = [];
-        let buses = [];
-        let otherItems = [];
-        let selectedMainItem = "";
-        let selectedOtherItems = [];
-        let globalLoadingTimeout = null;
-            // 在頁面載入時設置位置監聽器
-        let watchId = null;
-        // 公司列表數據
+
+  <script>
+// 全局變數
+let liffInitialized = false;
+const base_url = "https://35.221.146.143.nip.io/linehook/";
+const channelId = "2006992891";
+const liffId = "2006993665-1Nvo0AvX".trim(); // LIFFID
+let currentLatitude = 0;
+let currentLongitude = 0;
+let intersections = [];
+let allDetectedBuses = []; // 所有偵測到的車輛
+let displayedBuses = []; // 目前顯示的車輛
+let submittedBuses = []; // 已提交的車輛
+let otherItems = [];
+let globalLoadingTimeout = null;
+let watchId = null;
+
+// 公司列表數據
 const companies = [
-    { id: "1", name: "首都客運" },
-    { id: "2", name: "臺北客運" },
-    { id: "3", name: "大都會客運" },
-    { id: "4", name: "三重客運" },
-    { id: "5", name: "台中客運" }
+  { id: "1", name: "首都客運" },
+  { id: "2", name: "臺北客運" },
+  { id: "3", name: "大都會客運" },
+  { id: "4", name: "三重客運" },
+  { id: "5", name: "台中客運" },
 ];
-// 在頁面載入時初始化位置監視
-window.onload = async function() {
-   try {
-         checkLocationPermission();
-        // 確保調用順序正確
-        await initLIFF();
-        if (liffInitialized && liff.isLoggedIn()) {
-            // 初始化成功後開始監視位置
-            startLocationWatching(true);
-        }
-    } catch (error) {
-        console.error("頁面載入時發生錯誤:", error);
-        showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
+
+// 主要項目預設值
+const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+
+// 在頁面載入時初始化
+window.onload = async function () {
+  try {
+    checkLocationPermission();
+    await initLIFF();
+    if (liffInitialized && liff.isLoggedIn()) {
+      startLocationWatching(true);
     }
+  } catch (error) {
+    console.error("頁面載入時發生錯誤:", error);
+    showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
+  }
 };
+// 獲取是否為集團公司
+function isGroupCompany(operatorName) {
+  if (!operatorName) return false;
+
+  // 檢查是否為集團公司
+  return companies.some(
+    (company) =>
+      operatorName.includes(company.name) ||
+      company.name.includes(operatorName)
+  );
+}
+
 // 開始持續監視位置
 function startLocationWatching(silent = false) {
-    if (!window.watchId && navigator.geolocation) {
-        window.watchId = navigator.geolocation.watchPosition(
-            position => {
-                console.log("位置已更新");
-                currentLatitude = position.coords.latitude;
-                currentLongitude = position.coords.longitude;
-                savePosition(currentLatitude, currentLongitude);
-            },
-            error => {
-                console.log("位置監聽錯誤:", error);
-                if (!silent) {
-                    showStatusMessage("暫時無法獲取位置，請至室外", "info");
-                }
-            },
-            { 
-                enableHighAccuracy: true,
-                maximumAge: 10000 // 允许10秒内的位置缓存
-            }
-        );
-    }
-}
-// 頁面關閉時停止位置監視
-window.addEventListener('beforeunload', function() {
-    stopLocationWatching();
-});
-// 設定公司函數
-// 新增的公司選擇函數
-// 車號格式化函數 - 改良版
-function formatPlateNumber() {
-    const plateNumberInput = document.getElementById("plateNumber");
-    let plateNumber = plateNumberInput.value.trim().toUpperCase();
-    
-    // 如果輸入中已有連字符，不做進一步處理
-    if (plateNumber.includes('-')) {
-        plateNumberInput.value = plateNumber;
-        return;
-    }
-
-    // 找出字母與數字的轉換點
-    let changePoints = [];
-    
-    for (let i = 0; i < plateNumber.length - 1; i++) {
-        const current = plateNumber[i];
-        const next = plateNumber[i + 1];
-        
-        // 檢查是否從字母轉為數字，或從數字轉為字母
-        if ((current.match(/[A-Z]/) && next.match(/[0-9]/)) || 
-            (current.match(/[0-9]/) && next.match(/[A-Z]/))) {
-            changePoints.push(i + 1);
+  if (!window.watchId && navigator.geolocation) {
+    window.watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        console.log("位置已更新");
+        currentLatitude = position.coords.latitude;
+        currentLongitude = position.coords.longitude;
+        savePosition(currentLatitude, currentLongitude);
+      },
+      (error) => {
+        console.log("位置監聽錯誤:", error);
+        if (!silent) {
+          showStatusMessage("暫時無法獲取位置，請至室外", "info");
         }
-    }
-    
-    // 如果找到轉換點，在第一個轉換點處添加連字符
-    if (changePoints.length > 0) {
-        const insertPosition = changePoints[0];
-        plateNumber = plateNumber.substring(0, insertPosition) + '-' + plateNumber.substring(insertPosition);
-    }
-    
-    plateNumberInput.value = plateNumber;
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000, // 允许10秒内的位置缓存
+      }
+    );
+  }
 }
 
-// 改進的車輛選擇處理
-function selectBus(bus) {
-    document.getElementById("plateNumber").value = bus.plateNumber;
-    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
-    document.getElementById("routeName").value = bus.routeName?.chinese || '';
-    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
-
-    
-    closeBusModal();
-}
-// 轉換為大寫函數
-function convertToUpperCase(input) {
-    input.value = input.value.toUpperCase();
-}
 // 停止位置監視
 function stopLocationWatching() {
-    if (window.watchId) {
-        navigator.geolocation.clearWatch(window.watchId);
-        window.watchId = null;
-        console.log("已停止位置監視");
-    }
+  if (window.watchId) {
+    navigator.geolocation.clearWatch(window.watchId);
+    window.watchId = null;
+    console.log("已停止位置監視");
+  }
 }
-        // 顯示載入中
-        function showLoading() {
-            document.getElementById("loading-overlay").classList.remove("hidden");
-            // 添加自動超時，10秒後強制關閉loading
-            if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
-            globalLoadingTimeout = setTimeout(() => {
-                console.warn("Loading超時，自動關閉");
-                hideLoading();
-            }, 10000);
-        }
-        
-        // 隱藏載入中
-        function hideLoading() {
-                document.getElementById("loading-overlay").classList.add("hidden");
-                if (globalLoadingTimeout) {
-                    clearTimeout(globalLoadingTimeout);
-                    globalLoadingTimeout = null;
-                }
-        }
-        
-        // 顯示狀態訊息
-        function showStatusMessage(message, type) {
-            const statusElement = document.getElementById("statusMessage");
-            statusElement.textContent = message;
-            statusElement.className = "status-message";
-            statusElement.classList.add(type);
-             // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-        }
 
-        // 初始化 LIFF
-        async function initLIFF() {
-            try {
-                 console.log("初始化LIFF...");
-                const isInClient = liff.isInClient();
-                console.log("是否在LINE環境中:", isInClient);
-                // 使用persistent-geo參數
-                const liffInfo = {
-                  liffId: liffId,
-                  withLoginOnExternalBrowser: true,  // 確保在外部瀏覽器中也能登入
-                  persistentGeo: true  // 強調需要持續位置權限
-                };            
-                liffInitialized = true;
-                await liff.init(liffInfo);
-                console.log("LIFF 初始化成功");
-                
-                if (!liff.isLoggedIn()) {
-                    console.log("用戶未登入，引導登入...");
-                    liff.login();
-                    return;
-                }
-                    // 確認LIFF版本
-                    const liffVersion = liff.getVersion();
-                    console.log("LIFF版本:", liffVersion);
-                    
-                    // 檢查LINE是否支持getOS
-                    if (liff.getOS) {
-                      const os = liff.getOS();
-                      console.log("運行平台:", os);
-                    }
-                try {
-                    // 檢查用戶是否已綁定
-                    const profile = await liff.getProfile();
-                    const userId = profile.userId;                    
-                    document.getElementById("userId").value = userId;                
-                    await checkUserExists(userId, channelId);
-                    const lastLocation = await fetchLastLocation(userId);
-                    if (lastLocation) {
-                        // 填入最後記錄的位置
-                        document.getElementById("location").value = lastLocation;
-                        console.log("已填入今日最後記錄位置:", lastLocation);
-                    }
-                } catch (profileError) {
-                    console.error("獲取用戶資料失敗:", profileError);
-                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
-                }
-                
-                // 主要項目預設值
-                setupMainItems();
-                
-                // 獲取其他項目列表
-                await fetchOtherItems();
-              // 最後嘗試獲取位置，如果失敗也不阻塞其他功能
-           //     setTimeout(() => {
-           //         getCurrentPosition().catch(error => {
-          //              console.log("初始位置獲取失敗，但不影響其他功能:", error);
-           //         });
-           //     }, 500);  
-            } catch (error) {
-                console.error("LIFF 初始化失敗:", error);
-                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
-                liffInitialized = false;
-            }finally {
-        // 確保無論如何都隱藏loading
-        hideLoading();
+// 當獲取到新位置時，存入 localStorage
+function savePosition(latitude, longitude) {
+  try {
+    localStorage.setItem("lastKnownLatitude", latitude);
+    localStorage.setItem("lastKnownLongitude", longitude);
+    localStorage.setItem("lastPositionTimestamp", Date.now());
+
+    // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
+    const statusElement = document.getElementById("statusMessage");
+    if (
+      statusElement.textContent.includes("無法獲取位置") ||
+      statusElement.textContent.includes("暫時無法獲取位置")
+    ) {
+      statusElement.textContent = "";
+      statusElement.className = "status-message";
     }
+  } catch (e) {
+    console.log("無法儲存位置到本地儲存");
+  }
+}
+// 初始化 LIFF
+async function initLIFF() {
+  try {
+    console.log("初始化LIFF...");
+    const isInClient = liff.isInClient();
+    console.log("是否在LINE環境中:", isInClient);
+    // 使用persistent-geo參數
+    const liffInfo = {
+      liffId: liffId,
+      withLoginOnExternalBrowser: true, // 確保在外部瀏覽器中也能登入
+      persistentGeo: true, // 強調需要持續位置權限
+    };
+    await liff.init(liffInfo);
+    liffInitialized = true;
+    console.log("LIFF 初始化成功");
+
+    if (!liff.isLoggedIn()) {
+      console.log("用戶未登入，引導登入...");
+      liff.login();
+      return;
+    }
+
+    try {
+      // 檢查用戶是否已綁定
+      const profile = await liff.getProfile();
+      const userId = profile.userId;
+      document.getElementById("userId").value = userId;
+      await checkUserExists(userId, channelId);
+      const lastLocation = await fetchLastLocation(userId);
+      if (lastLocation) {
+        // 填入最後記錄的位置
+        document.getElementById("location").value = lastLocation;
+        console.log("已填入今日最後記錄位置:", lastLocation);
+      }
+    } catch (profileError) {
+      console.error("獲取用戶資料失敗:", profileError);
+      showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
+    }
+
+    // 獲取其他項目列表
+    await fetchOtherItems();
+  } catch (error) {
+    console.error("LIFF 初始化失敗:", error);
+    showStatusMessage(
+      "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
+      "error"
+    );
+    liffInitialized = false;
+  } finally {
+    // 確保無論如何都隱藏loading
+    hideLoading();
+  }
+}
+
+// 檢查用戶是否已存在/註冊
+async function checkUserExists(userId, channelId) {
+  try {
+    const response = await fetch(base_url + "User/checkUser", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, channelId: channelId }),
+    });
+
+    if (response.status === 200) {
+      // 用戶已存在，顯示表單
+      // 不執行 getCurrentPosition() 避免畫面被阻擋
+    } else if (response.status === 404) {
+      // 用戶不存在，導向註冊頁面
+      liff.openWindow({
+        url: "https://liff.line.me/2006993665-PVAXZjA1",
+        external: true,
+      });
+    } else {
+      showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+    }
+  } catch (error) {
+    console.error("檢查用戶存在性失敗:", error);
+    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
+  }
+}
+// 偵測車輛
+async function detectBuses() {
+  showLoading();
+  try {
+    // 確保有位置
+    if (!(await getCurrentPosition(false))) {
+      hideLoading();
+      return;
+    }
+
+    // 獲取附近車輛
+    const response = await fetch(
+      `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤 ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // 過濾只屬於集團的車輛
+    const newDetectedBuses = [];
+
+    if (data && data.buses && data.buses.length > 0) {
+      data.buses.forEach((bus) => {
+        // 檢查是否為集團公司且未提交過
+        if (
+          isGroupCompany(bus.operatorName) &&
+          !submittedBuses.includes(bus.plateNumber)
+        ) {
+          // 還需確認不在目前顯示的車輛中
+          if (
+            !displayedBuses.some(
+              (displayedBus) => displayedBus.plateNumber === bus.plateNumber
+            )
+          ) {
+            newDetectedBuses.push(bus);
+          }
         }
-        
-        // 檢查用戶是否已存在/註冊
-        async function checkUserExists(userId, channelId) {
-            try {
-                const response = await fetch(base_url + "User/checkUser", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId, channelId: channelId })
-                });
-                
-                if (response.status === 200) {
-                    // 用戶已存在，顯示表單
-                    // 不執行 getCurrentPosition() 避免畫面被阻擋
-                } else if (response.status === 404) {
-                    // 用戶不存在，導向註冊頁面
-                    liff.openWindow({
-                        url: 'https://liff.line.me/2006993665-PVAXZjA1',
-                        external: true
-                    });
-                } else {
-                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                }
-            } catch (error) {
-                console.error("檢查用戶存在性失敗:", error);
-                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-            }
-        }
-        
+      });
+    }
+
+    // 更新顯示和計數
+    if (newDetectedBuses.length > 0) {
+      // 添加到全局列表
+      allDetectedBuses = [...allDetectedBuses, ...newDetectedBuses];
+      displayedBuses = [...displayedBuses, ...newDetectedBuses];
+
+      // 更新UI
+      updateDetectedBusesList();
+
+      // 顯示通知
+      showNewDetectionNotification(newDetectedBuses.length);
+    } else {
+      showStatusMessage("附近未檢測到集團車輛", "info");
+    }
+
+    hideLoading();
+  } catch (error) {
+    console.error("偵測車輛失敗:", error);
+    hideLoading();
+    showStatusMessage("偵測車輛失敗，請稍後再試", "error");
+  }
+}
+
+// 更新檢測到的車輛列表
+function updateDetectedBusesList() {
+  const container = document.getElementById("detectedBusesList");
+
+  // 清空容器
+  container.innerHTML = "";
+
+  // 更新計數
+  document.getElementById(
+    "busCount"
+  ).textContent = `${displayedBuses.length} 輛`;
+
+  // 如果沒有車輛，顯示提示
+  if (displayedBuses.length === 0) {
+    const noDataMessage = document.createElement("div");
+    noDataMessage.className = "no-buses-message";
+    noDataMessage.innerHTML = `
+    <i class="fas fa-bus" style="font-size: 24px; color: #adb5bd; margin-bottom: 10px;"></i>
+    <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
+    `;
+    container.appendChild(noDataMessage);
+    return;
+  }
+
+  // 創建每個車輛的卡片
+  displayedBuses.forEach((bus, index) => {
+    const busCard = createBusCard(bus, index);
+    container.appendChild(busCard);
+  });
+}
+// 創建車輛卡片
+function createBusCard(bus, index) {
+  const busCard = document.createElement("div");
+  busCard.className = "bus-card";
+  busCard.id = `bus-card-${index}`;
+
+  // 公司名稱顯示，移除"客運"
+  let companyName = bus.operatorName || "未知公司";
+  companyName = companyName.replace(/客運$/, "");
+
+  // 頭部信息
+  const header = document.createElement("div");
+  header.className = "bus-card-header";
+  header.innerHTML = `
+    <span class="bus-card-company">${companyName}</span>
+    <span class="bus-card-plate">${bus.plateNumber || "無車號"}</span>
+    `;
+
+  // 主體內容
+  const body = document.createElement("div");
+  body.className = "bus-card-body";
+
+  // 路線信息
+  const routeInfo = document.createElement("div");
+  routeInfo.className = "bus-card-route";
+  routeInfo.textContent = `路線: ${bus.routeName?.chinese || "未知路線"}`;
+
+  // 主要項目選擇器
+  const mainItemsLabel = document.createElement("label");
+  mainItemsLabel.textContent = "主要缺失:";
+  
+  const mainItemsContainer = document.createElement("div");
+  mainItemsContainer.className = "quick-items";
+  mainItems.forEach((item) => {
+    const itemButton = document.createElement("div");
+    itemButton.className = "quick-item";
+    itemButton.textContent = item;
+    itemButton.dataset.value = item;
+    itemButton.onclick = function () {
+      // 移除同組其他選中
+      mainItemsContainer.querySelectorAll(".quick-item").forEach((el) => {
+        el.classList.remove("selected");
+      });
+      // 選中當前
+      this.classList.add("selected");
+      // 儲存選擇到bus對象
+      bus.selectedMainItem = this.dataset.value;
+    };
+    mainItemsContainer.appendChild(itemButton);
+  });
+
+  // 其他項目選擇器
+  const otherItemsLabel = document.createElement("label");
+  otherItemsLabel.textContent = "其他缺失:";
+  
+  const otherItemsContainer = document.createElement("div");
+  otherItemsContainer.className = "quick-other-items";
+  otherItems.forEach((item) => {
+    const itemButton = document.createElement("div");
+    itemButton.className = "quick-other-item";
+    itemButton.textContent = item.itemName;
+    itemButton.dataset.value = item.itemName;
+    itemButton.onclick = function () {
+      // 切換選擇
+      this.classList.toggle("selected");
+
+      // 初始化選擇數組如果不存在
+      if (!bus.selectedOtherItems) {
+        bus.selectedOtherItems = [];
+      }
+
+      // 更新選擇
+      if (this.classList.contains("selected")) {
+        bus.selectedOtherItems.push(this.dataset.value);
+      } else {
+        bus.selectedOtherItems = bus.selectedOtherItems.filter(
+          (i) => i !== this.dataset.value
+        );
+      }
+    };
+    otherItemsContainer.appendChild(itemButton);
+  });
+
+  // 操作按鈕
+  const actionsContainer = document.createElement("div");
+  actionsContainer.className = "bus-card-actions";
+
+  // 提交按鈕
+  const submitButton = document.createElement("div");
+  submitButton.className = "action-button submit-button";
+  submitButton.innerHTML = '<i class="fas fa-check"></i> 提交記錄';
+  submitButton.onclick = function () {
+    submitBusRecord(bus, index);
+  };
+
+  // 移除按鈕
+  const removeButton = document.createElement("div");
+  removeButton.className = "action-button remove-button";
+  removeButton.innerHTML = '<i class="fas fa-times"></i> 移除';
+  removeButton.onclick = function () {
+    removeBusCard(index);
+  };
+
+  // 組合元素
+  actionsContainer.appendChild(submitButton);
+  actionsContainer.appendChild(removeButton);
+
+  body.appendChild(routeInfo);
+  body.appendChild(mainItemsLabel);
+  body.appendChild(mainItemsContainer);
+  body.appendChild(otherItemsLabel);
+  body.appendChild(otherItemsContainer);
+  body.appendChild(actionsContainer);
+
+  busCard.appendChild(header);
+  busCard.appendChild(body);
+
+  return busCard;
+}
+// 顯示新偵測通知
+function showNewDetectionNotification(count) {
+  const notification = document.getElementById("realTimeDetection");
+  const countDisplay = document.getElementById("detectionCount");
+
+  countDisplay.textContent = count;
+  notification.classList.add("show");
+
+  // 5秒後自動隱藏
+  setTimeout(() => {
+    notification.classList.remove("show");
+  }, 5000);
+}
+
+// 顯示已偵測的車輛
+function showDetectedBuses() {
+  document.getElementById("realTimeDetection").classList.remove("show");
+
+  // 滾動到車輛列表
+  document.getElementById("detectedBusesContainer").scrollIntoView({
+    behavior: "smooth",
+  });
+}
+
+// 提交車輛記錄
+async function submitBusRecord(bus, index) {
+  // 先檢查必填項
+  if (!bus.selectedMainItem) {
+    showStatusMessage("請選擇主要缺失項目", "error");
+    return;
+  }
+
+  // 檢查位置
+  if (!document.getElementById("location").value) {
+    showStatusMessage("請選擇查核路口", "error");
+    return;
+  }
+
+  // 顯示載入
+  showLoading();
+
+  try {
+    const data = {
+      userId: document.getElementById("userId").value,
+      location: document.getElementById("location").value,
+      plateNumbCompany: bus.operatorName || "",
+      routeName: bus.routeName?.chinese || "",
+      plateNumber: bus.plateNumber,
+      positionLat: `(${bus.position?.latitude || currentLatitude},${
+        bus.position?.longitude || currentLongitude
+      })`,
+      mainItem: bus.selectedMainItem,
+      otherItem: (bus.selectedOtherItems || []).join(", "),
+    };
+
+    const response = await fetch(base_url + "monitor/records", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    
+    if (response.ok) {
+      // 添加到已提交列表
+      submittedBuses.push(bus.plateNumber);
+
+      // 在UI上標記為已提交
+      const busCard = document.getElementById(`bus-card-${index}`);
+      if (busCard) {
+        busCard.classList.add("submitted");
+
+        // 添加已提交標籤
+        const header = busCard.querySelector(".bus-card-header");
+        const submittedLabel = document.createElement("span");
+        submittedLabel.className = "submitted-label";
+        submittedLabel.textContent = "已提交";
+        header.appendChild(submittedLabel);
+
+        // 禁用按鈕
+        busCard.querySelectorAll(".action-button").forEach((button) => {
+          button.style.pointerEvents = "none";
+          button.style.opacity = "0.6";
+        });
+      }
+
+      showStatusMessage("記錄已成功提交！", "success");
+    } else {
+      const error = await response.text();
+      throw new Error(error || "提交記錄失敗");
+    }
+
+    hideLoading();
+  } catch (error) {
+    console.error("提交記錄失敗:", error);
+    hideLoading();
+    showStatusMessage("提交記錄失敗: " + error.message, "error");
+  }
+}
+
+// 移除車輛卡片
+function removeBusCard(index) {
+  // 從顯示列表中移除
+  displayedBuses.splice(index, 1);
+
+  // 更新UI
+  updateDetectedBusesList();
+}
 // 獲取當前位置
 async function getCurrentPosition(silent = false) {
   showLoading();
   console.log("開始獲取位置...");
-  
+
   // 檢查LINE環境
   const isInLineApp = liff.isInClient();
   console.log("是否在LINE環境中:", isInLineApp);
-  
+
   try {
     // 1. 首先嘗試從本地存儲讀取最近位置
     if (loadLastPosition()) {
@@ -838,23 +1188,23 @@ async function getCurrentPosition(silent = false) {
       hideLoading();
       return true;
     }
-    
+
     // 2. 然後在LINE環境中使用LIFF API
     if (isInLineApp) {
       console.log("嘗試使用LIFF位置API...");
-      
+
       // 設置超時
       const positionPromise = liff.getPosition();
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("LIFF位置獲取超時")), 8000);
       });
-      
+
       try {
         const position = await Promise.race([
           positionPromise,
-          timeoutPromise
+          timeoutPromise,
         ]);
-        
+
         // 成功獲取位置
         console.log("LIFF位置獲取成功", position);
         currentLatitude = position.latitude;
@@ -867,19 +1217,42 @@ async function getCurrentPosition(silent = false) {
         // 繼續嘗試下一個方法
       }
     }
-    
-    // 3. 使用默認位置作為後備
+
+    // 3. 嘗試使用瀏覽器定位API
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 0,
+          });
+        });
+
+        console.log("瀏覽器位置API獲取成功");
+        currentLatitude = position.coords.latitude;
+        currentLongitude = position.coords.longitude;
+        savePosition(currentLatitude, currentLongitude);
+        hideLoading();
+        return true;
+      } catch (geoError) {
+        console.error("瀏覽器位置API錯誤:", geoError);
+        // 繼續嘗試下一個方法
+      }
+    }
+
+    // 4. 使用默認位置作為後備
     console.log("使用預設位置作為後備");
-    currentLatitude = 25.033;  // 假設的台北市中心位置
+    currentLatitude = 25.033; // 假設的台北市中心位置
     currentLongitude = 121.565;
     savePosition(currentLatitude, currentLongitude);
     hideLoading();
+
     // 只有在非静默模式下显示消息
     if (!silent) {
       showStatusMessage("無法準確獲取位置，使用預設位置", "info");
     }
     return true;
-    
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
@@ -890,746 +1263,451 @@ async function getCurrentPosition(silent = false) {
     return false;
   }
 }
+
+// 嘗試從 localStorage 讀取位置
+function loadLastPosition() {
+  try {
+    const lastLat = localStorage.getItem("lastKnownLatitude");
+    const lastLng = localStorage.getItem("lastKnownLongitude");
+    const timestamp = localStorage.getItem("lastPositionTimestamp");
+
+    if (lastLat && lastLng && timestamp) {
+      // 30分鐘改為30000毫秒(30秒)，與其他地方的設置保持一致
+      const thirtySeconds = 30 * 1000;
+      if (Date.now() - timestamp < thirtySeconds) {
+        currentLatitude = parseFloat(lastLat);
+        currentLongitude = parseFloat(lastLng);
+        return true;
+      }
+    }
+  } catch (e) {
+    console.log("無法從本地儲存讀取位置");
+  }
+  return false;
+}
+
+// 檢查位置權限
+function checkLocationPermission() {
+  if (!navigator.permissions) {
+    console.log("瀏覽器不支持權限檢查API");
+    return;
+  }
+
+  navigator.permissions.query({ name: "geolocation" }).then((result) => {
+    if (result.state === "denied") {
+      showStatusMessage(
+        "位置權限已被拒絕，請在瀏覽器或LINE設置中允許位置訪問",
+        "error"
+      );
+    } else if (result.state === "prompt") {
+      console.log("位置權限將在需要時提示用戶");
+    } else if (result.state === "granted") {
+      console.log("位置權限已授予");
+    }
+  });
+}
 // 刷新位置列表
 function refreshLocationList() {
-    // 更新按鈕狀態，顯示正在加載
-    const detectButton = document.getElementById("detectLocationButton");
-    if (detectButton) {
-        const originalText = detectButton.innerHTML;
-        detectButton.disabled = true;
-        detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
-        
-        // 移除任何存在的錯誤或無數據消息
-        const errorMsg = document.getElementById("locationListError");
-        if (errorMsg) errorMsg.remove();
-        
-        // 清空位置列表，添加載入中提示
-        const container = document.getElementById("locationList");
-        container.innerHTML = "";
-        const loadingMsg = document.createElement("p");
-        loadingMsg.id = "locationListLoading";
-        loadingMsg.className = "no-data-message";
-        loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
-        container.appendChild(loadingMsg);
-        
-        // 獲取位置並刷新路口列表
-        getCurrentPosition(false).then(success => {
-            if (success) {
-                fetchIntersections().finally(() => {
-                    // 無論成功與否，恢復按鈕狀態
-                    detectButton.disabled = false;
-                    detectButton.innerHTML = originalText;
-                });
-            } else {
-                // 位置獲取失敗
-                detectButton.disabled = false;
-                detectButton.innerHTML = originalText;
-                
-                // 移除載入中提示
-                if (document.getElementById("locationListLoading")) {
-                    document.getElementById("locationListLoading").remove();
-                }
-                
-                showLocationListError("無法獲取位置，請稍後再試");
-            }
-        }).catch(error => {
-            // 出錯時也恢復按鈕狀態
-            detectButton.disabled = false;
-            detectButton.innerHTML = originalText;
-            
-            // 移除載入中提示
-            if (document.getElementById("locationListLoading")) {
-                document.getElementById("locationListLoading").remove();
-            }
-            
-            showLocationListError("獲取位置時發生錯誤，請稍後再試");
-        });
-    }
-}
-// 更新後的獲取附近交叉路口函數，始終使用最新位置
-async function fetchIntersections() {
-    showLoading();
-    try {
-        // 始終使用最新的坐標
-        const response = await fetch(`${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=300&limit=10`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP 錯誤 ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-            intersections = data;
-            console.log("找到附近路口:", intersections);
-        } else {
-            console.log("附近未找到路口");
-            intersections = [];
-        }
-        
-        // 更新位置選擇框中的路口列表
-        updateLocationList();
-        hideLoading();
-    } catch (error) {
-        console.error("獲取路口失敗:", error);
-        hideLoading();
-        showStatusMessage("無法獲取附近路口，請稍後再試", "error");
-    }
-}
-        
-        // 獲取附近車輛
-        async function fetchBuses() {
-            showLoading();
-            try {
-                const response = await fetch(`${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤 ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data && data.buses && data.buses.length > 0) {
-                    buses = data.buses;
-                    console.log("找到附近車輛:", buses);
-                } else {
-                    console.log("附近未找到車輛");
-                    buses = [];
-                }
-                
-                hideLoading();
-                
-                // 更新車輛列表
-                updateBusList();
-            } catch (error) {
-                console.error("獲取車輛失敗:", error);
-                hideLoading();
-                showStatusMessage("無法獲取附近車輛，請稍後再試", "error");
-            }
-        }
-        // 獲取用戶今日最後位置記錄
-async function fetchLastLocation(userId) {
-    try {
-        if (!userId) {
-            console.log("獲取最後位置失敗: 用戶ID為空");
-            return null;
-        }
-        
-        const response = await fetch(`${base_url}monitor/lastLocation/${userId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP 錯誤 ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.location) {
-            console.log("成功獲取最後記錄位置:", data.location);
-            return data.location;
-        } else {
-            console.log("今天沒有位置記錄:", data.message);
-            return null;
-        }
-    } catch (error) {
-        console.error("獲取最後位置記錄失敗:", error);
-        return null;
-    }
-}
-        // 獲取其他項目
-        async function fetchOtherItems() {
-            try {
-                const defaultItems = [
-                    { id: "1", itemName: "車身未清潔" },
-                    { id: "2", itemName: "車輛燈號故障" },
-                    { id: "3", itemName: "闖紅燈" },
-                    { id: "4", itemName: "LED故障" },
-                    { id: "5", itemName: "無動態" }
-                ];
-                
-                const response = await fetch(`${base_url}monitor/otherItem`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.data && data.data.length > 0) {
-                        otherItems = data.data;
-                        console.log("獲取其他項目:", otherItems);
-                    } else {
-                        console.log("使用預設其他項目");
-                        otherItems = defaultItems;
-                    }
-                } else {
-                    console.log("API回應錯誤，使用預設其他項目");
-                    otherItems = defaultItems;
-                }
-                
-                // 更新其他項目列表
-                updateOtherItemList();
-            } catch (error) {
-                console.error("獲取其他項目失敗:", error);
-                // 使用預設項目
-                otherItems = [
-                    { id: "1", itemName: "車身未清潔" },
-                    { id: "2", itemName: "車輛燈號故障" },
-                    { id: "3", itemName: "闖紅燈" },
-                    { id: "4", itemName: "LED故障" },
-                    { id: "5", itemName: "無動態" }
-                ];
-                updateOtherItemList();
-            }
-        }
-        
-        // 設置主要項目
-        function setupMainItems() {
-            const mainItems = [
-                "左轉未停",
-                "右轉未停",
-                "未指差",
-                "未停未指差",
-                "無缺失"
-            ];
-            
-            const container = document.getElementById("mainItemContainer");
-            container.innerHTML = "";
-            
-            mainItems.forEach(item => {
-                const card = document.createElement("div");
-                card.className = "main-item-card";
-                card.textContent = item;
-                card.addEventListener("click", function() {
-                    // 取消之前的選擇
-                    document.querySelectorAll(".main-item-card").forEach(c => c.classList.remove("selected"));
-                    // 選擇當前項目
-                    this.classList.add("selected");
-                    selectedMainItem = item;
-                });
-                container.appendChild(card);
-            });
-        }
-        
-        // 更新其他項目列表
-        function updateOtherItemList() {
-            const container = document.getElementById("otherItemContainer");
-            container.innerHTML = "";
-            
-            otherItems.forEach(item => {
-                const card = document.createElement("div");
-                card.className = "other-item-card";
-                card.textContent = item.itemName;
-                card.addEventListener("click", function() {
-                    // 切換選擇狀態
-                    this.classList.toggle("selected");
-                    
-                    if (this.classList.contains("selected")) {
-                        selectedOtherItems.push(item.itemName);
-                    } else {
-                        selectedOtherItems = selectedOtherItems.filter(i => i !== item.itemName);
-                    }
-                });
-                container.appendChild(card);
-            });
-        }
+  // 更新按鈕狀態，顯示正在加載
+  const detectButton = document.getElementById("detectLocationButton");
+  if (detectButton) {
+    const originalText = detectButton.innerHTML;
+    detectButton.disabled = true;
+    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
 
-// 修改後的打開位置選擇框函數
-function openLocationModal() {
-    // 先顯示對話框，不等待位置
-    document.getElementById("locationModal").style.display = "block";
-    
-    // 添加載入中提示
+    // 移除任何存在的錯誤或無數據消息
+    const errorMsg = document.getElementById("locationListError");
+    if (errorMsg) errorMsg.remove();
+
+    // 清空位置列表，添加載入中提示
     const container = document.getElementById("locationList");
     container.innerHTML = "";
     const loadingMsg = document.createElement("p");
     loadingMsg.id = "locationListLoading";
     loadingMsg.className = "no-data-message";
-    loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+    loadingMsg.innerHTML =
+      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
     container.appendChild(loadingMsg);
-    
-    // 獲取位置並獲取附近路口
-    getCurrentPosition(false).then(success => {
+
+    // 獲取位置並刷新路口列表
+    getCurrentPosition(false)
+      .then((success) => {
         if (success) {
-            fetchIntersections();
-        } else {
-            // 移除載入中提示
-            if (document.getElementById("locationListLoading")) {
-                document.getElementById("locationListLoading").remove();
-            }
-            showLocationListError("無法獲取位置，請點擊重新偵測");
-        }
-    }).catch(error => {
-        // 位置獲取失敗，但對話框已顯示
-        if (document.getElementById("locationListLoading")) {
-            document.getElementById("locationListLoading").remove();
-        }
-        showLocationListError("無法獲取位置，請點擊重新偵測");
-    });
-}
-        // 顯示位置列表錯誤訊息
-function showLocationListError(message) {
-    const container = document.getElementById("locationList");
-    // 先檢查是否已經有錯誤訊息
-    let errorMsg = document.getElementById("locationListError");
-    
-    if (!errorMsg) {
-        errorMsg = document.createElement("p");
-        errorMsg.id = "locationListError";
-        errorMsg.className = "no-data-message";
-        container.appendChild(errorMsg);
-    }
-    
-    errorMsg.textContent = message;
-}
-
-        // 關閉位置選擇彈窗
-        function closeLocationModal() {
-            document.getElementById("locationModal").style.display = "none";
-        }
-        
- // 更新位置列表
-function updateLocationList() {
-    const container = document.getElementById("locationList");
-    
-    // 移除載入中提示
-    const loadingMsg = document.getElementById("locationListLoading");
-    if (loadingMsg) loadingMsg.remove();
-    
-    // 檢查是否找到路口
-    if (intersections.length === 0) {
-        // 移除任何存在的錯誤訊息
-        const errorMsg = document.getElementById("locationListError");
-        if (errorMsg) errorMsg.remove();
-        
-        // 顯示無數據訊息
-        const noDataElement = document.createElement("p");
-        noDataElement.id = "locationListNoData";
-        noDataElement.className = "no-data-message";
-        noDataElement.textContent = "附近未找到交叉路口，請點擊重新偵測";
-        container.appendChild(noDataElement);
-        return;
-    }
-    
-    // 清空容器，準備添加路口列表
-    container.innerHTML = "";
-    
-    // 創建列表容器
-    const listContainer = document.createElement("div");
-    listContainer.id = "intersectionListContainer";
-    listContainer.className = "bus-list-container"; // 重用現有樣式
-    
-    intersections.forEach(intersection => {
-        const item = document.createElement("div");
-        item.className = "location-item";
-        item.textContent = intersection.name;
-        item.addEventListener("click", function() {
-            document.getElementById("location").value = intersection.name;
-            closeLocationModal();
-        });
-        listContainer.appendChild(item);
-    });
-    
-    container.appendChild(listContainer);
-}
-
-            // 打開公司選擇視窗函數
-function openCompanyModal() {
-    document.getElementById("companyModal").style.display = "block";
-    updateCompanyList();
-}
-
-// 關閉公司選擇視窗函數
-function closeCompanyModal() {
-    document.getElementById("companyModal").style.display = "none";
-}
-
-// 更新公司列表顯示
-function updateCompanyList() {
-    const container = document.getElementById("companyList");
-    if (!container) return;
-    
-    container.innerHTML = "";
-    
-    companies.forEach(company => {
-        const item = document.createElement("div");
-        item.className = "company-list-item";
-        item.textContent = company.name.replace(/客運$/, ''); // 顯示時移除"客運"兩字
-        item.dataset.fullName = company.name; // 保存完整名稱
-        
-        item.addEventListener("click", function() {
-            document.getElementById("plateNumbCompany").value = this.dataset.fullName;
-            closeCompanyModal();
-        });
-        
-        container.appendChild(item);
-    });
-}
-            
-// 修改後的打開車輛選擇彈窗函數
-function openBusModal() {
-    // 先顯示模態窗
-    document.getElementById("busModal").style.display = "block";
-    
-    // 確保列表容器存在
-    const container = document.getElementById("busList");
-    if (!container) return;
-    
-    // 無論如何都先清空內容並添加檢測按鈕
-    container.innerHTML = "";
-    
-    // 創建按鈕容器
-    const buttonContainer = document.createElement("div");
-    buttonContainer.id = "detectButtonContainer";
-    buttonContainer.className = "detect-button-container";
-    
-    // 創建偵測車輛按鈕
-    const detectButton = document.createElement("button");
-    detectButton.id = "detectBusButton";
-    detectButton.className = "secondary-button detect-button";
-    detectButton.innerHTML = '<i class="fas fa-sync-alt"></i> 偵測車輛';
-    detectButton.onclick = function() {
-        refreshBusList();
-    };
-    
-    buttonContainer.appendChild(detectButton);
-    container.appendChild(buttonContainer);
-    
-    // 添加載入中提示
-    const loadingMsg = document.createElement("p");
-    loadingMsg.id = "busListLoading";
-    loadingMsg.className = "no-data-message";
-    loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在載入附近車輛...';
-    container.appendChild(loadingMsg);
-    
-    // 嘗試獲取位置和車輛
-    getCurrentPosition(true).then(success => {
-        if (success) {
-            fetchBuses();
-        } else {
-            // 位置獲取失敗，移除載入中提示，顯示錯誤訊息
-            if (document.getElementById("busListLoading")) {
-                document.getElementById("busListLoading").remove();
-            }
-            showBusListError("無法獲取位置，請手動輸入車號");
-        }
-    }).catch(error => {
-        // 處理錯誤，確保UI總是顯示某些信息
-        if (document.getElementById("busListLoading")) {
-            document.getElementById("busListLoading").remove();
-        }
-        
-        if (loadLastPosition()) {
-            console.log("使用緩存位置:", currentLatitude, currentLongitude);
-            fetchBuses();
-        } else {
-            showBusListError("無法獲取位置，請手動輸入車號");
-        }
-    });
-}
-// 顯示車輛列表錯誤訊息
-function showBusListError(message) {
-    const container = document.getElementById("busList");
-    // 先檢查是否已經有錯誤訊息
-    let errorMsg = document.getElementById("busListError");
-    
-    if (!errorMsg) {
-        errorMsg = document.createElement("p");
-        errorMsg.id = "busListError";
-        errorMsg.className = "no-data-message";
-        container.appendChild(errorMsg);
-    }
-    
-    errorMsg.textContent = message;
-}
-
-function refreshBusList() {
-    // 更新按鈕狀態，顯示正在加載
-    const detectButton = document.getElementById("detectBusButton");
-    if (detectButton) {
-        const originalText = detectButton.innerHTML;
-        detectButton.disabled = true;
-        detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
-        
-        // 移除任何存在的錯誤或無數據消息
-        const errorMsg = document.getElementById("busListError");
-        if (errorMsg) errorMsg.remove();
-        
-        const noDataMsg = document.getElementById("busListNoData");
-        if (noDataMsg) noDataMsg.remove();
-        
-        // 移除現有的車輛列表容器
-        const existingListContainer = document.getElementById("busListContainer");
-        if (existingListContainer) existingListContainer.remove();
-        
-        // 添加載入中提示
-        const container = document.getElementById("busList");
-        let loadingMsg = document.getElementById("busListLoading");
-        
-        if (!loadingMsg) {
-            loadingMsg = document.createElement("p");
-            loadingMsg.id = "busListLoading";
-            loadingMsg.className = "no-data-message";
-            loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在載入附近車輛...';
-            container.appendChild(loadingMsg);
-        }
-        
-        // 獲取位置並刷新車輛列表
-        getCurrentPosition(false).then(success => {
-            if (success) {
-                fetchBuses().finally(() => {
-                    // 無論成功與否，恢復按鈕狀態
-                    detectButton.disabled = false;
-                    detectButton.innerHTML = originalText;
-                });
-            } else {
-                // 位置獲取失敗
-                detectButton.disabled = false;
-                detectButton.innerHTML = originalText;
-                
-                // 移除載入中提示
-                if (document.getElementById("busListLoading")) {
-                    document.getElementById("busListLoading").remove();
-                }
-                
-                showBusListError("無法獲取位置，請手動輸入車號");
-            }
-        }).catch(error => {
-            // 出錯時也恢復按鈕狀態
+          fetchIntersections().finally(() => {
+            // 無論成功與否，恢復按鈕狀態
             detectButton.disabled = false;
             detectButton.innerHTML = originalText;
-            
-            // 移除載入中提示
-            if (document.getElementById("busListLoading")) {
-                document.getElementById("busListLoading").remove();
-            }
-            
-            showBusListError("獲取位置時發生錯誤，請手動輸入車號");
-        });
-    }
-}
-// 檢查位置權限
-function checkLocationPermission() {
-    if (!navigator.permissions) {
-        console.log("瀏覽器不支持權限檢查API");
-        return;
-    }
-    
-    navigator.permissions.query({ name: 'geolocation' }).then(result => {
-        if (result.state === 'denied') {
-            showStatusMessage("位置權限已被拒絕，請在瀏覽器或LINE設置中允許位置訪問", "error");
-        } else if (result.state === 'prompt') {
-            console.log("位置權限將在需要時提示用戶");
-        } else if (result.state === 'granted') {
-            console.log("位置權限已授予");
+          });
+        } else {
+          // 位置獲取失敗
+          detectButton.disabled = false;
+          detectButton.innerHTML = originalText;
+
+          // 移除載入中提示
+          if (document.getElementById("locationListLoading")) {
+            document.getElementById("locationListLoading").remove();
+          }
+
+          showLocationListError("無法獲取位置，請稍後再試");
         }
-    });
-}
-        // 關閉車輛選擇彈窗
-        function closeBusModal() {
-            document.getElementById("busModal").style.display = "none";
+      })
+      .catch((error) => {
+        // 出錯時也恢復按鈕狀態
+        detectButton.disabled = false;
+        detectButton.innerHTML = originalText;
+
+        // 移除載入中提示
+        if (document.getElementById("locationListLoading")) {
+          document.getElementById("locationListLoading").remove();
         }
-        
-// 更新車輛列表
-function updateBusList() {
-    const container = document.getElementById("busList");
-    if (!container) return;
-    
-    // 移除載入中提示
-    const loadingMsg = document.getElementById("busListLoading");
-    if (loadingMsg) loadingMsg.remove();
-    
-    // 移除之前的車輛列表容器
-    const existingListContainer = document.getElementById("busListContainer");
-    if (existingListContainer) existingListContainer.remove();
-    
-    // 移除之前的錯誤訊息
-    const errorMsg = document.getElementById("busListError");
-    if (errorMsg) errorMsg.remove();
-    
-    // 移除之前的無數據訊息
-    const noDataMsg = document.getElementById("busListNoData");
-    if (noDataMsg) noDataMsg.remove();
-    
-    // 檢查是否找到車輛
-    if (buses.length === 0) {
-        const noDataElement = document.createElement("p");
-        noDataElement.id = "busListNoData";
-        noDataElement.className = "no-data-message";
-        noDataElement.textContent = "附近未找到車輛，請稍後再試或手動輸入車號";
-        container.appendChild(noDataElement);
-        return;
-    }
-    
-    // 創建列表容器
-    const listContainer = document.createElement("div");
-    listContainer.id = "busListContainer";
-    listContainer.className = "bus-list-container";
-    
-    buses.forEach(bus => {
-        const item = document.createElement("div");
-        item.className = "bus-item";
-        
-        // 處理公司名稱 - 移除"客運"兩字
-        let companyName = bus.operatorName || '未知公司';
-        companyName = companyName.replace(/客運$/, '');
-        
-        // 公司名稱
-        const companySpan = document.createElement("span");
-        companySpan.className = "bus-company";
-        companySpan.textContent = companyName;
-        
-        // 路線名稱
-        const routeSpan = document.createElement("span");
-        routeSpan.className = "route-name";
-        routeSpan.textContent = bus.routeName?.chinese || '未知路線';
-        
-        // 車號
-        const plateSpan = document.createElement("span");
-        plateSpan.className = "plate-number highlighted-plate";
-        plateSpan.textContent = bus.plateNumber || '無車號';
-        
-        // 組合元素
-        item.appendChild(companySpan);
-        item.appendChild(routeSpan);
-        item.appendChild(plateSpan);
-        
-        item.addEventListener("click", function() {
-          //  document.getElementById("plateNumber").value = bus.plateNumber;
-        //    document.getElementById("plateNumbCompany").value = bus.operatorName || '';
-         //   document.getElementById("routeName").value = bus.routeName?.chinese || '';
-        //    document.getElementById("positionLat").value = `(${bus.position?.latitude},${bus.position?.longitude})`;
-        //    closeBusModal();
-                selectBus(bus);  // 使用新的 selectBus 函數
-        });
-        
-        listContainer.appendChild(item);
-    });
-    
-    container.appendChild(listContainer);
+
+        showLocationListError("獲取位置時發生錯誤，請稍後再試");
+      });
+  }
 }
 
-        // 當獲取到新位置時，存入 localStorage
-function savePosition(latitude, longitude) {
-    try {
-        localStorage.setItem('lastKnownLatitude', latitude);
-        localStorage.setItem('lastKnownLongitude', longitude);
-        localStorage.setItem('lastPositionTimestamp', Date.now());
-        
-        // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
-        const statusElement = document.getElementById("statusMessage");
-        if (statusElement.textContent.includes("無法獲取位置") || 
-            statusElement.textContent.includes("暫時無法獲取位置")) {
-            statusElement.textContent = "";
-            statusElement.className = "status-message";
+// 打開位置選擇框
+function openLocationModal() {
+  // 先顯示對話框，不等待位置
+  document.getElementById("locationModal").style.display = "block";
+
+  // 添加載入中提示
+  const container = document.getElementById("locationList");
+  container.innerHTML = "";
+  const loadingMsg = document.createElement("p");
+  loadingMsg.id = "locationListLoading";
+  loadingMsg.className = "no-data-message";
+  loadingMsg.innerHTML =
+    '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+  container.appendChild(loadingMsg);
+
+  // 獲取位置並獲取附近路口
+  getCurrentPosition(false)
+    .then((success) => {
+      if (success) {
+        fetchIntersections();
+      } else {
+        // 移除載入中提示
+        if (document.getElementById("locationListLoading")) {
+          document.getElementById("locationListLoading").remove();
         }
-    } catch (e) {
-        console.log("無法儲存位置到本地儲存");
-    }
+        showLocationListError("無法獲取位置，請點擊重新偵測");
+      }
+    })
+    .catch((error) => {
+      // 位置獲取失敗，但對話框已顯示
+      if (document.getElementById("locationListLoading")) {
+        document.getElementById("locationListLoading").remove();
+      }
+      showLocationListError("無法獲取位置，請點擊重新偵測");
+    });
 }
-        // 嘗試從 localStorage 讀取位置
-        function loadLastPosition() {
-            try {
-                const lastLat = localStorage.getItem('lastKnownLatitude');
-                const lastLng = localStorage.getItem('lastKnownLongitude');
-                const timestamp = localStorage.getItem('lastPositionTimestamp');
-                
-                if (lastLat && lastLng && timestamp) {
-                    // 30分鐘改為30000毫秒(30秒)，與其他地方的設置保持一致
-                    const thirtySeconds  = 30 * 1000;
-                    if (Date.now() - timestamp < thirtySeconds ) {
-                        currentLatitude = parseFloat(lastLat);
-                        currentLongitude = parseFloat(lastLng);
-                        return true;
-                    }
-                }
-            } catch (e) {
-                console.log("無法從本地儲存讀取位置");
-            }
-            return false;
-        }
-        // 提交表單
-        async function submitForm() {
-            // 表單驗證
-            let isValid = true;
-            
-            // 驗證位置
-            if (!document.getElementById("location").value) {
-                showStatusMessage("沒有輸入查核路口", "error");
-                isValid = false;
-            }
-            
-            // 驗證車號
-            if (!document.getElementById("plateNumber").value) {
-                showStatusMessage("沒有輸入車號", "error");
-                isValid = false;
-            }
-            
-            // 驗證主要項目
-            if (!selectedMainItem) {
-                showStatusMessage("沒有選擇主要查核結果", "error");
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                return;
-            }
-            
-            // 禁用提交按鈕，防止重複提交
-            showLoading();
-            const submitButton = document.querySelector('button[type="button"]');
-            submitButton.disabled = true;
-            submitButton.textContent = "送出中...";
-            
-            const data = {
-                userId: document.getElementById("userId").value,
-                location: document.getElementById("location").value,
-                plateNumbCompany: document.getElementById("plateNumbCompany").value,
-                routeName: document.getElementById("routeName").value,
-                plateNumber: document.getElementById("plateNumber").value,
-                positionLat: document.getElementById("positionLat").value,
-                mainItem: selectedMainItem,
-                otherItem: selectedOtherItems.join(', ') // 將陣列轉為字串
-            };
-            
-            try {
-                const response = await fetch(base_url + "monitor/records", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    window.scrollTo(0, 0);
-                    showStatusMessage("記錄已成功送出！", "success");
-                    
-                    // 重設表單
-                    document.getElementById("plateNumber").value = "";
-                    document.getElementById("plateNumbCompany").value = "";
-                    document.getElementById("routeName").value = "";
-                    document.getElementById("positionLat").value = "";
-                    
-                    document.querySelectorAll(".main-item-card").forEach(c => c.classList.remove("selected"));
-                    document.querySelectorAll(".other-item-card").forEach(c => c.classList.remove("selected"));
-                    
-                    selectedMainItem = "";
-                    selectedOtherItems = [];
-                    
-                    // 延遲關閉頁面
-                   // setTimeout(() => {
-                   //     if (liffInitialized && liff.isInClient()) {
-                  //          liff.closeWindow();
-                 //       }
-                 //   }, 2000);
-                    
-                } else {
-                    const error = await response.text();
-                    throw new Error(error || "送出記錄失敗");
-                }
-            } catch (error) {
-                console.error("送出記錄失敗:", error);
-                showStatusMessage("送出記錄失敗: " + error.message, "error");
-            } finally {
-                hideLoading();
-                submitButton.disabled = false;
-                submitButton.textContent = "送出記錄";
-            }
-        }
+
+// 關閉位置選擇彈窗
+function closeLocationModal() {
+  document.getElementById("locationModal").style.display = "none";
+}
+
+// 顯示位置列表錯誤訊息
+function showLocationListError(message) {
+  const container = document.getElementById("locationList");
+  // 先檢查是否已經有錯誤訊息
+  let errorMsg = document.getElementById("locationListError");
+
+  if (!errorMsg) {
+    errorMsg = document.createElement("p");
+    errorMsg.id = "locationListError";
+    errorMsg.className = "no-data-message";
+    container.appendChild(errorMsg);
+  }
+
+  errorMsg.textContent = message;
+}
+// 獲取附近交叉路口
+async function fetchIntersections() {
+  showLoading();
+  try {
+    // 始終使用最新的坐標
+    const response = await fetch(
+      `${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=300&limit=10`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤 ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data && data.length > 0) {
+      intersections = data;
+      console.log("找到附近路口:", intersections);
+    } else {
+      console.log("附近未找到路口");
+      intersections = [];
+    }
+
+    // 更新位置選擇框中的路口列表
+    updateLocationList();
+    hideLoading();
+  } catch (error) {
+    console.error("獲取路口失敗:", error);
+    hideLoading();
+    showStatusMessage("無法獲取附近路口，請稍後再試", "error");
+  }
+}
+// 更新位置列表
+function updateLocationList() {
+  const container = document.getElementById("locationList");
+
+  // 移除載入中提示
+  const loadingMsg = document.getElementById("locationListLoading");
+  if (loadingMsg) loadingMsg.remove();
+
+  // 檢查是否找到路口
+  if (intersections.length === 0) {
+    // 移除任何存在的錯誤訊息
+    const errorMsg = document.getElementById("locationListError");
+    if (errorMsg) errorMsg.remove();
+
+    // 顯示無數據訊息
+    const noDataElement = document.createElement("p");
+    noDataElement.id = "locationListNoData";
+    noDataElement.className = "no-data-message";
+    noDataElement.textContent = "附近未找到交叉路口，請點擊重新偵測";
+    container.appendChild(noDataElement);
+    return;
+  }
+
+  // 清空容器，準備添加路口列表
+  container.innerHTML = "";
+
+  // 創建列表容器
+  const listContainer = document.createElement("div");
+  listContainer.id = "intersectionListContainer";
+  listContainer.className = "bus-list-container"; // 重用現有樣式
+
+  intersections.forEach((intersection) => {
+    const item = document.createElement("div");
+    item.className = "location-item";
+    item.textContent = intersection.name;
+    item.addEventListener("click", function () {
+      document.getElementById("location").value = intersection.name;
+      closeLocationModal();
+    });
+    listContainer.appendChild(item);
+  });
+
+  container.appendChild(listContainer);
+}
+
+// 獲取其他項目列表
+async function fetchOtherItems() {
+  try {
+    const defaultItems = [
+      { id: "1", itemName: "車身未清潔" },
+      { id: "2", itemName: "車輛燈號故障" },
+      { id: "3", itemName: "闖紅燈" },
+      { id: "4", itemName: "LED故障" },
+      { id: "5", itemName: "無動態" },
+    ];
+
+    const response = await fetch(`${base_url}monitor/otherItem`);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.data && data.data.length > 0) {
+        otherItems = data.data;
+        console.log("獲取其他項目:", otherItems);
+      } else {
+        console.log("使用預設其他項目");
+        otherItems = defaultItems;
+      }
+    } else {
+      console.log("API回應錯誤，使用預設其他項目");
+      otherItems = defaultItems;
+    }
+  } catch (error) {
+    console.error("獲取其他項目失敗:", error);
+    // 使用預設項目
+    otherItems = [
+      { id: "1", itemName: "車身未清潔" },
+      { id: "2", itemName: "車輛燈號故障" },
+      { id: "3", itemName: "闖紅燈" },
+      { id: "4", itemName: "LED故障" },
+      { id: "5", itemName: "無動態" },
+    ];
+  }
+}
+// 打開已提交歷史紀錄
+async function openSubmittedHistoryModal() {
+  document.getElementById("historyModal").style.display = "block";
+
+  // 清空並顯示載入中
+  const container = document.getElementById("historyList");
+  container.innerHTML =
+    '<p class="no-data-message"><i class="fas fa-spinner fa-spin"></i> 載入紀錄中...</p>';
+
+  try {
+    // 獲取用戶ID
+    const userId = document.getElementById("userId").value;
+    if (!userId) {
+      throw new Error("未獲取到用戶ID");
+    }
+
+    // 獲取歷史紀錄
+    const response = await fetch(
+      `${base_url}monitor/records/${userId}/today`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤 ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // 清空容器
+    container.innerHTML = "";
+
+    // 檢查是否有記錄
+    if (!data || !data.length) {
+      container.innerHTML =
+        '<p class="no-data-message">今日尚無提交紀錄</p>';
+      return;
+    }
+
+    // 顯示記錄
+    data.forEach((record) => {
+      const item = document.createElement("div");
+      item.className = "history-item";
+
+      // 格式化時間
+      const recordTime = new Date(record.created_at);
+      const timeString = recordTime.toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      item.innerHTML = `
+            <div>
+                <strong>${record.plateNumber}</strong>
+                <small>${record.mainItem}</small>
+            </div>
+            <div class="history-time">${timeString}</div>
+        `;
+
+      container.appendChild(item);
+      
+      // 添加到已提交列表，確保不會重複偵測
+      if (!submittedBuses.includes(record.plateNumber)) {
+        submittedBuses.push(record.plateNumber);
+      }
+    });
+  } catch (error) {
+    console.error("獲取歷史紀錄失敗:", error);
+    container.innerHTML =
+      '<p class="no-data-message">獲取紀錄失敗，請稍後再試</p>';
+  }
+}
+
+// 關閉歷史記錄彈窗
+function closeHistoryModal() {
+  document.getElementById("historyModal").style.display = "none";
+}
+
+// 獲取用戶今日最後位置記錄
+async function fetchLastLocation(userId) {
+  try {
+    if (!userId) {
+      console.log("獲取最後位置失敗: 用戶ID為空");
+      return null;
+    }
+
+    const response = await fetch(
+      `${base_url}monitor/lastLocation/${userId}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤 ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.location) {
+      console.log("成功獲取最後記錄位置:", data.location);
+      return data.location;
+    } else {
+      console.log("今天沒有位置記錄:", data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error("獲取最後位置記錄失敗:", error);
+    return null;
+  }
+}
+// 顯示狀態訊息
+function showStatusMessage(message, type) {
+  const statusElement = document.getElementById("statusMessage");
+  statusElement.textContent = message;
+  statusElement.className = "status-message";
+  statusElement.classList.add(type);
+  // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+  
+  // 如果是成功訊息，5秒後自動隱藏
+  if (type === "success") {
+    setTimeout(() => {
+      statusElement.textContent = "";
+      statusElement.className = "status-message";
+    }, 5000);
+  }
+}
+
+// 顯示載入中
+function showLoading() {
+  document.getElementById("loading-overlay").classList.remove("hidden");
+  // 添加自動超時，10秒後強制關閉loading
+  if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
+  globalLoadingTimeout = setTimeout(() => {
+    console.warn("Loading超時，自動關閉");
+    hideLoading();
+  }, 10000);
+}
+
+// 隱藏載入中
+function hideLoading() {
+  document.getElementById("loading-overlay").classList.add("hidden");
+  if (globalLoadingTimeout) {
+    clearTimeout(globalLoadingTimeout);
+    globalLoadingTimeout = null;
+  }
+}
+
+// 頁面關閉前清理和保存
+window.addEventListener("beforeunload", function () {
+  // 停止位置監視
+  stopLocationWatching();
+  
+  // 可以在這裡添加其他需要在頁面關閉前執行的清理代碼
+});
+
+// 添加網絡重試機制的輔助函數
+async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+  try {
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    
+    throw new Error(`HTTP error ${response.status}`);
+  } catch (err) {
+    if (retries <= 1) throw err;
+    
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+  }
+}
+
+
     </script>
-</body>
 </html>
