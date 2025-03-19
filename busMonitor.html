@@ -768,13 +768,15 @@
 <div id="manualInputModal" class="modal">
   <div class="modal-content">
     <h3>手動新增車輛</h3>
+       <div id="manualInputError" class="status-message error" style="display: none; margin-bottom: 15px;"></div>
     <div class="form-group">
       <label for="manualPlateNumber" class="required">車號</label>
       <input type="text" id="manualPlateNumber" placeholder="輸入車號" oninput="convertToUpperCase(this)" onblur="formatPlateNumber(this)">
     </div>
     <div class="form-group">
       <label for="manualCompany">公司</label>
-      <select id="manualCompany">
+      <select id="manualCompany"  class="required">
+        <option value="">請選擇公司</option>
         <option value="首都客運">首都</option>
         <option value="臺北客運">臺北</option>
         <option value="大都會客運">大都會</option>
@@ -862,12 +864,24 @@ const companies = [
 
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+// 在模態框內顯示錯誤訊息
+function showManualInputError(message) {
+  const errorElement = document.getElementById("manualInputError");
+  errorElement.textContent = message;
+  errorElement.style.display = "block";
+  
+  // 3秒後自動隱藏錯誤訊息
+  setTimeout(() => {
+    errorElement.style.display = "none";
+  }, 3000);
+}
 // 轉換為大寫函數
 function convertToUpperCase(input) {
   input.value = input.value.toUpperCase();
     // 添加車號格式化邏輯
   formatPlateNumber(input);
 }
+
 // 格式化車號，處理各種情況
 function formatPlateNumber(input) {
   let value = input.value.replace(/-/g, ''); // 先移除所有 "-"
@@ -962,6 +976,12 @@ function openManualInputModal() {
 //   }
   
   document.getElementById("manualInputModal").style.display = "block";
+   // 重置表單欄位到預設值
+  document.getElementById("manualPlateNumber").value = "";
+  document.getElementById("manualCompany").value = ""; // 預設選擇首都
+  document.getElementById("manualRoute").value = "";
+    // 隱藏任何之前的錯誤訊息
+  document.getElementById("manualInputError").style.display = "none";
 }
 
 // 關閉手動輸入模態框時恢復自動偵測
@@ -1003,8 +1023,15 @@ function addManualBus() {
   const company = document.getElementById("manualCompany").value;
   const route = document.getElementById("manualRoute").value.trim();
   
+  // 車號驗證
   if (!plateNumber) {
-    showStatusMessage("請輸入車號", "error");
+    showManualInputError("請輸入車號");
+    return;
+  }
+  
+  // 公司驗證
+  if (!company) {
+    showManualInputError("請選擇公司");
     return;
   }
   
