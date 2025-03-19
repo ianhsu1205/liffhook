@@ -561,11 +561,16 @@
       }
       
       .detection-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
       }
+      .detection-title-area {
+  display: flex;
+  align-items: center;
+}
       
       .detection-header h3 {
         margin: 0;
@@ -658,6 +663,79 @@
   font-size: 14px;
   height: 20px;
 }
+/* 開關按鈕樣式 */
+.switch-container {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  font-size: 14px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #06c755;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+/* 響應式調整 */
+@media (max-width: 480px) {
+  .switch-container {
+    font-size: 12px;
+  }
+  
+  .switch {
+    width: 36px;
+    height: 18px;
+  }
+  
+  .slider:before {
+    height: 14px;
+    width: 14px;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+}
     </style>
   </head>
   <body>
@@ -718,23 +796,31 @@
       <input type="hidden" id="userId" />
 
       <!-- 檢測到的車輛容器 -->
-      <div id="detectedBusesContainer" class="detected-buses-container">
-        <div class="detection-header">
-          <h3>偵測車輛</h3>
-          <span id="busCount" class="status-tag status-processing">0 輛</span>
-        </div>
-
-        <div id="detectedBusesList">
-          <!-- 檢測到的車輛卡片將在這裡動態顯示 -->
-          <div class="no-buses-message">
-            <i
-              class="fas fa-bus"
-              style="font-size: 24px; color: #adb5bd; margin-bottom: 10px"
-            ></i>
-            <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
-          </div>
-        </div>
+<div id="detectedBusesContainer" class="detected-buses-container">
+  <div class="detection-header">
+    <div class="detection-title-area">
+      <h3>偵測車輛</h3>
+      <div class="switch-container">
+        <label class="switch">
+          <input type="checkbox" id="includeRecordedToggle" onchange="toggleIncludeRecorded()">
+          <span class="slider"></span>
+        </label>
+        <span>包含已記錄車輛</span>
       </div>
+    </div>
+    <span id="busCount" class="status-tag status-processing">0 輛</span>
+  </div>
+  <div id="detectedBusesList">
+    <!-- 檢測到的車輛卡片將在這裡動態顯示 -->
+    <div class="no-buses-message">
+      <i
+        class="fas fa-bus"
+        style="font-size: 24px; color: #adb5bd; margin-bottom: 10px"
+      ></i>
+      <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
+    </div>
+  </div>
+</div>
  <!-- 修改固定的車輛輸入區域結構，調整路線顯示位置 -->
 <div id="busInputContainer" class="bus-input-container hidden">
   <div class="bus-info-header">
@@ -853,6 +939,8 @@ let selectedBusIndex = -1;
 let autoDetectInterval = null;
 let countdownInterval = null;
 let countdownSeconds = 20; // 預設20秒
+// 全局變數 - 是否包含已記錄車輛
+let includeRecordedVehicles = false;
 // 公司列表數據
 const companies = [
   { id: "1", name: "首都客運" },
@@ -864,6 +952,40 @@ const companies = [
 
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+
+
+// 切換是否包含已記錄車輛的開關
+function toggleIncludeRecorded() {
+  includeRecordedVehicles = document.getElementById('includeRecordedToggle').checked;
+  console.log("包含已記錄車輛設置更改為:", includeRecordedVehicles);
+  
+  // 立即重新篩選顯示的車輛
+  refreshDisplayedBuses();
+}
+// 根據當前設置重新篩選要顯示的車輛
+function refreshDisplayedBuses() {
+  if (includeRecordedVehicles) {
+    // 包含所有車輛 - 合併所有偵測到的車輛
+    displayedBuses = [...allDetectedBuses];
+  } else {
+    // 只顯示未提交過的車輛
+    const threeMinutes = 3 * 60 * 1000; // 3分鐘轉換為毫秒
+    const currentTime = Date.now();
+    
+    displayedBuses = allDetectedBuses.filter(bus => {
+      // 如果車牌在已提交列表中且提交時間小於3分鐘，則不顯示
+      if (submittedBuses.includes(bus.plateNumber)) {
+        const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
+        if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
+          return false; // 排除近期已提交的車輛
+        }
+      }
+      return true; // 保留其他車輛
+    });
+  }
+    // 更新UI
+  updateDetectedBusesList();
+}
 // 在模態框內顯示錯誤訊息
 function showManualInputError(message) {
   const errorElement = document.getElementById("manualInputError");
@@ -1354,6 +1476,7 @@ async function checkUserExists(userId, channelId) {
 }
 
 // 偵測車輛
+// 修改偵測車輛函數，考慮是否顯示已記錄車輛
 async function detectBuses(isAutoDetection = false) {
   showLoading();
   try {
@@ -1362,63 +1485,73 @@ async function detectBuses(isAutoDetection = false) {
       hideLoading();
       return;
     }
-
+    
     // 獲取附近車輛
     const response = await fetchWithRetry(
       `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`,
       {},
       3 // 增加重試次數
     );
-
+    
     if (!response.ok) {
       throw new Error(`HTTP 錯誤 ${response.status}`);
     }
-
+    
     const data = await response.json();
-
-    // 過濾只屬於集團的車輛，並檢查最近3分鐘內是否提交過
+    
+    // 只過濾集團公司車輛，但根據includeRecordedVehicles來決定是否過濾已提交車輛
+    const newDetectedBuses = [];
     const threeMinutes = 3 * 60 * 1000; // 3分鐘轉換為毫秒
     const currentTime = Date.now();
-    const newDetectedBuses = [];
-
+    
     if (data && data.buses && data.buses.length > 0) {
       data.buses.forEach((bus) => {
         // 檢查是否是集團公司
         if (isGroupCompany(bus.operatorName)) {
-          // 檢查是否在已提交列表中
-          if (submittedBuses.includes(bus.plateNumber)) {
-            // 檢查提交時間是否已超過3分鐘
-            const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
-            if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
-              // 3分鐘內提交過，不添加
-              return;
-            }
+          // 檢查是否已經在全局列表中
+          const existingIndex = allDetectedBuses.findIndex(
+            existingBus => existingBus.plateNumber === bus.plateNumber
+          );
+          
+          if (existingIndex === -1) {
+            // 如果不在全局列表，則添加到全局列表和新偵測列表
+            allDetectedBuses.push(bus);
+            newDetectedBuses.push(bus);
           }
           
-          // 檢查是否已經顯示
-          if (!displayedBuses.some(displayedBus => displayedBus.plateNumber === bus.plateNumber)) {
-            newDetectedBuses.push(bus);
+          // 檢查是否應該添加到顯示列表中
+          const isAlreadyDisplayed = displayedBuses.some(
+            displayedBus => displayedBus.plateNumber === bus.plateNumber
+          );
+          
+          if (!isAlreadyDisplayed) {
+            // 如果設置不包括已記錄車輛，需要檢查提交時間
+            if (!includeRecordedVehicles && submittedBuses.includes(bus.plateNumber)) {
+              const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
+              if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
+                // 近期已提交過且設置為不顯示已提交車輛，不添加到顯示列表
+                return;
+              }
+            }
+            
+            // 將車輛添加到顯示列表
+            displayedBuses.push(bus);
           }
         }
       });
     }
-
-    // 更新顯示和計數
+    
+    // 更新UI
+    updateDetectedBusesList();
+    
+    // 如果有新偵測到的車輛，顯示通知
     if (newDetectedBuses.length > 0) {
-      // 添加到全局列表
-      allDetectedBuses = [...allDetectedBuses, ...newDetectedBuses];
-      displayedBuses = [...displayedBuses, ...newDetectedBuses];
-
-      // 更新UI
-      updateDetectedBusesList();
-
-      // 顯示通知
       showNewDetectionNotification(newDetectedBuses.length);
     } else if (!isAutoDetection) {
       // 只在手動偵測時顯示無車輛訊息
       showStatusMessage("附近未檢測到集團車輛", "info");
     }
-
+    
     hideLoading();
   } catch (error) {
     console.error("偵測車輛失敗:", error);
