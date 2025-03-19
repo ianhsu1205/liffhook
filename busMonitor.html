@@ -607,7 +607,7 @@
 .company-label {
  color: #06c755;
   font-weight: 500;
-  font-size: 13px; /* 減小公司名稱字體 */
+  font-size: 15px; /* 減小公司名稱字體 */
 }
 
 /* 固定輸入區域樣式 */
@@ -1588,7 +1588,7 @@ function updateDetectedBusesList() {
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
-      busItem.innerHTML = `<span class="company-label"> ${bus.routeName?.chinese || "未知路線"}</span> <strong>${bus.plateNumber}</strong>`;
+      busItem.innerHTML = `<span class="route-info"> ${bus.routeName?.chinese || "未知路線"}</span> <strong>${bus.plateNumber}</strong>`;
       busItem.onclick = function() {
         selectBusForInput(bus, index);
       };
