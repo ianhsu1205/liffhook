@@ -690,8 +690,11 @@
   <div class="utility-button" onclick="toggleAutoDetect()">
     <i class="fas fa-sync"></i> <span id="autoDetectStatus">自動偵測</span>
   </div>
-    <div class="utility-button" onclick="openManualInputModal()">
+  <div class="utility-button" onclick="openManualInputModal()">
     <i class="fas fa-plus"></i> 手動添加
+  </div>
+  <div class="utility-button" onclick="clearDisplayedBuses()">
+    <i class="fas fa-trash"></i> 清空列表
   </div>
 </div>
 <div class="countdown-container">
@@ -720,45 +723,6 @@
           </div>
         </div>
       </div>
-
-      <div class="line-brand">首都集團路口查核平台</div>
-    </div>
-
-    <!-- 位置選擇彈窗 -->
-    <div id="locationModal" class="modal">
-      <div class="modal-content">
-        <h3>我的位置</h3>
-        <!-- 添加重新偵測按鈕 -->
-        <div id="detectLocationButtonContainer" class="detect-button-container">
-          <button
-            id="detectLocationButton"
-            type="button"
-            class="secondary-button detect-button"
-            onclick="refreshLocationList()"
-          >
-            <i class="fas fa-sync-alt"></i> 偵測位置
-          </button>
-        </div>
-        <div id="locationList"></div>
-        <div class="button-group">
-          <button type="button" onclick="closeLocationModal()">關閉</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 歷史紀錄彈窗 -->
-    <div id="historyModal" class="modal">
-      <div class="modal-content">
-        <h3>今日紀錄</h3>
-        <div id="historyList" class="history-list">
-          <!-- 歷史紀錄將在這裡動態顯示 -->
-        </div>
-        <div class="button-group">
-          <button type="button" onclick="closeHistoryModal()">關閉</button>
-        </div>
-      </div>
-    </div>
-
  <!-- 修改固定的車輛輸入區域結構，調整路線顯示位置 -->
 <div id="busInputContainer" class="bus-input-container hidden">
   <div class="bus-info-header">
@@ -816,6 +780,45 @@
     </div>
   </div>
 </div>
+      <div class="line-brand">首都集團路口查核平台</div>
+    </div>
+
+    <!-- 位置選擇彈窗 -->
+    <div id="locationModal" class="modal">
+      <div class="modal-content">
+        <h3>我的位置</h3>
+        <!-- 添加重新偵測按鈕 -->
+        <div id="detectLocationButtonContainer" class="detect-button-container">
+          <button
+            id="detectLocationButton"
+            type="button"
+            class="secondary-button detect-button"
+            onclick="refreshLocationList()"
+          >
+            <i class="fas fa-sync-alt"></i> 偵測位置
+          </button>
+        </div>
+        <div id="locationList"></div>
+        <div class="button-group">
+          <button type="button" onclick="closeLocationModal()">關閉</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 歷史紀錄彈窗 -->
+    <div id="historyModal" class="modal">
+      <div class="modal-content">
+        <h3>今日紀錄</h3>
+        <div id="historyList" class="history-list">
+          <!-- 歷史紀錄將在這裡動態顯示 -->
+        </div>
+        <div class="button-group">
+          <button type="button" onclick="closeHistoryModal()">關閉</button>
+        </div>
+      </div>
+    </div>
+
+
   <script>
 // 全局變數
 let liffInitialized = false;
@@ -868,6 +871,20 @@ window.onload = async function () {
     showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
   }
 }
+
+// 清空顯示車輛列表的函數
+function clearDisplayedBuses() {
+  // 如果列表已為空，顯示提示
+  if (displayedBuses.length === 0) {
+    showStatusMessage("當前列表已為空", "info");
+    return;
+  }
+  
+  // 直接清空列表
+  displayedBuses = [];
+  updateDetectedBusesList();
+  showStatusMessage("已清空車輛列表", "info");
+}
 // 取消車輛輸入
 function cancelBusInput() {
   document.getElementById("busInputContainer").classList.add("hidden");
@@ -911,20 +928,29 @@ function closeManualInputModal() {
 //     window.tempAutoDetectState = false;
 //   }
 }
-// 添加自動偵測健康檢查，確保自動偵測不會停止
+
+// 加強健康檢查函數，確保計時器正常運行
 function setupAutoDetectHealthCheck() {
-  // 每30秒檢查一次自動偵測是否正常運行
+  // 每10秒（而不是30秒）檢查一次自動偵測是否正常運行
   setInterval(() => {
     const statusElem = document.getElementById("autoDetectStatus");
     
     // 檢查是否應該在自動偵測狀態但計時器已經停止
-    if (statusElem.textContent === "停止自動" && !autoDetectInterval) {
+    if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
       console.log("檢測到自動偵測異常停止，正在重新啟動...");
       // 重新啟動自動偵測
       startAutoDetect();
     }
-  }, 30000);
+    
+    // 檢查倒數計時是否正常運行
+    if (statusElem && statusElem.textContent === "停止自動" && !countdownInterval) {
+      console.log("檢測到倒數計時異常停止，正在重新啟動...");
+      // 重新啟動倒數計時
+      startCountdown();
+    }
+  }, 10000);
 }
+
 // 添加手動輸入的車輛
 function addManualBus() {
   const plateNumber = document.getElementById("manualPlateNumber").value.trim();
@@ -1029,18 +1055,20 @@ function selectBusForInput(bus, index) {
   }
 }
 
-// 開始自動偵測
+// 修改開始自動偵測函數，確保定時器正確設置
 function startAutoDetect() {
+  // 先清除任何現有的自動偵測計時器
   if (autoDetectInterval) {
     clearInterval(autoDetectInterval);
+    autoDetectInterval = null;
   }
   
   // 立即執行一次偵測，標記為自動偵測
   detectBuses(true);
   
-  // 設置自動偵測間隔，使用帶有自動偵測標記的函數
+  // 重新設置自動偵測間隔，每20秒執行一次
   autoDetectInterval = setInterval(() => {
-    countdownSeconds = 20; // 重置倒數
+    console.log("自動偵測觸發");
     detectBuses(true); // 傳入true表示是自動偵測
   }, 20000); // 每20秒
   
@@ -1052,7 +1080,7 @@ function startAutoDetect() {
   setTimeout(() => {
     // 3秒後清除提示
     const statusElement = document.getElementById("statusMessage");
-    if (statusElement.textContent === "自動偵測已啟動") {
+    if (statusElement && statusElement.textContent === "自動偵測已啟動") {
       statusElement.textContent = "";
       statusElement.className = "status-message";
     }
@@ -1089,11 +1117,14 @@ function startCountdown() {
   
   countdownInterval = setInterval(() => {
     countdownSeconds--;
-    updateCountdownDisplay();
     
     if (countdownSeconds <= 0) {
-      clearInterval(countdownInterval);
+      // 不清除計時器，而是重置倒數
+      // 注意：不要在這裡調用 clearInterval
+      countdownSeconds = 20; // 直接重置為20秒
     }
+    
+    updateCountdownDisplay();
   }, 1000);
 }
 // 更新倒數顯示
