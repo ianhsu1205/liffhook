@@ -588,11 +588,12 @@
   background-color: #f8f9fa;
   border: 1px solid #ddd;
   border-radius: 6px;
-  padding: 10px; /* 略微縮小padding */
-  text-align: center;
+  padding: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px; /* 減小字體大小 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
@@ -621,7 +622,22 @@
   overflow: hidden;
   transition: all 0.3s ease;
 }
-
+.bus-route {
+  color: #004085;
+  font-weight: 500;
+  font-size: 15px;
+  max-width: 60%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.bus-plate {
+  background-color: #ffeb3b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+}
 .bus-info-header {
   background-color: #f8f9fa;
   padding: 15px;
@@ -1583,13 +1599,16 @@ function updateDetectedBusesList() {
     busListContainer.className = "simple-bus-list";
     
     displayedBuses.forEach((bus, index) => {
-      // 公司名稱顯示，移除"客運"
-      let companyName = bus.operatorName || "未知公司";
-      companyName = companyName.replace(/客運$/, "");
+      // 路線信息
+      const routeInfo = bus.routeName?.chinese || "未知路線";
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
-      busItem.innerHTML = `<span class="route-info"> ${bus.routeName?.chinese || "未知路線"}</span> <strong>${bus.plateNumber}</strong>`;
+      busItem.innerHTML = `
+        <div class="bus-route">${routeInfo}</div>
+        <div class="bus-plate">${bus.plateNumber}</div>
+      `;
+      
       busItem.onclick = function() {
         selectBusForInput(bus, index);
       };
