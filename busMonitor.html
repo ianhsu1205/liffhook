@@ -203,13 +203,14 @@
       }
 
       .quick-item {
-        background-color: #f1f1f1;
-        border-radius: 20px;
-        padding: 6px 12px;
-        font-size: 14px;
-        cursor: pointer;
-        border: 1px solid #ddd;
-        transition: all 0.2s ease;
+  background-color: #f1f1f1;
+  border-radius: 20px;
+  padding: 8px 14px; /* 放大按鈕尺寸 */
+  font-size: 15px; /* 放大字體 */
+  cursor: pointer;
+  border: 1px solid #ddd;
+  transition: all 0.2s ease;
+  margin-bottom: 5px; /* 增加間距 */
       }
 
       .quick-item.selected {
@@ -227,13 +228,14 @@
       }
       
       .quick-other-item {
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 13px;
-        cursor: pointer;
-        border: 1px solid #eee;
-        transition: all 0.2s ease;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 6px 10px; /* 放大按鈕尺寸 */
+  font-size: 14px; /* 放大字體 */
+  cursor: pointer;
+  border: 1px solid #eee;
+  transition: all 0.2s ease;
+  margin-bottom: 5px; /* 增加間距 */
       }
       
       .quick-other-item.selected {
@@ -573,12 +575,15 @@
   background-color: #f8f9fa;
   border: 1px solid #ddd;
   border-radius: 6px;
-  padding: 12px;
+  padding: 10px; /* 略微縮小padding */
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 14px; /* 減小字體大小 */
 }
-
+.simple-bus-item strong {
+  font-size: 15px; /* 車牌號碼稍微大一點 */
+}
 .simple-bus-item:hover {
   background-color: #e7f3fe;
   border-color: #b8daff;
@@ -587,8 +592,9 @@
 }
 
 .company-label {
-  color: #06c755;
+ color: #06c755;
   font-weight: 500;
+  font-size: 13px; /* 減小公司名稱字體 */
 }
 
 /* 固定輸入區域樣式 */
@@ -610,9 +616,11 @@
 }
 
 .route-info {
-  color: #6c757d;
-  margin-top: 5px;
-  font-size: 14px;
+  color: #004085; /* 加深顏色讓路線更明顯 */
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 15px;
+  font-weight: 500; /* 加粗 */
 }
 
 .input-section {
@@ -751,11 +759,12 @@
       </div>
     </div>
 
-    <!-- 固定的車輛輸入區域 -->
+ <!-- 修改固定的車輛輸入區域結構，調整路線顯示位置 -->
 <div id="busInputContainer" class="bus-input-container hidden">
   <div class="bus-info-header">
-    <div><span id="inputBusCompany" class="company-label"></span> <strong id="inputBusNumber"></strong></div>
+    <!-- 將路線移到頂部 -->
     <div id="inputBusRoute" class="route-info"></div>
+    <div><span id="inputBusCompany" class="company-label"></span> <strong id="inputBusNumber"></strong></div>
   </div>
   
   <div class="input-section">
@@ -852,6 +861,8 @@ window.onload = async function () {
     if (liffInitialized && liff.isLoggedIn()) {
       startLocationWatching(true);
     }
+        // 添加自動偵測健康檢查
+    setupAutoDetectHealthCheck();
   } catch (error) {
     console.error("頁面載入時發生錯誤:", error);
     showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
@@ -875,16 +886,45 @@ function toggleAutoDetect() {
     statusElem.textContent = "停止自動";
   }
 }
-// 打開手動輸入模態框
+// 打開手動輸入模態框時暫停自動偵測
 function openManualInputModal() {
+  // 記錄當前自動偵測狀態
+//   const wasAutoDetecting = !!autoDetectInterval;
+  
+//   // 如果正在自動偵測，暫時停止
+//   if (wasAutoDetecting) {
+//     stopAutoDetect();
+//     // 在window上保存狀態，以便後續恢復
+//     window.tempAutoDetectState = true;
+//   }
+  
   document.getElementById("manualInputModal").style.display = "block";
 }
 
-// 關閉手動輸入模態框
+// 關閉手動輸入模態框時恢復自動偵測
 function closeManualInputModal() {
   document.getElementById("manualInputModal").style.display = "none";
+  
+//   // 如果之前是自動偵測狀態，恢復自動偵測
+//   if (window.tempAutoDetectState) {
+//     startAutoDetect();
+//     window.tempAutoDetectState = false;
+//   }
 }
-
+// 添加自動偵測健康檢查，確保自動偵測不會停止
+function setupAutoDetectHealthCheck() {
+  // 每30秒檢查一次自動偵測是否正常運行
+  setInterval(() => {
+    const statusElem = document.getElementById("autoDetectStatus");
+    
+    // 檢查是否應該在自動偵測狀態但計時器已經停止
+    if (statusElem.textContent === "停止自動" && !autoDetectInterval) {
+      console.log("檢測到自動偵測異常停止，正在重新啟動...");
+      // 重新啟動自動偵測
+      startAutoDetect();
+    }
+  }, 30000);
+}
 // 添加手動輸入的車輛
 function addManualBus() {
   const plateNumber = document.getElementById("manualPlateNumber").value.trim();
@@ -937,7 +977,7 @@ function isRecentlySubmitted(plateNumber) {
   return (Date.now() - parseInt(submissionTime)) < threeMinutes;
 }
 
-// 選擇車輛進行輸入
+// 修改selectBusForInput函數，將路線移到頂部
 function selectBusForInput(bus, index) {
   selectedBusIndex = index;
   
@@ -946,41 +986,43 @@ function selectBusForInput(bus, index) {
   if (inputContainer) {
     inputContainer.classList.remove("hidden");
     
-    // 更新車輛信息
+    // 更新車輛信息，將路線移到最上方
+    const routeInfo = bus.routeName?.chinese || "未知路線";
+    
+    document.getElementById("inputBusRoute").textContent = `路線: ${routeInfo}`;
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
-    document.getElementById("inputBusRoute").textContent = bus.routeName?.chinese || "未知路線";
     
     // 清除之前的選擇
-const mainItemsContainer = document.getElementById("mainItemsContainer");
-mainItemsContainer.innerHTML = '';
-mainItems.forEach(item => {
-  const itemButton = document.createElement("div");
-  itemButton.className = "quick-item";
-  itemButton.textContent = item;
-  itemButton.dataset.value = item;
-  itemButton.onclick = function() {
-    mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
-      el.classList.remove("selected");
+    const mainItemsContainer = document.getElementById("mainItemsContainer");
+    mainItemsContainer.innerHTML = '';
+    mainItems.forEach(item => {
+      const itemButton = document.createElement("div");
+      itemButton.className = "quick-item";
+      itemButton.textContent = item;
+      itemButton.dataset.value = item;
+      itemButton.onclick = function() {
+        mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
+          el.classList.remove("selected");
+        });
+        this.classList.add("selected");
+      };
+      mainItemsContainer.appendChild(itemButton);
     });
-    this.classList.add("selected");
-  };
-  mainItemsContainer.appendChild(itemButton);
-});
 
-// 初始化其他項目選擇器
-const otherItemsContainer = document.getElementById("otherItemsContainer");
-otherItemsContainer.innerHTML = '';
-otherItems.forEach(item => {
-  const itemButton = document.createElement("div");
-  itemButton.className = "quick-other-item";
-  itemButton.textContent = item.itemName;
-  itemButton.dataset.value = item.itemName;
-  itemButton.onclick = function() {
-    this.classList.toggle("selected");
-  };
-  otherItemsContainer.appendChild(itemButton);
-});
+    // 初始化其他項目選擇器
+    const otherItemsContainer = document.getElementById("otherItemsContainer");
+    otherItemsContainer.innerHTML = '';
+    otherItems.forEach(item => {
+      const itemButton = document.createElement("div");
+      itemButton.className = "quick-other-item";
+      itemButton.textContent = item.itemName;
+      itemButton.dataset.value = item.itemName;
+      itemButton.onclick = function() {
+        this.classList.toggle("selected");
+      };
+      otherItemsContainer.appendChild(itemButton);
+    });
     
     // 滾動到輸入區域
     inputContainer.scrollIntoView({ behavior: "smooth" });
@@ -993,17 +1035,28 @@ function startAutoDetect() {
     clearInterval(autoDetectInterval);
   }
   
-  // 立即執行一次偵測
-  detectBuses();
+  // 立即執行一次偵測，標記為自動偵測
+  detectBuses(true);
   
-  // 設置自動偵測間隔
+  // 設置自動偵測間隔，使用帶有自動偵測標記的函數
   autoDetectInterval = setInterval(() => {
     countdownSeconds = 20; // 重置倒數
-    detectBuses();
+    detectBuses(true); // 傳入true表示是自動偵測
   }, 20000); // 每20秒
   
   // 開始倒數計時
   startCountdown();
+  
+  // 顯示自動偵測已啟動的提示
+  showStatusMessage("自動偵測已啟動", "info");
+  setTimeout(() => {
+    // 3秒後清除提示
+    const statusElement = document.getElementById("statusMessage");
+    if (statusElement.textContent === "自動偵測已啟動") {
+      statusElement.textContent = "";
+      statusElement.className = "status-message";
+    }
+  }, 3000);
 }
 
 // 停止自動偵測
@@ -1195,9 +1248,9 @@ async function checkUserExists(userId, channelId) {
     showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
   }
 }
+
 // 偵測車輛
-// 偵測車輛
-async function detectBuses() {
+async function detectBuses(isAutoDetection = false) {
   showLoading();
   try {
     // 確保有位置
@@ -1207,8 +1260,10 @@ async function detectBuses() {
     }
 
     // 獲取附近車輛
-    const response = await fetch(
-      `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`
+    const response = await fetchWithRetry(
+      `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`,
+      {},
+      3 // 增加重試次數
     );
 
     if (!response.ok) {
@@ -1255,7 +1310,8 @@ async function detectBuses() {
 
       // 顯示通知
       showNewDetectionNotification(newDetectedBuses.length);
-    } else {
+    } else if (!isAutoDetection) {
+      // 只在手動偵測時顯示無車輛訊息
       showStatusMessage("附近未檢測到集團車輛", "info");
     }
 
@@ -1263,18 +1319,28 @@ async function detectBuses() {
   } catch (error) {
     console.error("偵測車輛失敗:", error);
     hideLoading();
-    showStatusMessage("偵測車輛失敗，請稍後再試", "error");
+    
+    // 只在手動偵測時顯示錯誤訊息
+    if (!isAutoDetection) {
+      showStatusMessage("偵測車輛失敗，請稍後再試", "error");
+    }
+    
+    // 確保自動偵測繼續運行，即使出現錯誤
+    if (isAutoDetection && autoDetectInterval) {
+      console.log("自動偵測遇到錯誤，但將繼續運行");
+    }
   }
 }
 
-// 更新檢測到的車輛列表
-// 在車輛列表展示中
+// 使用DocumentFragment優化更新車輛列表
 function updateDetectedBusesList() {
   const container = document.getElementById("detectedBusesList");
-  container.innerHTML = "";
   
   // 更新計數
   document.getElementById("busCount").textContent = `${displayedBuses.length} 輛`;
+  
+  // 使用DocumentFragment來減少DOM操作
+  const fragment = document.createDocumentFragment();
   
   if (displayedBuses.length === 0) {
     const noDataMessage = document.createElement("div");
@@ -1283,30 +1349,33 @@ function updateDetectedBusesList() {
       <i class="fas fa-bus" style="font-size: 24px; color: #adb5bd; margin-bottom: 10px;"></i>
       <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
     `;
-    container.appendChild(noDataMessage);
-    return;
+    fragment.appendChild(noDataMessage);
+  } else {
+    // 創建簡易車輛列表
+    const busListContainer = document.createElement("div");
+    busListContainer.className = "simple-bus-list";
+    
+    displayedBuses.forEach((bus, index) => {
+      // 公司名稱顯示，移除"客運"
+      let companyName = bus.operatorName || "未知公司";
+      companyName = companyName.replace(/客運$/, "");
+      
+      const busItem = document.createElement("div");
+      busItem.className = "simple-bus-item";
+      busItem.innerHTML = `<span class="company-label">${companyName}</span> <strong>${bus.plateNumber}</strong>`;
+      busItem.onclick = function() {
+        selectBusForInput(bus, index);
+      };
+      
+      busListContainer.appendChild(busItem);
+    });
+    
+    fragment.appendChild(busListContainer);
   }
   
-  // 創建簡易車輛列表
-  const busListContainer = document.createElement("div");
-  busListContainer.className = "simple-bus-list";
-  
-  displayedBuses.forEach((bus, index) => {
-    // 公司名稱顯示，移除"客運"
-    let companyName = bus.operatorName || "未知公司";
-    companyName = companyName.replace(/客運$/, "");
-    
-    const busItem = document.createElement("div");
-    busItem.className = "simple-bus-item";
-    busItem.innerHTML = `<span class="company-label">${companyName}</span> <strong>${bus.plateNumber}</strong>`;
-    busItem.onclick = function() {
-      selectBusForInput(bus, index);
-    };
-    
-    busListContainer.appendChild(busItem);
-  });
-  
-  container.appendChild(busListContainer);
+  // 清空容器並一次性添加所有新元素
+  container.innerHTML = "";
+  container.appendChild(fragment);
 }
 // 創建車輛卡片
 function createBusCard(bus, index) {
