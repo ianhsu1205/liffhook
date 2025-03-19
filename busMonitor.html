@@ -343,22 +343,30 @@
       }
       
       .utility-button {
-        flex: 1;
-        text-align: center;
-        padding: 12px;
-        border-radius: 6px;
-        background-color: #f1f1f1;
-        color: #333;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 1px solid #ddd;
+  flex: 1;
+  text-align: center;
+  padding: 10px 8px; /* 調整內距 */
+  border-radius: 6px;
+  background-color: #f1f1f1;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #ddd;
+  display: flex;          /* 使用彈性布局 */
+  flex-direction: column; /* 垂直排列 */
+  align-items: center;    /* 水平居中 */
+  justify-content: center;/* 垂直居中 */
+  gap: 5px;               /* 圖標和文字之間的間距 */
       }
       
       .utility-button:hover {
         background-color: #e5e5e5;
       }
-      
+      .utility-button i {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
       .utility-button.primary {
         background-color: #e7f3fe;
         color: #004085;
@@ -685,16 +693,20 @@
 
 <div class="utility-buttons">
   <div class="utility-button primary" onclick="detectBuses()">
-    <i class="fas fa-search"></i> 偵測車輛
+    <i class="fas fa-search"></i>
+    <span>偵測車輛</span>
   </div>
   <div class="utility-button" onclick="toggleAutoDetect()">
-    <i class="fas fa-sync"></i> <span id="autoDetectStatus">自動偵測</span>
+    <i class="fas fa-sync"></i>
+    <span id="autoDetectStatus">自動偵測</span>
   </div>
   <div class="utility-button" onclick="openManualInputModal()">
-    <i class="fas fa-plus"></i> 手動添加
+    <i class="fas fa-plus"></i>
+    <span>手動新增</span>
   </div>
   <div class="utility-button" onclick="clearDisplayedBuses()">
-    <i class="fas fa-trash"></i> 清空列表
+    <i class="fas fa-trash"></i>
+    <span>清空列表</span>
   </div>
 </div>
 <div class="countdown-container">
@@ -744,7 +756,7 @@
     
     <div class="input-actions">
       <div class="action-button submit-button" onclick="submitSelectedBus()">
-        <i class="fas fa-check"></i> 提交記錄
+        <i class="fas fa-check"></i> 送出記錄
       </div>
       <div class="action-button cancel-button" onclick="cancelBusInput()">
         <i class="fas fa-times"></i> 取消
@@ -758,7 +770,7 @@
     <h3>手動新增車輛</h3>
     <div class="form-group">
       <label for="manualPlateNumber" class="required">車號</label>
-      <input type="text" id="manualPlateNumber" placeholder="輸入車號" oninput="convertToUpperCase(this)">
+      <input type="text" id="manualPlateNumber" placeholder="輸入車號" oninput="convertToUpperCase(this)" onblur="formatPlateNumber(this)">
     </div>
     <div class="form-group">
       <label for="manualCompany">公司</label>
@@ -853,7 +865,41 @@ const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差
 // 轉換為大寫函數
 function convertToUpperCase(input) {
   input.value = input.value.toUpperCase();
+    // 添加車號格式化邏輯
+  formatPlateNumber(input);
 }
+// 格式化車號，處理各種情況
+function formatPlateNumber(input) {
+  let value = input.value.replace(/-/g, ''); // 先移除所有 "-"
+  
+  // 如果車牌包含數字和英文，但格式複雜(如123U3)
+  // 我們找到第一個字母和數字交界的地方
+  let result = value;
+  let hasFormatted = false;
+  
+  // 尋找從數字到字母的轉換
+  for (let i = 0; i < value.length - 1; i++) {
+    let current = value[i];
+    let next = value[i + 1];
+    
+    // 如果當前字符是數字，下一個是字母
+    if (!isNaN(parseInt(current)) && isNaN(parseInt(next)) && /[A-Z]/.test(next)) {
+      result = value.substring(0, i + 1) + '-' + value.substring(i + 1);
+      hasFormatted = true;
+      break;
+    }
+    
+    // 如果當前字符是字母，下一個是數字
+    if (isNaN(parseInt(current)) && /[A-Z]/.test(current) && !isNaN(parseInt(next))) {
+      result = value.substring(0, i + 1) + '-' + value.substring(i + 1);
+      hasFormatted = true;
+      break;
+    }
+  }
+  
+  input.value = result;
+}
+
 // 在頁面載入時初始化
 window.onload = async function () {
   try {
