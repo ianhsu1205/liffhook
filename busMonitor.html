@@ -1555,7 +1555,7 @@ async function detectBuses(isAutoDetection = false) {
       showNewDetectionNotification(newDetectedBuses.length);
     } else if (!isAutoDetection) {
       // 只在手動偵測時顯示無車輛訊息
-      showStatusMessage("附近未檢測到集團車輛", "info");
+      showStatusMessage("目前附近未偵測到車輛", "info",true);
     }
     
     hideLoading();
@@ -1565,7 +1565,7 @@ async function detectBuses(isAutoDetection = false) {
     
     // 只在手動偵測時顯示錯誤訊息
     if (!isAutoDetection) {
-      showStatusMessage("偵測車輛失敗，請稍後再試", "error");
+      showStatusMessage("偵測車輛失敗，請稍後再試", "error",true);
     }
     
     // 確保自動偵測繼續運行，即使出現錯誤
@@ -1831,7 +1831,7 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       document.getElementById("busInputContainer").classList.add("hidden");
       selectedBusIndex = -1;
       
-      showStatusMessage("記錄已成功提交！", "success");
+      showStatusMessage("已新增一筆記錄！", "success",true);
     } else {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
@@ -1922,7 +1922,7 @@ async function getCurrentPosition(silent = false) {
 
     // 只有在非静默模式下显示消息
     if (!silent) {
-      showStatusMessage("無法準確獲取位置，使用預設位置", "info");
+      showStatusMessage("無法準確獲取位置，使用預設位置", "info",true);
     }
     return true;
   } catch (error) {
@@ -1930,7 +1930,7 @@ async function getCurrentPosition(silent = false) {
     hideLoading();
     // 只有在非静默模式下显示消息
     if (!silent) {
-      showStatusMessage("暫時無法獲取位置，請至室外", "info");
+      showStatusMessage("暫時無法獲取位置，請至室外", "info",true);
     }
     return false;
   }
@@ -2124,7 +2124,7 @@ async function fetchIntersections() {
   } catch (error) {
     console.error("獲取路口失敗:", error);
     hideLoading();
-    showStatusMessage("無法獲取附近路口，請稍後再試", "error");
+    showStatusMessage("無法獲取附近路口，請重新偵測", "error",true);
   }
 }
 // 更新位置列表
@@ -2339,19 +2339,21 @@ async function fetchLastLocation(userId) {
   }
 }
 // 顯示狀態訊息
-function showStatusMessage(message, type) {
+// 顯示狀態訊息
+function showStatusMessage(message, type, autoHide = false) {
   const statusElement = document.getElementById("statusMessage");
   statusElement.textContent = message;
   statusElement.className = "status-message";
   statusElement.classList.add(type);
+  
   // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
   window.scrollTo({
     top: 0,
     behavior: "smooth",
   });
   
-  // 如果是成功訊息，5秒後自動隱藏
-  if (type === "success") {
+  // 如果是成功訊息或者設置了自動隱藏，5秒後自動隱藏
+  if (type === "success" || autoHide) {
     setTimeout(() => {
       statusElement.textContent = "";
       statusElement.className = "status-message";
