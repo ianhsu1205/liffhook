@@ -782,10 +782,7 @@ input:checked + .slider:before {
     <i class="fas fa-plus"></i>
     <span>手動新增</span>
   </div>
-  <div class="utility-button" onclick="clearDisplayedBuses()">
-    <i class="fas fa-trash"></i>
-    <span>清空列表</span>
-  </div>
+
 </div>
 <div class="countdown-container">
   <span id="countdown"></span>
@@ -1043,6 +1040,9 @@ window.onload = async function () {
     cleanupExpiredSubmissions();
     checkLocationPermission();
     await initLIFF();
+        // 確保includeRecordedVehicles開關預設為false
+    includeRecordedVehicles = false;
+    document.getElementById('includeRecordedToggle').checked = false;
     if (liffInitialized && liff.isLoggedIn()) {
       startLocationWatching(true);
     }
@@ -1485,10 +1485,15 @@ async function detectBuses(isAutoDetection = false) {
       hideLoading();
       return;
     }
+
+
+      allDetectedBuses = []; // 清空全局列表
+      displayedBuses = []; // 清空顯示列表
+
     
     // 獲取附近車輛
     const response = await fetchWithRetry(
-      `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=200`,
+      `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=300`,
       {},
       3 // 增加重試次數
     );
@@ -1508,34 +1513,18 @@ async function detectBuses(isAutoDetection = false) {
       data.buses.forEach((bus) => {
         // 檢查是否是集團公司
         if (isGroupCompany(bus.operatorName)) {
-          // 檢查是否已經在全局列表中
-          const existingIndex = allDetectedBuses.findIndex(
-            existingBus => existingBus.plateNumber === bus.plateNumber
-          );
+          // 添加到全局列表
+          allDetectedBuses.push(bus);
+          newDetectedBuses.push(bus);
           
-          if (existingIndex === -1) {
-            // 如果不在全局列表，則添加到全局列表和新偵測列表
-            allDetectedBuses.push(bus);
-            newDetectedBuses.push(bus);
-          }
-          
-          // 檢查是否應該添加到顯示列表中
-          const isAlreadyDisplayed = displayedBuses.some(
-            displayedBus => displayedBus.plateNumber === bus.plateNumber
-          );
-          
-          if (!isAlreadyDisplayed) {
-            // 如果設置不包括已記錄車輛，需要檢查提交時間
-            if (!includeRecordedVehicles && submittedBuses.includes(bus.plateNumber)) {
-              const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
-              if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
-                // 近期已提交過且設置為不顯示已提交車輛，不添加到顯示列表
-                return;
-              }
+          // 檢查是否應該添加到顯示列表中（基於includeRecordedVehicles設置）
+          if (includeRecordedVehicles || !submittedBuses.includes(bus.plateNumber)) {
+            // 即使不包含已記錄車輛，也需要檢查提交時間是否超過3分鐘
+            if (includeRecordedVehicles || !submittedBuses.includes(bus.plateNumber) || 
+               (submittedBuses.includes(bus.plateNumber) && 
+                ((currentTime - parseInt(localStorage.getItem(`submitted_${bus.plateNumber}`) || '0')) >= threeMinutes))) {
+              displayedBuses.push(bus);
             }
-            
-            // 將車輛添加到顯示列表
-            displayedBuses.push(bus);
           }
         }
       });
@@ -1599,7 +1588,7 @@ function updateDetectedBusesList() {
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
-      busItem.innerHTML = `<span class="company-label">${companyName}</span> <strong>${bus.plateNumber}</strong>`;
+      busItem.innerHTML = `<span class="company-label">${bus.routeName}</span> <strong>${bus.plateNumber}</strong>`;
       busItem.onclick = function() {
         selectBusForInput(bus, index);
       };
