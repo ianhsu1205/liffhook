@@ -1588,7 +1588,7 @@ function updateDetectedBusesList() {
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
-      busItem.innerHTML = `<span class="company-label">${bus.routeName}</span> <strong>${bus.plateNumber}</strong>`;
+      busItem.innerHTML = `<span class="company-label"> ${bus.routeName?.chinese || "未知路線"}</span> <strong>${bus.plateNumber}</strong>`;
       busItem.onclick = function() {
         selectBusForInput(bus, index);
       };
