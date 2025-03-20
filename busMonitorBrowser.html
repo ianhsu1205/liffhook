@@ -1,632 +1,800 @@
 <!DOCTYPE html>
 <html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>查核記錄查詢</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body {
-            font-family: 'Noto Sans TC', Arial, sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
+      body {
+        font-family: "Noto Sans TC", Arial, sans-serif;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      .container {
+        max-width: 550px;
+        margin: 30px auto;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
+      h2 {
+        color: #06c755;
+        text-align: center;
+        margin-bottom: 25px;
+        font-weight: 600;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 15px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+        text-align: left;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #555;
+      }
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border 0.3s;
+        box-sizing: border-box;
+      }
+      input:focus,
+      select:focus {
+        border-color: #06c755;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+      }
+      button {
+        padding: 12px 20px;
+        background-color: #06c755;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background-color: #04a73e;
+        box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
+      }
+      .search-button {
+        min-width: 120px;
+      }
+      .delete-button {
+        background-color: #dc3545;
+        color: white;
+        padding: 8px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+      .delete-button:hover {
+        background-color: #bd2130;
+      }
+      .info-section {
+        margin-top: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+      }
+      .info-item {
+        font-weight: 500;
+        font-size: 16px;
+        color: #555;
+      }
+      .records-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        overflow-x: auto;
+      }
+      .records-container {
+        overflow-x: auto;
+        margin-top: 20px;
+      }
+      .records-table th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+      }
+      .records-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: top;
+      }
+      .records-table tr:hover {
+        background-color: #f1f4f7;
+      }
+      .no-records {
+        text-align: center;
+        padding: 30px;
+        color: #6c757d;
+        font-style: italic;
+      }
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #06c755;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-        .container {
-            max-width: 550px;
-            margin: 30px auto;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        100% {
+          transform: rotate(360deg);
         }
-        h2 {
-            color: #06C755;
-            text-align: center;
-            margin-bottom: 25px;
-            font-weight: 600;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 15px;
+      }
+      .hidden {
+        display: none;
+      }
+      .line-brand {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+        color: #999;
+      }
+      .status-message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        display: none;
+      }
+      .status-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        display: block;
+      }
+      .status-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        display: block;
+      }
+      .status-message.info {
+        background-color: #e7f3fe;
+        color: #004085;
+        display: block;
+      }
+
+      /* 確認對話框樣式 */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 200;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 85%;
+        max-width: 400px;
+      }
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+      }
+      .modal-message {
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .modal-button {
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+      }
+      .confirm-button {
+        background-color: #dc3545;
+        color: white;
+      }
+      .cancel-button {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      /* 響應式卡片視圖 */
+      @media (max-width: 768px) {
+        .data-card {
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 15px;
+          margin-bottom: 15px;
+          background-color: #fff;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
+        .data-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #e9ecef;
+          padding-bottom: 10px;
         }
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: #555;
+        .data-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .data-card-item {
+          display: flex;
+          justify-content: space-between;
         }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: border 0.3s;
-            box-sizing: border-box;
+        .data-card-label {
+          font-weight: 500;
+          color: #666;
+          flex: 1;
         }
-        input:focus, select:focus {
-            border-color: #06C755;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+        .data-card-value {
+          flex: 2;
+          text-align: right;
         }
-        button {
-            padding: 12px 20px;
-            background-color: #06C755;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background-color: #04A73E;
-            box-shadow: 0 4px 8px rgba(6, 199, 85, 0.2);
-        }
-        .search-button {
-            min-width: 120px;
-        }
-        .delete-button {
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 12px;
-            font-size: 14px;
-            border-radius: 4px;
-        }
-        .delete-button:hover {
-            background-color: #bd2130;
-        }
-        .info-section {
-            margin-top: 20px;
-            margin-bottom: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-        .info-item {
-            font-weight: 500;
-            font-size: 16px;
-            color: #555;
+        .data-card-footer {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 15px;
         }
         .records-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            overflow-x: auto;
+          display: none;
         }
-        .records-container {
-            overflow-x: auto;
-            margin-top: 20px;
+        .card-view {
+          display: block;
         }
-        .records-table th {
-            background-color: #f8f9fa;
-            color: #495057;
-            font-weight: 600;
-            text-align: left;
-            padding: 12px 15px;
-            border-bottom: 2px solid #dee2e6;
+        .action-button {
+          padding: 6px 12px;
+          font-size: 14px;
         }
-        .records-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-            vertical-align: top;
-        }
-        .records-table tr:hover {
-            background-color: #f1f4f7;
-        }
-        .no-records {
-            text-align: center;
-            padding: 30px;
-            color: #6c757d;
-            font-style: italic;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #06C755;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none;
-        }
-        .line-brand {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #999;
-        }
-        .status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            display: none;
-        }
-        .status-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        .status-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            display: block;
-        }
-        .status-message.info {
-            background-color: #e7f3fe;
-            color: #004085;
-            display: block;
-        }
-        
-        /* 確認對話框樣式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 200;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 85%;
-            max-width: 400px;
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .modal-message {
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        .modal-button {
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            border: none;
-        }
-        .confirm-button {
-            background-color: #dc3545;
-            color: white;
-        }
-        .cancel-button {
-            background-color: #6c757d;
-            color: white;
-        }
-        
-        /* 響應式卡片視圖 */
-        @media (max-width: 768px) {
-            .data-card {
-                border: 1px solid #e9ecef;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
-                background-color: #fff;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            }
-            .data-card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                border-bottom: 1px solid #e9ecef;
-                padding-bottom: 10px;
-            }
-            .data-card-body {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            .data-card-item {
-                display: flex;
-                justify-content: space-between;
-            }
-            .data-card-label {
-                font-weight: 500;
-                color: #666;
-                flex: 1;
-            }
-            .data-card-value {
-                flex: 2;
-                text-align: right;
-            }
-            .data-card-footer {
-                display: flex;
-                justify-content: flex-end;
-                margin-top: 15px;
-            }
-            .records-table {
-                display: none;
-            }
-            .card-view {
-                display: block;
-            }
-            .action-button {
-                padding: 6px 12px;
-                font-size: 14px;
-            }
-        }
-.header-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    width: 100%;
-}
+      }
+      .header-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
 
-.data-card-header {
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e9ecef;
-    margin-bottom: 12px;
-}
+      .data-card-header {
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 12px;
+      }
 
-.data-card {
-    padding: 15px;
-    margin-bottom: 12px;
-}
-        @media (min-width: 769px) {
-            .card-view {
-                display: none;
-            }
+      .data-card {
+        padding: 15px;
+        margin-bottom: 12px;
+      }
+      /* 修改項目選擇按鈕樣式 */
+      .quick-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .quick-item {
+        background-color: #f1f1f1;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-size: 15px;
+        cursor: pointer;
+        border: 1px solid #ddd;
+        transition: all 0.2s ease;
+        margin-bottom: 5px;
+      }
+
+      .quick-item.selected {
+        background-color: #06c755;
+        color: white;
+        border-color: #06c755;
+      }
+
+      .quick-other-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 15px;
+      }
+
+      .quick-other-item {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid #eee;
+        transition: all 0.2s ease;
+        margin-bottom: 5px;
+      }
+
+      .quick-other-item.selected {
+        background-color: #e7f3fe;
+        color: #004085;
+        border-color: #b8daff;
+      }
+
+      .edit-button {
+        background-color: #17a2b8;
+        color: white;
+        padding: 8px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+        margin-right: 5px;
+      }
+
+      .edit-button:hover {
+        background-color: #138496;
+      }
+
+      /* 修改模態框樣式 */
+      .modal-content {
+        padding: 20px;
+      }
+      @media (min-width: 769px) {
+        .card-view {
+          display: none;
         }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
+      <div class="spinner"></div>
     </div>
 
     <div class="container">
-        <h2>查核記錄查詢</h2>
-        
-        <div id="statusMessage" class="status-message"></div>
-        
-        <!-- 查詢表單 -->
-        <div class="form-group">
-            <label for="searchDate">查詢日期</label>
-            <div class="input-group">
-                <input type="date" id="searchDate" value="">
-                <button type="button" class="search-button" onclick="searchRecords()">查詢</button>
-            </div>
+      <h2>查核記錄查詢</h2>
+
+      <div id="statusMessage" class="status-message"></div>
+
+      <!-- 查詢表單 -->
+      <div class="form-group">
+        <label for="searchDate">查詢日期</label>
+        <div class="input-group">
+          <input type="date" id="searchDate" value="" />
+          <button type="button" class="search-button" onclick="searchRecords()">
+            查詢
+          </button>
         </div>
-        
-        <!-- 資訊顯示區域 -->
-        <div id="infoSection" class="info-section hidden">
-            <div id="locationInfo" class="info-item">查核地點: </div>
-            <div id="dateInfo" class="info-item">查核日期: </div>
+      </div>
+
+      <!-- 資訊顯示區域 -->
+      <div id="infoSection" class="info-section hidden">
+        <div id="locationInfo" class="info-item">查核地點:</div>
+        <div id="dateInfo" class="info-item">查核日期:</div>
+      </div>
+
+      <!-- 記錄表格 -->
+      <div class="records-container">
+        <table id="recordsTable" class="records-table">
+          <thead>
+            <tr>
+              <th>業者</th>
+              <th>路線</th>
+              <th>車號</th>
+              <th>查核結果</th>
+              <th>其它</th>
+              <th>時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="recordsList">
+            <!-- 記錄將通過 JavaScript 填充 -->
+          </tbody>
+        </table>
+
+        <!-- 響應式卡片視圖 -->
+        <div id="cardView" class="card-view">
+          <!-- 卡片將通過 JavaScript 填充 -->
         </div>
-        
-        <!-- 記錄表格 -->
-        <div class="records-container">
-            <table id="recordsTable" class="records-table">
-                <thead>
-                    <tr>
-                        <th>業者</th>
-                        <th>路線</th>
-                        <th>車號</th>
-                        <th>查核結果</th>
-                        <th>其它</th>
-                        <th>時間</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="recordsList">
-                    <!-- 記錄將通過 JavaScript 填充 -->
-                </tbody>
-            </table>
-            
-            <!-- 響應式卡片視圖 -->
-            <div id="cardView" class="card-view">
-                <!-- 卡片將通過 JavaScript 填充 -->
-            </div>
-        </div>
-        
-        <div id="noRecordsMessage" class="no-records hidden">
-            尚無查詢結果，請選擇日期並點擊查詢按鈕
-        </div>
-        
-        <div class="line-brand">
-              首都集團路口查核平台
-        </div>
+      </div>
+
+      <div id="noRecordsMessage" class="no-records hidden">
+        尚無查詢結果，請選擇日期並點擊查詢按鈕
+      </div>
+
+      <div class="line-brand">首都集團路口查核平台</div>
     </div>
-    
+
     <!-- 確認刪除對話框 -->
     <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">確認刪除</div>
-            <div id="confirmMessage" class="modal-message">
-                您確定要刪除這筆記錄嗎？此操作無法撤銷。
-            </div>
-            <div class="modal-actions">
-                <button class="modal-button cancel-button" onclick="closeConfirmModal()">取消</button>
-                <button id="confirmDeleteButton" class="modal-button confirm-button">確認刪除</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-title">確認刪除</div>
+        <div id="confirmMessage" class="modal-message">
+          您確定要刪除這筆記錄嗎？此操作無法撤銷。
         </div>
+        <div class="modal-actions">
+          <button
+            class="modal-button cancel-button"
+            onclick="closeConfirmModal()"
+          >
+            取消
+          </button>
+          <button id="confirmDeleteButton" class="modal-button confirm-button">
+            確認刪除
+          </button>
+        </div>
+      </div>
     </div>
-    
+    <!-- 修改記錄模態框 -->
+    <div id="editModal" class="modal">
+      <div class="modal-content" style="max-width: 500px">
+        <div class="modal-title">修改記錄</div>
+        <div
+          id="editModalError"
+          class="status-message error"
+          style="display: none; margin-bottom: 15px"
+        ></div>
+
+        <div class="form-group">
+          <label for="editMainItem">查核結果</label>
+          <div id="editMainItemsContainer" class="quick-items">
+            <!-- 主要項目將在這裡生成 -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editOtherItem">其它</label>
+          <div id="editOtherItemsContainer" class="quick-other-items">
+            <!-- 其他項目將在這裡生成 -->
+          </div>
+        </div>
+
+        <div class="modal-actions" style="justify-content: space-between">
+          <button class="modal-button cancel-button" onclick="closeEditModal()">
+            取消
+          </button>
+          <button
+            id="confirmEditButton"
+            class="modal-button"
+            style="background-color: #06c755; color: white"
+          >
+            儲存修改
+          </button>
+        </div>
+      </div>
+    </div>
     <script>
-        // 全局變數
-        let liffInitialized = false;
-        const base_url = "https://35.221.146.143.nip.io/linehook/";
-        const channelId = "2006992891";
-        const liffId = "2006993665-dVOXoxOK".trim(); // 更新的LIFFID
-        let globalRecords = [];
-        let globalLoadingTimeout = null;
-        let userId = "";
-        
-        // 在頁面載入時初始化
-   window.onload = async function() {
-    try {
-        showLoading();
-        // 设置今天的日期作为默认值
-        document.getElementById("searchDate").value = formatDate(new Date());
-        
-        // 初始化 LIFF
-        await initLIFF();
-        if (liffInitialized && liff.isLoggedIn()) {
+      // 全局變數
+      let liffInitialized = false
+      const base_url = "https://35.221.146.143.nip.io/linehook/"
+      const channelId = "2006992891"
+      const liffId = "2006993665-dVOXoxOK".trim() // 更新的LIFFID
+      let globalRecords = []
+      let globalLoadingTimeout = null
+      let userId = ""
+      // 全局變數
+      let mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"]
+      let otherItems = []
+      let currentEditRecordId = null
+      // 在頁面載入時初始化
+      window.onload = async function () {
+        try {
+          showLoading()
+          // 设置今天的日期作为默认值
+          document.getElementById("searchDate").value = formatDate(new Date())
+
+          // 初始化 LIFF
+          await initLIFF()
+
+          // 獲取其他項目列表
+          await fetchOtherItems()
+
+          if (liffInitialized && liff.isLoggedIn()) {
             // 获取用户ID后自动查询今日记录，使用当前日期
-            searchRecords(true);
+            searchRecords(true)
+          }
+        } catch (error) {
+          console.error("頁面載入時發生錯誤:", error)
+          showStatusMessage("載入頁面時發生錯誤，請重新整理", "error")
+          hideLoading()
         }
-    } catch (error) {
-        console.error("頁面載入時發生錯誤:", error);
-        showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
-        hideLoading();
-    }
-};
-        
-        // 格式化日期為yyyy-MM-dd
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-        
-        // 顯示載入中
-        function showLoading() {
-            document.getElementById("loading-overlay").classList.remove("hidden");
-            // 添加自動超時，10秒後強制關閉loading
-            if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
-            globalLoadingTimeout = setTimeout(() => {
-                console.warn("Loading超時，自動關閉");
-                hideLoading();
-            }, 10000);
-        }
-        
-        // 隱藏載入中
-        function hideLoading() {
-            document.getElementById("loading-overlay").classList.add("hidden");
-            if (globalLoadingTimeout) {
-                clearTimeout(globalLoadingTimeout);
-                globalLoadingTimeout = null;
+      }
+
+      // 格式化日期為yyyy-MM-dd
+      function formatDate(date) {
+        const year = date.getFullYear()
+        const month = (date.getMonth() + 1).toString().padStart(2, "0")
+        const day = date.getDate().toString().padStart(2, "0")
+        return `${year}-${month}-${day}`
+      }
+      // 獲取其他項目列表
+      async function fetchOtherItems() {
+        try {
+          const defaultItems = [
+            { id: "1", itemName: "車身未清潔" },
+            { id: "2", itemName: "車輛燈號故障" },
+            { id: "3", itemName: "闖紅燈" },
+            { id: "4", itemName: "LED故障" },
+            { id: "5", itemName: "無動態" },
+          ]
+
+          const response = await fetch(`${base_url}monitor/otherItem`)
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data && data.data && data.data.length > 0) {
+              otherItems = data.data
+              console.log("獲取其他項目:", otherItems)
+            } else {
+              console.log("使用預設其他項目")
+              otherItems = defaultItems
             }
+          } else {
+            console.log("API回應錯誤，使用預設其他項目")
+            otherItems = defaultItems
+          }
+        } catch (error) {
+          console.error("獲取其他項目失敗:", error)
+          otherItems = defaultItems
         }
-        
-        // 顯示狀態訊息
-        function showStatusMessage(message, type) {
-            const statusElement = document.getElementById("statusMessage");
-            statusElement.textContent = message;
-            statusElement.className = "status-message";
-            statusElement.classList.add(type);
-            // 將頁面滾動至頂部，確保用戶可以看到訊息
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-            
-            // 3秒後自動隱藏成功或資訊訊息
-            if (type === 'success' || type === 'info') {
-                setTimeout(() => {
-                    statusElement.className = "status-message hidden";
-                }, 3000);
-            }
+      }
+      // 顯示載入中
+      function showLoading() {
+        document.getElementById("loading-overlay").classList.remove("hidden")
+        // 添加自動超時，10秒後強制關閉loading
+        if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout)
+        globalLoadingTimeout = setTimeout(() => {
+          console.warn("Loading超時，自動關閉")
+          hideLoading()
+        }, 10000)
+      }
+
+      // 隱藏載入中
+      function hideLoading() {
+        document.getElementById("loading-overlay").classList.add("hidden")
+        if (globalLoadingTimeout) {
+          clearTimeout(globalLoadingTimeout)
+          globalLoadingTimeout = null
         }
-        
-        // 初始化 LIFF
-        async function initLIFF() {
-            try {
-                console.log("初始化LIFF...");
-                const liffInfo = {
-                    liffId: liffId,
-                    withLoginOnExternalBrowser: true
-                };            
-                
-                await liff.init(liffInfo);
-                liffInitialized = true;
-                console.log("LIFF 初始化成功");
-                
-                if (!liff.isLoggedIn()) {
-                    console.log("用戶未登入，引導登入...");
-                    liff.login();
-                    return;
-                }
-                
-                try {
-                    // 獲取用戶ID
-                    const profile = await liff.getProfile();
-                    userId = profile.userId;
-                    
-                    // 檢查用戶是否已綁定
-                    await checkUserExists(userId, channelId);
-                } catch (profileError) {
-                    console.error("獲取用戶資料失敗:", profileError);
-                    showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error");
-                    hideLoading();
-                }
-            } catch (error) {
-                console.error("LIFF 初始化失敗:", error);
-                showStatusMessage("LINE 應用程式初始化失敗，請確認網路連接並重新嘗試", "error");
-                liffInitialized = false;
-                hideLoading();
-            }
+      }
+
+      // 顯示狀態訊息
+      function showStatusMessage(message, type) {
+        const statusElement = document.getElementById("statusMessage")
+        statusElement.textContent = message
+        statusElement.className = "status-message"
+        statusElement.classList.add(type)
+        // 將頁面滾動至頂部，確保用戶可以看到訊息
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        })
+
+        // 3秒後自動隱藏成功或資訊訊息
+        if (type === "success" || type === "info") {
+          setTimeout(() => {
+            statusElement.className = "status-message hidden"
+          }, 3000)
         }
-        
-        // 檢查用戶是否已存在/註冊
-        async function checkUserExists(userId, channelId) {
-            try {
-                const response = await fetch(base_url + "User/checkUser", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: userId, channelId: channelId })
-                });
-                
-                if (response.status === 200) {
-                    // 用戶已存在，繼續
-                    console.log("用戶已綁定，繼續操作");
-                } else if (response.status === 404) {
-                    // 用戶不存在，導向註冊頁面
-                    console.log("用戶未綁定，導向綁定頁面");
-                    hideLoading();
-                    liff.openWindow({
-                        url: 'https://liff.line.me/2006993665-PVAXZjA1',
-                        external: true
-                    });
-                } else {
-                    hideLoading();
-                    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-                }
-            } catch (error) {
-                console.error("檢查用戶存在性失敗:", error);
-                hideLoading();
-                showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-            }
+      }
+
+      // 初始化 LIFF
+      async function initLIFF() {
+        try {
+          console.log("初始化LIFF...")
+          const liffInfo = {
+            liffId: liffId,
+            withLoginOnExternalBrowser: true,
+          }
+
+          await liff.init(liffInfo)
+          liffInitialized = true
+          console.log("LIFF 初始化成功")
+
+          if (!liff.isLoggedIn()) {
+            console.log("用戶未登入，引導登入...")
+            liff.login()
+            return
+          }
+
+          try {
+            // 獲取用戶ID
+            const profile = await liff.getProfile()
+            userId = profile.userId
+
+            // 檢查用戶是否已綁定
+            await checkUserExists(userId, channelId)
+          } catch (profileError) {
+            console.error("獲取用戶資料失敗:", profileError)
+            showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error")
+            hideLoading()
+          }
+        } catch (error) {
+          console.error("LIFF 初始化失敗:", error)
+          showStatusMessage(
+            "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
+            "error"
+          )
+          liffInitialized = false
+          hideLoading()
         }
-        
-        // 搜尋記錄
-       async function searchRecords(useCurrentDate = false) {
-    showLoading();
-    
-    try {
-        if (!userId) {
-            throw new Error("用戶ID未獲取，請重新登入");
+      }
+
+      // 檢查用戶是否已存在/註冊
+      async function checkUserExists(userId, channelId) {
+        try {
+          const response = await fetch(base_url + "User/checkUser", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: userId, channelId: channelId }),
+          })
+
+          if (response.status === 200) {
+            // 用戶已存在，繼續
+            console.log("用戶已綁定，繼續操作")
+          } else if (response.status === 404) {
+            // 用戶不存在，導向註冊頁面
+            console.log("用戶未綁定，導向綁定頁面")
+            hideLoading()
+            liff.openWindow({
+              url: "https://liff.line.me/2006993665-PVAXZjA1",
+              external: true,
+            })
+          } else {
+            hideLoading()
+            showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error")
+          }
+        } catch (error) {
+          console.error("檢查用戶存在性失敗:", error)
+          hideLoading()
+          showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error")
         }
-        
-        const searchDateElement = document.getElementById("searchDate");
-        
-        // 如果不是使用当前日期且输入框中有值，则保持现有值
-        // 否则（例如页面第一次加载时）设置为今天的日期
-        if (useCurrentDate) {
-            searchDateElement.value = formatDate(new Date());
-        }
-        
-        const searchDate = searchDateElement.value;
-        
-        if (!searchDate) {
-            showStatusMessage("請選擇查詢日期", "error");
-            hideLoading();
-            return;
-        }
-        
-        const response = await fetch(`${base_url}monitor/records/user/${userId}?date=${searchDate}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP 錯誤 ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
+      }
+
+      // 搜尋記錄
+      async function searchRecords(useCurrentDate = false) {
+        showLoading()
+
+        try {
+          if (!userId) {
+            throw new Error("用戶ID未獲取，請重新登入")
+          }
+
+          const searchDateElement = document.getElementById("searchDate")
+
+          // 如果不是使用当前日期且输入框中有值，则保持现有值
+          // 否则（例如页面第一次加载时）设置为今天的日期
+          if (useCurrentDate) {
+            searchDateElement.value = formatDate(new Date())
+          }
+
+          const searchDate = searchDateElement.value
+
+          if (!searchDate) {
+            showStatusMessage("請選擇查詢日期", "error")
+            hideLoading()
+            return
+          }
+
+          const response = await fetch(
+            `${base_url}monitor/records/user/${userId}?date=${searchDate}`
+          )
+
+          if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`)
+          }
+
+          const data = await response.json()
+
+          if (data.success) {
             // 保存全局记录
-            globalRecords = data.data || [];
-            
+            globalRecords = data.data || []
+
             // 显示查询结果
-            updateRecordsDisplay(data);
-        } else {
-            throw new Error(data.message || "查詢失敗");
+            updateRecordsDisplay(data)
+          } else {
+            throw new Error(data.message || "查詢失敗")
+          }
+        } catch (error) {
+          console.error("查詢記錄失敗:", error)
+          showStatusMessage("查詢記錄失敗: " + error.message, "error")
+          // 清空记录显示
+          document.getElementById("recordsList").innerHTML = ""
+          document.getElementById("cardView").innerHTML = ""
+          document.getElementById("infoSection").classList.add("hidden")
+          document.getElementById("noRecordsMessage").classList.remove("hidden")
+        } finally {
+          hideLoading()
         }
-    } catch (error) {
-        console.error("查詢記錄失敗:", error);
-        showStatusMessage("查詢記錄失敗: " + error.message, "error");
-        // 清空记录显示
-        document.getElementById("recordsList").innerHTML = "";
-        document.getElementById("cardView").innerHTML = "";
-        document.getElementById("infoSection").classList.add("hidden");
-        document.getElementById("noRecordsMessage").classList.remove("hidden");
-    } finally {
-        hideLoading();
-    }
-}
-        
-// 修改 updateRecordsDisplay 函數部分
-function updateRecordsDisplay(data) {
-    const records = data.data || [];
-    const recordCount = records.length;
-    const tableBody = document.getElementById("recordsList");
-    const cardView = document.getElementById("cardView");
-    const infoSection = document.getElementById("infoSection");
-    const noRecordsMessage = document.getElementById("noRecordsMessage");
-    
-    // 清空現有內容
-    tableBody.innerHTML = "";
-    cardView.innerHTML = "";
-    
-    if (recordCount > 0) {
-        // 顯示查詢信息，加入查核筆數
-        infoSection.classList.remove("hidden");
-        document.getElementById("dateInfo").textContent = `查核日期: ${data.date}`;
-        
-        // 獲取最近一筆記錄的位置
-        const latestRecord = records[records.length - 1];
-        document.getElementById("locationInfo").textContent = `查核路口: ${latestRecord.location || "未知"} (${recordCount}筆)`;
-        
-        // 填充表格視圖
-        records.forEach(record => {
-            let companyName = record.plateNumbCompany || "-";
-            companyName = companyName.replace('客運', '');
-            
+      }
+
+      // 修改 updateRecordsDisplay 函數部分
+      function updateRecordsDisplay(data) {
+        const records = data.data || []
+        const recordCount = records.length
+        const tableBody = document.getElementById("recordsList")
+        const cardView = document.getElementById("cardView")
+        const infoSection = document.getElementById("infoSection")
+        const noRecordsMessage = document.getElementById("noRecordsMessage")
+
+        // 清空現有內容
+        tableBody.innerHTML = ""
+        cardView.innerHTML = ""
+
+        if (recordCount > 0) {
+          // 顯示查詢信息，加入查核筆數
+          infoSection.classList.remove("hidden")
+          document.getElementById(
+            "dateInfo"
+          ).textContent = `查核日期: ${data.date}`
+
+          // 獲取最近一筆記錄的位置
+          const latestRecord = records[records.length - 1]
+          document.getElementById("locationInfo").textContent = `查核路口: ${
+            latestRecord.location || "未知"
+          } (${recordCount}筆)`
+
+          // 填充表格視圖
+          records.forEach((record) => {
+            let companyName = record.plateNumbCompany || "-"
+            companyName = companyName.replace("客運", "")
+
             // 格式化時間，只顯示時:分
-            const timeFormatted = record.createdTime ? 
-                record.createdTime.split(':').slice(0, 2).join(':') : 
-                "-";
-            
-            const row = document.createElement("tr");
+            const timeFormatted = record.createdTime
+              ? record.createdTime.split(":").slice(0, 2).join(":")
+              : "-"
+
+            const row = document.createElement("tr")
             row.innerHTML = `
                 <td>${companyName}</td>
                 <td>${record.routeName || "-"}</td>
@@ -635,97 +803,260 @@ function updateRecordsDisplay(data) {
                 <td>${record.otherItem || "-"}</td>
                 <td>${timeFormatted}</td>
                 <td>
-                    <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
+                     <button class="edit-button" onclick="showEditModal('${
+                       record.id
+                     }')"><i class="fas fa-edit"></i></button>
+        <button class="delete-button" onclick="showDeleteConfirm('${
+          record.id
+        }')"><i class="fas fa-trash"></i></button>
                 </td>
-            `;
-            tableBody.appendChild(row);
-            
+            `
+            tableBody.appendChild(row)
+
             // 填充卡片視圖 - 修改為更精簡的版本
-            const card = document.createElement("div");
-            card.className = "data-card";
+            const card = document.createElement("div")
+            card.className = "data-card"
             card.innerHTML = `
                 <div class="data-card-header">
                     <div class="header-grid">
                         <span><strong>業者:</strong> ${companyName}</span>
-                        <span><strong>路線:</strong> ${record.routeName || "-"}</span>
-                        <span><strong>車號:</strong> ${record.plateNumber || "-"}</span>
+                        <span><strong>路線:</strong> ${
+                          record.routeName || "-"
+                        }</span>
+                        <span><strong>車號:</strong> ${
+                          record.plateNumber || "-"
+                        }</span>
                         <span><strong>時間:</strong> ${timeFormatted}</span>
                     </div>
                 </div>
                 <div class="data-card-body">
                     <div class="data-card-item">
                         <div class="data-card-label"><strong>查核結果:</strong></div>
-                        <div class="data-card-value">${record.mainItem || "-"}</div>
+                        <div class="data-card-value">${
+                          record.mainItem || "-"
+                        }</div>
                     </div>
                     <div class="data-card-item">
                         <div class="data-card-label"><strong>其它:</strong></div>
-                        <div class="data-card-value">${record.otherItem || "-"}</div>
+                        <div class="data-card-value">${
+                          record.otherItem || "-"
+                        }</div>
                     </div>
                 </div>
                 <div class="data-card-footer">
-                    <button class="delete-button" onclick="showDeleteConfirm('${record.id}')">刪除</button>
+       <button class="edit-button" onclick="showEditModal('${
+         record.id
+       }')"><i class="fas fa-edit"></i> 修改</button>
+        <button class="delete-button" onclick="showDeleteConfirm('${
+          record.id
+        }')"><i class="fas fa-trash"></i> 刪除</button>
                 </div>
-            `;
-            cardView.appendChild(card);
-        });
-        
-        noRecordsMessage.classList.add("hidden");
-    } else {
-        // 無記錄時顯示提示
-        infoSection.classList.add("hidden");
-        noRecordsMessage.classList.remove("hidden");
-        noRecordsMessage.textContent = `${data.date} 沒有查詢到記錄`;
-    }
-}
-        
-        // 顯示刪除確認框
-        function showDeleteConfirm(recordId) {
-            const modal = document.getElementById("confirmModal");
-            const confirmButton = document.getElementById("confirmDeleteButton");
-            
-            // 設置確認按鈕的點擊事件
-            confirmButton.onclick = function() {
-                deleteRecord(recordId);
-            };
-            
-            modal.style.display = "block";
-        }
-        
-        // 關閉確認框
-        function closeConfirmModal() {
-            document.getElementById("confirmModal").style.display = "none";
-        }
-        
-        // 刪除記錄
-        async function deleteRecord(recordId) {
-    showLoading();
-    closeConfirmModal();
-    
-    try {
-        const response = await fetch(`${base_url}monitor/records/${recordId}`, {
-            method: "DELETE"
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP 錯誤 ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showStatusMessage("記錄已成功刪除", "success");
-            // 刷新记录列表但保持当前日期
-            searchRecords(false);
-        } else {
-            throw new Error(data.message || "刪除失敗");
-        }
-    } catch (error) {
-        console.error("刪除記錄失敗:", error);
-        showStatusMessage("刪除記錄失敗: " + error.message, "error");
-        hideLoading();
-    }
-}
+            `
+            cardView.appendChild(card)
+          })
 
+          noRecordsMessage.classList.add("hidden")
+        } else {
+          // 無記錄時顯示提示
+          infoSection.classList.add("hidden")
+          noRecordsMessage.classList.remove("hidden")
+          noRecordsMessage.textContent = `${data.date} 沒有查詢到記錄`
+        }
+      }
+      // 顯示修改模態框
+      function showEditModal(recordId) {
+        currentEditRecordId = recordId
+        const record = globalRecords.find((r) => r.id === recordId)
+
+        if (!record) {
+          showStatusMessage("找不到要修改的記錄", "error")
+          return
+        }
+
+        // 清除錯誤訊息
+        document.getElementById("editModalError").style.display = "none"
+
+        // 填充主要項目選項
+        const mainItemsContainer = document.getElementById(
+          "editMainItemsContainer"
+        )
+        mainItemsContainer.innerHTML = ""
+
+        mainItems.forEach((item) => {
+          const itemButton = document.createElement("div")
+          itemButton.className = "quick-item"
+          if (item === record.mainItem) {
+            itemButton.classList.add("selected")
+          }
+          itemButton.textContent = item
+          itemButton.dataset.value = item
+          itemButton.onclick = function () {
+            mainItemsContainer.querySelectorAll(".quick-item").forEach((el) => {
+              el.classList.remove("selected")
+            })
+            this.classList.add("selected")
+          }
+          mainItemsContainer.appendChild(itemButton)
+        })
+
+        // 填充其他項目選項
+        const otherItemsContainer = document.getElementById(
+          "editOtherItemsContainer"
+        )
+        otherItemsContainer.innerHTML = ""
+
+        // 分割已選擇的其他項目
+        const selectedOtherItems = record.otherItem
+          ? record.otherItem.split(", ")
+          : []
+
+        otherItems.forEach((item) => {
+          const itemButton = document.createElement("div")
+          itemButton.className = "quick-other-item"
+          if (selectedOtherItems.includes(item.itemName)) {
+            itemButton.classList.add("selected")
+          }
+          itemButton.textContent = item.itemName
+          itemButton.dataset.value = item.itemName
+          itemButton.onclick = function () {
+            this.classList.toggle("selected")
+          }
+          otherItemsContainer.appendChild(itemButton)
+        })
+
+        // 設置確認按鈕的點擊事件
+        document.getElementById("confirmEditButton").onclick = function () {
+          saveEditedRecord()
+        }
+
+        // 顯示模態框
+        document.getElementById("editModal").style.display = "block"
+      }
+      // 關閉修改模態框
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none"
+        currentEditRecordId = null
+      }
+      // 保存修改的記錄
+      async function saveEditedRecord() {
+        try {
+          if (!currentEditRecordId) {
+            throw new Error("找不到要修改的記錄ID")
+          }
+
+          // 獲取選中的主要項目
+          const mainItemsContainer = document.getElementById(
+            "editMainItemsContainer"
+          )
+          const selectedMainItem = mainItemsContainer.querySelector(
+            ".quick-item.selected"
+          )
+
+          if (!selectedMainItem) {
+            document.getElementById("editModalError").textContent =
+              "請選擇查核結果"
+            document.getElementById("editModalError").style.display = "block"
+            return
+          }
+
+          // 獲取選中的其他項目
+          const otherItemsContainer = document.getElementById(
+            "editOtherItemsContainer"
+          )
+          const selectedOtherItems = Array.from(
+            otherItemsContainer.querySelectorAll(".quick-other-item.selected")
+          ).map((item) => item.dataset.value)
+
+          // 構建更新數據
+          const updateData = {
+            mainItem: selectedMainItem.dataset.value,
+            otherItem: selectedOtherItems.join(", "),
+          }
+
+          showLoading()
+
+          // 發送更新請求
+          const response = await fetch(
+            `${base_url}monitor/records/${currentEditRecordId}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updateData),
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`)
+          }
+
+          const data = await response.json()
+
+          if (data.success) {
+            closeEditModal()
+            showStatusMessage("記錄已成功更新", "success")
+            // 刷新記錄列表
+            searchRecords(false)
+          } else {
+            throw new Error(data.message || "更新失敗")
+          }
+        } catch (error) {
+          console.error("更新記錄失敗:", error)
+          document.getElementById("editModalError").textContent =
+            "更新記錄失敗: " + error.message
+          document.getElementById("editModalError").style.display = "block"
+          hideLoading()
+        }
+      }
+      // 顯示刪除確認框
+      function showDeleteConfirm(recordId) {
+        const modal = document.getElementById("confirmModal")
+        const confirmButton = document.getElementById("confirmDeleteButton")
+
+        // 設置確認按鈕的點擊事件
+        confirmButton.onclick = function () {
+          deleteRecord(recordId)
+        }
+
+        modal.style.display = "block"
+      }
+
+      // 關閉確認框
+      function closeConfirmModal() {
+        document.getElementById("confirmModal").style.display = "none"
+      }
+
+      // 刪除記錄
+      async function deleteRecord(recordId) {
+        showLoading()
+        closeConfirmModal()
+
+        try {
+          const response = await fetch(
+            `${base_url}monitor/records/${recordId}`,
+            {
+              method: "DELETE",
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`)
+          }
+
+          const data = await response.json()
+
+          if (data.success) {
+            showStatusMessage("記錄已成功刪除", "success")
+            // 刷新记录列表但保持当前日期
+            searchRecords(false)
+          } else {
+            throw new Error(data.message || "刪除失敗")
+          }
+        } catch (error) {
+          console.error("刪除記錄失敗:", error)
+          showStatusMessage("刪除記錄失敗: " + error.message, "error")
+          hideLoading()
+        }
+      }
     </script>
-</body>
+  </body>
 </html>
