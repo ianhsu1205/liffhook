@@ -1754,7 +1754,7 @@ function createBusCard(bus, index) {
 
   // 其他項目選擇器
   const otherItemsLabel = document.createElement("label");
-  otherItemsLabel.textContent = "其他缺失:";
+  otherItemsLabel.textContent = "其他:";
   
   const otherItemsContainer = document.createElement("div");
   otherItemsContainer.className = "quick-other-items";
@@ -2179,7 +2179,7 @@ async function fetchIntersections() {
   try {
     // 始終使用最新的坐標
     const response = await fetch(
-      `${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=250&limit=10`
+      `${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=300&limit=10`
     );
 
     if (!response.ok) {
