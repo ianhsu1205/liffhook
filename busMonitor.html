@@ -41,10 +41,10 @@
         padding-bottom: 15px;
       }
 /* 車輛距離漸層底色樣式 - 僅應用於車號而非整個項目 */
-.bus-plate.distance-veryclose { background-color: rgba(6, 199, 85, 1); } /* 0-100m 滿色 */
-.bus-plate.distance-close { background-color: rgba(6, 199, 85, 0.75); } /* 101-150m 3/4滿色 */
-.bus-plate.distance-medium { background-color: rgba(6, 199, 85, 0.5); } /* 151-200m 2/4滿色 */
-.bus-plate.distance-far { background-color: rgba(6, 199, 85, 0.25); } /* 201-250m 1/4滿色 */
+.bus-plate.distance-veryclose { background-color: rgba(255, 193, 7, 1); } /* 0-100m 滿色黃 */
+.bus-plate.distance-close { background-color: rgba(255, 193, 7, 0.75); } /* 101-150m 3/4滿色黃 */
+.bus-plate.distance-medium { background-color: rgba(255, 193, 7, 0.5); } /* 151-200m 2/4滿色黃 */
+.bus-plate.distance-far { background-color: rgba(255, 193, 7, 0.25); } /* 201-250m 1/4滿色黃 */
 
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
@@ -1647,9 +1647,9 @@ function updateDetectedBusesList() {
             // 根據距離添加相應的CSS類到車號上
       if (distanceInMeters <= 80) {
         plateElement.classList.add("distance-veryclose"); // 0-100m 滿色
-      } else if (distanceInMeters <= 160) {
+      } else if (distanceInMeters <= 150) {
         plateElement.classList.add("distance-close"); // 101-150m 3/4滿色
-      } else if (distanceInMeters <= 240) {
+      } else if (distanceInMeters <= 220) {
         plateElement.classList.add("distance-medium"); // 151-200m 2/4滿色
       } else if (distanceInMeters <= 300) {
         plateElement.classList.add("distance-far"); // 201-250m 1/4滿色
