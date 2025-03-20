@@ -644,6 +644,7 @@ async function unbindUser() {
         
        // 修改提交表單函數
 // 修改提交表單函數
+// 修改提交表單函數
 async function submitForm() {
     // 進行詳細表單驗證
     let isValid = true;
@@ -672,11 +673,11 @@ async function submitForm() {
     showLoading();
     const submitButton = document.querySelector('button[type="button"]');
     submitButton.disabled = true;
-    submitButton.textContent = 登入中...";
+    submitButton.textContent = "綁定中...";
     
-    // 獲取表單中的值，若沒有則使用預設值
-    const station = document.getElementById("station").value || ""; // 預設值為總公司
-    const route = document.getElementById("route").value || ""; // 預設值為其他
+    // 直接使用預設值，確保是字串型態
+    const station = "不明"; // 直接設定預設值
+    const route = "不明"; // 直接設定預設值
     const name = document.getElementById("name").value || ""; // 從表單獲取姓名，若沒有則為空字串
     
     const data = {
