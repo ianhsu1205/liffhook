@@ -40,17 +40,17 @@
      border-bottom: none; /* 移除底部分隔線 */
         padding-bottom: 15px;
       }
-/* 車輛距離漸層底色樣式 */
-.simple-bus-item.distance-100 { background-color: rgba(6, 199, 85, 0.25); } /* 201-250m */
-.simple-bus-item.distance-150 { background-color: rgba(6, 199, 85, 0.5); } /* 151-200m */
-.simple-bus-item.distance-200 { background-color: rgba(6, 199, 85, 0.75); } /* 101-150m */
-.simple-bus-item.distance-250 { background-color: rgba(6, 199, 85, 1); } /* 0-100m */
+/* 車輛距離漸層底色樣式 - 僅應用於車號而非整個項目 */
+.bus-plate.distance-veryclose { background-color: rgba(6, 199, 85, 1); } /* 0-100m 滿色 */
+.bus-plate.distance-close { background-color: rgba(6, 199, 85, 0.75); } /* 101-150m 3/4滿色 */
+.bus-plate.distance-medium { background-color: rgba(6, 199, 85, 0.5); } /* 151-200m 2/4滿色 */
+.bus-plate.distance-far { background-color: rgba(6, 199, 85, 0.25); } /* 201-250m 1/4滿色 */
 
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
-  background-color: #06c755;
-  color: white;
-  border-color: #04a73e;
+  background-color: #e7f3fe; /* 使用與偵測車輛按鈕相同的顏色 */
+  color: #004085;
+  border-color: #b8daff;
 }
       .form-group {
         margin-bottom: 20px;
@@ -799,7 +799,7 @@ input:checked + .slider:before {
       </div>
 
 <div class="utility-buttons">
-  <div class="utility-button primary" onclick="detectBuses()">
+  <div class="utility-button" onclick="detectBuses()">
     <i class="fas fa-search"></i>
     <span>偵測車輛</span>
   </div>
@@ -1620,22 +1620,45 @@ function updateDetectedBusesList() {
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
-        // 將Distance從公里轉換為公尺
-  const distanceInMeters = (bus.Distance || 0) * 1000;
-   // 根據距離添加相應的CSS類
-  if (distanceInMeters <= 100) {
-    busItem.classList.add("distance-250"); // 0-100m 滿色
-  } else if (distanceInMeters <= 150) {
-    busItem.classList.add("distance-200"); // 101-150m 3/4滿色
-  } else if (distanceInMeters <= 200) {
-    busItem.classList.add("distance-150"); // 151-200m 2/4滿色
-  } else if (distanceInMeters <= 250) {
-    busItem.classList.add("distance-100"); // 201-250m 1/4滿色
-  }
-      busItem.innerHTML = `
-        <div class="bus-route">${routeInfo}</div>
-        <div class="bus-plate">${bus.plateNumber}</div>
-      `;
+      // 創建路線元素
+      const routeElement = document.createElement("div");
+      routeElement.className = "bus-route";
+      routeElement.textContent = routeInfo;
+
+            // 創建車號元素
+      const plateElement = document.createElement("div");
+      plateElement.className = "bus-plate";
+
+           // 獲取距離 - 先處理API返回的Distance（單位公里）
+      let distanceInMeters = 999; // 預設999米
+            // 嘗試從Distance字段獲取距離（如果存在）
+      if (bus.Distance !== undefined) {
+        distanceInMeters = bus.Distance * 1000; // 公里轉公尺
+      }
+      // 如果沒有Distance字段，嘗試從位置計算距離
+      else if (bus.position && bus.position.latitude && bus.position.longitude) {
+        distanceInMeters = calculateDistance(
+          currentLatitude, 
+          currentLongitude, 
+          bus.position.latitude, 
+          bus.position.longitude
+        );
+      }
+            // 根據距離添加相應的CSS類到車號上
+      if (distanceInMeters <= 80) {
+        plateElement.classList.add("distance-veryclose"); // 0-100m 滿色
+      } else if (distanceInMeters <= 160) {
+        plateElement.classList.add("distance-close"); // 101-150m 3/4滿色
+      } else if (distanceInMeters <= 240) {
+        plateElement.classList.add("distance-medium"); // 151-200m 2/4滿色
+      } else if (distanceInMeters <= 300) {
+        plateElement.classList.add("distance-far"); // 201-250m 1/4滿色
+      }
+      plateElement.textContent = bus.plateNumber;
+      
+      // 將元素添加到車輛項目中
+      busItem.appendChild(routeElement);
+      busItem.appendChild(plateElement);
       
       busItem.onclick = function() {
         selectBusForInput(bus, index);
@@ -1650,6 +1673,33 @@ function updateDetectedBusesList() {
   // 清空容器並一次性添加所有新元素
   container.innerHTML = "";
   container.appendChild(fragment);
+}
+
+// 計算兩點間距離的函數
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  // 如果缺少座標，返回最大距離
+  if (!lat1 || !lon1 || !lat2 || !lon2) {
+    return 999;
+  }
+  
+  // 轉為數字類型
+  lat1 = parseFloat(lat1);
+  lon1 = parseFloat(lon1);
+  lat2 = parseFloat(lat2);
+  lon2 = parseFloat(lon2);
+  
+  // 使用Haversine公式計算地球表面兩點間的距離
+  const R = 6371000; // 地球半徑，單位為米
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  
+  return distance;
 }
 // 創建車輛卡片
 function createBusCard(bus, index) {
