@@ -24,7 +24,7 @@
 
       .container {
         max-width: 500px;
-        margin: 30px auto;
+         margin: 0 auto; /* 修改為0 auto使頂部無間距 */
         background: white;
         padding: 25px;
         border-radius: 12px;
@@ -32,14 +32,26 @@
       }
 
       h2 {
+        margin-top: 10px; /* 減少上邊距 */
         color: #06c755;
         text-align: center;
         margin-bottom: 25px;
         font-weight: 600;
-        border-bottom: 2px solid #f0f0f0;
+     border-bottom: none; /* 移除底部分隔線 */
         padding-bottom: 15px;
       }
+/* 車輛距離漸層底色樣式 */
+.simple-bus-item.distance-100 { background-color: rgba(6, 199, 85, 0.25); } /* 201-250m */
+.simple-bus-item.distance-150 { background-color: rgba(6, 199, 85, 0.5); } /* 151-200m */
+.simple-bus-item.distance-200 { background-color: rgba(6, 199, 85, 0.75); } /* 101-150m */
+.simple-bus-item.distance-250 { background-color: rgba(6, 199, 85, 1); } /* 0-100m */
 
+/* 自動偵測按鈕啟動樣式 */
+.utility-button.auto-detect-active {
+  background-color: #06c755;
+  color: white;
+  border-color: #04a73e;
+}
       .form-group {
         margin-bottom: 20px;
         text-align: left;
@@ -791,7 +803,7 @@ input:checked + .slider:before {
     <i class="fas fa-search"></i>
     <span>偵測車輛</span>
   </div>
-  <div class="utility-button" onclick="toggleAutoDetect()">
+  <div id="autoDetectButton" class="utility-button" onclick="toggleAutoDetect()">
     <i class="fas fa-sync"></i>
     <span id="autoDetectStatus">自動偵測</span>
   </div>
@@ -1093,13 +1105,15 @@ function cancelBusInput() {
 // 切換自動偵測功能
 function toggleAutoDetect() {
   const statusElem = document.getElementById("autoDetectStatus");
-  
+   const autoDetectButton = document.getElementById("autoDetectButton");
   if (autoDetectInterval) {
     stopAutoDetect();
     statusElem.textContent = "自動偵測";
+    autoDetectButton.classList.remove("auto-detect-active");
   } else {
     startAutoDetect();
     statusElem.textContent = "停止自動";
+    autoDetectButton.classList.add("auto-detect-active");
   }
 }
 // 打開手動輸入模態框時暫停自動偵測
@@ -1316,6 +1330,8 @@ function stopAutoDetect() {
   if (countdownElement) {
     countdownElement.textContent = "";
   }
+    const autoDetectButton = document.getElementById("autoDetectButton");
+  autoDetectButton.classList.remove("auto-detect-active");
 }
 
 // 開始倒數
@@ -1604,6 +1620,18 @@ function updateDetectedBusesList() {
       
       const busItem = document.createElement("div");
       busItem.className = "simple-bus-item";
+        // 將Distance從公里轉換為公尺
+  const distanceInMeters = (bus.Distance || 0) * 1000;
+   // 根據距離添加相應的CSS類
+  if (distanceInMeters <= 100) {
+    busItem.classList.add("distance-250"); // 0-100m 滿色
+  } else if (distanceInMeters <= 150) {
+    busItem.classList.add("distance-200"); // 101-150m 3/4滿色
+  } else if (distanceInMeters <= 200) {
+    busItem.classList.add("distance-150"); // 151-200m 2/4滿色
+  } else if (distanceInMeters <= 250) {
+    busItem.classList.add("distance-100"); // 201-250m 1/4滿色
+  }
       busItem.innerHTML = `
         <div class="bus-route">${routeInfo}</div>
         <div class="bus-plate">${bus.plateNumber}</div>
