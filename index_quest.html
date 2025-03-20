@@ -239,27 +239,17 @@
         <form id="registerForm" class="hidden">
             <div class="form-group">
                 <label for="company" class="required">公司別</label>
-                <select id="company" onchange="loadStations()">
+                <select id="company">
                     <option value="">請選擇公司別</option>
                 </select>
                 <div class="error-message" id="company-error">公司別為必填欄位</div>
             </div>
             
-            <div class="form-group">
-                <label for="station" class="required">站別</label>
-                <select id="station" onchange="loadRoutes()" disabled>
-                    <option value="">請選擇站別</option>
-                </select>
-                <div class="error-message" id="station-error">站別為必填欄位</div>
-            </div>
+            <!-- 將站別改為隱藏欄位 -->
+            <input type="hidden" id="station">
             
-            <div class="form-group">
-                <label for="route" class="required">路線</label>
-                <select id="route" disabled>
-                    <option value="">請選擇路線</option>
-                </select>
-                <div class="error-message" id="route-error">路線為必填欄位</div>
-            </div>
+            <!-- 將路線改為隱藏欄位 -->
+            <input type="hidden" id="route">
             
             <div class="form-group">
                 <label for="empId" class="required">員工編號</label>
@@ -267,11 +257,7 @@
                 <div class="error-message" id="empId-error">員工編號為必填欄位</div>
             </div>
             
-            <div class="form-group">
-                <label for="name" class="required">姓名</label>
-                <input type="text" id="name" placeholder="請輸入姓名">
-                <div class="error-message" id="name-error">姓名為必填欄位</div>
-            </div>
+            <input type="hidden" id="name">
             
             <input type="hidden" id="userId">
             <input type="hidden" id="channelId">
@@ -664,23 +650,12 @@ async function submitForm() {
     // 驗證公司名稱 (必填)
     const company = document.getElementById("company").value.trim();
     isValid = validateField("company", company !== "", "公司名稱為必填欄位") && isValid;
-    
-    // 驗證站別 (必填)
-    const station = document.getElementById("station").value.trim();
-    isValid = validateField("station", station !== "", "站別為必填欄位") && isValid;
-    
-    // 驗證路線 (必填)
-    const route = document.getElementById("route").value.trim();
-    isValid = validateField("route", route !== "", "路線為必填欄位") && isValid;
-    
+
+ 
     // 驗證員工編號 (必填)
     const empid = document.getElementById("empId").value.trim();
     const empIdPattern = /^\d{4,6}$/;
     isValid = validateField("empId", empIdPattern.test(empid), "員工編號為4到6碼數字") && isValid;
-    
-    // 驗證姓名 (必填)
-    const name = document.getElementById("name").value.trim();
-    isValid = validateField("name", name !== "", "姓名為必填欄位") && isValid;
    
     // 如果有驗證失敗，則不提交表單
     if (!isValid) {
