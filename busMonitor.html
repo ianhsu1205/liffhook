@@ -856,12 +856,12 @@ input:checked + .slider:before {
   </div>
   
   <div class="input-section">
-    <label>主要缺失:</label>
+    <label>查核結果:</label>
     <div id="mainItemsContainer" class="quick-items">
       <!-- 主要項目將在這裡生成 -->
     </div>
     
-    <label>其他缺失:</label>
+    <label>其它:</label>
     <div id="otherItemsContainer" class="quick-other-items">
       <!-- 其他項目將在這裡生成 -->
     </div>
@@ -1730,7 +1730,7 @@ function createBusCard(bus, index) {
 
   // 主要項目選擇器
   const mainItemsLabel = document.createElement("label");
-  mainItemsLabel.textContent = "主要缺失:";
+  mainItemsLabel.textContent = "查核結果:";
   
   const mainItemsContainer = document.createElement("div");
   mainItemsContainer.className = "quick-items";
@@ -1754,7 +1754,7 @@ function createBusCard(bus, index) {
 
   // 其他項目選擇器
   const otherItemsLabel = document.createElement("label");
-  otherItemsLabel.textContent = "其他:";
+  otherItemsLabel.textContent = "其它:";
   
   const otherItemsContainer = document.createElement("div");
   otherItemsContainer.className = "quick-other-items";
@@ -1848,7 +1848,7 @@ function submitSelectedBus() {
   const mainItemsContainer = document.getElementById("mainItemsContainer");
   const selectedMainItem = mainItemsContainer.querySelector(".quick-item.selected");
   if (!selectedMainItem) {
-    showStatusMessage("請選擇主要缺失項目", "error");
+    showStatusMessage("請選擇查核結果", "error");
     return;
   }
   
