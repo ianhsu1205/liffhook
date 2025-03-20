@@ -385,11 +385,9 @@
                     // 顯示用戶綁定資訊
                     const userInfoDisplay = document.getElementById("userInfoDisplay");
                     userInfoDisplay.innerHTML = `
-                        <strong>${userData.name || '用戶'} 您好，感謝您同意並協助進行問卷，以下是您已登入的資料：</strong><br>
-                        公司名稱：${userData.company || ''}<br>
-                        員工編號：${userData.empId || ''}<br>
-                        所屬場站：${userData.station || ''}<br>
-                        主要路線：${userData.route || ''}<br>
+                        <strong>親愛的同仁您好，感謝您同意並協助進行問卷，你的登入資訊如下：</strong><br>
+                        公司：${userData.company || ''}<br>
+                        員編：${userData.empId || ''}<br>
                     `;
                     document.getElementById("unbindConfirmation").classList.remove("hidden");
                 } else if (response.status === 404) {
