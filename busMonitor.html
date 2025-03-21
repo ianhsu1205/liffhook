@@ -953,7 +953,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-03211345</div>
+      <div class="line-brand">首都集團路口查核平台-v03212014</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1408,7 +1408,7 @@ setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
     // 固定一個預設寬度
-    const MAX_WIDTH_WITHOUT_MARQUEE = 800; // 這個值可以根據您的UI設計調整
+    const MAX_WIDTH_WITHOUT_MARQUEE = 200; // 這個值可以根據您的UI設計調整
     if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       textElement.classList.add('scrolling');
     } else {
@@ -1908,11 +1908,11 @@ function createBusListItem(bus, index) {
   // 添加一個setTimeout來檢查並應用跑馬燈效果
   setTimeout(() => {
     // 固定一個預設寬度，例如100px
-    const MAX_WIDTH_WITHOUT_MARQUEE = 100;
+    const MAX_WIDTH_WITHOUT_MARQUEE = 20;
     if (routeTextElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       routeTextElement.classList.add('scrolling');
     }
-  }, 10);
+  }, 5);
   
   return busItem;
 }
