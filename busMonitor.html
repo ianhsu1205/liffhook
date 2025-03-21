@@ -639,9 +639,9 @@
   font-weight: 500;
   font-size: 15px;
   max-width: 60%;
-  text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  position: relative;
 }
 .bus-plate {
   background-color: #ffeb3b;
@@ -760,6 +760,11 @@ input:checked + .slider:before {
   min-width: 100%;
   }
   
+  /* 列表項中的跑馬燈速度更快 */
+.list-marquee.scrolling {
+  animation-duration: 5s; /* 速度為一般跑馬燈的2倍 */
+}
+
   .text-marquee:hover {
     animation-play-state: paused;
   }
@@ -948,7 +953,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-03211322</div>
+      <div class="line-brand">首都集團路口查核平台-03211331</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1867,7 +1872,8 @@ function updateDetectedBusesList() {
   container.appendChild(fragment);
 }
 
-// 抽取創建車輛列表項的函數
+以下是調整後的代碼，我已經修改了 createBusListItem 函數來支持車輛列表中的路線跑馬燈效果，並且將速度調快：
+javascriptCopy// 抽取創建車輛列表項的函數
 function createBusListItem(bus, index) {
   // 路線信息
   const routeInfo = bus.routeName?.chinese || "未知路線";
@@ -1875,10 +1881,15 @@ function createBusListItem(bus, index) {
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
   
-  // 創建路線元素
+  // 創建路線元素 - 修改為支持跑馬燈效果
   const routeElement = document.createElement("div");
   routeElement.className = "bus-route";
-  routeElement.textContent = routeInfo;
+  
+  // 使用跑馬燈包裝路線文字
+  const routeTextElement = document.createElement("div");
+  routeTextElement.className = "text-marquee list-marquee"; // 添加 list-marquee 類
+  routeTextElement.textContent = routeInfo;
+  routeElement.appendChild(routeTextElement);
 
   // 創建車號元素
   const plateElement = document.createElement("div");
@@ -1898,9 +1909,16 @@ function createBusListItem(bus, index) {
     selectBusForInput(bus, index);
   };
   
+  // 添加一個setTimeout來檢查並應用跑馬燈效果
+  setTimeout(() => {
+    if (routeTextElement.scrollWidth > routeElement.clientWidth) {
+      console.log("車輛列表項啟用跑馬燈效果:", bus.plateNumber);
+      routeTextElement.classList.add('scrolling');
+    }
+  }, 100);
+  
   return busItem;
 }
-
 
 // 計算兩點間距離的函數
 function calculateDistance(lat1, lon1, lat2, lon2) {
