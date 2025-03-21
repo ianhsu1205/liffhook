@@ -748,16 +748,16 @@ input:checked + .slider:before {
  /* 添加到現有樣式的最後 */
   /* 跑馬燈效果樣式 */
   .text-marquee {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+  display: block;
   }
   
   .text-marquee.scrolling {
-    animation: marquee-scroll 10s linear infinite;
-    animation-play-state: running;
+  animation: marquee-scroll 10s linear infinite;
+  display: inline-block;
+  min-width: 100%;
   }
   
   .text-marquee:hover {
@@ -771,16 +771,21 @@ input:checked + .slider:before {
   
   /* 調整路線顯示容器 */
   .route-info {
-    overflow: hidden;
-    position: relative;
-    padding: 5px 0;
+  color: #004085;
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: left;
+  width: 100%;
+  overflow: hidden;
   }
   
   /* 確保跑馬燈容器寬度正確 */
   #inputBusRoute {
-    overflow: hidden;
-    width: 100%;
-    position: relative;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
   }
 /* 響應式調整 */
 @media (max-width: 480px) {
@@ -943,7 +948,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-03211310</div>
+      <div class="line-brand">首都集團路口查核平台-03211322</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1394,15 +1399,21 @@ function selectBusForInput(bus, index) {
       routeElement.innerHTML = `<div class="text-marquee">路線: ${routeInfo}</div>`;
       
       // 檢查路線長度，如果過長則啟用跑馬燈效果
-      setTimeout(() => {
-        const textElement = routeElement.querySelector('.text-marquee');
-        if (textElement) {
-          // 檢查文字是否超出容器
-          if (textElement.scrollWidth > textElement.clientWidth) {
-            textElement.classList.add('scrolling');
-          }
-        }
-      }, 500);
+setTimeout(() => {
+  const textElement = routeElement.querySelector('.text-marquee');
+  if (textElement) {
+    console.log("文字寬度:", textElement.scrollWidth, "容器寬度:", textElement.clientWidth);
+    
+    // 文字比容器寬時才啟用跑馬燈
+    if (textElement.scrollWidth > textElement.clientWidth) {
+      console.log("啟用跑馬燈效果");
+      textElement.classList.add('scrolling');
+    } else {
+      console.log("無需跑馬燈效果");
+      textElement.classList.remove('scrolling');
+    }
+  }
+}, 1000); // 延長為1000毫秒，確保DOM完全渲染
 
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
@@ -2088,18 +2099,18 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
   try {
-    const data = {
-      userId: document.getElementById("userId").value,
-      location: document.getElementById("location").value,
-      plateNumbCompany: bus.operatorName || "",
-      routeName: bus.routeName?.chinese || "",
-      plateNumber: bus.plateNumber,
-      positionLat: `(${bus.position?.latitude || currentLatitude},${
-        bus.position?.longitude || currentLongitude
-      })`,
-      mainItem: mainItem,
-      otherItem: otherItems.join(", "),
-    };
+  const data = {
+  userId: document.getElementById("userId").value,
+  location: document.getElementById("location").value,
+  plateNumbCompany: bus.operatorName || "不明",  // 如果為空，顯示"不明"
+  routeName: bus.routeName?.chinese || "不明",   // 如果為空，顯示"不明"
+  plateNumber: bus.plateNumber,
+  positionLat: `(${bus.position?.latitude || currentLatitude},${
+    bus.position?.longitude || currentLongitude
+  })`,
+  mainItem: mainItem,
+  otherItem: otherItems.join(", "),
+};
     
     const response = await fetch(base_url + "monitor/records", {
       method: "POST",
