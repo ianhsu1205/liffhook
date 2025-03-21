@@ -745,6 +745,43 @@ input:checked + .slider {
 input:checked + .slider:before {
   transform: translateX(20px);
 }
+ /* 添加到現有樣式的最後 */
+  /* 跑馬燈效果樣式 */
+  .text-marquee {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    position: relative;
+  }
+  
+  .text-marquee.scrolling {
+    animation: marquee-scroll 10s linear infinite;
+    animation-play-state: running;
+  }
+  
+  .text-marquee:hover {
+    animation-play-state: paused;
+  }
+  
+  @keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+  
+  /* 調整路線顯示容器 */
+  .route-info {
+    overflow: hidden;
+    position: relative;
+    padding: 5px 0;
+  }
+  
+  /* 確保跑馬燈容器寬度正確 */
+  #inputBusRoute {
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+  }
 /* 響應式調整 */
 @media (max-width: 480px) {
   .switch-container {
@@ -979,6 +1016,60 @@ const companies = [
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
 
+const safeStorage = {
+  set: function(key, value) {
+    try {
+      if (typeof value === 'object') {
+        value = JSON.stringify(value);
+      }
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.error("保存到localStorage失敗:", error);
+      return false;
+    }
+  },
+  
+  get: function(key, defaultValue = null) {
+    try {
+      const value = localStorage.getItem(key);
+      if (value === null) return defaultValue;
+      
+      // 嘗試解析JSON
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        // 如果不是JSON，直接返回值
+        return value;
+      }
+    } catch (error) {
+      console.error("從localStorage讀取失敗:", error);
+      return defaultValue;
+    }
+  },
+  
+  remove: function(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (error) {
+      console.error("從localStorage刪除失敗:", error);
+      return false;
+    }
+  },
+  
+  // 檢查存儲是否可用
+  isAvailable: function() {
+    try {
+      const testKey = "__test__";
+      localStorage.setItem(testKey, testKey);
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+};
 
 // 切換是否包含已記錄車輛的開關
 function toggleIncludeRecorded() {
@@ -1062,27 +1153,9 @@ function formatPlateNumber(input) {
   input.value = result;
 }
 
-// 在頁面載入時初始化
-window.onload = async function () {
-  try {
-        // 清理過期提交記錄
-    cleanupExpiredSubmissions();
-    checkLocationPermission();
-    await initLIFF();
-        // 確保includeRecordedVehicles開關預設為false
-    includeRecordedVehicles = false;
-    document.getElementById('includeRecordedToggle').checked = false;
-    if (liffInitialized && liff.isLoggedIn()) {
-      startLocationWatching(true);
-    }
-        // 添加自動偵測健康檢查
-    setupAutoDetectHealthCheck();
-  } catch (error) {
-    console.error("頁面載入時發生錯誤:", error);
-    showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
-  }
-}
 
+// 在頁面載入時初始化
+window.onload = initializePage;
 // 清空顯示車輛列表的函數
 function clearDisplayedBuses() {
   // 如果列表已為空，顯示提示
@@ -1119,14 +1192,14 @@ function toggleAutoDetect() {
 // 打開手動輸入模態框時暫停自動偵測
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
-//   const wasAutoDetecting = !!autoDetectInterval;
+   const wasAutoDetecting = !!autoDetectInterval;
   
 //   // 如果正在自動偵測，暫時停止
-//   if (wasAutoDetecting) {
-//     stopAutoDetect();
+   if (wasAutoDetecting) {
+     stopAutoDetect();
 //     // 在window上保存狀態，以便後續恢復
-//     window.tempAutoDetectState = true;
-//   }
+     window.tempAutoDetectState = true;
+ }
   
   document.getElementById("manualInputModal").style.display = "block";
    // 重置表單欄位到預設值
@@ -1142,34 +1215,110 @@ function closeManualInputModal() {
   document.getElementById("manualInputModal").style.display = "none";
   
 //   // 如果之前是自動偵測狀態，恢復自動偵測
-//   if (window.tempAutoDetectState) {
-//     startAutoDetect();
-//     window.tempAutoDetectState = false;
-//   }
+  if (window.tempAutoDetectState) {
+    startAutoDetect();
+    window.tempAutoDetectState = false;
+  }
 }
 
 // 加強健康檢查函數，確保計時器正常運行
+// 改進的自動偵測健康檢查函數，更清晰的命名和錯誤處理
 function setupAutoDetectHealthCheck() {
-  // 每10秒（而不是30秒）檢查一次自動偵測是否正常運行
-  setInterval(() => {
-    const statusElem = document.getElementById("autoDetectStatus");
-    
-    // 檢查是否應該在自動偵測狀態但計時器已經停止
-    if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
-      console.log("檢測到自動偵測異常停止，正在重新啟動...");
-      // 重新啟動自動偵測
-      startAutoDetect();
+  const HEALTH_CHECK_INTERVAL_MS = 10000; // 10秒
+  
+  // 設置健康檢查定時器
+  const healthCheckInterval = setInterval(() => {
+    try {
+      const statusElem = document.getElementById("autoDetectStatus");
+      
+      // 檢查是否應該在自動偵測狀態但計時器已經停止
+      if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
+        console.log("檢測到自動偵測異常停止，正在重新啟動...");
+        // 重新啟動自動偵測
+        startAutoDetect();
+      }
+      
+      // 檢查倒數計時是否正常運行
+      if (statusElem && statusElem.textContent === "停止自動" && !countdownInterval) {
+        console.log("檢測到倒數計時異常停止，正在重新啟動...");
+        // 重新啟動倒數計時
+        startCountdown();
+      }
+    } catch (error) {
+      console.error("自動偵測健康檢查錯誤:", error);
+      // 即使出錯也不中斷健康檢查
     }
-    
-    // 檢查倒數計時是否正常運行
-    if (statusElem && statusElem.textContent === "停止自動" && !countdownInterval) {
-      console.log("檢測到倒數計時異常停止，正在重新啟動...");
-      // 重新啟動倒數計時
-      startCountdown();
+  }, HEALTH_CHECK_INTERVAL_MS);
+  
+  // 頁面卸載時清理健康檢查
+  window.addEventListener("beforeunload", function() {
+    if (healthCheckInterval) {
+      clearInterval(healthCheckInterval);
     }
-  }, 10000);
+  });
 }
-
+// 添加完整的頁面初始化函數，包含錯誤處理和回調
+async function initializePage() {
+  try {
+    showLoading();
+    console.log("初始化頁面...");
+    
+    // 檢查localStorage是否可用
+    if (!safeStorage.isAvailable()) {
+      showStatusMessage("本地存儲不可用，部分功能可能受限", "warning", true);
+    }
+    
+    // 清理過期提交記錄
+    cleanupExpiredSubmissions();
+    
+    // 檢查位置權限
+    checkLocationPermission();
+    
+    // 初始化LIFF
+    await initLIFF();
+    
+    // 確保includeRecordedVehicles開關預設為false
+    includeRecordedVehicles = false;
+    document.getElementById('includeRecordedToggle').checked = false;
+    
+    // 如果已登入，開始位置監視
+    if (liffInitialized && liff.isLoggedIn()) {
+      startLocationWatching(true);
+    }
+    
+    // 設置自動偵測健康檢查
+    setupAutoDetectHealthCheck();
+    
+    // 添加網絡狀態監聽器
+    setupNetworkListeners();
+    
+    console.log("頁面初始化完成");
+    hideLoading();
+  } catch (error) {
+    console.error("頁面載入時發生錯誤:", error);
+    showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
+    hideLoading();
+  }
+}
+// 網絡監聽器設置
+function setupNetworkListeners() {
+  // 網絡恢復連接
+  window.addEventListener('online', function() {
+    console.log("網絡連接恢復");
+    showStatusMessage("網絡連接已恢復", "info", true);
+    
+    // 如果頁面可見，更新位置
+    if (document.visibilityState === 'visible') {
+      getCurrentPosition(true);
+    }
+  });
+  
+  // 網絡斷開連接
+  window.addEventListener('offline', function() {
+    console.log("網絡連接已斷開");
+    showStatusMessage("網絡連接已斷開，部分功能可能不可用", "warning");
+  });
+}
 // 添加手動輸入的車輛
 function addManualBus() {
   const plateNumber = document.getElementById("manualPlateNumber").value.trim();
@@ -1240,8 +1389,21 @@ function selectBusForInput(bus, index) {
     
     // 更新車輛信息，將路線移到最上方
     const routeInfo = bus.routeName?.chinese || "未知路線";
-    
-    document.getElementById("inputBusRoute").textContent = `路線: ${routeInfo}`;
+          // 創建路線元素，添加跑馬燈功能
+      const routeElement = document.getElementById("inputBusRoute");
+      routeElement.innerHTML = `<div class="text-marquee">路線: ${routeInfo}</div>`;
+      
+      // 檢查路線長度，如果過長則啟用跑馬燈效果
+      setTimeout(() => {
+        const textElement = routeElement.querySelector('.text-marquee');
+        if (textElement) {
+          // 檢查文字是否超出容器
+          if (textElement.scrollWidth > textElement.clientWidth) {
+            textElement.classList.add('scrolling');
+          }
+        }
+      }, 500);
+
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
     
@@ -1374,9 +1536,19 @@ function isGroupCompany(operatorName) {
   );
 }
 
-// 開始持續監視位置
+// 檢查 startLocationWatching 函數（約在行 500 左右）：
 function startLocationWatching(silent = false) {
-  if (!window.watchId && navigator.geolocation) {
+  // 先停止現有的監視，避免重複監視
+  stopLocationWatching();
+  
+  if (!navigator.geolocation) {
+  console.log("瀏覽器不支持地理位置API");
+  if (!silent) {
+    showStatusMessage("您的設備不支持位置功能", "error");
+  }
+  return;
+}
+  if (navigator.geolocation) {
     window.watchId = navigator.geolocation.watchPosition(
       (position) => {
         console.log("位置已更新");
@@ -1395,6 +1567,7 @@ function startLocationWatching(silent = false) {
         maximumAge: 10000, // 允许10秒内的位置缓存
       }
     );
+    console.log("已啟動位置監視，watchId:", window.watchId);
   }
 }
 
@@ -1407,24 +1580,41 @@ function stopLocationWatching() {
   }
 }
 
-// 當獲取到新位置時，存入 localStorage
+// 使用改進的存儲函數保存位置
 function savePosition(latitude, longitude) {
-  try {
-    localStorage.setItem("lastKnownLatitude", latitude);
-    localStorage.setItem("lastKnownLongitude", longitude);
-    localStorage.setItem("lastPositionTimestamp", Date.now());
+  safeStorage.set("lastKnownLatitude", latitude);
+  safeStorage.set("lastKnownLongitude", longitude);
+  safeStorage.set("lastPositionTimestamp", Date.now());
 
-    // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
-    const statusElement = document.getElementById("statusMessage");
-    if (
-      statusElement.textContent.includes("無法獲取位置") ||
-      statusElement.textContent.includes("暫時無法獲取位置")
-    ) {
-      statusElement.textContent = "";
-      statusElement.className = "status-message";
+  // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
+  const statusElement = document.getElementById("statusMessage");
+  if (
+    statusElement.textContent.includes("無法獲取位置") ||
+    statusElement.textContent.includes("暫時無法獲取位置")
+  ) {
+    statusElement.textContent = "";
+    statusElement.className = "status-message";
+  }
+}
+
+
+// 確保有正確的 callAPI 函數實現（約在行 460 左右）：
+async function callAPI(url, options = {}, errorMessage = "操作失敗，請稍後再試", showErrorToUser = true) {
+  try {
+    const response = await fetchWithRetry(url, options, 3);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP錯誤 ${response.status}`);
     }
-  } catch (e) {
-    console.log("無法儲存位置到本地儲存");
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`API調用失敗 (${url}):`, error);
+    if (showErrorToUser) {
+      showStatusMessage(errorMessage, "error");
+    }
+    throw error;
   }
 }
 // 初始化 LIFF
@@ -1590,6 +1780,45 @@ async function detectBuses(isAutoDetection = false) {
     }
   }
 }
+// 獲取車輛距離的輔助函數
+function getVehicleDistance(bus) {
+  // 預設999米
+  let distanceInMeters = 999;
+  
+  // 嘗試從Distance字段獲取距離（如果存在）
+  if (bus.Distance !== undefined) {
+    distanceInMeters = bus.Distance * 1000; // 公里轉公尺
+  }
+  // 如果沒有Distance字段，嘗試從位置計算距離
+  else if (bus.position && bus.position.latitude && bus.position.longitude) {
+    distanceInMeters = calculateDistance(
+      currentLatitude, 
+      currentLongitude, 
+      bus.position.latitude, 
+      bus.position.longitude
+    );
+  }
+  
+  return distanceInMeters;
+}
+
+// 根據距離為元素添加CSS類
+function addDistanceClassToElement(element, distanceInMeters) {
+  // 先清除所有距離相關的類
+  element.classList.remove("distance-veryclose", "distance-close", "distance-medium", "distance-far");
+  
+  // 添加對應的距離類
+  if (distanceInMeters <= 80) {
+    element.classList.add("distance-veryclose"); // 0-80m 滿色
+  } else if (distanceInMeters <= 150) {
+    element.classList.add("distance-close"); // 81-150m 3/4滿色
+  } else if (distanceInMeters <= 220) {
+    element.classList.add("distance-medium"); // 151-220m 2/4滿色
+  } else if (distanceInMeters <= 300) {
+    element.classList.add("distance-far"); // 221-300m 1/4滿色
+  }
+}
+
 
 // 使用DocumentFragment優化更新車輛列表
 function updateDetectedBusesList() {
@@ -1615,55 +1844,7 @@ function updateDetectedBusesList() {
     busListContainer.className = "simple-bus-list";
     
     displayedBuses.forEach((bus, index) => {
-      // 路線信息
-      const routeInfo = bus.routeName?.chinese || "未知路線";
-      
-      const busItem = document.createElement("div");
-      busItem.className = "simple-bus-item";
-      // 創建路線元素
-      const routeElement = document.createElement("div");
-      routeElement.className = "bus-route";
-      routeElement.textContent = routeInfo;
-
-            // 創建車號元素
-      const plateElement = document.createElement("div");
-      plateElement.className = "bus-plate";
-
-           // 獲取距離 - 先處理API返回的Distance（單位公里）
-      let distanceInMeters = 999; // 預設999米
-            // 嘗試從Distance字段獲取距離（如果存在）
-      if (bus.Distance !== undefined) {
-        distanceInMeters = bus.Distance * 1000; // 公里轉公尺
-      }
-      // 如果沒有Distance字段，嘗試從位置計算距離
-      else if (bus.position && bus.position.latitude && bus.position.longitude) {
-        distanceInMeters = calculateDistance(
-          currentLatitude, 
-          currentLongitude, 
-          bus.position.latitude, 
-          bus.position.longitude
-        );
-      }
-            // 根據距離添加相應的CSS類到車號上
-      if (distanceInMeters <= 80) {
-        plateElement.classList.add("distance-veryclose"); // 0-100m 滿色
-      } else if (distanceInMeters <= 150) {
-        plateElement.classList.add("distance-close"); // 101-150m 3/4滿色
-      } else if (distanceInMeters <= 220) {
-        plateElement.classList.add("distance-medium"); // 151-200m 2/4滿色
-      } else if (distanceInMeters <= 300) {
-        plateElement.classList.add("distance-far"); // 201-250m 1/4滿色
-      }
-      plateElement.textContent = bus.plateNumber;
-      
-      // 將元素添加到車輛項目中
-      busItem.appendChild(routeElement);
-      busItem.appendChild(plateElement);
-      
-      busItem.onclick = function() {
-        selectBusForInput(bus, index);
-      };
-      
+      const busItem = createBusListItem(bus, index);
       busListContainer.appendChild(busItem);
     });
     
@@ -1674,6 +1855,41 @@ function updateDetectedBusesList() {
   container.innerHTML = "";
   container.appendChild(fragment);
 }
+
+// 抽取創建車輛列表項的函數
+function createBusListItem(bus, index) {
+  // 路線信息
+  const routeInfo = bus.routeName?.chinese || "未知路線";
+  
+  const busItem = document.createElement("div");
+  busItem.className = "simple-bus-item";
+  
+  // 創建路線元素
+  const routeElement = document.createElement("div");
+  routeElement.className = "bus-route";
+  routeElement.textContent = routeInfo;
+
+  // 創建車號元素
+  const plateElement = document.createElement("div");
+  plateElement.className = "bus-plate";
+
+  // 獲取距離並設置對應的CSS類
+  const distanceInMeters = getVehicleDistance(bus);
+  addDistanceClassToElement(plateElement, distanceInMeters);
+  
+  plateElement.textContent = bus.plateNumber;
+  
+  // 將元素添加到車輛項目中
+  busItem.appendChild(routeElement);
+  busItem.appendChild(plateElement);
+  
+  busItem.onclick = function() {
+    selectBusForInput(bus, index);
+  };
+  
+  return busItem;
+}
+
 
 // 計算兩點間距離的函數
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -1926,10 +2142,10 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
 async function getCurrentPosition(silent = false) {
   showLoading();
   console.log("開始獲取位置...");
-
-  // 檢查LINE環境
-  const isInLineApp = liff.isInClient();
-  console.log("是否在LINE環境中:", isInLineApp);
+  
+  // 新增全局變數用於重試
+  let retryCount = 0;
+  const maxRetries = 3;
 
   try {
     // 1. 首先嘗試從本地存儲讀取最近位置
@@ -1940,16 +2156,17 @@ async function getCurrentPosition(silent = false) {
     }
 
     // 2. 然後在LINE環境中使用LIFF API
-    if (isInLineApp) {
+    const isInLineApp = liff.isInClient();
+    if (isInLineApp && liffInitialized) {
       console.log("嘗試使用LIFF位置API...");
 
-      // 設置超時
-      const positionPromise = liff.getPosition();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("LIFF位置獲取超時")), 8000);
-      });
-
       try {
+        // 設置超時，增加到10秒
+        const positionPromise = liff.getPosition();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("LIFF位置獲取超時")), 10000);
+        });
+
         const position = await Promise.race([
           positionPromise,
           timeoutPromise,
@@ -1968,14 +2185,20 @@ async function getCurrentPosition(silent = false) {
       }
     }
 
-    // 3. 嘗試使用瀏覽器定位API
-    if (navigator.geolocation) {
+    // 3. 嘗試使用瀏覽器定位API (增加重試機制)
+    while (retryCount < maxRetries && navigator.geolocation) {
       try {
+        // 清除之前的位置監視，避免衝突
+        if (window.watchId) {
+          navigator.geolocation.clearWatch(window.watchId);
+          window.watchId = null;
+        }
+        
         const position = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 0,
+            timeout: 15000, // 增加到15秒增加成功率
+            maximumAge: 0, // 不使用緩存
           });
         });
 
@@ -1983,11 +2206,26 @@ async function getCurrentPosition(silent = false) {
         currentLatitude = position.coords.latitude;
         currentLongitude = position.coords.longitude;
         savePosition(currentLatitude, currentLongitude);
+        
+        // 重新啟動位置監視
+        startLocationWatching(true);
+        
         hideLoading();
         return true;
       } catch (geoError) {
-        console.error("瀏覽器位置API錯誤:", geoError);
-        // 繼續嘗試下一個方法
+        console.error("瀏覽器位置API錯誤:", geoError.code, geoError.message);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`位置獲取失敗，進行第${retryCount}次重試`);
+          // 延遲2秒後重試
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          // 循環將繼續下一次重試
+        } else {
+          console.log("達到最大重試次數，使用預設位置");
+          // 使用預設位置
+          break;
+        }
       }
     }
 
@@ -1998,40 +2236,65 @@ async function getCurrentPosition(silent = false) {
     savePosition(currentLatitude, currentLongitude);
     hideLoading();
 
-    // 只有在非静默模式下显示消息
     if (!silent) {
-      showStatusMessage("無法準確獲取位置，使用預設位置", "info",true);
+      showStatusMessage("無法準確獲取位置，使用預設位置", "info", true);
     }
     return true;
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
-    // 只有在非静默模式下显示消息
+    
     if (!silent) {
-      showStatusMessage("暫時無法獲取位置，請至室外", "info",true);
+      showStatusMessage("暫時無法獲取位置，請至室外", "info", true);
     }
     return false;
   }
 }
+// 添加頁面可見性變化監聽器 - 放在全局初始化區域
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    console.log('頁面重新變為可見，更新位置...');
+    
+    // 如果位置監視器不存在，重新啟動
+    if (!window.watchId) {
+      startLocationWatching(true);
+    }
+    
+    // 獲取最新位置，但使用靜默模式避免彈出訊息
+    getCurrentPosition(true).then(success => {
+      if (success) {
+        console.log('頁面重新可見時成功更新位置');
+      }
+    });
+  }
+});
 
-// 嘗試從 localStorage 讀取位置
+// 網絡狀態變化監聽器 - 放在全局初始化區域
+window.addEventListener('online', function() {
+  console.log("網絡連接恢復，重新獲取位置");
+  if (document.visibilityState === 'visible') {
+    getCurrentPosition(true);
+  }
+});
+
+// 嘗試從 localStorage 讀取位置，使用明確的超時時間常量
 function loadLastPosition() {
+  const POSITION_VALID_DURATION_MS = 60 * 1000; // 60秒，即1分鐘
+  
   try {
-    const lastLat = localStorage.getItem("lastKnownLatitude");
-    const lastLng = localStorage.getItem("lastKnownLongitude");
-    const timestamp = localStorage.getItem("lastPositionTimestamp");
+    const lastLat = safeStorage.get("lastKnownLatitude");
+    const lastLng = safeStorage.get("lastKnownLongitude");
+    const timestamp = safeStorage.get("lastPositionTimestamp");
 
     if (lastLat && lastLng && timestamp) {
-      // 30分鐘改為30000毫秒(30秒)，與其他地方的設置保持一致
-      const thirtySeconds = 30 * 1000;
-      if (Date.now() - timestamp < thirtySeconds) {
+      if (Date.now() - timestamp < POSITION_VALID_DURATION_MS) {
         currentLatitude = parseFloat(lastLat);
         currentLongitude = parseFloat(lastLng);
         return true;
       }
     }
   } catch (e) {
-    console.log("無法從本地儲存讀取位置");
+    console.log("無法從本地儲存讀取位置:", e);
   }
   return false;
 }
@@ -2291,7 +2554,6 @@ async function fetchOtherItems() {
   }
 }
 // 打開已提交歷史紀錄
-// 打開已提交歷史紀錄
 async function openSubmittedHistoryModal() {
   document.getElementById("historyModal").style.display = "block";
 
@@ -2366,23 +2628,28 @@ async function openSubmittedHistoryModal() {
   }
 }
 
-// 清理過期的提交記錄
+// 清理過期的提交記錄，使用清晰的常量命名
 function cleanupExpiredSubmissions() {
-  const threeMinutes = 3 * 60 * 1000; // 3分鐘轉換為毫秒
+  const SUBMISSION_EXPIRY_TIME_MS = 3 * 60 * 1000; // 3分鐘
   const currentTime = Date.now();
   
-  // 遍歷 localStorage 查找所有提交記錄
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('submitted_')) {
-      const submissionTime = parseInt(localStorage.getItem(key));
-      if (currentTime - submissionTime >= threeMinutes) {
-        // 超過3分鐘，刪除該記錄
-        localStorage.removeItem(key);
+  try {
+    // 遍歷 localStorage 查找所有提交記錄
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('submitted_')) {
+        const submissionTime = parseInt(localStorage.getItem(key));
+        if (currentTime - submissionTime >= SUBMISSION_EXPIRY_TIME_MS) {
+          // 超過3分鐘，刪除該記錄
+          localStorage.removeItem(key);
+        }
       }
     }
+  } catch (error) {
+    console.error("清理過期提交記錄失敗:", error);
   }
 }
+
 // 關閉歷史記錄彈窗
 function closeHistoryModal() {
   document.getElementById("historyModal").style.display = "none";
@@ -2419,7 +2686,7 @@ async function fetchLastLocation(userId) {
   }
 }
 // 顯示狀態訊息
-// 顯示狀態訊息
+// 更新 showStatusMessage 函數（約在行 1230 左右）：
 function showStatusMessage(message, type, autoHide = false) {
   const statusElement = document.getElementById("statusMessage");
   statusElement.textContent = message;
@@ -2439,17 +2706,23 @@ function showStatusMessage(message, type, autoHide = false) {
       statusElement.className = "status-message";
     }, 5000);
   }
+  
+  return statusElement; // 返回元素，以便呼叫者可以進一步操作
 }
 
 // 顯示載入中
-function showLoading() {
-  document.getElementById("loading-overlay").classList.remove("hidden");
-  // 添加自動超時，10秒後強制關閉loading
+function showLoading(timeoutMs = 10000) {
+  const loadingElement = document.getElementById("loading-overlay");
+  loadingElement.classList.remove("hidden");
+  
+  // 添加自動超時
   if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
   globalLoadingTimeout = setTimeout(() => {
     console.warn("Loading超時，自動關閉");
     hideLoading();
-  }, 10000);
+  }, timeoutMs);
+  
+  return loadingElement;
 }
 
 // 隱藏載入中
