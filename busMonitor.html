@@ -762,7 +762,7 @@ input:checked + .slider:before {
   
   /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-  animation-duration: 5s; /* 速度為一般跑馬燈的2倍 */
+  animation-duration: 2s; /* 速度為一般跑馬燈的2倍 */
 }
 
   .text-marquee:hover {
@@ -953,7 +953,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-03211334</div>
+      <div class="line-brand">首都集團路口查核平台-03211345</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1407,18 +1407,15 @@ function selectBusForInput(bus, index) {
 setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
-    console.log("文字寬度:", textElement.scrollWidth, "容器寬度:", textElement.clientWidth);
-    
-    // 文字比容器寬時才啟用跑馬燈
-    if (textElement.scrollWidth > textElement.clientWidth) {
-      console.log("啟用跑馬燈效果");
+    // 固定一個預設寬度
+    const MAX_WIDTH_WITHOUT_MARQUEE = 300; // 這個值可以根據您的UI設計調整
+    if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       textElement.classList.add('scrolling');
     } else {
-      console.log("無需跑馬燈效果");
       textElement.classList.remove('scrolling');
     }
   }
-}, 1000); // 延長為1000毫秒，確保DOM完全渲染
+}, 10); // 減少延遲時間，讓跑馬燈更快啟動
 
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
@@ -1910,11 +1907,12 @@ function createBusListItem(bus, index) {
   
   // 添加一個setTimeout來檢查並應用跑馬燈效果
   setTimeout(() => {
-    if (routeTextElement.scrollWidth > routeElement.clientWidth) {
-      console.log("車輛列表項啟用跑馬燈效果:", bus.plateNumber);
+    // 固定一個預設寬度，例如100px
+    const MAX_WIDTH_WITHOUT_MARQUEE = 200;
+    if (routeTextElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       routeTextElement.classList.add('scrolling');
     }
-  }, 100);
+  }, 10);
   
   return busItem;
 }
