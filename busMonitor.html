@@ -597,16 +597,17 @@
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
-  width: 40%;          /* 固定寬度，可以根據您的需要調整 */
-  overflow: hidden;    /* 隱藏超出部分 */
-  white-space: nowrap; /* 防止文字換行 */
-  position: relative;  /* 確保跑馬燈效果正確定位 */
+  width: 45%;          /* 從40%小幅調整為45% */
+  overflow: hidden;    
+  white-space: nowrap;
+  position: relative;  
 }
 .simple-bus-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding: 10px;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
@@ -645,11 +646,13 @@
   position: relative;
 }
 .bus-plate {
+    flex-shrink: 0; 
   background-color: #ffeb3b;
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: bold;
   font-size: 14px;
+    margin-left: auto;   /* 將車牌靠右對齊 */
 }
 .bus-info-header {
   background-color: #f8f9fa;
@@ -760,7 +763,8 @@ input:checked + .slider:before {
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-  animation-duration: 1s; /* 可以調整速度 */
+  animation: marquee-scroll 3s linear infinite;
+  animation-delay: 0.5s; /* 延遲開始滾動 */
 }
 
   .text-marquee:hover {
@@ -768,7 +772,7 @@ input:checked + .slider:before {
   }
   
   @keyframes marquee-scroll {
-  0% { transform: translateX(0); }
+  0%, 20% { transform: translateX(0); } /* 開始時先停留一段時間 */
   100% { transform: translateX(-100%); }
   }
   
@@ -951,7 +955,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212027</div>
+      <div class="line-brand">首都集團路口查核平台-v03212034</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1875,7 +1879,7 @@ function createBusListItem(bus, index) {
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
   
-  // 創建路線元素包裹容器 - 添加固定寬度限制
+  // 創建路線元素包裹容器
   const routeElement = document.createElement("div");
   routeElement.className = "bus-route-container";
   
@@ -1888,7 +1892,7 @@ function createBusListItem(bus, index) {
   // 創建車號元素
   const plateElement = document.createElement("div");
   plateElement.className = "bus-plate";
-
+  
   // 獲取距離並設置對應的CSS類
   const distanceInMeters = getVehicleDistance(bus);
   addDistanceClassToElement(plateElement, distanceInMeters);
@@ -1903,13 +1907,10 @@ function createBusListItem(bus, index) {
     selectBusForInput(bus, index);
   };
   
-  // 添加一個setTimeout來檢查並應用跑馬燈效果
+  // 判斷路線名稱是否需要跑馬燈
   setTimeout(() => {
-    // 檢查文本是否超出容器
-    if (routeTextElement.scrollWidth > routeElement.clientWidth) {
+    if (routeInfo.length > 8) {  // 當路線名稱超過10個字時自動使用跑馬燈
       routeTextElement.classList.add('scrolling');
-    } else {
-      routeTextElement.classList.remove('scrolling');
     }
   }, 10);
   
