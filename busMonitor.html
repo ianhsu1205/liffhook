@@ -597,28 +597,25 @@
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
-  width: 65%;            /* 使用百分比控制寬度 */
-  max-width: 90px;       /* 最大寬度限制 */
+  width: 65px;            /* 固定寬度 */
   overflow: hidden;    
   white-space: nowrap;
   position: relative;
-  text-overflow: ellipsis;
-  flex-shrink: 1;        /* 允許適當壓縮 */
+  margin-right: 6px;      /* 右側間距 */
 }
 .simple-bus-item {
   background-color: #f8f9fa;
   border: 1px solid #eee;
   border-radius: 6px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;  /* 改為從左開始排列 */
   align-items: center;
   width: 100%;
-  padding: 8px;          /* 減小內邊距 */
+  padding: 8px 6px;
   box-sizing: border-box;
   margin: 0;
-  position: relative;
-  overflow: visible;     /* 改為可見溢出 */
-  min-height: 45px;      /* 使用最小高度而非固定高度 */
+  min-height: 45px;
+  overflow: hidden;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
@@ -657,17 +654,19 @@
   position: relative;
 }
 .bus-plate {
-  flex-shrink: 0;        /* 防止車牌被壓縮 */
-  width: 35%;            /* 分配更多空間給車牌 */
-  max-width: 85px;       /* 最大寬度限制 */
+ flex-shrink: 0;
+  width: auto;            /* 改為自動寬度 */
+  min-width: 80px;        /* 最小寬度 */
+  max-width: none;        /* 移除最大寬度限制 */
   text-align: center;
   background-color: #ffeb3b;
-  padding: 3px 5px;      /* 減小內邊距 */
+  padding: 3px 6px;
   border-radius: 4px;
   font-weight: bold;
   font-size: 14px;
-  margin-left: auto;     /* 靠右對齊 */
-  overflow: visible;     /* 允許內容溢出 */
+  margin-left: 8px;
+  white-space: nowrap;    /* 防止斷行 */
+  overflow: visible;
 }
 .bus-info-header {
   background-color: #f8f9fa;
@@ -780,9 +779,10 @@ input:checked + .slider:before {
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-    animation: marquee-scroll-left 8s linear infinite; /* 增加時間確保完整滾動 */
+   width: auto;
+  padding-left: 100%;  /* 確保文本從容器外開始 */
+  animation: marquee-scroll-left 2s linear infinite;  /* 3秒完成一次循環 */
   display: inline-block;
-  white-space: nowrap;
 }
 
   .text-marquee:hover {
@@ -791,8 +791,8 @@ input:checked + .slider:before {
   
 /* 修改跑馬燈效果為單向 */
 @keyframes marquee-scroll-left {
-  0%, 5% { transform: translateX(0); }
-  95%, 100% { transform: translateX(-200%); } /* 移動更遠距離確保完全顯示 */
+  from { transform: translateX(100%); }  /* 從右側開始 */
+  to { transform: translateX(-100%); }   /* 滾動到左側完全消失 */
 }
   
   /* 調整路線顯示容器 */
@@ -974,7 +974,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212111</div>
+      <div class="line-brand">首都集團路口查核平台-v03212116</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1906,14 +1906,11 @@ function createBusListItem(bus, index) {
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
   
-  // 路線太長時直接啟動跑馬燈，降低門檻
-  if (routeInfo.length > 4) {  // 降低門檻至4個字符
+  // 簡化跑馬燈邏輯，只要超過5個字元就啟用
+  routeTextElement.textContent = routeInfo;
+  
+  if (routeInfo.length > 5) {
     routeTextElement.classList.add("list-marquee", "scrolling");
-    
-    // 創建額外的內容以確保完全滾動
-    routeTextElement.innerHTML = `${routeInfo} &nbsp;&nbsp;&nbsp;&nbsp; ${routeInfo}`;
-  } else {
-    routeTextElement.textContent = routeInfo;
   }
   
   // 添加title屬性，方便懸停查看完整路線
