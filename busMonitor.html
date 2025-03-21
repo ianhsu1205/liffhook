@@ -782,7 +782,7 @@ input:checked + .slider:before {
   position: relative;
   width: auto;
   padding-left: 0;
-  animation: continuous-scroll 5s linear infinite; /* 速度調整為6秒 */
+  animation: continuous-scroll 10s linear infinite; /* 速度調整為6秒 */
   white-space: nowrap;
 }
 /* 添加額外空間，確保文本之間有適當間距 */
@@ -794,8 +794,8 @@ input:checked + .slider:before {
   }
   
 @keyframes continuous-scroll {
-  0% { transform: translateX(100%); }
- 100% { transform: translateX(-105%); } /* 縮小負值範圍，減少空白時間 */
+  0% { transform: translateX(60%); }    /* 從部分可見位置開始 */
+  100% { transform: translateX(-100%); } /* 完全滾出視圖 */
 }
   
   /* 調整路線顯示容器 */
@@ -977,7 +977,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212125</div>
+      <div class="line-brand">首都集團路口查核平台-v03212130</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1913,8 +1913,8 @@ function createBusListItem(bus, index) {
   if (routeInfo.length > 4) {
     routeTextElement.classList.add("list-marquee", "scrolling");
     
-    // 創建一個複製的文本，添加到原文本後
-    const routeInfoDuplicated = routeInfo + " · " + routeInfo;
+    // 重複文本三次以避免空白間隔
+    const repeatedText = routeInfo + "  " + routeInfo + "  " + routeInfo;
     routeTextElement.textContent = routeInfoDuplicated;
   } else {
     routeTextElement.textContent = routeInfo;
