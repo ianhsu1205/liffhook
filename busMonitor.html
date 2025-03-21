@@ -597,17 +597,22 @@
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
-  width: 45%;          /* 從40%小幅調整為45% */
+  width: 110px;          /* 使用固定像素寬度而不是百分比 */
   overflow: hidden;    
   white-space: nowrap;
-  position: relative;  
+  position: relative;
+  text-overflow: ellipsis; /* 添加省略號效果作為備用 */
 }
 .simple-bus-item {
+  background-color: #f8f9fa;  /* 添加淺灰背景 */
+  border: 1px solid #eee;     /* 添加輕微邊框 */
+  border-radius: 6px;         /* 圓角 */
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   padding: 10px;
+  transition: all 0.2s ease;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
@@ -756,6 +761,8 @@ input:checked + .slider:before {
   white-space: nowrap;
   overflow: hidden;
   width: 100%;
+  color: #004085;        /* 恢復藍色文字 */
+  font-weight: 500;      /* 半粗體 */
   }
   
 .text-marquee.scrolling {
@@ -763,8 +770,7 @@ input:checked + .slider:before {
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-  animation: marquee-scroll 3s linear infinite;
-  animation-delay: 0.5s; /* 延遲開始滾動 */
+  animation: marquee-scroll 4s linear infinite alternate; /* 往返滾動 */
 }
 
   .text-marquee:hover {
@@ -772,8 +778,8 @@ input:checked + .slider:before {
   }
   
   @keyframes marquee-scroll {
-  0%, 20% { transform: translateX(0); } /* 開始時先停留一段時間 */
-  100% { transform: translateX(-100%); }
+  0%, 10% { transform: translateX(0); } /* 開始時短暫停留 */
+  90%, 100% { transform: translateX(-100%); } /* 結束時也短暫停留 */
   }
   
   /* 調整路線顯示容器 */
@@ -955,7 +961,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212034</div>
+      <div class="line-brand">首都集團路口查核平台-v03212057</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1886,7 +1892,17 @@ function createBusListItem(bus, index) {
   // 使用跑馬燈包裝路線文字
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee list-marquee";
+  
+  // 如果路線太長，直接啟動跑馬燈
+  if (routeInfo.length > 8) {
+    routeTextElement.classList.add("scrolling");
+  }
+  
   routeTextElement.textContent = routeInfo;
+  
+  // 添加title屬性，在懸停時顯示完整路線名稱
+  routeElement.title = routeInfo;
+  
   routeElement.appendChild(routeTextElement);
 
   // 創建車號元素
@@ -1906,13 +1922,6 @@ function createBusListItem(bus, index) {
   busItem.onclick = function() {
     selectBusForInput(bus, index);
   };
-  
-  // 判斷路線名稱是否需要跑馬燈
-  setTimeout(() => {
-    if (routeInfo.length > 8) {  // 當路線名稱超過10個字時自動使用跑馬燈
-      routeTextElement.classList.add('scrolling');
-    }
-  }, 10);
   
   return busItem;
 }
