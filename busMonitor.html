@@ -1408,7 +1408,7 @@ setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
     // 固定一個預設寬度
-    const MAX_WIDTH_WITHOUT_MARQUEE = 300; // 這個值可以根據您的UI設計調整
+    const MAX_WIDTH_WITHOUT_MARQUEE = 800; // 這個值可以根據您的UI設計調整
     if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       textElement.classList.add('scrolling');
     } else {
@@ -1908,7 +1908,7 @@ function createBusListItem(bus, index) {
   // 添加一個setTimeout來檢查並應用跑馬燈效果
   setTimeout(() => {
     // 固定一個預設寬度，例如100px
-    const MAX_WIDTH_WITHOUT_MARQUEE = 200;
+    const MAX_WIDTH_WITHOUT_MARQUEE = 100;
     if (routeTextElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       routeTextElement.classList.add('scrolling');
     }
