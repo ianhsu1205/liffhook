@@ -779,20 +779,24 @@ input:checked + .slider:before {
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-   width: auto;
-  padding-left: 100%;  /* 確保文本從容器外開始 */
-  animation: marquee-scroll-left 2s linear infinite;  /* 3秒完成一次循環 */
+  position: relative;
+  width: auto;
+  padding-left: 0;
+  animation: continuous-scroll 6s linear infinite; /* 速度調整為6秒 */
+  white-space: nowrap;
+}
+/* 添加額外空間，確保文本之間有適當間距 */
+.list-marquee.scrolling::after {
+  content: "　　　"; /* 使用全角空格作為分隔 */
   display: inline-block;
 }
-
   .text-marquee:hover {
     animation-play-state: paused;
   }
   
-/* 修改跑馬燈效果為單向 */
-@keyframes marquee-scroll-left {
-  from { transform: translateX(100%); }  /* 從右側開始 */
-  to { transform: translateX(-100%); }   /* 滾動到左側完全消失 */
+@keyframes continuous-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-120%); } /* 稍微多一點距離確保無縫連接 */
 }
   
   /* 調整路線顯示容器 */
@@ -974,7 +978,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212116</div>
+      <div class="line-brand">首都集團路口查核平台-v03212120</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1906,11 +1910,13 @@ function createBusListItem(bus, index) {
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
   
-  // 簡化跑馬燈邏輯，只要超過5個字元就啟用
-  routeTextElement.textContent = routeInfo;
-  
-  if (routeInfo.length > 5) {
+  // 對於長度超過4的文本啟用跑馬燈
+  if (routeInfo.length > 4) {
     routeTextElement.classList.add("list-marquee", "scrolling");
+    // 路線名稱重複兩次，確保連續滾動效果
+    routeTextElement.textContent = routeInfo;
+  } else {
+    routeTextElement.textContent = routeInfo;
   }
   
   // 添加title屬性，方便懸停查看完整路線
