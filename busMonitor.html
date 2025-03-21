@@ -595,17 +595,18 @@
   gap: 10px;
   margin-top: 15px;
 }
-
+/* 路線容器固定寬度 */
+.bus-route-container {
+  width: 60%;          /* 固定寬度，可以根據您的需要調整 */
+  overflow: hidden;    /* 隱藏超出部分 */
+  white-space: nowrap; /* 防止文字換行 */
+  position: relative;  /* 確保跑馬燈效果正確定位 */
+}
 .simple-bus-item {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
@@ -748,21 +749,18 @@ input:checked + .slider:before {
  /* 添加到現有樣式的最後 */
   /* 跑馬燈效果樣式 */
   .text-marquee {
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   width: 100%;
-  display: block;
   }
   
-  .text-marquee.scrolling {
-  animation: marquee-scroll 10s linear infinite;
-  display: inline-block;
-  min-width: 100%;
-  }
-  
-  /* 列表項中的跑馬燈速度更快 */
+.text-marquee.scrolling {
+  animation: marquee-scroll 8s linear infinite;
+}
+/* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-  animation-duration: 2s; /* 速度為一般跑馬燈的2倍 */
+  animation-duration: 5s; /* 可以調整速度 */
 }
 
   .text-marquee:hover {
@@ -770,8 +768,8 @@ input:checked + .slider:before {
   }
   
   @keyframes marquee-scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
   }
   
   /* 調整路線顯示容器 */
@@ -953,7 +951,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212014</div>
+      <div class="line-brand">首都集團路口查核平台-v03212022</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1408,7 +1406,7 @@ setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
     // 固定一個預設寬度
-    const MAX_WIDTH_WITHOUT_MARQUEE = 200; // 這個值可以根據您的UI設計調整
+    const MAX_WIDTH_WITHOUT_MARQUEE = 800; // 這個值可以根據您的UI設計調整
     if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       textElement.classList.add('scrolling');
     } else {
@@ -1877,13 +1875,13 @@ function createBusListItem(bus, index) {
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
   
-  // 創建路線元素 - 修改為支持跑馬燈效果
+  // 創建路線元素包裹容器 - 添加固定寬度限制
   const routeElement = document.createElement("div");
-  routeElement.className = "bus-route";
+  routeElement.className = "bus-route-container";
   
   // 使用跑馬燈包裝路線文字
   const routeTextElement = document.createElement("div");
-  routeTextElement.className = "text-marquee list-marquee"; // 添加 list-marquee 類
+  routeTextElement.className = "text-marquee list-marquee";
   routeTextElement.textContent = routeInfo;
   routeElement.appendChild(routeTextElement);
 
@@ -1907,12 +1905,13 @@ function createBusListItem(bus, index) {
   
   // 添加一個setTimeout來檢查並應用跑馬燈效果
   setTimeout(() => {
-    // 固定一個預設寬度，例如100px
-    const MAX_WIDTH_WITHOUT_MARQUEE = 20;
-    if (routeTextElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
+    // 檢查文本是否超出容器
+    if (routeTextElement.scrollWidth > routeElement.clientWidth) {
       routeTextElement.classList.add('scrolling');
+    } else {
+      routeTextElement.classList.remove('scrolling');
     }
-  }, 5);
+  }, 10);
   
   return busItem;
 }
