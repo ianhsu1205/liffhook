@@ -782,7 +782,7 @@ input:checked + .slider:before {
   position: relative;
   width: auto;
   padding-left: 0;
-  animation: continuous-scroll 10s linear infinite; /* 速度調整為6秒 */
+  animation: continuous-scroll 15s linear infinite; 
   white-space: nowrap;
 }
 /* 添加額外空間，確保文本之間有適當間距 */
@@ -794,8 +794,8 @@ input:checked + .slider:before {
   }
   
 @keyframes continuous-scroll {
-  0% { transform: translateX(60%); }    /* 從部分可見位置開始 */
-  100% { transform: translateX(-100%); } /* 完全滾出視圖 */
+  0% { transform: translateX(100%); }    /* 從完全隱藏的右側開始 */
+  100% { transform: translateX(-100%); } /* 滾動到完全隱藏的左側 */
 }
   
   /* 調整路線顯示容器 */
@@ -977,7 +977,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v03212142</div>
+      <div class="line-brand">首都集團路口查核平台-v03212148</div>
     </div>
 
     <!-- 位置選擇彈窗 -->
@@ -1915,7 +1915,7 @@ function createBusListItem(bus, index) {
     routeTextElement.classList.add("list-marquee", "scrolling");
     
     // 重複文本三次以避免空白間隔
-    const repeatedText = routeInfo + "  " + routeInfo + "  " + routeInfo;
+    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
     routeTextElement.textContent = repeatedText;
   } else {
     routeTextElement.textContent = routeInfo;
