@@ -48,9 +48,13 @@
 
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
-  background-color: #e7f3fe; /* 使用與偵測車輛按鈕相同的顏色 */
-  color: #004085;
-  border-color: #b8daff;
+  background-color: #06c755 !important; /* 使用LINE綠色 */
+  color: white !important;
+  border-color: #04a73e !important;
+  box-shadow: 0 0 8px rgba(6, 199, 85, 0.5) !important;
+  transform: translateY(-2px) !important;
+  position: relative;
+  animation: pulse 1.5s infinite;
 }
       .form-group {
         margin-bottom: 20px;
@@ -836,6 +840,19 @@ input:checked + .slider:before {
     transform: translateX(18px);
   }
 }
+
+/* 添加脈動動畫效果 */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(6, 199, 85, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(6, 199, 85, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(6, 199, 85, 0); }
+}
+
+/* 倒數計時文字樣式 */
+.countdown-container {
+  font-weight: bold;
+  color: #06c755;
+}
     </style>
   </head>
   <body>
@@ -1003,6 +1020,7 @@ input:checked + .slider:before {
       </div>
     </div>
 
+
     <!-- 歷史紀錄彈窗 -->
     <div id="historyModal" class="modal">
       <div class="modal-content">
@@ -1050,6 +1068,8 @@ const companies = [
 
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+
+
 
 const safeStorage = {
   set: function(key, value) {
