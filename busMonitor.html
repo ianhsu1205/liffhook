@@ -1334,7 +1334,10 @@ async function initializePage() {
     
     // 確保includeRecordedVehicles開關預設為false
     includeRecordedVehicles = false;
-    document.getElementById('includeRecordedToggle').checked = false;
+    const toggleElement = document.getElementById('includeRecordedToggle');
+    if (toggleElement) {
+      toggleElement.checked = false;
+    }
     
     // 如果已登入，開始位置監視
     if (liffInitialized && liff.isLoggedIn()) {
