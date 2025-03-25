@@ -78,18 +78,28 @@
     <script>
         const liffId = "2006993665-1Nvo0AvX".trim(); // LIFFID
         // 初始化 LIFF
-        async function initLIFF() {
-            try {
-                await liff.init({ liffId:liffId });
-                console.log("LIFF 初始化成功");
-                getUserIdAndRedirect();
-            } catch (error) {
-                console.error("LIFF 初始化失敗:", error);
-                showError("無法初始化LINE服務，嘗試從URL獲取參數");
-                // 嘗試直接從URL獲取參數
-                getUserIdFromURL();
-            }
+      async function initLIFF() {
+    try {
+        if (!liffId || liffId.trim() === "") {
+            throw new Error("LIFF ID未設置或為空");
         }
+        await liff.init({ liffId: liffId });
+        console.log("LIFF 初始化成功");
+        
+        // 初始化成功後檢查登入狀態
+        if (!liff.isLoggedIn()) {
+            console.log("用戶未登入，引導登入");
+            liff.login(); // 引導用戶登入
+            return false; // 登入後頁面會重新加載，所以這裡返回
+        }
+        
+        return true; // 已初始化且已登入
+    } catch (error) {
+        console.error("LIFF 初始化失敗:", error);
+        showError("無法初始化LINE服務，請稍後再試");
+        return false;
+    }
+}
 
         // 從URL獲取參數
         function getUserIdFromURL() {
@@ -109,26 +119,43 @@
         }
 
         // 從LIFF獲取userId並重定向
-        async function getUserIdAndRedirect() {
-            try {
-                // 檢查是否已登入
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
-
-                // 獲取用戶資料
-                const profile = await liff.getProfile();
-                const userId = profile.userId;
-                
-                // 重定向到外部瀏覽器
-                redirectToExternalBrowser(userId);
-            } catch (error) {
-                console.error("獲取用戶資料失敗:", error);
-                showError("無法獲取用戶資料");
-            }
+function redirectToExternalBrowser(userId) {
+    if (!userId) {
+        showError("未獲取到用戶ID，無法跳轉");
+        return;
+    }
+    
+    try {
+        // 構建目標URL
+        const targetUrl = `https://ianhsu1205.github.io/liffhook/busMonitor.html?userId=${encodeURIComponent(userId)}`;
+        
+        // 設置手動跳轉連結
+        const manualLink = document.getElementById('manualLink');
+        manualLink.href = targetUrl;
+        manualLink.textContent = "點擊這裡手動跳轉";
+        
+        // 如果在LINE環境中
+        if (liff.isInClient()) {
+            liff.openWindow({
+                url: targetUrl,
+                external: true  // 使用外部瀏覽器打開
+            });
+            
+            // LINE內顯示手動跳轉連結作為備用
+            setTimeout(() => {
+                document.querySelector('.message').textContent = '若未自動跳轉，請點擊下方連結';
+                manualLink.style.display = 'block';
+            }, 3000);
+        } else {
+            // 如果已經在外部瀏覽器中，直接跳轉
+            window.location.href = targetUrl;
         }
-
+    } catch (error) {
+        console.error("跳轉失敗:", error);
+        showError("跳轉失敗，請使用手動連結");
+        document.getElementById('manualLink').style.display = 'block';
+    }
+}
         // 重定向到外部瀏覽器
         function redirectToExternalBrowser(userId) {
             try {
@@ -171,23 +198,28 @@
             document.getElementById('manualLink').style.display = 'block';
         }
 
-        // 在頁面載入時執行
-        window.onload = function() {
-            // 設置超時，防止永久等待
-            setTimeout(() => {
-                if (document.querySelector('.spinner').style.display !== 'none') {
-                    showError("跳轉超時，請使用手動連結");
-                }
-            }, 10000);
-
-            // 先嘗試從URL獲取參數
-            getUserIdFromURL();
-            
-            // 如果沒有參數，初始化LIFF
-            if (!new URLSearchParams(window.location.search).has('userId')) {
-                initLIFF();
-            }
-        };
+window.onload = async function() {
+    // 設置超時
+    setTimeout(() => {
+        if (document.querySelector('.spinner').style.display !== 'none') {
+            showError("跳轉超時，請手動重試");
+            // 可以添加重試按鈕
+            document.getElementById('manualLink').textContent = "點擊重試";
+            document.getElementById('manualLink').href = window.location.href;
+            document.getElementById('manualLink').style.display = 'block';
+        }
+    }, 10000);
+    
+    // 先初始化LIFF並確保用戶已登入
+    const initSuccess = await initLIFF();
+    
+    if (initSuccess) {
+        // 初始化成功且用戶已登入，獲取userId並跳轉
+        getUserIdAndRedirect();
+    }
+    // 如果初始化失敗或用戶尚未登入，不需要進一步操作
+    // 因為initLIFF內部會處理登入或顯示錯誤
+};
     </script>
 </body>
 </html>
