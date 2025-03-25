@@ -1012,8 +1012,24 @@ input:checked + .slider:before {
 
 .direction-btn.selected {
   background-color: #06c755;
-  color: white;
+  color: #000;
   border-color: #04a73e;
+}
+.direction-legend {
+  display: flex;
+  gap: 10px;
+  margin-left: 10px;
+  font-size: 12px;
+}
+
+.direction-tag.go-tag {
+  background-color: #007bff;
+  color: white;
+}
+
+.direction-tag.back-tag {
+  background-color: #28a745;
+  color: white;
 }
     </style>
   </head>
@@ -1077,6 +1093,7 @@ input:checked + .slider:before {
   <div class="detection-header">
     <div class="detection-title-area">
       <h3>偵測到的車輛：</h3>
+      
       <div class="switch-container">
         <!-- <label class="switch">
           <input type="checkbox" id="includeRecordedToggle" onchange="toggleIncludeRecorded()">
@@ -1086,6 +1103,10 @@ input:checked + .slider:before {
       </div> -->
     </div>
     <span id="busCount" class="status-tag status-processing">0 輛</span>
+        <div class="direction-legend">
+      <span class="direction-tag go-tag">藍色 = 去程</span>
+      <span class="direction-tag back-tag">綠色 = 返程</span>
+    </div>
   </div>
   <div id="detectedBusesList">
     <!-- 檢測到的車輛卡片將在這裡動態顯示 -->
@@ -1165,7 +1186,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.9(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.4.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
