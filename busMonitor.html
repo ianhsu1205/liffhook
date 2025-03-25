@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.9(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1820,6 +1820,8 @@ setTimeout(() => {
       otherItemsContainer.appendChild(itemButton);
     });
     
+           // 確保提交按鈕可用
+        resetSubmitButtonState();
     // 滾動到輸入區域
     inputContainer.scrollIntoView({ behavior: "smooth" });
   }
@@ -2493,15 +2495,17 @@ function submitSelectedBus() {
     isProcessingBus = false;
         // 防止重複點擊
     const submitButton = document.querySelector(".action-button.submit-button");
-    if (submitButton.classList.contains("disabled")) return;
-    submitButton.classList.add("disabled");
+    // 檢查是否已經被禁用
+    if (submitButton.classList.contains("disabled")) {
+        // 移除禁用狀態，允許再次點擊
+        submitButton.classList.remove("disabled");
+    }
   if (!selectedBus) {
     showStatusMessage("請先選擇車輛", "error");
     return;
   }
   
-  const bus = displayedBuses[selectedBusIndex];
-  
+ 
   // 獲取選中的主要項目
   const mainItemsContainer = document.getElementById("mainItemsContainer");
   const selectedMainItem = mainItemsContainer.querySelector(".quick-item.selected");
@@ -2520,7 +2524,8 @@ function submitSelectedBus() {
     showStatusMessage("請選擇查核路口", "error");
     return;
   }
-  
+      // 所有檢查通過，添加禁用狀態防止重複點擊
+    submitButton.classList.add("disabled");
   // 提交記錄
   submitBusRecord(selectedBus, selectedBusIndex, selectedMainItem.dataset.value, selectedOtherItems);
       if (window.tempAutoDetectState) {
@@ -2534,7 +2539,35 @@ selectedBus = null;
         submitButton.classList.remove("disabled");
     }, 5000);
 }
+// 添加一個新函數來重置提交按鈕狀態
+function resetSubmitButtonState() {
+    const submitButton = document.querySelector(".action-button.submit-button");
+    if (submitButton && submitButton.classList.contains("disabled")) {
+        submitButton.classList.remove("disabled");
+    }
+}
 
+// 在創建快速選項時添加這個功能
+function createQuickItems() {
+    const mainItemsContainer = document.getElementById("mainItemsContainer");
+    mainItemsContainer.innerHTML = '';
+    mainItems.forEach(item => {
+        const itemButton = document.createElement("div");
+        itemButton.className = "quick-item";
+        itemButton.textContent = item;
+        itemButton.dataset.value = item;
+        itemButton.onclick = function() {
+            mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
+                el.classList.remove("selected");
+            });
+            this.classList.add("selected");
+            
+            // 選擇項目後檢查並啟用提交按鈕
+            resetSubmitButtonState();
+        };
+        mainItemsContainer.appendChild(itemButton);
+    });
+}
 // 提交車輛記錄
 async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
