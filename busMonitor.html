@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>路口查核</title>
+    <title>路口查核記錄</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -1057,7 +1057,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1472,11 +1472,6 @@ async function initializePage() {
 }, { once: true });
 }
 
-setTimeout(() => {
-  if (!autoDetectInterval && document.visibilityState === 'visible') {
-    startAutoDetect();
-  }
-}, 3000);
 
 // 請求Wake Lock避免手機休眠
 async function requestWakeLock() {
@@ -2023,13 +2018,16 @@ async function forceUpdatePosition(silent = false) {
 // 偵測車輛
 async function detectBuses(isAutoDetection = false) {
   // 不再完全阻止自動偵測，即使在編輯時
-  showLoading();
+  // 只在手動偵測時顯示loading
+  if (!isAutoDetection) {
+    showLoading();
+  }
   try {
     // 每次偵測都強制獲取最新位置，忽略緩存
     const positionResult = await forceUpdatePosition(isAutoDetection);
     if (!positionResult) {
-      hideLoading();
       if (!isAutoDetection) {
+        hideLoading();
         showStatusMessage("無法獲取位置，偵測已取消", "error", true);
       }
       return;
@@ -2110,12 +2108,17 @@ async function detectBuses(isAutoDetection = false) {
     
     hideLoading();
   } catch (error) {
-    console.error("偵測車輛失敗:", error);
-    hideLoading();
-    
+    console.error("偵測車輛失敗:", error);   
     if (!isAutoDetection) {
+          hideLoading();
       showStatusMessage("偵測車輛失敗，請稍後再試", "error", true);
     }
+  }finally{
+    // 只在手動偵測時隱藏loading
+    if (!isAutoDetection) {
+      hideLoading();
+    }
+
   }
 }
 // 獲取車輛距離的輔助函數
