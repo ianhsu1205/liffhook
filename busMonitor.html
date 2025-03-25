@@ -953,6 +953,42 @@ input:checked + .slider:before {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+.direction-badge {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-right: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.direction-tag {
+  display: inline-block;
+  background-color: #e7f3fe;
+  color: #004085;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.route-direction-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+/* 去程 - 藍色系 */
+.bus-plate.direction-go {
+  border-left: 4px solid #007bff !important;
+}
+
+/* 返程 - 綠色系 */
+.bus-plate.direction-back {
+  border-left: 4px solid #28a745 !important;
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1853,10 +1889,16 @@ function selectBusForInput(bus, index) {
     inputContainer.classList.remove("hidden");
     
     // 更新車輛信息，將路線移到最上方
-    const routeInfo = bus.routeName?.chinese || "未知路線";
+    // 更新車輛信息，將路線移到最上方，右邊添加方向
+const routeInfo = bus.routeName?.chinese || "未知路線";
+const directionInfo = bus.Direction === 0 ? "去程" : bus.Direction === 1 ? "返程" : "";
           // 創建路線元素，添加跑馬燈功能
       const routeElement = document.getElementById("inputBusRoute");
-      routeElement.innerHTML = `<div class="text-marquee">路線: ${routeInfo}</div>`;
+  routeElement.innerHTML = `
+  <div class="route-direction-container">
+    <div class="text-marquee">路線: ${routeInfo}</div>
+    <div class="direction-tag">${directionInfo}</div>
+  </div>`;
       
       // 檢查路線長度，如果過長則啟用跑馬燈效果
 setTimeout(() => {
@@ -2412,9 +2454,14 @@ function createBusListItem(bus, index) {
   // 獲取距離並設置對應的CSS類
   const distanceInMeters = getVehicleDistance(bus);
   addDistanceClassToElement(plateElement, distanceInMeters);
-  
+  // 添加方向樣式類
+if (bus.Direction === 0) {
+  plateElement.classList.add("direction-go");
+} else if (bus.Direction === 1) {
+  plateElement.classList.add("direction-back");
+}
+
   plateElement.textContent = bus.plateNumber;
-  
   // 將元素添加到車輛項目中
   busItem.appendChild(routeElement);
   busItem.appendChild(plateElement);
@@ -2687,6 +2734,7 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
   plateNumbCompany: bus.operatorName || "不明",  // 如果為空，顯示"不明"
   routeName: bus.routeName?.chinese || "不明",   // 如果為空，顯示"不明"
   plateNumber: bus.plateNumber,
+  direction: bus.direction, // 添加方向欄位
   positionLat: `(${bus.position?.latitude || currentLatitude},${
     bus.position?.longitude || currentLongitude
   })`,
