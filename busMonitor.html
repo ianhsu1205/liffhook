@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1997,10 +1997,14 @@ async function forceUpdatePosition(silent = false) {
     
     // 嘗試使用本地緩存作為後備
     if (loadLastPosition()) {
-      if (!silent) {
-        showStatusMessage("使用上次位置作為後備", "info", true);
-      }
-      return true;
+  // 可以考慮在這裡加入時間檢查，例如只使用最近10秒內的緩存位置
+        if (Date.now() - safeStorage.get("lastPositionTimestamp") < 10000) {
+          if (!silent) {
+            showStatusMessage("使用最近位置作為後備", "info", true);
+          }
+          return true;
+        }
+        return false;
     }
     
     if (!silent) {
