@@ -76,10 +76,11 @@
     </div>
 
     <script>
+        const liffId = "2006993665-1Nvo0AvX".trim(); // LIFFID
         // 初始化 LIFF
         async function initLIFF() {
             try {
-                await liff.init({ liffId: "您的LIFF_ID" });
+                await liff.init({ liffId:liffId });
                 console.log("LIFF 初始化成功");
                 getUserIdAndRedirect();
             } catch (error) {
