@@ -895,7 +895,7 @@ input:checked + .slider:before {
   }
   /* 雷達掃描特效樣式 */
 .radar-overlay {
-  position: fixed;
+ position: absolute; /* 從fixed改為absolute讓它可以在容器內顯示 */
   top: 0;
   left: 0;
   width: 100%;
@@ -904,18 +904,16 @@ input:checked + .slider:before {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
-  backdrop-filter: blur(3px);
-    display: none; /* 加入這一行，使用display:none而不僅是靠類控制 */
+  z-index: 10; /* 降低z-index以不超過模態框 */
+  display: none;
+  border-radius: 8px; /* 添加圓角 */
 }
-
+.radar-container-wrapper {
+  position: relative; /* 確保可以作為雷達定位的容器 */
+}
 .radar-container {
-  position: relative;
-  width: 250px;
-  height: 250px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .radar-circle {
@@ -947,14 +945,8 @@ input:checked + .slider:before {
 }
 
 .radar-text {
-  position: absolute;
-  bottom: -40px;
-  color: #06c755;
-  font-weight: bold;
-  text-align: center;
-  width: 100%;
-  font-size: 16px;
-  text-shadow: 0 0 10px rgba(6, 199, 85, 0.7);
+  font-size: 14px; /* 減小字號 */
+  bottom: -30px; /* 調整文字位置 */
 }
 
 @keyframes sweep {
@@ -1124,7 +1116,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.3(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2213,15 +2205,15 @@ async function forceUpdatePosition(silent = false) {
 // 偵測車輛
 // 修改原有的 detectBuses 函數，添加雷達效果但保持緩存機制
 async function detectBuses(isAutoDetection = false) {
-  // 只在手動偵測時顯示雷達效果，但不管是否自動偵測都保持原有的邏輯
-  const radarPromise = !isAutoDetection ? showRadarEffect("正在掃描附近車輛...") : Promise.resolve();
+   if (!isAutoDetection) {
+    showRadarEffect('#detectedBusesList', "正在掃描附近車輛...");
+  }
   
   try {
     // 保持原有的位置獲取邏輯，不改變緩存機制
     const positionResult = await forceUpdatePosition(isAutoDetection);
     if (!positionResult) {
       if (!isAutoDetection) {
-        await radarPromise; // 確保雷達顯示至少0.5秒
         hideRadarEffect();
         showStatusMessage("無法獲取位置，偵測已取消", "error", true);
       }
@@ -2294,6 +2286,9 @@ async function detectBuses(isAutoDetection = false) {
       }
     }
     
+    if (!isAutoDetection) {
+      hideRadarEffect();
+    }
     // 更新UI
     updateDetectedBusesList();
     
@@ -2304,9 +2299,7 @@ async function detectBuses(isAutoDetection = false) {
       showStatusMessage("目前附近未偵測到車輛", "info", true);
     }
     
-    if (!isAutoDetection) {
-      hideRadarEffect();
-    }
+
   } catch (error) {
     console.error("偵測車輛失敗:", error);   
     if (!isAutoDetection) {
@@ -2910,7 +2903,7 @@ function checkLocationPermission() {
   });
 }
 // 刷新位置列表
-// 更新 refreshLocationList 函數以使用雷達效果
+// 更新 refreshLocationList 函數 - 在路口列表區域顯示雷達
 function refreshLocationList() {
   // 更新按鈕狀態，顯示正在加載
   const detectButton = document.getElementById("detectLocationButton");
@@ -2923,22 +2916,15 @@ function refreshLocationList() {
     const errorMsg = document.getElementById("locationListError");
     if (errorMsg) errorMsg.remove();
 
-    // 清空位置列表，添加載入中提示
+    // 清空位置列表，準備顯示雷達
     const container = document.getElementById("locationList");
     container.innerHTML = "";
-    const loadingMsg = document.createElement("p");
-    loadingMsg.id = "locationListLoading";
-    loadingMsg.className = "no-data-message";
-    loadingMsg.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
-    container.appendChild(loadingMsg);
+    
+    // 在路口列表區域顯示雷達
+    showRadarEffect('#locationList', "正在掃描附近路口...");
 
-    // 顯示雷達效果
-    showRadarEffect("正在掃描附近路口...")
-      .then(() => {
-        // 獲取位置並刷新路口列表
-        return getCurrentPosition(false);
-      })
+    // 獲取位置並刷新路口列表
+    getCurrentPosition(false)
       .then((success) => {
         if (success) {
           fetchIntersections().finally(() => {
@@ -2953,11 +2939,7 @@ function refreshLocationList() {
           detectButton.innerHTML = originalText;
           hideRadarEffect();
 
-          // 移除載入中提示
-          if (document.getElementById("locationListLoading")) {
-            document.getElementById("locationListLoading").remove();
-          }
-
+          // 顯示錯誤提示
           showLocationListError("無法獲取位置，請稍後再試");
         }
       })
@@ -2967,11 +2949,7 @@ function refreshLocationList() {
         detectButton.innerHTML = originalText;
         hideRadarEffect();
 
-        // 移除載入中提示
-        if (document.getElementById("locationListLoading")) {
-          document.getElementById("locationListLoading").remove();
-        }
-
+        // 顯示錯誤提示
         showLocationListError("獲取位置時發生錯誤，請稍後再試");
       });
   }
@@ -3042,10 +3020,7 @@ async function fetchIntersections() {
   try {
     // 保持原有的位置更新邏輯
     await forceUpdatePosition(true);
-    
-    // 確保雷達效果顯示至少0.5秒
-    await radarPromise;
-    
+       
     // 始終使用最新的坐標
     const response = await fetch(
       `${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=250&limit=10`
@@ -3067,10 +3042,8 @@ async function fetchIntersections() {
 
     // 更新位置選擇框中的路口列表
     updateLocationList();
-    hideRadarEffect();
   } catch (error) {
     console.error("獲取路口失敗:", error);
-    hideRadarEffect();
     showStatusMessage("無法獲取附近路口，請重新偵測", "error", true);
   }
 }
@@ -3399,8 +3372,8 @@ function createRadarPoints() {
   }
 }
 // 顯示雷達掃描效果
-// 顯示雷達掃描效果
-function showRadarEffect(message = "正在掃描附近車輛...") {
+function showRadarEffect(containerSelector, message = "正在掃描...") {
+  // 獲取雷達元素
   const radar = document.getElementById('radar-overlay');
   const radarText = document.querySelector('.radar-text');
   
@@ -3410,17 +3383,29 @@ function showRadarEffect(message = "正在掃描附近車輛...") {
   // 創建隨機點
   createRadarPoints();
   
-  // 顯示雷達 - 改用移除hidden和添加active
+  // 獲取目標容器
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    console.error("未找到雷達顯示容器:", containerSelector);
+    return Promise.resolve(); // 如果找不到容器，直接返回
+  }
+  
+  // 將容器設為相對定位
+  container.classList.add('radar-container-wrapper');
+  
+  // 將雷達移動到該容器中
+  container.appendChild(radar);
+  
+  // 顯示雷達
   radar.classList.remove('hidden');
   radar.classList.add('active');
+  radar.style.display = 'flex';
   
-  // 最少顯示0.5秒
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve();
-    }, 800);
-  });
+  // 返回Promise以便等待API完成
+  // 不設置固定時間，由調用者決定何時隱藏
+  return Promise.resolve();
 }
+
 
 // 隱藏雷達掃描效果
 function hideRadarEffect() {
@@ -3428,7 +3413,8 @@ function hideRadarEffect() {
   if (radar) {
     radar.classList.add('hidden');
     radar.classList.remove('active');
-    console.log("雷達已隱藏"); // 添加日誌以確認函數被調用
+    radar.style.display = 'none';
+    console.log("雷達已隱藏");
   }
 }
     </script>
