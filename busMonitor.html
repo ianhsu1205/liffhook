@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.3(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1117,12 +1117,7 @@ const companies = [
 
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
-// 如果要進一步加強，可以添加這段代碼
-document.body.addEventListener('touchstart', function(e) {
-  if(window.scrollY === 0) {
-    e.preventDefault();
-  }
-}, {passive: false});
+
 
   // 防止下拉重新整理
   document.addEventListener('touchmove', function(e) {
