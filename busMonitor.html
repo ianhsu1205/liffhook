@@ -1121,7 +1121,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1291,33 +1291,34 @@ function handleBackButton() {
   }
 }
 
+// 修改 DOMContentLoaded 事件處理程序
 document.addEventListener('DOMContentLoaded', function() {
-  // 在DOM加載完成後替換按鈕事件
-  const detectBusBtn = document.querySelector('.utility-button:nth-child(1)');
-  if (detectBusBtn) {
-    // 移除原有的onclick事件
-    const originalFunc = detectBusBtn.onclick;
-    detectBusBtn.onclick = null;
-    
-    // 添加新的onclick事件，調用帶雷達效果的函數
-    detectBusBtn.addEventListener('click', function() {
-      detectBuses(false); // 手動偵測
-    });
+  // 不要在這裡調用顯示雷達效果的代碼
+  
+  // 只需將雷達效果 DOM 元素添加到頁面，但確保它處於隱藏狀態
+  if (!document.getElementById('radar-overlay')) {
+    const radarOverlay = document.createElement('div');
+    radarOverlay.id = 'radar-overlay';
+    radarOverlay.className = 'radar-overlay hidden'; // 確保有 hidden 類
+    radarOverlay.innerHTML = `
+      <div class="radar-container">
+        <div class="radar-circle"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-points"></div>
+        <div class="radar-text">正在掃描附近車輛...</div>
+      </div>
+    `;
+    document.body.appendChild(radarOverlay);
   }
   
-  // 將雷達效果插入到頁面中
-  const radarOverlay = document.createElement('div');
-  radarOverlay.id = 'radar-overlay';
-  radarOverlay.className = 'radar-overlay hidden';
-  radarOverlay.innerHTML = `
-    <div class="radar-container">
-      <div class="radar-circle"></div>
-      <div class="radar-sweep"></div>
-      <div class="radar-points"></div>
-      <div class="radar-text">正在掃描附近車輛...</div>
-    </div>
-  `;
-  document.body.appendChild(radarOverlay);
+  // 替換偵測車輛按鈕的事件，這部分是正確的
+  const detectBusBtn = document.querySelector('.utility-button:nth-child(1)');
+  if (detectBusBtn) {
+    detectBusBtn.onclick = null;
+    detectBusBtn.addEventListener('click', function() {
+      detectBuses(false);
+    });
+  }
 });
 
 const safeStorage = {
