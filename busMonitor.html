@@ -894,31 +894,10 @@ input:checked + .slider:before {
     gap: 5px;
   }
   
-  /* 新增的返回LINE按鈕樣式 */
-  .back-to-line-button {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background-color: #06c755;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 1000;
-    cursor: pointer;
-  }
     </style>
   </head>
-  <body>
+  <body style="overscroll-behavior: none;">
     <!-- 在 body 開始位置添加返回LINE按鈕 -->
-<div class="back-to-line-button" onclick="backToLine()">
-  <i class="fab fa-line"></i>
-</div>
     <div id="loading-overlay" class="loading-overlay hidden">
       <div class="spinner"></div>
     </div>
@@ -1057,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1138,8 +1117,36 @@ const companies = [
 
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+// 如果要進一步加強，可以添加這段代碼
+document.body.addEventListener('touchstart', function(e) {
+  if(window.scrollY === 0) {
+    e.preventDefault();
+  }
+}, {passive: false});
 
+  // 防止下拉重新整理
+  document.addEventListener('touchmove', function(e) {
+    // 如果頁面已經滾動到頂部，則阻止默認行為
+    if (window.pageYOffset === 0) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
+  // 另一種方法，捕獲所有觸摸開始事件
+  document.addEventListener('touchstart', function(e) {
+    // 記錄開始位置
+    window.startY = e.touches[0].pageY;
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    // 計算移動距離
+    const moveY = e.touches[0].pageY - window.startY;
+    
+    // 如果頁面已經滾動到頂部且用戶向下拖動，阻止默認行為
+    if (window.pageYOffset === 0 && moveY > 0) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
 const safeStorage = {
   set: function(key, value) {
@@ -1926,20 +1933,7 @@ async function initLIFF() {
     console.log("外部瀏覽器模式，跳過LIFF初始化");
   return Promise.resolve();
 }
-// 添加返回LINE的函數
-function backToLine() {
-  showStatusMessage("即將返回LINE應用", "info");
-  
-  setTimeout(() => {
-    try {
-      // 嘗試使用APP Schema返回LINE
-      window.location.href = "line://";
-    } catch (e) {
-      console.error("無法返回LINE:", e);
-      showStatusMessage("無法自動返回LINE", "error");
-    }
-  }, 1000);
-}
+
 // 檢查用戶是否已存在/註冊
 async function checkUserExists(userId, channelId) {
   try {
