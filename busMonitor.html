@@ -896,7 +896,7 @@ input:checked + .slider:before {
   
     </style>
   </head>
-  <body >
+<body style="overscroll-behavior-y: contain;">
     <!-- 在 body 開始位置添加返回LINE按鈕 -->
     <div id="loading-overlay" class="loading-overlay hidden">
       <div class="spinner"></div>
@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1120,25 +1120,21 @@ const companies = [
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
 
 
-  // 防止下拉重新整理
-  document.addEventListener('touchmove', function(e) {
-    // 如果頁面已經滾動到頂部，則阻止默認行為
-    if (window.pageYOffset === 0) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  // 另一種方法，捕獲所有觸摸開始事件
 document.addEventListener('touchstart', function(e) {
   startY = e.touches[0].clientY;
-}, { passive: true }); // 使用passive: true提高滾動性能
+}, { passive: true }); // 使用passive: true以不影響滾動性能
 
+// 只在特定條件下阻止下拉刷新
 document.addEventListener('touchmove', function(e) {
-  // 只有當頁面在頂部且向下拖動時才阻止默認行為
-  if (window.scrollY === 0 && e.touches[0].clientY > startY + 5) { // 添加小緩衝區
+  // 只有當頁面處於頂部 AND 用戶向下拖動 AND 拖動幅度超過5像素時才阻止默認行為
+  const touchY = e.touches[0].clientY;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  
+  if (scrollTop <= 0 && touchY > startY + 5) {
+    // 只有這種情況下才阻止默認行為
     e.preventDefault();
   }
-}, { passive: false });
+}, { passive: false }); // 需要passive: false來允許preventDefault
 
 const safeStorage = {
   set: function(key, value) {
