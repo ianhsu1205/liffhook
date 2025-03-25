@@ -1012,8 +1012,7 @@ input:checked + .slider:before {
 }
 
 .direction-btn.selected {
-  background-color: #06c755;
-  border-color: #04a73e;
+  border-color: #04a73e !important;
 }
 .direction-legend {
   display: flex;
@@ -1032,11 +1031,14 @@ input:checked + .slider:before {
   color: white;
 }
 .direction-btn[data-value="0"] {
-  color: #007bff; /* 去程藍色 */
+  background-color: #007bff !important; /* 去程藍色 */
+  color: white !important;
+  border-color: #007bff !important;
 }
-
 .direction-btn[data-value="1"] {
-  color: #28a745; /* 返程綠色 */
+  background-color: #28a745 !important; /* 返程綠色 */
+  color: white !important;
+  border-color: #28a745 !important;
 }
     </style>
   </head>
@@ -1193,7 +1195,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.4.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.4.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
