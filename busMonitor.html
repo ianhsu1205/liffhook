@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.4(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1098,6 +1098,7 @@ let globalLoadingTimeout = null;
 let watchId = null;
 let selectedBusIndex = -1;
 let isProcessingBus = false;
+let startY = 0;
 // 添加全局變數
 let autoDetectInterval = null;
 let countdownInterval = null;
@@ -1128,20 +1129,16 @@ const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差
   }, { passive: false });
 
   // 另一種方法，捕獲所有觸摸開始事件
-  document.addEventListener('touchstart', function(e) {
-    // 記錄開始位置
-    window.startY = e.touches[0].pageY;
-  });
+document.addEventListener('touchstart', function(e) {
+  startY = e.touches[0].clientY;
+}, { passive: true }); // 使用passive: true提高滾動性能
 
-  document.addEventListener('touchmove', function(e) {
-    // 計算移動距離
-    const moveY = e.touches[0].pageY - window.startY;
-    
-    // 如果頁面已經滾動到頂部且用戶向下拖動，阻止默認行為
-    if (window.pageYOffset === 0 && moveY > 0) {
-      e.preventDefault();
-    }
-  }, { passive: false });
+document.addEventListener('touchmove', function(e) {
+  // 只有當頁面在頂部且向下拖動時才阻止默認行為
+  if (window.scrollY === 0 && e.touches[0].clientY > startY + 5) { // 添加小緩衝區
+    e.preventDefault();
+  }
+}, { passive: false });
 
 const safeStorage = {
   set: function(key, value) {
@@ -1483,12 +1480,19 @@ async function requestWakeLock() {
       console.log('Wake Lock已啟用');
       
       // 頁面可見性變化時重新請求
-      document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible' && !window.wakeLock) {
-          window.wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Wake Lock已重新啟用');
-        }
-      });
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    console.log('頁面重新變為可見，重設觸摸事件處理');
+    // 重置任何可能影響滾動的狀態
+    startY = 0;
+    
+    // 強制更新頁面滾動狀態
+    setTimeout(() => {
+      window.scrollTo(window.scrollX, window.scrollY + 1);
+      setTimeout(() => window.scrollTo(window.scrollX, window.scrollY - 1), 10);
+    }, 100);
+  }
+});
     }
   } catch (err) {
     console.error('Wake Lock請求失敗:', err);
