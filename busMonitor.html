@@ -1036,7 +1036,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.2.7(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.2.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1099,6 +1099,10 @@ let watchId = null;
 let selectedBusIndex = -1;
 let isProcessingBus = false;
 let startY = 0;
+let lastLoadingTime = 0;
+const MIN_LOADING_INTERVAL = 30000; // 最短loading間隔，毫秒
+// 全局變數，保存上次點擊返回的時間
+let lastBackPressTime = 0;
 // 添加全局變數
 let autoDetectInterval = null;
 let countdownInterval = null;
@@ -1135,6 +1139,69 @@ document.addEventListener('touchmove', function(e) {
     e.preventDefault();
   }
 }, { passive: false }); // 需要passive: false來允許preventDefault
+
+// 監聽返回按鈕事件
+function setupBackButtonHandler() {
+  // 檢查是否在Android環境中
+  const isAndroid = /android/i.test(navigator.userAgent);
+  
+  if (isAndroid) {
+    console.log("檢測到Android環境，設置返回按鈕處理");
+    
+    // 添加返回按鈕事件監聽
+    window.addEventListener('popstate', function(event) {
+      // 阻止默認的返回行為
+      event.preventDefault();
+      handleBackButton();
+      
+      // 保持在當前頁面
+      history.pushState(null, document.title, window.location.href);
+      return false;
+    });
+    
+    // 添加一個history條目，確保有東西可以"返回"
+    history.pushState(null, document.title, window.location.href);
+  }
+}
+// 處理返回按鈕邏輯
+function handleBackButton() {
+  const currentTime = Date.now();
+  
+  // 如果有打開的模態框，先關閉模態框
+  if (document.getElementById("locationModal").style.display === "block") {
+    closeLocationModal();
+    return;
+  }
+  
+  if (document.getElementById("manualInputModal").style.display === "block") {
+    closeManualInputModal();
+    return;
+  }
+  
+  if (document.getElementById("historyModal").style.display === "block") {
+    closeHistoryModal();
+    return;
+  }
+  
+  // 如果正在編輯車輛，取消編輯
+  if (isProcessingBus) {
+    cancelBusInput();
+    return;
+  }
+  
+  // 雙擊返回才退出程序(2秒內)
+  if (currentTime - lastBackPressTime < 2000) {
+    showStatusMessage("再次點擊返回將退出應用", "info", true);
+  } else {
+    showStatusMessage("再按一次返回鍵退出應用", "info", true);
+    lastBackPressTime = currentTime;
+  }
+}
+
+// 在頁面初始化時設置返回按鈕處理
+document.addEventListener('DOMContentLoaded', function() {
+  setupBackButtonHandler();
+});
 
 const safeStorage = {
   set: function(key, value) {
@@ -1293,7 +1360,15 @@ function clearDisplayedBuses() {
 // 取消車輛輸入
 function cancelBusInput() {
     isProcessingBus = false;
-  document.getElementById("busInputContainer").classList.add("hidden");  
+  document.getElementById("busInputContainer").classList.add("hidden");
+      // 清除車輛列表中的選中狀態
+  if (selectedBusIndex >= 0) {
+    // 移除所有車輛列表中的選中樣式
+    const busItems = document.querySelectorAll(".simple-bus-item");
+    busItems.forEach(item => {
+      item.classList.remove("selected-bus-item");
+    });
+  }
   selectedBusIndex = -1;
   selectedBus = null;
   // 如果之前是自動偵測狀態，恢復自動偵測
@@ -1465,6 +1540,9 @@ async function initializePage() {
   document.addEventListener('click', function() {
   requestWakeLock();
 }, { once: true });
+
+  // 添加在函數最後
+  setupBackButtonHandler();
 }
 
 
@@ -3070,6 +3148,15 @@ function showStatusMessage(message, type, autoHide = false) {
 
 // 顯示載入中
 function showLoading(timeoutMs = 10000) {
+  // 檢查是否距離上次loading時間太短
+  const currentTime = Date.now();
+  if (currentTime - lastLoadingTime < MIN_LOADING_INTERVAL) {
+    console.log("短時間內連續loading，忽略此次請求");
+    return null;
+  }
+  // 記錄本次loading時間
+  lastLoadingTime = currentTime;
+
   const loadingElement = document.getElementById("loading-overlay");
   loadingElement.classList.remove("hidden");
   
