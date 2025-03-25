@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳轉中 - 路口查核系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            width: 80%;
+            max-width: 400px;
+        }
+        .logo {
+            color: #06c755;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #06c755;
+            border-radius: 50%;
+            margin: 20px auto;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message {
+            margin: 20px 0;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 15px;
+            display: none;
+        }
+        .manual-link {
+            margin-top: 20px;
+            color: #06c755;
+            text-decoration: none;
+            display: none;
+        }
+        .manual-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">首都集團路口查核平台</div>
+        <div class="spinner"></div>
+        <div class="message">即將跳轉到外部瀏覽器，請稍候...</div>
+        <div id="error" class="error">跳轉失敗，請稍後再試</div>
+        <a id="manualLink" class="manual-link" href="#">點擊這裡手動跳轉</a>
+    </div>
+
+    <script>
+        // 初始化 LIFF
+        async function initLIFF() {
+            try {
+                await liff.init({ liffId: "您的LIFF_ID" });
+                console.log("LIFF 初始化成功");
+                getUserIdAndRedirect();
+            } catch (error) {
+                console.error("LIFF 初始化失敗:", error);
+                showError("無法初始化LINE服務，嘗試從URL獲取參數");
+                // 嘗試直接從URL獲取參數
+                getUserIdFromURL();
+            }
+        }
+
+        // 從URL獲取參數
+        function getUserIdFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('userId');
+            
+            if (userId) {
+                redirectToExternalBrowser(userId);
+            } else {
+                // 如果URL中沒有userId，嘗試從LIFF獲取
+                if (liff && liff.isLoggedIn()) {
+                    getUserIdAndRedirect();
+                } else {
+                    showError("無法獲取用戶信息");
+                }
+            }
+        }
+
+        // 從LIFF獲取userId並重定向
+        async function getUserIdAndRedirect() {
+            try {
+                // 檢查是否已登入
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                // 獲取用戶資料
+                const profile = await liff.getProfile();
+                const userId = profile.userId;
+                
+                // 重定向到外部瀏覽器
+                redirectToExternalBrowser(userId);
+            } catch (error) {
+                console.error("獲取用戶資料失敗:", error);
+                showError("無法獲取用戶資料");
+            }
+        }
+
+        // 重定向到外部瀏覽器
+        function redirectToExternalBrowser(userId) {
+            try {
+                // 構建目標URL
+                const targetUrl = `https://35.221.146.143.nip.io/路口查核/?userId=${encodeURIComponent(userId)}`;
+                
+                // 設置手動跳轉連結
+                const manualLink = document.getElementById('manualLink');
+                manualLink.href = targetUrl;
+                
+                // 如果在LINE環境中
+                if (liff && liff.isInClient()) {
+                    liff.openWindow({
+                        url: targetUrl,
+                        external: true  // 使用外部瀏覽器打開
+                    });
+                    
+                    // LINE內顯示手動跳轉連結作為備用
+                    setTimeout(() => {
+                        document.querySelector('.message').textContent = '若未自動跳轉，請點擊下方連結';
+                        manualLink.style.display = 'block';
+                    }, 3000);
+                } else {
+                    // 如果已經在外部瀏覽器中，直接跳轉
+                    window.location.href = targetUrl;
+                }
+            } catch (error) {
+                console.error("跳轉失敗:", error);
+                showError("跳轉失敗，請使用手動連結");
+                document.getElementById('manualLink').style.display = 'block';
+            }
+        }
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            const errorElement = document.getElementById('error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            document.querySelector('.spinner').style.display = 'none';
+            document.getElementById('manualLink').style.display = 'block';
+        }
+
+        // 在頁面載入時執行
+        window.onload = function() {
+            // 設置超時，防止永久等待
+            setTimeout(() => {
+                if (document.querySelector('.spinner').style.display !== 'none') {
+                    showError("跳轉超時，請使用手動連結");
+                }
+            }, 10000);
+
+            // 先嘗試從URL獲取參數
+            getUserIdFromURL();
+            
+            // 如果沒有參數，初始化LIFF
+            if (!new URLSearchParams(window.location.search).has('userId')) {
+                initLIFF();
+            }
+        };
+    </script>
+</body>
+</html>
