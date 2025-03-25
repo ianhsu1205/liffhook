@@ -906,6 +906,7 @@ input:checked + .slider:before {
   align-items: center;
   z-index: 2000;
   backdrop-filter: blur(3px);
+    display: none; /* 加入這一行，使用display:none而不僅是靠類控制 */
 }
 
 .radar-container {
@@ -936,7 +937,9 @@ input:checked + .slider:before {
   transform-origin: left;
   animation: sweep 3s infinite linear;
 }
-
+.radar-overlay.active {
+  display: flex; /* 添加一個新的激活類來顯示 */
+}
 .radar-points {
   position: absolute;
   width: 100%;
@@ -1121,7 +1124,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1580,6 +1583,7 @@ function setupAutoDetectHealthCheck() {
 // 添加完整的頁面初始化函數，包含錯誤處理和回調
 // 修改頁面初始化函數，使用URL參數而非LIFF登錄
 async function initializePage() {
+  hideRadarEffect();
   if (navigator.permissions) {
   navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
     if (result.state === 'granted') {
@@ -3395,6 +3399,7 @@ function createRadarPoints() {
   }
 }
 // 顯示雷達掃描效果
+// 顯示雷達掃描效果
 function showRadarEffect(message = "正在掃描附近車輛...") {
   const radar = document.getElementById('radar-overlay');
   const radarText = document.querySelector('.radar-text');
@@ -3405,21 +3410,26 @@ function showRadarEffect(message = "正在掃描附近車輛...") {
   // 創建隨機點
   createRadarPoints();
   
-  // 顯示雷達
+  // 顯示雷達 - 改用移除hidden和添加active
   radar.classList.remove('hidden');
+  radar.classList.add('active');
   
   // 最少顯示0.5秒
   return new Promise(resolve => {
     setTimeout(() => {
       resolve();
-    }, 800); // 設為800毫秒，確保最少顯示0.5秒
+    }, 800);
   });
 }
 
 // 隱藏雷達掃描效果
 function hideRadarEffect() {
   const radar = document.getElementById('radar-overlay');
-  radar.classList.add('hidden');
+  if (radar) {
+    radar.classList.add('hidden');
+    radar.classList.remove('active');
+    console.log("雷達已隱藏"); // 添加日誌以確認函數被調用
+  }
 }
     </script>
 </html>
