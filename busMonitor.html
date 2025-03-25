@@ -893,7 +893,51 @@ input:checked + .slider:before {
     align-items: center;
     gap: 5px;
   }
-  
+  .utility-button.detecting {
+  background-color: #ffeb3b !important;
+  color: #333 !important;
+  border-color: #ffc107 !important;
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.7) !important;
+  position: relative;
+  animation: detecting-pulse 1.5s infinite;
+}
+/* 添加脈動動畫效果 */
+@keyframes detecting-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+/* 偵測指示器樣式 */
+.detection-indicator {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.detection-indicator.active {
+  opacity: 1;
+}
+
+.detection-indicator .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1036,7 +1080,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1079,7 +1123,11 @@ input:checked + .slider:before {
         </div>
       </div>
     </div>
-
+<!-- 添加偵測指示器元素到頁面底部 -->
+<div id="detectionIndicator" class="detection-indicator">
+  <div class="spinner"></div>
+  <span id="detectionMessage">正在偵測車輛...</span>
+</div>
 
   <script>
 // 全局變數
@@ -1198,9 +1246,32 @@ function handleBackButton() {
   }
 }
 
+// 初始化偵測指示器和按鈕事件
+function setupDetectionFeedback() {
+  // 添加偵測指示器到DOM
+  if (!document.getElementById('detectionIndicator')) {
+    const indicatorHTML = `
+      <div id="detectionIndicator" class="detection-indicator">
+        <div class="spinner"></div>
+        <span id="detectionMessage">正在偵測車輛...</span>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', indicatorHTML);
+  }
+  
+  // 綁定偵測按鈕點擊事件，添加立即反饋
+  const detectButton = document.querySelector('.utility-button:nth-child(1)');
+  if (detectButton) {
+    detectButton.addEventListener('click', function() {
+      // 按鈕點擊時立即添加視覺效果，不等待函數內部
+      this.classList.add('detecting');
+    });
+  }
+}
 // 在頁面初始化時設置返回按鈕處理
 document.addEventListener('DOMContentLoaded', function() {
   setupBackButtonHandler();
+  setupDetectionFeedback();
 });
 
 const safeStorage = {
@@ -1847,16 +1918,12 @@ function startAutoDetect() {
   // 開始倒數計時
   startCountdown();
   
+  // 視覺效果：添加自動偵測按鈕的活動樣式
+  const autoDetectButton = document.getElementById("autoDetectButton");
+  autoDetectButton.classList.add("auto-detect-active");
+  
   // 顯示自動偵測已啟動的提示
-  showStatusMessage("自動偵測已啟動", "info");
-  setTimeout(() => {
-    // 3秒後清除提示
-    const statusElement = document.getElementById("statusMessage");
-    if (statusElement && statusElement.textContent === "自動偵測已啟動") {
-      statusElement.textContent = "";
-      statusElement.className = "status-message";
-    }
-  }, 3000);
+  showStatusMessage("自動偵測已啟動", "info", true);
 }
 
 // 停止自動偵測
@@ -2090,15 +2157,19 @@ async function forceUpdatePosition(silent = false) {
 }
 // 偵測車輛
 async function detectBuses(isAutoDetection = false) {
-  // 不再完全阻止自動偵測，即使在編輯時
-  // 只在手動偵測時顯示loading
-  if (!isAutoDetection) {
-    showLoading();
-  }
+  // 顯示偵測指示器，無論是自動還是手動
+  const indicatorMsg = isAutoDetection ? "自動偵測中..." : "正在偵測車輛...";
+  showDetectionIndicator(indicatorMsg);
+  
+  // 不再使用showLoading，完全依靠指示器提供視覺反饋
+  
   try {
     // 每次偵測都強制獲取最新位置，忽略緩存
     const positionResult = await forceUpdatePosition(isAutoDetection);
     if (!positionResult) {
+      // 隱藏偵測指示器
+      hideDetectionIndicator();
+      
       if (!isAutoDetection) {
         hideLoading();
         showStatusMessage("無法獲取位置，偵測已取消", "error", true);
@@ -2177,21 +2248,24 @@ async function detectBuses(isAutoDetection = false) {
       showNewDetectionNotification(newDetectedBuses.length);
     } else if (!isAutoDetection && newDetectedBuses.length === 0) {
       showStatusMessage("目前附近未偵測到車輛", "info", true);
+    } else if (!isAutoDetection && newDetectedBuses.length > 0) {
+      // 手動偵測有新車輛時顯示成功訊息
+      showStatusMessage(`已偵測到 ${newDetectedBuses.length} 輛車`, "success", true);
     }
     
-    hideLoading();
+    // 隱藏偵測指示器
+    hideDetectionIndicator();
   } catch (error) {
-    console.error("偵測車輛失敗:", error);   
+    console.error("偵測車輛失敗:", error);
+    // 隱藏偵測指示器
+    hideDetectionIndicator();
+    
     if (!isAutoDetection) {
-          hideLoading();
       showStatusMessage("偵測車輛失敗，請稍後再試", "error", true);
     }
-  }finally{
-    // 只在手動偵測時隱藏loading
-    if (!isAutoDetection) {
-      hideLoading();
-    }
-
+  } finally {
+    // 確保指示器被隱藏
+    hideDetectionIndicator();
   }
 }
 // 獲取車輛距離的輔助函數
@@ -3234,7 +3308,33 @@ async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
     return fetchWithRetry(url, options, retries - 1, delay * 1.5);
   }
 }
+// 顯示偵測指示器
+function showDetectionIndicator(message = "正在偵測車輛...") {
+  const indicator = document.getElementById('detectionIndicator');
+  const messageElem = document.getElementById('detectionMessage');
+  messageElem.textContent = message;
+  indicator.classList.add('active');
+  
+  // 添加檢測按鈕的高亮效果
+  const detectButton = document.querySelector('.utility-button:nth-child(1)');
+  if (detectButton) {
+    detectButton.classList.add('detecting');
+  }
+  
+  return indicator;
+}
 
+// 隱藏偵測指示器
+function hideDetectionIndicator() {
+  const indicator = document.getElementById('detectionIndicator');
+  indicator.classList.remove('active');
+  
+  // 移除檢測按鈕的高亮效果
+  const detectButton = document.querySelector('.utility-button:nth-child(1)');
+  if (detectButton) {
+    detectButton.classList.remove('detecting');
+  }
+}
 
     </script>
 </html>
