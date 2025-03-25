@@ -41,10 +41,23 @@
         padding-bottom: 15px;
       }
 /* 車輛距離漸層底色樣式 - 僅應用於車號而非整個項目 */
-.bus-plate.distance-veryclose { background-color: rgba(255, 193, 7, 1); } /* 0-100m 滿色黃 */
-.bus-plate.distance-close { background-color: rgba(255, 193, 7, 0.75); } /* 101-150m 3/4滿色黃 */
-.bus-plate.distance-medium { background-color: rgba(255, 193, 7, 0.5); } /* 151-200m 2/4滿色黃 */
-.bus-plate.distance-far { background-color: rgba(255, 193, 7, 0.25); } /* 201-250m 1/4滿色黃 */
+.bus-plate.distance-veryclose { 
+  background-color: rgba(255, 193, 7, 1); /* 0-100m 滿色黃 */
+  box-shadow: 0 0 5px rgba(255, 193, 7, 0.8); /* 添加微光效果 */
+  border: 1px solid #ffa000; /* 添加邊框增強視覺效果 */
+}
+
+.bus-plate.distance-close { 
+  background-color: rgba(255, 193, 7, 0.75); /* 101-150m 3/4滿色黃 */
+}
+
+.bus-plate.distance-medium { 
+  background-color: rgba(255, 193, 7, 0.5); /* 151-200m 2/4滿色黃 */
+}
+
+.bus-plate.distance-far { 
+  background-color: rgba(255, 193, 7, 0.25); /* 201-250m 1/4滿色黃 */
+}
 
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
@@ -1080,7 +1093,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2290,7 +2303,10 @@ function getVehicleDistance(bus) {
       bus.position.longitude
     );
   }
-  
+  // 如果是手動添加的車輛且沒有距離信息，默認設為10米（很近）
+  if (bus.isManualInput && distanceInMeters === 999) {
+    distanceInMeters = 10;
+  }
   return distanceInMeters;
 }
 
@@ -2306,8 +2322,8 @@ function addDistanceClassToElement(element, distanceInMeters) {
     element.classList.add("distance-close"); // 81-150m 3/4滿色
   } else if (distanceInMeters <= 220) {
     element.classList.add("distance-medium"); // 151-220m 2/4滿色
-  } else if (distanceInMeters <= 300) {
-    element.classList.add("distance-far"); // 221-300m 1/4滿色
+  } else {
+    element.classList.add("distance-far"); // 221m以上 1/4滿色
   }
 }
 
