@@ -1080,7 +1080,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.3.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.3.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2171,7 +2171,6 @@ async function detectBuses(isAutoDetection = false) {
       hideDetectionIndicator();
       
       if (!isAutoDetection) {
-        hideLoading();
         showStatusMessage("無法獲取位置，偵測已取消", "error", true);
       }
       return;
@@ -2243,14 +2242,19 @@ async function detectBuses(isAutoDetection = false) {
     // 更新UI
     updateDetectedBusesList();
     
-    // 如果有新偵測到的車輛，顯示通知
+    // 使用不同方式顯示結果通知：
+    // 1. 自動偵測有新車時：使用浮動通知
     if (newDetectedBuses.length > 0 && isAutoDetection) {
       showNewDetectionNotification(newDetectedBuses.length);
-    } else if (!isAutoDetection && newDetectedBuses.length === 0) {
+    } 
+    // 2. 手動偵測沒找到車時：使用上方訊息（這種情況通常需要告知用戶）
+    else if (!isAutoDetection && newDetectedBuses.length === 0) {
       showStatusMessage("目前附近未偵測到車輛", "info", true);
-    } else if (!isAutoDetection && newDetectedBuses.length > 0) {
-      // 手動偵測有新車輛時顯示成功訊息
-      showStatusMessage(`已偵測到 ${newDetectedBuses.length} 輛車`, "success", true);
+    } 
+    // 3. 手動偵測有發現車時：使用浮動通知而不是上方訊息
+    else if (!isAutoDetection && newDetectedBuses.length > 0) {
+      // 使用浮動通知代替上方訊息
+      showNewDetectionNotification(newDetectedBuses.length);
     }
     
     // 隱藏偵測指示器
@@ -2546,6 +2550,18 @@ function showNewDetectionNotification(count) {
   const countDisplay = document.getElementById("detectionCount");
 
   countDisplay.textContent = count;
+  
+  // 更新通知顯示的文字，增加更多上下文
+  const textElement = notification.querySelector("span:not(.detection-count)");
+  
+  // 是自動偵測的通知還是手動偵測的通知
+  const isAutoDetect = !!autoDetectInterval;
+  if (isAutoDetect) {
+    textElement.textContent = "個新偵測結果";
+  } else {
+    textElement.textContent = "輛車已偵測到";
+  }
+  
   notification.classList.add("show");
 
   // 5秒後自動隱藏
