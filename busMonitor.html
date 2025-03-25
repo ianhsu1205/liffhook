@@ -19,7 +19,7 @@
         background-color: #f7f7f7;
         margin: 0;
         padding: 0;
-        color: #333;
+        color: #000;
       }
 
       .container {
@@ -1013,7 +1013,6 @@ input:checked + .slider:before {
 
 .direction-btn.selected {
   background-color: #06c755;
-  color: white; /* 選中時變為白色 */
   border-color: #04a73e;
 }
 .direction-legend {
@@ -1194,7 +1193,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.4.3(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.4.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1963,7 +1962,9 @@ const directionInfo = bus.direction === "0" ? "去程" : bus.direction === "1" ?
   routeElement.innerHTML = `
   <div class="route-direction-container">
     <div class="text-marquee">路線: ${routeInfo}</div>
-    <div class="direction-tag">${directionInfo}</div>
+     <div class="direction-tag" style="background-color: ${bus.direction === "0" ? "#007bff" : bus.direction === "1" ? "#28a745" : "#666"}; color: white;">
+    ${directionInfo}
+  </div>
   </div>`;
       
       // 檢查路線長度，如果過長則啟用跑馬燈效果
