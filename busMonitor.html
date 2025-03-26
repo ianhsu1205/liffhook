@@ -813,7 +813,7 @@ input:checked + .slider:before {
   overflow: hidden;
   display: block;
   width: 100%;
-  animation: continuous-scroll 15s linear infinite; 
+  animation: continuous-scroll 10s linear infinite; 
   will-change: transform;
 }
 /* 減少同時動畫的數量，只在hover時才激活 */
@@ -829,8 +829,8 @@ input:checked + .slider:before {
   }
   
 @keyframes continuous-scroll {
-  0% { transform: translateX(50%); }    /* 從完全隱藏的右側開始 */
-  100% { transform: translateX(-100%); } /* 滾動到完全隱藏的左側 */
+  0% { transform: translateX(0); }    
+  100% { transform: translateX(-50%); } 
 }
   
   /* 調整路線顯示容器 */
@@ -1049,6 +1049,10 @@ input:checked + .slider:before {
   border-left: 5px solid #28a745;
   background-color: #d1e7dd; /* 淺綠底 */
 }
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1204,7 +1208,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2564,28 +2568,17 @@ function updateDetectedBusesList() {
 
 // 檢查並啟用所有需要的跑馬燈效果
 function checkAndActivateMarquees() {
-  // 檢查所有路線文字元素
   document.querySelectorAll('.text-marquee').forEach(textElement => {
-    // 獲取容器和文本的實際寬度
-    const containerWidth = textElement.parentElement.offsetWidth || textElement.offsetWidth;
-    const textWidth = textElement.scrollWidth;
-    
-    // 如果文本寬度大於容器寬度，啟用跑馬燈
-    if (textWidth > containerWidth * 1.1) { // 添加10%的閾值，確保真正需要滾動的才啟用
-      if (!textElement.classList.contains('scrolling')) {
-        textElement.classList.add('scrolling');
-        
-        // 如果是列表項，確保有足夠的重複文本
-        if (textElement.classList.contains('list-marquee')) {
-          // 獲取原始文本
-          const originalText = textElement.textContent.split('　')[0];
-          // 重複文本以確保平滑滾動
-          textElement.textContent = originalText + '　' + originalText + '　' + originalText + '　' + originalText;
-        }
+    // 直接設置跑馬燈，避免復雜判斷導致的問題
+    if (!textElement.classList.contains('scrolling')) {
+      const originalText = textElement.textContent;
+      textElement.classList.add('scrolling');
+      
+      // 如果是列表項目就使用list-marquee樣式
+      if (textElement.closest('.bus-route-container')) {
+        textElement.classList.add('list-marquee');
+        textElement.innerHTML = `${originalText} &nbsp;&nbsp;&nbsp; ${originalText} &nbsp;&nbsp;&nbsp; ${originalText}`;
       }
-    } else {
-      // 如果不需要滾動，移除滾動效果
-      textElement.classList.remove('scrolling');
     }
   });
 }
@@ -2600,10 +2593,11 @@ function createBusListItem(bus, index) {
   const routeElement = document.createElement("div");
   routeElement.className = "bus-route-container";
   
-  // 使用跑馬燈包裝路線文字
+  // 建立路線文字元素，直接設置為跑馬燈
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
-  routeTextElement.textContent = routeInfo; // 先設置純文本內容
+  
+  // 先不設置內容，等元素添加到DOM後再設置
   
   // 添加title屬性
   routeElement.title = routeInfo;
@@ -2634,13 +2628,16 @@ function createBusListItem(bus, index) {
     selectBusForInput(bus, index);
   };
   
-  // 在DOM加入後再檢查是否需要啟用跑馬燈
+  // 設置文本和啟用跑馬燈 - 直接使用重複文本而不進行條件判斷
+  routeTextElement.textContent = routeInfo;
+  
+  // 等DOM渲染完成後執行
   setTimeout(() => {
-    if (routeInfo && routeInfo.length > 4) {
+    if (routeInfo && routeInfo.length > 2) {
       routeTextElement.classList.add("list-marquee", "scrolling");
-      routeTextElement.textContent = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
+      routeTextElement.innerHTML = `${routeInfo} &nbsp;&nbsp;&nbsp; ${routeInfo} &nbsp;&nbsp;&nbsp; ${routeInfo}`;
     }
-  }, 100);
+  }, 50);
   
   return busItem;
 }
