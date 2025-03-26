@@ -2,7 +2,7 @@
 <html lang="zh">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>路口查核記錄</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
@@ -615,10 +615,10 @@
       }
       /* 簡易車輛列表樣式 */
 .simple-bus-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 改善響應式佈局 */
+    gap: 10px;
+    margin-top: 15px;
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
@@ -641,17 +641,30 @@
   margin: 0;
   min-height: 45px;
   overflow: hidden;
+    height: 45px; /* 固定高度 */
+  margin-bottom: 0;
+  transform: translate3d(0, 0, 0); /* 啟用硬體加速，減少重繪 */
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+button, .utility-button, .quick-item, .simple-bus-item {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .simple-bus-item strong {
   font-size: 15px; /* 車牌號碼稍微大一點 */
 }
+
 .simple-bus-item:hover {
   background-color: #e7f3fe;
   border-color: #b8daff;
   transform: translateY(-2px);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
-
+/* 添加到您的CSS中 */
+@font-face {
+  font-family: 'FontAwesome';
+  font-display: swap; /* 改善字體載入 */
+}
 .company-label {
  color: #06c755;
   font-weight: 500;
@@ -679,20 +692,45 @@
   position: relative;
 }
 .bus-plate {
- flex-shrink: 0;
-  width: auto;            /* 改為自動寬度 */
-  min-width: 80px;        /* 最小寬度 */
-  max-width: none;        /* 移除最大寬度限制 */
-  text-align: center;
-  background-color: #ffeb3b;
-  padding: 3px 6px;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 14px;
-  margin-left: 8px;
-  white-space: nowrap;    /* 防止斷行 */
-  overflow: visible;
+    flex-shrink: 0;
+    width: auto;
+    min-width: 80px;
+    max-width: none;
+    text-align: center;
+    background-color: #ffeb3b;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    margin-left: 8px;
+    white-space: nowrap;
+    overflow: visible;
+    word-break: keep-all; /* 確保車牌號碼不會被斷開 */
 }
+
+ /* 增強響應式設計 */
+  @media (max-width: 360px) {
+    .utility-buttons {
+      grid-template-columns: repeat(2, 1fr); /* 在極小螢幕上變為2列 */
+    }
+    
+    .simple-bus-list {
+      grid-template-columns: 1fr; /* 在極小螢幕上變為單列 */
+    }
+    
+    .container {
+      padding: 15px; /* 減少內邊距 */
+    }
+    
+    .bus-plate {
+      min-width: 60px; /* 縮小最小寬度 */
+      font-size: 12px; /* 縮小字體 */
+    }
+    
+    .direction-legend {
+      display: none; /* 在小螢幕上隱藏方向圖例 */
+    }
+  }
 .bus-info-header {
   background-color: #f8f9fa;
   padding: 15px;
@@ -710,8 +748,11 @@
 
 .input-section {
   padding: 15px;
+    overflow-x: hidden; /* 防止水平溢出 */
 }
-
+  * {
+    touch-action: manipulation; /* 優化觸控體驗 */
+  }
 .input-actions {
   display: flex;
   gap: 10px;
@@ -792,39 +833,46 @@ input:checked + .slider:before {
  /* 添加到現有樣式的最後 */
   /* 跑馬燈效果樣式 */
   .text-marquee {
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  width: 100%;
-  color: #004085;
-  font-weight: 500;
-  flex: 1; /* 讓路線信息佔據主要空間 */
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    color: #004085;
+    font-weight: 500;
+    flex: 1; /* 讓路線信息佔據主要空間 */
+    will-change: transform; /* 優化動畫性能 */
+    transform: translateZ(0); /* 啟用硬體加速 */
   }
   
 .text-marquee.scrolling {
-  animation: marquee-scroll 8s linear infinite;
+    animation: marquee-scroll 15s linear infinite;
+    animation-fill-mode: forwards; /* 確保動畫結束時保持終點狀態 */
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
-  position: relative;
-  width: auto;
-  padding-left: 0;
-  animation: continuous-scroll 15s linear infinite; 
-  white-space: nowrap;
+    position: relative;
+    width: auto;
+    padding-left: 0;
+    animation: continuous-scroll 15s linear infinite; 
+    white-space: nowrap;
+    backface-visibility: hidden; /* 優化動畫性能 */
 }
 /* 添加額外空間，確保文本之間有適當間距 */
 .list-marquee.scrolling::after {
-  content: ""; /* 使用全角空格作為分隔 */
+    content: "　　　"; /* 使用全角空格作為分隔，增加數量 */
 }
   .text-marquee:hover {
     animation-play-state: paused;
   }
   
 @keyframes continuous-scroll {
-  0% { transform: translateX(50%); }    /* 從完全隱藏的右側開始 */
-  100% { transform: translateX(-100%); } /* 滾動到完全隱藏的左側 */
+  0% { transform: translateX(100%); }    /* 從完全隱藏的右側開始 */
+  100% { transform: translateX(-120%); } /* 滾動到完全隱藏的左側 */
 }
-  
+    @keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
   /* 調整路線顯示容器 */
   .route-info {
   color: #004085;
@@ -1196,7 +1244,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.4.9(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1287,6 +1335,16 @@ const companies = [
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
 
+// 添加防抖函數 - 放在全局變數聲明後面
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, arguments), wait);
+  };
+}
+// 創建防抖版本的跑馬燈初始化函數
+const debouncedInitMarquees = debounce(initializeMarquees, 100);
 
 document.addEventListener('touchstart', function(e) {
   startY = e.touches[0].clientY;
@@ -1388,6 +1446,9 @@ function setupDetectionFeedback() {
 document.addEventListener('DOMContentLoaded', function() {
   setupBackButtonHandler();
   setupDetectionFeedback();
+     setTimeout(() => {
+      debouncedInitMarquees();
+    }, 500);
 });
 
 const safeStorage = {
@@ -1743,19 +1804,14 @@ async function requestWakeLock() {
       console.log('Wake Lock已啟用');
       
       // 頁面可見性變化時重新請求
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    console.log('頁面重新變為可見，重設觸摸事件處理');
-    // 重置任何可能影響滾動的狀態
-    startY = 0;
-    
-    // 強制更新頁面滾動狀態
-    setTimeout(() => {
-      window.scrollTo(window.scrollX, window.scrollY + 1);
-      setTimeout(() => window.scrollTo(window.scrollX, window.scrollY - 1), 10);
-    }, 100);
-  }
-});
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      // 頁面變為可見時，重新初始化所有跑馬燈
+      setTimeout(() => {
+        debouncedInitMarquees();
+      }, 100);
+    }
+  });
     }
   } catch (err) {
     console.error('Wake Lock請求失敗:', err);
@@ -1971,18 +2027,20 @@ const directionInfo = bus.direction === "0" ? "去程" : bus.direction === "1" ?
   </div>`;
       
       // 檢查路線長度，如果過長則啟用跑馬燈效果
-setTimeout(() => {
-  const textElement = routeElement.querySelector('.text-marquee');
-  if (textElement) {
-    // 固定一個預設寬度
-    const MAX_WIDTH_WITHOUT_MARQUEE = 800; // 這個值可以根據您的UI設計調整
-    if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
-      textElement.classList.add('scrolling');
-    } else {
-      textElement.classList.remove('scrolling');
+  setTimeout(() => {
+    const textElement = routeElement.querySelector('.text-marquee');
+    if (textElement) {
+      // 檢查內容是否超出容器
+      const parentWidth = textElement.parentElement.offsetWidth;
+      const textWidth = textElement.scrollWidth;
+      
+      if (textWidth > parentWidth) {
+        textElement.classList.add('scrolling');
+      } else {
+        textElement.classList.remove('scrolling');
+      }
     }
-  }
-}, 10); // 減少延遲時間，讓跑馬燈更快啟動
+  }, 20); // 縮短延遲時間，讓跑馬燈更快啟動
 
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
@@ -2024,7 +2082,10 @@ setTimeout(() => {
     inputContainer.scrollIntoView({ behavior: "smooth" });
   }
 }
-
+  // 添加視窗大小變化監聽，重新初始化跑馬燈
+  window.addEventListener('resize', function() {
+    debouncedInitMarquees();
+  });
 // 修改開始自動偵測函數，確保定時器正確設置
 function startAutoDetect() {
   // 先清除任何現有的自動偵測計時器
@@ -2483,6 +2544,9 @@ function updateDetectedBusesList() {
   // 清空容器並一次性添加所有新元素
   container.innerHTML = "";
   container.appendChild(fragment);
+     setTimeout(() => {
+      debouncedInitMarquees();
+    }, 50);
 }
 
 
@@ -2502,15 +2566,11 @@ function createBusListItem(bus, index) {
   routeTextElement.className = "text-marquee";
   
   // 對於長度超過4的文本啟用跑馬燈
-  if (routeInfo.length > 4) {
-    routeTextElement.classList.add("list-marquee", "scrolling");
-    
+    routeTextElement.classList.add("list-marquee", "scrolling");  
     // 重複文本三次以避免空白間隔
     const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
     routeTextElement.textContent = repeatedText;
-  } else {
-    routeTextElement.textContent = routeInfo;
-  }
+
   
   // 添加title屬性
   routeElement.title = routeInfo;
@@ -3508,5 +3568,38 @@ function initDirectionButtons() {
     });
   });
 }
+
+// 改進跑馬燈功能，解決卡住問題
+  function initializeMarquees() {
+    // 處理所有跑馬燈元素
+    const marquees = document.querySelectorAll('.text-marquee');
+    
+    marquees.forEach(marquee => {
+      // 檢查內容是否需要滾動
+      const parentWidth = marquee.parentElement.offsetWidth;
+      const textWidth = marquee.scrollWidth;
+      
+      if (textWidth > parentWidth) {
+        // 重設動畫
+        marquee.classList.remove('scrolling');
+        // 強制重排以重置動畫
+        void marquee.offsetWidth;
+        // 重新添加動畫類
+        marquee.classList.add('scrolling');
+      } else {
+        // 如果不需要滾動，移除滾動類
+        marquee.classList.remove('scrolling');
+      }
+    });
+    
+    // 列表跑馬燈特殊處理
+    const listMarquees = document.querySelectorAll('.list-marquee');
+    listMarquees.forEach(marquee => {
+      // 重設列表跑馬燈動畫
+      marquee.classList.remove('scrolling');
+      void marquee.offsetWidth;
+      marquee.classList.add('scrolling');
+    });
+  }
     </script>
 </html>
