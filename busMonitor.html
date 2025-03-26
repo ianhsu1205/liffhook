@@ -877,7 +877,13 @@ input:checked + .slider:before {
 }
 /* 添加額外空間，確保文本之間有適當間距 */
 .list-marquee.scrolling::after {
-    content: "　　　"; /* 使用全角空格作為分隔，增加數量 */
+content: "　"; /* 使用單個全角空格作為間隔 */
+}
+  .text-marquee:hover {
+    animation-play-state: paused;
+  }
+  :root {
+  --character-scroll-speed: 0.7s; /* 每個字符滾動所需時間 */
 }
   .text-marquee:hover {
     animation-play-state: paused;
@@ -887,7 +893,7 @@ input:checked + .slider:before {
 }
 @keyframes continuous-scroll {
   0% { transform: translateX(100%); }    /* 從完全隱藏的右側開始 */
-  100% { transform: translateX(-120%); } /* 滾動到完全隱藏的左側 */
+  100% { transform: translateX(-100%); }  /* 滾動到左側結束 */
 }
     @keyframes marquee-scroll {
     0% { transform: translateX(0); }
@@ -1264,7 +1270,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2606,8 +2612,7 @@ function createBusListItem(bus, index) {
 if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
   routeTextElement.classList.add("list-marquee", "scrolling");
   // 重複文本以避免空白間隔
-  const repeatedText = routeInfo + "　　" + routeInfo + "　　" + routeInfo + "　　" + routeInfo;
-  routeTextElement.textContent = repeatedText;
+   const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
 } else {
   // 短路線名稱直接顯示，不使用跑馬燈
   routeTextElement.textContent = routeInfo;
@@ -3613,7 +3618,7 @@ function initDirectionButtons() {
 
 // 改進跑馬燈功能，解決卡住問題
 function initializeMarquees() {
-  const CHARACTER_SCROLL_SPEED = 0.3; // 每個字符的滾動速度（秒）
+  const CHARACTER_SCROLL_SPEED = 0.4; // 每個字符的滾動速度（秒）
   const MIN_DURATION = 5; // 最小動畫持續時間（秒）
   const MAX_DURATION = 10; // 最大動畫持續時間（秒）
   
@@ -3654,8 +3659,9 @@ function initializeMarquees() {
   const listMarquees = document.querySelectorAll('.list-marquee');
   listMarquees.forEach(marquee => {
     // 計算動畫持續時間
-    const textLength = marquee.textContent.length;
-    let duration = textLength * CHARACTER_SCROLL_SPEED * 0.8; // 列表項稍快一些
+    const textContent = marquee.textContent.split('　')[0]; // 只取第一段原始文本來計算
+    const textLength = textContent.length;
+    let duration = textLength * CHARACTER_SCROLL_SPEED * 0.7; // 列表項稍快一些
     
     // 確保在合理範圍內
     duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
