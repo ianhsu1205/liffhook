@@ -616,7 +616,7 @@
       /* 簡易車輛列表樣式 */
 .simple-bus-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 改善響應式佈局 */
+    grid-template-columns: repeat(2, 1fr); /* 改回固定的2列佈局 */
     gap: 10px;
     margin-top: 15px;
 }
@@ -670,7 +670,24 @@ button, .utility-button, .quick-item, .simple-bus-item {
   font-weight: 500;
   font-size: 15px; /* 減小公司名稱字體 */
 }
+/* 然後在媒體查詢中處理響應式 */
+@media (min-width: 481px) {
+  .simple-bus-list {
+    grid-template-columns: repeat(2, 1fr); /* 大螢幕使用2列 */
+  }
+}
 
+@media (max-width: 480px) {
+  .simple-bus-list {
+    grid-template-columns: repeat(2, 1fr); /* 小螢幕仍保持2列 */
+  }
+}
+
+@media (max-width: 360px) {
+  .simple-bus-list {
+    grid-template-columns: 1fr; /* 只有極小螢幕才使用單列 */
+  }
+}
 /* 固定輸入區域樣式 */
 .bus-input-container {
   background-color: #fff;
@@ -1244,7 +1261,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
