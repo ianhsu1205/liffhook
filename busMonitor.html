@@ -417,15 +417,20 @@
       /* 無檢測結果時的樣式 */
       .no-buses-message {
   text-align: center;
-  padding: 30px 20px;
+  padding: 30px 0; /* 只保留上下內邊距，左右邊距設為0 */
   background-color: #f8f9fa;
   border-radius: 8px;
   color: #6c757d;
   margin: 20px 0;
-  width: 100%; /* 確保滿版寬度 */
-  box-sizing: border-box; /* 讓padding包含在寬度內 */
+  width: 100%;
+  box-sizing: border-box;
+  display: block; /* 確保是塊級元素 */
       }
-      
+      /* 確保內部文字左右有適當距離 */
+.no-buses-message p {
+  padding: 0 20px;
+  margin: 0;
+}
       /* 已提交卡片樣式 */
       .bus-card.submitted {
         opacity: 0.7;
@@ -691,7 +696,9 @@ button, .utility-button, .quick-item, .simple-bus-item {
   }
 }
 #detectedBusesList {
-  padding: 0; /* 移除可能的內邊距 */
+  padding: 0;
+  margin: 0;
+  width: 100%;
 }
 /* 固定輸入區域樣式 */
 .bus-input-container {
@@ -715,7 +722,7 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 .bus-plate {
   flex-shrink: 0;
-  width: auto;
+   width: 60px !important; /* 固定統一寬度 */
   min-width: 60px;  /* 從原來的80px減少到70px */
   max-width: none;
   text-align: center;
@@ -1276,7 +1283,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.6.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.6.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
