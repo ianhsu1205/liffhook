@@ -860,7 +860,7 @@ input:checked + .slider:before {
   .text-marquee {
     display: inline-block;
     white-space: nowrap;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
     color: #004085;
     font-weight: 500;
@@ -1279,7 +1279,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.6.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.6.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2058,7 +2058,7 @@ const directionInfo = bus.direction === "0" ? "去程" : bus.direction === "1" ?
       const routeElement = document.getElementById("inputBusRoute");
   routeElement.innerHTML = `
   <div class="route-direction-container">
-    <div class="text-marquee">路線: ${routeInfo}</div>
+    <div class="text-marquee">${routeInfo}</div>
      <div class="direction-tag" style="background-color: ${bus.direction === "0" ? "#007bff" : bus.direction === "1" ? "#28a745" : "#666"}; color: white;">
     ${directionInfo}
   </div>
@@ -3631,9 +3631,9 @@ function initDirectionButtons() {
 
 // 改進跑馬燈功能，解決卡住問題
 function initializeMarquees() {
-  const CHARACTER_SCROLL_SPEED = 0.4; // 每個字符的滾動速度（秒）
-  const MIN_DURATION = 5; // 最小動畫持續時間（秒）
-  const MAX_DURATION = 10; // 最大動畫持續時間（秒）
+  const CHARACTER_SCROLL_SPEED = 0.7; // 每個字符的滾動速度（秒）
+  const MIN_DURATION = 7; // 最小動畫持續時間（秒）
+  const MAX_DURATION = 15; // 最大動畫持續時間（秒）
   
   // 處理所有跑馬燈元素
   const marquees = document.querySelectorAll('.text-marquee');
