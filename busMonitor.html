@@ -1261,7 +1261,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2449,17 +2449,12 @@ async function detectBuses(isAutoDetection = false) {
     
     // 使用不同方式顯示結果通知：
     // 1. 自動偵測有新車時：使用浮動通知
-    if (newDetectedBuses.length > 0 && isAutoDetection) {
+   if (newDetectedBuses.length > 0) {
+  // 有偵測到車輛：使用浮動通知
       showNewDetectionNotification(newDetectedBuses.length);
-    } 
-    // 2. 手動偵測沒找到車時：使用上方訊息（這種情況通常需要告知用戶）
-    else if (!isAutoDetection && newDetectedBuses.length === 0) {
-      showStatusMessage("目前附近未偵測到車輛", "info", true);
-    } 
-    // 3. 手動偵測有發現車時：使用浮動通知而不是上方訊息
-    else if (!isAutoDetection && newDetectedBuses.length > 0) {
-      // 使用浮動通知代替上方訊息
-      showNewDetectionNotification(newDetectedBuses.length);
+    } else if (!isAutoDetection) {
+      // 手動偵測沒找到車：也使用浮動通知而非上方訊息
+      showZeroDetectionNotification();
     }
     
     // 隱藏偵測指示器
@@ -2477,6 +2472,24 @@ async function detectBuses(isAutoDetection = false) {
     hideDetectionIndicator();
   }
 }
+
+// 新增顯示無車輛的浮動通知函數
+function showZeroDetectionNotification() {
+  const notification = document.getElementById("realTimeDetection");
+  const countDisplay = document.getElementById("detectionCount");
+  const textElement = notification.querySelector("span:not(.detection-count)");
+  
+  countDisplay.textContent = "0";
+  textElement.textContent = "附近未偵測到車輛";
+  
+  notification.classList.add("show");
+  
+  // 5秒後自動隱藏
+  setTimeout(() => {
+    notification.classList.remove("show");
+  }, 5000);
+}
+
 // 獲取車輛距離的輔助函數
 function getVehicleDistance(bus) {
   // 預設999米
@@ -2583,10 +2596,16 @@ function createBusListItem(bus, index) {
   routeTextElement.className = "text-marquee";
   
   // 對於長度超過4的文本啟用跑馬燈
-    routeTextElement.classList.add("list-marquee", "scrolling");  
-    // 重複文本三次以避免空白間隔
-    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
-    routeTextElement.textContent = repeatedText;
+// 將這部分改為：
+if (routeInfo.length > 4) { // 只有當路線名稱超過6個字符時才啟用跑馬燈
+  routeTextElement.classList.add("list-marquee", "scrolling");
+  // 重複文本以避免空白間隔
+  const repeatedText = routeInfo + "　　" + routeInfo + "　　" + routeInfo + "　　" + routeInfo;
+  routeTextElement.textContent = repeatedText;
+} else {
+  // 短路線名稱直接顯示，不使用跑馬燈
+  routeTextElement.textContent = routeInfo;
+}
 
   
   // 添加title屬性
