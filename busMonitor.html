@@ -622,11 +622,11 @@
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
-  width: 70px;            /* 固定寬度 */
+  width: 100px;            /* 固定寬度 */
   overflow: hidden;    
   white-space: nowrap;
   position: relative;
-  margin-right: 0px;      /* 右側間距 */
+  margin-right: 5px;      /* 右側間距 */
 }
 .simple-bus-item {
   background-color: #f8f9fa;
@@ -709,20 +709,20 @@ button, .utility-button, .quick-item, .simple-bus-item {
   position: relative;
 }
 .bus-plate {
-    flex-shrink: 0;
-    width: auto;
-    min-width: 80px;
-    max-width: none;
-    text-align: center;
-    background-color: #ffeb3b;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 14px;
-    margin-left: 8px;
-    white-space: nowrap;
-    overflow: visible;
-    word-break: keep-all; /* 確保車牌號碼不會被斷開 */
+  flex-shrink: 0;
+  width: auto;
+  min-width: 70px;  /* 從原來的80px減少到70px */
+  max-width: none;
+  text-align: center;
+  background-color: #ffeb3b;
+  padding: 3px 4px;  /* 稍微縮小內邊距 */
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-left: 4px;  /* 縮小左側間距 */
+  white-space: nowrap;
+  overflow: visible;
+  word-break: keep-all;
 }
 
  /* 增強響應式設計 */
@@ -1050,12 +1050,12 @@ input:checked + .slider:before {
 }
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
-  border-left: 4px solid #007bff !important;
+  border-left: 8px solid #007bff !important;
 }
 
 /* 返程 - 綠色系 */
 .bus-plate.direction-back {
-  border-left: 4px solid #28a745 !important;
+  border-left: 8px solid #28a745 !important;
 }
 .direction-buttons {
   display: flex;
@@ -1261,7 +1261,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2579,7 +2579,11 @@ function updateDetectedBusesList() {
     }, 50);
 }
 
-
+function countChineseChars(str) {
+  // 使用正則表達式計算中文字符數量
+  const chineseCharsMatch = str.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g);
+  return chineseCharsMatch ? chineseCharsMatch.length : 0;
+}
 function createBusListItem(bus, index) {
   // 路線信息
   const routeInfo = bus.routeName?.chinese || "未知路線";
@@ -2595,9 +2599,8 @@ function createBusListItem(bus, index) {
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
   
-  // 對於長度超過4的文本啟用跑馬燈
-// 將這部分改為：
-if (routeInfo.length > 4) { // 只有當路線名稱超過6個字符時才啟用跑馬燈
+// 如果中文字符數量超過5個，或總長度超過12個字符，則啟用跑馬燈
+if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
   routeTextElement.classList.add("list-marquee", "scrolling");
   // 重複文本以避免空白間隔
   const repeatedText = routeInfo + "　　" + routeInfo + "　　" + routeInfo + "　　" + routeInfo;
