@@ -691,8 +691,7 @@
   font-size: 14px;
   margin-left: 6px;
   white-space: nowrap;    /* 防止斷行 */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
 }
 .bus-info-header {
   background-color: #f8f9fa;
@@ -804,21 +803,14 @@ input:checked + .slider:before {
   
 .text-marquee.scrolling {
   animation: marquee-scroll 8s linear infinite;
-    will-change: transform; /* 提示瀏覽器優化動畫性能 */
 }
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
   position: relative;
+  width: auto;
+  padding-left: 0;
+  animation: continuous-scroll 15s linear infinite; 
   white-space: nowrap;
-  overflow: hidden;
-  display: block;
-  width: 100%;
-  animation: continuous-scroll 10s linear infinite; 
-  will-change: transform;
-}
-/* 減少同時動畫的數量，只在hover時才激活 */
-.simple-bus-list:not(:hover) .list-marquee.scrolling {
-  animation-play-state: paused;
 }
 /* 添加額外空間，確保文本之間有適當間距 */
 .list-marquee.scrolling::after {
@@ -829,8 +821,8 @@ input:checked + .slider:before {
   }
   
 @keyframes continuous-scroll {
-  0% { transform: translateX(0); }    
-  100% { transform: translateX(-50%); } 
+  0% { transform: translateX(50%); }    /* 從完全隱藏的右側開始 */
+  100% { transform: translateX(-100%); } /* 滾動到完全隱藏的左側 */
 }
   
   /* 調整路線顯示容器 */
@@ -1049,10 +1041,6 @@ input:checked + .slider:before {
   border-left: 5px solid #28a745;
   background-color: #d1e7dd; /* 淺綠底 */
 }
-@keyframes marquee-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1208,7 +1196,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.4.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1982,28 +1970,19 @@ const directionInfo = bus.direction === "0" ? "去程" : bus.direction === "1" ?
   </div>
   </div>`;
       
+      // 檢查路線長度，如果過長則啟用跑馬燈效果
 setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
-    // 檢查文本實際寬度是否超過容器寬度
-    const containerWidth = textElement.offsetWidth;
-    const textWidth = textElement.scrollWidth;
-    
-    if (textWidth > containerWidth * 1.1) {
+    // 固定一個預設寬度
+    const MAX_WIDTH_WITHOUT_MARQUEE = 800; // 這個值可以根據您的UI設計調整
+    if (textElement.scrollWidth > MAX_WIDTH_WITHOUT_MARQUEE) {
       textElement.classList.add('scrolling');
     } else {
       textElement.classList.remove('scrolling');
     }
-    
-    // 如果首次檢查沒有正確判斷，再次檢查
-    setTimeout(() => {
-      const updatedTextWidth = textElement.scrollWidth;
-      if (updatedTextWidth > containerWidth && !textElement.classList.contains('scrolling')) {
-        textElement.classList.add('scrolling');
-      }
-    }, 500);
   }
-}, 50); // 增加延遲時間
+}, 10); // 減少延遲時間，讓跑馬燈更快啟動
 
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
@@ -2486,102 +2465,27 @@ function updateDetectedBusesList() {
     const busListContainer = document.createElement("div");
     busListContainer.className = "simple-bus-list";
     
-    // 考慮車輛數量，可能需要分頁顯示
-    const MAX_VISIBLE_BUSES = 10; // 一次顯示的最大車輛數
-    const showPagination = displayedBuses.length > MAX_VISIBLE_BUSES;
-    
-    // 決定顯示哪些車輛
-    const visibleBuses = showPagination ? 
-      displayedBuses.slice(0, MAX_VISIBLE_BUSES) : 
-      displayedBuses;
-    
-    // 添加可見的車輛到列表
-    visibleBuses.forEach((bus, index) => {
+    displayedBuses.forEach((bus, index) => {
       const busItem = createBusListItem(bus, index);
       
       // 如果這是當前選中的車輛，添加視覺標記
       if (selectedBus && bus.plateNumber === selectedBus.plateNumber && isProcessingBus) {
         busItem.classList.add("selected-bus-item");
+        // 可以添加額外的CSS來高亮顯示
       }
       
       busListContainer.appendChild(busItem);
     });
     
     fragment.appendChild(busListContainer);
-    
-    // 如果車輛數量超過最大顯示數量，添加"顯示更多"按鈕
-    if (showPagination) {
-      const showMoreButton = document.createElement("button");
-      showMoreButton.textContent = `顯示更多 (還有 ${displayedBuses.length - MAX_VISIBLE_BUSES} 輛)`;
-      showMoreButton.className = "secondary-button";
-      showMoreButton.style.margin = "15px auto";
-      showMoreButton.style.display = "block";
-      showMoreButton.style.width = "90%";
-      
-      // 點擊顯示更多按鈕的處理函數
-      showMoreButton.onclick = function() {
-        // 增加顯示的車輛數量
-        const currentlyShowing = document.querySelectorAll(".simple-bus-item").length;
-        const nextBatch = displayedBuses.slice(currentlyShowing, currentlyShowing + MAX_VISIBLE_BUSES);
-        
-        if (nextBatch.length > 0) {
-          const busListContainer = document.querySelector(".simple-bus-list");
-          
-          nextBatch.forEach((bus, idx) => {
-            const realIndex = currentlyShowing + idx;
-            const busItem = createBusListItem(bus, realIndex);
-            
-            // 如果這是當前選中的車輛，添加視覺標記
-            if (selectedBus && bus.plateNumber === selectedBus.plateNumber && isProcessingBus) {
-              busItem.classList.add("selected-bus-item");
-            }
-            
-            busListContainer.appendChild(busItem);
-          });
-          
-          // 更新按鈕文字或移除按鈕
-          const remaining = displayedBuses.length - (currentlyShowing + nextBatch.length);
-          if (remaining > 0) {
-            showMoreButton.textContent = `顯示更多 (還有 ${remaining} 輛)`;
-          } else {
-            showMoreButton.remove();
-          }
-        } else {
-          // 如果沒有更多車輛，移除按鈕
-          showMoreButton.remove();
-        }
-      };
-      
-      fragment.appendChild(showMoreButton);
-    }
   }
   
   // 清空容器並一次性添加所有新元素
   container.innerHTML = "";
   container.appendChild(fragment);
-  
-  // 優化：在所有內容加載完成後重新檢查並啟用跑馬燈效果
-  setTimeout(() => {
-    checkAndActivateMarquees();
-  }, 200);
 }
 
-// 檢查並啟用所有需要的跑馬燈效果
-function checkAndActivateMarquees() {
-  document.querySelectorAll('.text-marquee').forEach(textElement => {
-    // 直接設置跑馬燈，避免復雜判斷導致的問題
-    if (!textElement.classList.contains('scrolling')) {
-      const originalText = textElement.textContent;
-      textElement.classList.add('scrolling');
-      
-      // 如果是列表項目就使用list-marquee樣式
-      if (textElement.closest('.bus-route-container')) {
-        textElement.classList.add('list-marquee');
-        textElement.innerHTML = `${originalText} &nbsp;&nbsp;&nbsp; ${originalText} &nbsp;&nbsp;&nbsp; ${originalText}`;
-      }
-    }
-  });
-}
+
 function createBusListItem(bus, index) {
   // 路線信息
   const routeInfo = bus.routeName?.chinese || "未知路線";
@@ -2593,14 +2497,24 @@ function createBusListItem(bus, index) {
   const routeElement = document.createElement("div");
   routeElement.className = "bus-route-container";
   
-  // 建立路線文字元素，直接設置為跑馬燈
+  // 使用跑馬燈包裝路線文字
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
   
-  // 先不設置內容，等元素添加到DOM後再設置
+  // 對於長度超過4的文本啟用跑馬燈
+  if (routeInfo.length > 4) {
+    routeTextElement.classList.add("list-marquee", "scrolling");
+    
+    // 重複文本三次以避免空白間隔
+    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
+    routeTextElement.textContent = repeatedText;
+  } else {
+    routeTextElement.textContent = routeInfo;
+  }
   
   // 添加title屬性
   routeElement.title = routeInfo;
+  
   routeElement.appendChild(routeTextElement);
   
   // 創建車號元素
@@ -2610,16 +2524,14 @@ function createBusListItem(bus, index) {
   // 獲取距離並設置對應的CSS類
   const distanceInMeters = getVehicleDistance(bus);
   addDistanceClassToElement(plateElement, distanceInMeters);
-  
   // 添加方向樣式類
-  if (bus.direction === "0") {
-    plateElement.classList.add("direction-go");
-  } else if (bus.direction === "1") {
-    plateElement.classList.add("direction-back");
-  }
+if (bus.direction === "0") {
+  plateElement.classList.add("direction-go");
+} else if (bus.direction === "1") {
+  plateElement.classList.add("direction-back");
+}
 
   plateElement.textContent = bus.plateNumber;
-  
   // 將元素添加到車輛項目中
   busItem.appendChild(routeElement);
   busItem.appendChild(plateElement);
@@ -2627,17 +2539,6 @@ function createBusListItem(bus, index) {
   busItem.onclick = function() {
     selectBusForInput(bus, index);
   };
-  
-  // 設置文本和啟用跑馬燈 - 直接使用重複文本而不進行條件判斷
-  routeTextElement.textContent = routeInfo;
-  
-  // 等DOM渲染完成後執行
-  setTimeout(() => {
-    if (routeInfo && routeInfo.length > 2) {
-      routeTextElement.classList.add("list-marquee", "scrolling");
-      routeTextElement.innerHTML = `${routeInfo} &nbsp;&nbsp;&nbsp; ${routeInfo} &nbsp;&nbsp;&nbsp; ${routeInfo}`;
-    }
-  }, 50);
   
   return busItem;
 }
