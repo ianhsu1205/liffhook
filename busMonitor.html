@@ -862,9 +862,10 @@ input:checked + .slider:before {
   }
   
 .text-marquee.scrolling {
-    animation: marquee-scroll 15s linear infinite;
-    animation-fill-mode: forwards; /* 確保動畫結束時保持終點狀態 */
+  animation: marquee-scroll var(--scroll-duration, 15s) linear infinite;
+  animation-fill-mode: forwards;
 }
+
 /* 列表項中的跑馬燈速度更快 */
 .list-marquee.scrolling {
     position: relative;
@@ -881,7 +882,9 @@ input:checked + .slider:before {
   .text-marquee:hover {
     animation-play-state: paused;
   }
-  
+  :root {
+  --character-scroll-speed: 0.7s; /* 每個字符滾動所需時間 */
+}
 @keyframes continuous-scroll {
   0% { transform: translateX(100%); }    /* 從完全隱藏的右側開始 */
   100% { transform: translateX(-120%); } /* 滾動到完全隱藏的左側 */
@@ -1261,7 +1264,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.5(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3609,36 +3612,62 @@ function initDirectionButtons() {
 }
 
 // 改進跑馬燈功能，解決卡住問題
-  function initializeMarquees() {
-    // 處理所有跑馬燈元素
-    const marquees = document.querySelectorAll('.text-marquee');
+function initializeMarquees() {
+  const CHARACTER_SCROLL_SPEED = 0.3; // 每個字符的滾動速度（秒）
+  const MIN_DURATION = 5; // 最小動畫持續時間（秒）
+  const MAX_DURATION = 10; // 最大動畫持續時間（秒）
+  
+  // 處理所有跑馬燈元素
+  const marquees = document.querySelectorAll('.text-marquee');
+  
+  marquees.forEach(marquee => {
+    // 檢查內容是否需要滾動
+    const parentWidth = marquee.parentElement.offsetWidth;
+    const textWidth = marquee.scrollWidth;
     
-    marquees.forEach(marquee => {
-      // 檢查內容是否需要滾動
-      const parentWidth = marquee.parentElement.offsetWidth;
-      const textWidth = marquee.scrollWidth;
-      
-      if (textWidth > parentWidth) {
-        // 重設動畫
-        marquee.classList.remove('scrolling');
-        // 強制重排以重置動畫
-        void marquee.offsetWidth;
-        // 重新添加動畫類
-        marquee.classList.add('scrolling');
-      } else {
-        // 如果不需要滾動，移除滾動類
-        marquee.classList.remove('scrolling');
-      }
-    });
-    
-    // 列表跑馬燈特殊處理
-    const listMarquees = document.querySelectorAll('.list-marquee');
-    listMarquees.forEach(marquee => {
-      // 重設列表跑馬燈動畫
+    if (textWidth > parentWidth) {
+      // 重設動畫
       marquee.classList.remove('scrolling');
+      
+      // 計算動畫持續時間
+      const textLength = marquee.textContent.length;
+      let duration = textLength * CHARACTER_SCROLL_SPEED;
+      
+      // 確保在合理範圍內
+      duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
+      
+      // 設置CSS變量
+      marquee.style.setProperty('--scroll-duration', `${duration}s`);
+      
+      // 強制重排以重置動畫
       void marquee.offsetWidth;
+      
+      // 重新添加動畫類
       marquee.classList.add('scrolling');
-    });
-  }
+    } else {
+      // 如果不需要滾動，移除滾動類
+      marquee.classList.remove('scrolling');
+    }
+  });
+  
+  // 列表跑馬燈特殊處理
+  const listMarquees = document.querySelectorAll('.list-marquee');
+  listMarquees.forEach(marquee => {
+    // 計算動畫持續時間
+    const textLength = marquee.textContent.length;
+    let duration = textLength * CHARACTER_SCROLL_SPEED * 0.8; // 列表項稍快一些
+    
+    // 確保在合理範圍內
+    duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
+    
+    // 設置CSS變量
+    marquee.style.setProperty('--scroll-duration', `${duration}s`);
+    
+    // 重設列表跑馬燈動畫
+    marquee.classList.remove('scrolling');
+    void marquee.offsetWidth;
+    marquee.classList.add('scrolling');
+  });
+}
     </script>
 </html>
