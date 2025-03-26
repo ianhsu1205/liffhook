@@ -616,23 +616,23 @@
       /* 簡易車輛列表樣式 */
 .simple-bus-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* 改回固定兩列 */
   gap: 10px;
   margin-top: 15px;
 }
 /* 路線容器固定寬度 */
 .bus-route-container {
-  width: calc(100% - 90px);  /* 動態計算寬度，減去車牌區域寬度 */
-  min-width: 50px;           /* 最小寬度 */
+  width: 60%;          /* 使用固定百分比 */
+  flex: 1;             /* 允許彈性伸縮 */
+  min-width: 40px;     /* 降低最小寬度 */
   overflow: hidden;    
   white-space: nowrap;
   position: relative;
-  margin-right: 1px;         /* 增加右側間距 */
 }
 
-@media (max-width: 340px) {
+@media (max-width: 320px) {
   .simple-bus-list {
-    grid-template-columns: 1fr;  /* 在較小螢幕上改為單列 */
+    grid-template-columns: 1fr; /* 僅在極小螢幕上改為單列 */
   }
 }
 .simple-bus-item {
@@ -833,12 +833,12 @@ input:checked + .slider:before {
     animation-play-state: paused;
   }
 @keyframes marquee-scroll {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% { transform: translateX(10%); }
+  100% { transform: translateX(-70%); }
 }
 @keyframes continuous-scroll {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-200%); }
+  0% { transform: translateX(30%); }
+  100% { transform: translateX(-70%); }
 }
   
   /* 調整路線顯示容器 */
@@ -1212,7 +1212,7 @@ input:checked + .slider:before {
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2003,18 +2003,17 @@ routeElement.innerHTML = `
 setTimeout(() => {
   const textElement = routeElement.querySelector('.text-marquee');
   if (textElement) {
-    // 計算文字實際長度與容器寬度比較
+    // 確保更準確的判斷條件
     const textWidth = textElement.scrollWidth;
     const containerWidth = textElement.clientWidth;
     
-    // 只有當文字寬度超過容器才啟動跑馬燈
-    if (textWidth > containerWidth * 1.2) { // 增加20%餘量
+    if (textWidth > containerWidth + 5) { // 微調判斷閾值
       textElement.classList.add('scrolling');
     } else {
       textElement.classList.remove('scrolling');
     }
   }
-}, 100); // 延遲時間調整
+}, 50); // 減少延遲時間，加快反應
 
     document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
     document.getElementById("inputBusNumber").textContent = bus.plateNumber || "無車號";
@@ -2534,15 +2533,14 @@ function createBusListItem(bus, index) {
   routeTextElement.className = "text-marquee";
   
   // 對於長度超過4的文本啟用跑馬燈
-  if (routeInfo.length > 4) {
-    routeTextElement.classList.add("list-marquee", "scrolling");
-    
-    // 重複文本三次以避免空白間隔
-    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
-    routeTextElement.textContent = repeatedText;
-  } else {
-    routeTextElement.textContent = routeInfo;
-  }
+if (routeInfo.length > 4) {
+  routeTextElement.classList.add("list-marquee", "scrolling");
+  
+  // 確保足夠的文字重複，包括適當的空格
+  routeTextElement.textContent = routeInfo + " · " + routeInfo + " · " + routeInfo;
+} else {
+  routeTextElement.textContent = routeInfo;
+}
   
   // 添加title屬性
   routeElement.title = routeInfo;
