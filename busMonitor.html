@@ -1271,7 +1271,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.5.8(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.5.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1373,6 +1373,35 @@ function debounce(func, wait) {
 // 創建防抖版本的跑馬燈初始化函數
 const debouncedInitMarquees = debounce(initializeMarquees, 100);
 
+// 設置跑馬燈元素觀察器
+function setupMarqueeObserver() {
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          debouncedInitMarquees();
+        }
+      });
+    });
+    
+    document.querySelectorAll('.text-marquee').forEach(el => {
+      observer.observe(el);
+    });
+    
+    // 當新元素添加到DOM時重新綁定觀察器
+    const refreshObserverInterval = setInterval(() => {
+      document.querySelectorAll('.text-marquee:not([data-observed])').forEach(el => {
+        el.dataset.observed = 'true';
+        observer.observe(el);
+      });
+    }, 1000);
+    
+    // 儲存觀察器以便後續使用
+    window.marqueeObserver = observer;
+    window.marqueeObserverInterval = refreshObserverInterval;
+  }
+}
+
 document.addEventListener('touchstart', function(e) {
   startY = e.touches[0].clientY;
 }, { passive: true }); // 使用passive: true以不影響滾動性能
@@ -1473,6 +1502,7 @@ function setupDetectionFeedback() {
 document.addEventListener('DOMContentLoaded', function() {
   setupBackButtonHandler();
   setupDetectionFeedback();
+  setupMarqueeObserver(); 
      setTimeout(() => {
       debouncedInitMarquees();
     }, 500);
@@ -2587,9 +2617,17 @@ function updateDetectedBusesList() {
   // 清空容器並一次性添加所有新元素
   container.innerHTML = "";
   container.appendChild(fragment);
-     setTimeout(() => {
-      debouncedInitMarquees();
-    }, 50);
+setTimeout(() => {
+  debouncedInitMarquees();
+  
+  // 重新綁定新添加的元素到觀察器
+  if (window.marqueeObserver) {
+    document.querySelectorAll('.text-marquee:not([data-observed])').forEach(el => {
+      el.dataset.observed = 'true';
+      window.marqueeObserver.observe(el);
+    });
+  }
+}, 50);
 }
 
 function countChineseChars(str) {
@@ -3623,7 +3661,7 @@ function initDirectionButtons() {
 
 // 改進跑馬燈功能，解決卡住問題
 function initializeMarquees() {
-  const CHARACTER_SCROLL_SPEED = 0.4; // 每個字符的滾動速度（秒）
+  const CHARACTER_SCROLL_SPEED = 0.5; // 每個字符的滾動速度（秒）
   const MIN_DURATION = 5; // 最小動畫持續時間（秒）
   const MAX_DURATION = 10; // 最大動畫持續時間（秒）
   
