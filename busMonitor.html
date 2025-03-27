@@ -690,9 +690,9 @@ button, .utility-button, .quick-item, .simple-bus-item {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 320px) {
   .simple-bus-list {
-    grid-template-columns: 1fr; /* 只有極小螢幕才使用單列 */
+    grid-template-columns: 1fr; /* 只有在非常小的螢幕(320px以下)才使用單列 */
   }
 }
 #detectedBusesList {
@@ -737,25 +737,6 @@ button, .utility-button, .quick-item, .simple-bus-item {
   word-break: keep-all;
 }
 
- /* 增強響應式設計 */
-  @media (max-width: 360px) {
-    .utility-buttons {
-      grid-template-columns: repeat(2, 1fr); /* 在極小螢幕上變為2列 */
-    }
-    
-    .simple-bus-list {
-      grid-template-columns: 1fr; /* 在極小螢幕上變為單列 */
-    }
-    
-    .container {
-      padding: 15px; /* 減少內邊距 */
-    }
-    
-   
-    .direction-legend {
-      display: none; /* 在小螢幕上隱藏方向圖例 */
-    }
-  }
 .bus-info-header {
   background-color: #f8f9fa;
   padding: 15px;
@@ -1279,7 +1260,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.6.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.6.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
