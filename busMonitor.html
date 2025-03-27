@@ -371,7 +371,12 @@
       grid-template-columns: repeat(3, 1fr);
     }
   }
-
+.utility-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 15px 0;
+}
       .utility-button {
   display: flex;
   flex-direction: column;
@@ -1190,6 +1195,32 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 .editing-tab .tab-close:hover {
   background-color: rgba(255,0,0,0.2);
 }
+.floating-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 2000;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 90%;
+}
+.floating-notification.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+.floating-notification.success {
+  background-color: rgba(6, 199, 85, 0.9);
+}
+
+.floating-notification.error {
+  background-color: rgba(220, 53, 69, 0.9);
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1356,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.6.9(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2105,6 +2136,7 @@ function isRecentlySubmitted(plateNumber) {
 }
 
 // 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
+// 確保 selectBusForInput 函數在點擊新車輛時重置狀態
 function selectBusForInput(bus, index) {
   // 檢查此車輛是否已經在編輯列表中
   const existingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
@@ -2113,23 +2145,27 @@ function selectBusForInput(bus, index) {
   if (existingIndex !== -1) {
     // 如果已存在，切換到該編輯視圖，不創建新的
     activeEditingBusIndex = existingIndex;
-    busToEdit = editingBuses[existingIndex]; // 使用現有的編輯對象
+    busToEdit = editingBuses[existingIndex];
   } else {
     // 不存在，添加到編輯列表
-    busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝，確保原始數據不被修改
-    // 初始化選擇狀態
+    busToEdit = JSON.parse(JSON.stringify(bus));
     busToEdit.selectedOtherItems = busToEdit.selectedOtherItems || [];
     editingBuses.push(busToEdit);
     activeEditingBusIndex = editingBuses.length - 1;
   }
+  
+  // 重置處理狀態，確保可以選擇新車輛
+  isProcessingBus = true;
   
   // 更新車輛編輯介面
   updateBusEditingInterface();
   
   // 顯示編輯區域
   document.getElementById("busInputContainer").classList.remove("hidden");
+  
+  // 更新列表中的選中狀態
+  updateBusSelectionInList();
 }
-
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
@@ -3091,6 +3127,7 @@ function showDetectedBuses() {
 
 // 提交選中的車輛
 // 7. 修改submitSelectedBus函數
+// 7. 修改submitSelectedBus函數
 function submitSelectedBus() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     showStatusMessage("請先選擇車輛", "error");
@@ -3117,24 +3154,26 @@ function submitSelectedBus() {
   submitButton.classList.add("disabled");
   
   // 提交記錄
-  submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || []);
-  
-  // 提交成功後，從編輯列表中移除
-  editingBuses.splice(activeEditingBusIndex, 1);
-  
-  // 調整活躍編輯索引
-  if (editingBuses.length === 0) {
-    // 沒有編輯中的車輛了
-    activeEditingBusIndex = -1;
-    document.getElementById("busInputContainer").classList.add("hidden");
-  } else {
-    // 如果還有其他車輛在編輯中
-    activeEditingBusIndex = Math.min(activeEditingBusIndex, editingBuses.length - 1);
-  }
-  
-  // 更新標籤和編輯界面
-  updateEditingTabs();
-  updateBusEditingInterface();
+  submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || [])
+    .then(() => {
+      // 提交成功後，從編輯列表中移除
+      editingBuses.splice(activeEditingBusIndex, 1);
+      
+      // 調整活躍編輯索引
+      if (editingBuses.length === 0) {
+        // 沒有編輯中的車輛了
+        activeEditingBusIndex = -1;
+        document.getElementById("busInputContainer").classList.add("hidden");
+      } else {
+        // 如果還有其他車輛在編輯中
+        activeEditingBusIndex = Math.min(activeEditingBusIndex, editingBuses.length - 1);
+        // 確保更新編輯界面
+        updateBusEditingInterface();
+      }
+      
+      // 更新標籤
+      updateEditingTabs();
+    });
   
   // 5秒後恢復按鈕
   setTimeout(() => {
@@ -3175,19 +3214,19 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
   try {
-  const data = {
-  userId: document.getElementById("userId").value,
-  location: document.getElementById("location").value,
-  plateNumbCompany: bus.operatorName || "不明",  // 如果為空，顯示"不明"
-  routeName: bus.routeName?.chinese || "不明",   // 如果為空，顯示"不明"
-  plateNumber: bus.plateNumber,
-  direction: bus.direction, // 添加方向欄位
-  positionLat: `(${bus.position?.latitude || currentLatitude},${
-    bus.position?.longitude || currentLongitude
-  })`,
-  mainItem: mainItem,
-  otherItem: otherItems.join(", "),
-};
+    const data = {
+      userId: document.getElementById("userId").value,
+      location: document.getElementById("location").value,
+      plateNumbCompany: bus.operatorName || "不明",
+      routeName: bus.routeName?.chinese || "不明",
+      plateNumber: bus.plateNumber,
+      direction: bus.direction,
+      positionLat: `(${bus.position?.latitude || currentLatitude},${
+        bus.position?.longitude || currentLongitude
+      })`,
+      mainItem: mainItem,
+      otherItem: otherItems.join(", "),
+    };
     
     const response = await fetch(base_url + "monitor/records", {
       method: "POST",
@@ -3213,20 +3252,48 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       document.getElementById("busInputContainer").classList.add("hidden");
       selectedBusIndex = -1;
       
-      showStatusMessage("已新增一筆記錄！", "success",true);
+      // 使用浮動通知而非頂部狀態消息
+      showFloatingNotification("已新增一筆記錄！", "success");
     } else {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
     }
+    return Promise.resolve();
   } catch (error) {
     console.error("提交記錄失敗:", error);
-    showStatusMessage("提交記錄失敗: " + error.message, "error");
+    showFloatingNotification("提交記錄失敗: " + error.message, "error");
+     return Promise.reject(error);
   } finally {
     hideLoading();
   }
 }
 
-// 獲取當前位置
+// 添加浮動通知函數
+function showFloatingNotification(message, type) {
+  // 先檢查是否已存在通知元素
+  let notification = document.getElementById("floatingNotification");
+  
+  // 如果不存在，則創建一個
+  if (!notification) {
+    notification = document.createElement("div");
+    notification.id = "floatingNotification";
+    notification.className = "floating-notification";
+    document.body.appendChild(notification);
+  }
+  
+  // 設置通知內容和樣式
+  notification.textContent = message;
+  notification.className = "floating-notification"; // 重置類
+  notification.classList.add(type);
+  
+  // 顯示通知
+  notification.classList.add("show");
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    notification.classList.remove("show");
+  }, 3000);
+}
 // 修改定位函數，提高精度
 async function getCurrentPosition(silent = false) {
   showLoading();
