@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.0(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2136,7 +2136,6 @@ function isRecentlySubmitted(plateNumber) {
 }
 
 // 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
-// 確保 selectBusForInput 函數在點擊新車輛時重置狀態
 function selectBusForInput(bus, index) {
   // 檢查此車輛是否已經在編輯列表中
   const existingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
@@ -2148,7 +2147,7 @@ function selectBusForInput(bus, index) {
     busToEdit = editingBuses[existingIndex];
   } else {
     // 不存在，添加到編輯列表
-    busToEdit = JSON.parse(JSON.stringify(bus));
+    busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝，確保原始數據不被修改
     busToEdit.selectedOtherItems = busToEdit.selectedOtherItems || [];
     editingBuses.push(busToEdit);
     activeEditingBusIndex = editingBuses.length - 1;
@@ -2381,9 +2380,8 @@ function confirmCancelEditing(index) {
     confirmModal.style.display = "none";
   });
 }
-// 修改刪除編輯中車輛的函數
 function removeEditingBus(index) {
-  // 保存刪除前的 plateNumber，以便更新 UI
+  // 保存刪除前的信息
   const removedPlateNumber = editingBuses[index]?.plateNumber;
   
   // 移除指定索引的編輯車輛
@@ -2406,11 +2404,10 @@ function removeEditingBus(index) {
       // 如果刪除的是當前活躍車輛，選擇另一輛
       activeEditingBusIndex = 0; // 默認選擇第一輛車
     }
-    // 不動當前選中的索引，除非它被刪除或無效
   }
   
-  // 在列表中更新對應的車輛項的選中狀態
-  updateBusSelectionInList(removedPlateNumber);
+  // 更新列表中的選中狀態 - 不傳入被移除的車牌號，讓所有編輯中的車輛都顯示編輯標記
+  updateBusSelectionInList();
   
   // 更新標籤和編輯界面
   updateEditingTabs();
@@ -2418,20 +2415,20 @@ function removeEditingBus(index) {
 }
 
 // 新增：更新列表中車輛的選中狀態
-function updateBusSelectionInList(removedPlateNumber) {
+function updateBusSelectionInList() {
   // 清除所有選中狀態
   document.querySelectorAll('.simple-bus-item').forEach(item => {
     item.classList.remove('selected-bus-item');
   });
   
-  // 如果還有正在編輯的車輛，為當前選中的車輛添加選中樣式
-  if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
-    const currentPlateNumber = editingBuses[activeEditingBusIndex].plateNumber;
+  // 為所有正在編輯的車輛添加標記
+  if (editingBuses.length > 0) {
+    const editingPlateNumbers = editingBuses.map(bus => bus.plateNumber);
     
-    // 找到對應的列表項並標記為選中
+    // 找到對應的列表項並標記為正在編輯
     document.querySelectorAll('.simple-bus-item').forEach(item => {
       const plateElement = item.querySelector('.bus-plate');
-      if (plateElement && plateElement.textContent === currentPlateNumber) {
+      if (plateElement && editingPlateNumbers.includes(plateElement.textContent)) {
         item.classList.add('selected-bus-item');
       }
     });
@@ -2851,6 +2848,9 @@ function updateDetectedBusesList() {
   // 更新計數
   document.getElementById("busCount").textContent = `${displayedBuses.length} 輛`;
   
+  // 獲取正在編輯的車牌號碼列表
+  const editingPlateNumbers = editingBuses.map(bus => bus.plateNumber);
+  
   // 使用DocumentFragment來減少DOM操作
   const fragment = document.createDocumentFragment();
   
@@ -2870,10 +2870,9 @@ function updateDetectedBusesList() {
     displayedBuses.forEach((bus, index) => {
       const busItem = createBusListItem(bus, index);
       
-      // 如果這是當前選中的車輛，添加視覺標記
-      if (selectedBus && bus.plateNumber === selectedBus.plateNumber && isProcessingBus) {
+      // 如果這個車輛在編輯列表中，標記為編輯中
+      if (editingPlateNumbers.includes(bus.plateNumber)) {
         busItem.classList.add("selected-bus-item");
-        // 可以添加額外的CSS來高亮顯示
       }
       
       busListContainer.appendChild(busItem);
@@ -2885,9 +2884,10 @@ function updateDetectedBusesList() {
   // 清空容器並一次性添加所有新元素
   container.innerHTML = "";
   container.appendChild(fragment);
-     setTimeout(() => {
-      debouncedInitMarquees();
-    }, 50);
+  
+  setTimeout(() => {
+    debouncedInitMarquees();
+  }, 50);
 }
 
 function countChineseChars(str) {
@@ -3210,6 +3210,7 @@ function createQuickItems() {
     });
 }
 // 提交車輛記錄
+// 修改 submitBusRecord 函數，移除對 selectedBusIndex 的設置
 async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
@@ -3248,12 +3249,10 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       // 更新UI
       updateDetectedBusesList();
       
-      // 隱藏輸入區域
-      document.getElementById("busInputContainer").classList.add("hidden");
-      selectedBusIndex = -1;
-      
       // 使用浮動通知而非頂部狀態消息
       showFloatingNotification("已新增一筆記錄！", "success");
+      
+      // 不再設置 selectedBusIndex = -1;
     } else {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
@@ -3262,7 +3261,7 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
   } catch (error) {
     console.error("提交記錄失敗:", error);
     showFloatingNotification("提交記錄失敗: " + error.message, "error");
-     return Promise.reject(error);
+    return Promise.reject(error);
   } finally {
     hideLoading();
   }
