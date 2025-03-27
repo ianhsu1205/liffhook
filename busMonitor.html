@@ -1302,8 +1302,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
     <span id="busCount" class="status-tag status-processing">0 輛</span>
         <div class="direction-legend">
-      <span class="direction-tag go-tag">去程</span>
-      <span class="direction-tag back-tag">返程</span>
+      <span class="direction-tag go-tag">去</span>
+      <span class="direction-tag back-tag">返</span>
     </div>
   </div>
   <div id="detectedBusesList">
@@ -1398,7 +1398,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2229,8 +2229,8 @@ function updateBusEditingInterface() {
   const inputContainer = document.getElementById("busInputContainer");
   
   // 更新車輛信息
-  const routeInfo = bus.routeName?.chinese || "未知路線";
-  const directionInfo = bus.direction === "0" ? "去程" : bus.direction === "1" ? "返程" : "";
+  const routeInfo = bus.routeName?.chinese || "不明";
+  const directionInfo = bus.direction === "0" ? "去" : bus.direction === "1" ? "返" : "";
   
   // 更新路線顯示
   const routeElement = document.getElementById("inputBusRoute");
