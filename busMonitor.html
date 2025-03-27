@@ -1221,6 +1221,15 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 .floating-notification.error {
   background-color: rgba(220, 53, 69, 0.9);
 }
+.postpone-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.postpone-button:hover {
+  background-color: #5a6268;
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1332,6 +1341,9 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       <div class="action-button submit-button" onclick="submitSelectedBus()">
         <i class="fas fa-check"></i> 送出記錄
       </div>
+        <div class="action-button postpone-button" onclick="postponeEditing()">
+    <i class="fas fa-clock"></i> 等下編輯
+   </div>
       <div class="action-button cancel-button" onclick="cancelBusInput()">
         <i class="fas fa-times"></i> 取消
       </div>
@@ -1387,7 +1399,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.9(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3319,6 +3331,9 @@ function createQuickItems() {
 }
 // 提交車輛記錄
 // 修改 submitBusRecord 函數，移除對 selectedBusIndex 的設置
+// 修改 submitBusRecord 函數中的成功提示部分
+// 找到約在 3100-3150 行左右的這段代碼
+
 async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
@@ -3366,8 +3381,13 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       document.getElementById("busInputContainer").classList.add("hidden");
       selectedBusIndex = -1;
       
-      // 使用浮動通知而非頂部狀態消息
-      showFloatingNotification("已新增一筆記錄！", "success");
+      // 修改這行，添加詳細資訊到成功提示
+      const routeName = bus.routeName?.chinese || "未知路線";
+      const companyName = bus.operatorName || "未知公司";
+      const successMessage = `已成功送出記錄：${bus.plateNumber} (${companyName} ${routeName})`;
+      
+      // 使用浮動通知顯示詳細資訊
+      showFloatingNotification(successMessage, "success");
     } else {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
@@ -4165,6 +4185,20 @@ function scrollToEditingArea() {
       editingArea.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, 100); // 短暫延遲，確保DOM已更新
+}
+// 添加等下編輯功能
+function postponeEditing() {
+  // 隱藏編輯區域但不刪除編輯中的車輛
+  document.getElementById("busInputContainer").classList.add("hidden");
+  
+  // 滾動到頁面頂部
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+  
+  // 可選：顯示一個簡短的提示
+  // showFloatingNotification("已暫時隱藏編輯區，可從標籤重新開啟", "info");
 }
     </script>
 </html>
