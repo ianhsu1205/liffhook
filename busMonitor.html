@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.5(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3189,8 +3189,12 @@ function showDetectedBuses() {
 
 // 提交選中的車輛
 // 7. 修改submitSelectedBus函數
-// 7. 修改submitSelectedBus函數
 function submitSelectedBus() {
+  // 清除之前的錯誤訊息
+  const statusElement = document.getElementById("statusMessage");
+  statusElement.textContent = "";
+  statusElement.className = "status-message";
+
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     showStatusMessage("請先選擇車輛", "error");
     return;
@@ -3218,6 +3222,10 @@ function submitSelectedBus() {
   // 提交記錄
   submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || [])
     .then(() => {
+      // 清除錯誤訊息
+      statusElement.textContent = "";
+      statusElement.className = "status-message";
+      
       // 提交成功後，從編輯列表中移除
       editingBuses.splice(activeEditingBusIndex, 1);
       
@@ -3235,6 +3243,9 @@ function submitSelectedBus() {
       
       // 更新標籤
       updateEditingTabs();
+    })
+    .catch(error => {
+      // 出錯時已經在 submitBusRecord 中處理了
     });
   
   // 5秒後恢復按鈕
@@ -3298,6 +3309,11 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
     });
     
     if (response.ok) {
+      // 清除頂部錯誤訊息
+      const statusElement = document.getElementById("statusMessage");
+      statusElement.textContent = "";
+      statusElement.className = "status-message";
+      
       // 添加到已提交列表
       submittedBuses.push(bus.plateNumber);
       
@@ -3311,10 +3327,12 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       // 更新UI
       updateDetectedBusesList();
       
+      // 隱藏輸入區域
+      document.getElementById("busInputContainer").classList.add("hidden");
+      selectedBusIndex = -1;
+      
       // 使用浮動通知而非頂部狀態消息
       showFloatingNotification("已新增一筆記錄！", "success");
-      
-      // 不再設置 selectedBusIndex = -1;
     } else {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
