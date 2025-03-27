@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.8(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2136,7 +2136,8 @@ function isRecentlySubmitted(plateNumber) {
 }
 
 // 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
-function selectBusForInput(bus, index) {
+// 修改 selectBusForInput 函數，添加 scrollToView 參數
+function selectBusForInput(bus, index, scrollToView = false) {
   // 檢查此車輛是否已經在編輯列表中
   const existingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
   
@@ -2172,6 +2173,11 @@ function selectBusForInput(bus, index) {
   
   // 滾動標籤容器到選中的標籤
   scrollToActiveTab();
+  
+  // 如果是雙擊或明確要求滾動，則滾動到編輯區域
+  if (scrollToView) {
+    scrollToEditingArea();
+  }
 }
 
 // 添加新函數，用於滾動到活動標籤
@@ -2368,6 +2374,9 @@ tab.addEventListener("click", function(e) {
   
   // 更新編輯界面
   updateBusEditingInterface();
+
+    // 添加：滾動到編輯區域
+  scrollToEditingArea();
 });
   
     tabsContainer.appendChild(tab);
@@ -3014,8 +3023,28 @@ function createBusListItem(bus, index) {
   busItem.appendChild(routeElement);
   busItem.appendChild(plateElement);
   
-  busItem.onclick = function() {
-    selectBusForInput(bus, index);
+  // 修改事件綁定，支持單擊和雙擊
+  busItem.onclick = function(event) {
+    // 防止連續點擊誤觸發
+    if (busItem._clickTimer) return;
+    
+    // 設置點擊計時器，用於區分單擊和雙擊
+    busItem._clickTimer = setTimeout(function() {
+      busItem._clickTimer = null;
+      // 單擊：僅添加到待編輯
+      selectBusForInput(bus, index, false); // 添加第三個參數，表示不滾動
+    }, 300); // 300毫秒延遲，在此時間內如有第二次點擊則判定為雙擊
+  };
+  
+  busItem.ondblclick = function(event) {
+    // 清除單擊計時器，防止觸發單擊事件
+    if (busItem._clickTimer) {
+      clearTimeout(busItem._clickTimer);
+      busItem._clickTimer = null;
+    }
+    
+    // 雙擊：添加到待編輯並滾動到編輯區
+    selectBusForInput(bus, index, true); // 傳入true表示滾動到編輯區
   };
   
   return busItem;
@@ -4127,6 +4156,15 @@ function handleListMarquees() {
     void marquee.offsetWidth;
     marquee.classList.add('scrolling');
   });
+}
+// 新增函數：滾動到編輯區域
+function scrollToEditingArea() {
+  setTimeout(() => {
+    const editingArea = document.getElementById("busInputContainer");
+    if (editingArea && !editingArea.classList.contains("hidden")) {
+      editingArea.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, 100); // 短暫延遲，確保DOM已更新
 }
     </script>
 </html>
