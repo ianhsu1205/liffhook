@@ -720,19 +720,19 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 .bus-plate {
   flex-shrink: 0;
-   width: 65x !important; /* 固定統一寬度 */
-  min-width: 65px;  /* 從原來的80px減少到70px */
-  max-width: none;
+  width: 65px !important; /* 固定統一寬度 */
+  min-width: 65px !important;
+  max-width: 65px !important;
   text-align: center;
   background-color: #ffeb3b;
-  padding: 3px 4px;  /* 稍微縮小內邊距 */
+  padding: 3px 4px;
   border-radius: 4px;
   font-weight: bold;
   font-size: 14px;
-  margin-left: 4px;  /* 縮小左側間距 */
+  margin-left: 4px;
   white-space: nowrap;
-  overflow: visible;
-  word-break: keep-all;
+  overflow: hidden; /* 過長時隱藏 */
+  text-overflow: ellipsis; /* 顯示省略號 */
 }
 
 .bus-info-header {
@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.7(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2370,6 +2370,9 @@ tab.addEventListener("click", function(e) {
   updateBusEditingInterface();
 });
   
+    tabsContainer.appendChild(tab);
+});
+
   // 為關閉按鈕添加事件監聽
   const closeButtons = tabsContainer.querySelectorAll(".tab-close");
   closeButtons.forEach(button => {
@@ -2385,7 +2388,6 @@ tab.addEventListener("click", function(e) {
       scrollToActiveTab();
     }, 10);
   }
-});
 }
 
 // 替換
