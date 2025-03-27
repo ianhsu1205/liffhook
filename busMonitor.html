@@ -1398,7 +1398,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2440,6 +2440,7 @@ function confirmCancelEditing(index) {
     confirmModal.style.display = "none";
   });
 }
+// 修改 removeEditingBus 函數
 function removeEditingBus(index) {
   // 保存刪除前的信息
   const removedPlateNumber = editingBuses[index]?.plateNumber;
@@ -2451,6 +2452,7 @@ function removeEditingBus(index) {
   if (editingBuses.length === 0) {
     // 沒有編輯中的車輛了
     activeEditingBusIndex = -1;
+    isProcessingBus = false; // 關鍵修改：重置處理狀態
     document.getElementById("busInputContainer").classList.add("hidden");
     
     // 隱藏標籤容器
