@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.1(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2144,7 +2144,12 @@ function selectBusForInput(bus, index) {
   if (existingIndex !== -1) {
     // 如果已存在，切換到該編輯視圖，不創建新的
     activeEditingBusIndex = existingIndex;
-    busToEdit = editingBuses[existingIndex];
+    busToEdit = editingBuses[existingIndex]; 
+    
+    // 只更新位置信息
+    if (bus.position) {
+      busToEdit.position = bus.position;
+    }
   } else {
     // 不存在，添加到編輯列表
     busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝，確保原始數據不被修改
@@ -2712,11 +2717,11 @@ async function detectBuses(isAutoDetection = false) {
       return;
     }
 
-    // 保存當前編輯中的車輛的車牌號碼列表
+    // 保存當前編輯中的車輛的車牌號碼列表，用於檢查重複
     const editingPlateNumbers = editingBuses.map(bus => bus.plateNumber);
 
-    // 清空全局列表，但保留編輯中的車輛
-    allDetectedBuses = editingBuses.slice(); // 複製編輯中的車輛
+    // 清空全局列表，但不包含編輯中的車輛
+    allDetectedBuses = [];
     displayedBuses = [];
 
     // 獲取附近車輛
@@ -2737,9 +2742,16 @@ async function detectBuses(isAutoDetection = false) {
     
     if (data && data.buses && data.buses.length > 0) {
       data.buses.forEach((bus) => {
-        // 跳過已在編輯中的車輛，避免重複添加
-        if (editingPlateNumbers.includes(bus.plateNumber)) {
-          return;
+        // 檢查這輛車是否在編輯列表中
+        const editingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
+        
+        // 如果在編輯列表中，僅更新位置數據
+        if (editingIndex !== -1) {
+          // 更新編輯中車輛的位置信息
+          editingBuses[editingIndex].position = bus.position;
+          
+          // 添加到檢測列表，但標記為已在編輯中
+          bus.isInEditing = true;
         }
         
         if (isGroupCompany(bus.operatorName) && 
@@ -2754,11 +2766,35 @@ async function detectBuses(isAutoDetection = false) {
               ((currentTime - parseInt(localStorage.getItem(`submitted_${bus.plateNumber}`) || '0')) >= threeMinutes))) {
             
             displayedBuses.push(bus);
-            newDetectedBuses.push(bus);
+            
+            // 只有不在編輯列表中的車輛才算作新偵測結果
+            if (editingIndex === -1) {
+              newDetectedBuses.push(bus);
+            }
           }
         }
       });
     }
+    
+    // 將編輯中的車輛也加入顯示列表
+    editingBuses.forEach(bus => {
+      // 檢查這輛車是否已經在顯示列表中
+      const existingIndex = displayedBuses.findIndex(item => item.plateNumber === bus.plateNumber);
+      
+      // 如果不在顯示列表中，添加進去
+      if (existingIndex === -1) {
+        // 標記為已在編輯中
+        bus.isInEditing = true;
+        
+        // 添加到顯示列表
+        displayedBuses.push(bus);
+        
+        // 如果也不在全局列表中，添加進去
+        if (!allDetectedBuses.some(item => item.plateNumber === bus.plateNumber)) {
+          allDetectedBuses.push(bus);
+        }
+      }
+    });
     
     // 更新UI
     updateDetectedBusesList();
@@ -2848,9 +2884,6 @@ function updateDetectedBusesList() {
   // 更新計數
   document.getElementById("busCount").textContent = `${displayedBuses.length} 輛`;
   
-  // 獲取正在編輯的車牌號碼列表
-  const editingPlateNumbers = editingBuses.map(bus => bus.plateNumber);
-  
   // 使用DocumentFragment來減少DOM操作
   const fragment = document.createDocumentFragment();
   
@@ -2869,12 +2902,6 @@ function updateDetectedBusesList() {
     
     displayedBuses.forEach((bus, index) => {
       const busItem = createBusListItem(bus, index);
-      
-      // 如果這個車輛在編輯列表中，標記為編輯中
-      if (editingPlateNumbers.includes(bus.plateNumber)) {
-        busItem.classList.add("selected-bus-item");
-      }
-      
       busListContainer.appendChild(busItem);
     });
     
@@ -2902,6 +2929,11 @@ function createBusListItem(bus, index) {
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
   
+  // 如果車輛已在編輯中，添加編輯中樣式
+  if (bus.isInEditing || editingBuses.some(editingBus => editingBus.plateNumber === bus.plateNumber)) {
+    busItem.classList.add("selected-bus-item");
+  }
+  
   // 創建路線元素包裹容器
   const routeElement = document.createElement("div");
   routeElement.className = "bus-route-container";
@@ -2910,17 +2942,16 @@ function createBusListItem(bus, index) {
   const routeTextElement = document.createElement("div");
   routeTextElement.className = "text-marquee";
   
-// 如果中文字符數量超過5個，或總長度超過12個字符，則啟用跑馬燈
-if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
-  routeTextElement.classList.add("list-marquee", "scrolling");
-  // 重複文本以避免空白間隔
-   const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
-   routeTextElement.textContent = repeatedText;
-} else {
-  // 短路線名稱直接顯示，不使用跑馬燈
-  routeTextElement.textContent = routeInfo;
-}
-
+  // 如果中文字符數量超過5個，或總長度超過12個字符，則啟用跑馬燈
+  if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
+    routeTextElement.classList.add("list-marquee", "scrolling");
+    // 重複文本以避免空白間隔
+    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
+    routeTextElement.textContent = repeatedText;
+  } else {
+    // 短路線名稱直接顯示，不使用跑馬燈
+    routeTextElement.textContent = routeInfo;
+  }
   
   // 添加title屬性
   routeElement.title = routeInfo;
@@ -2934,14 +2965,16 @@ if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
   // 獲取距離並設置對應的CSS類
   const distanceInMeters = getVehicleDistance(bus);
   addDistanceClassToElement(plateElement, distanceInMeters);
+  
   // 添加方向樣式類
-if (bus.direction === "0") {
-  plateElement.classList.add("direction-go");
-} else if (bus.direction === "1") {
-  plateElement.classList.add("direction-back");
-}
+  if (bus.direction === "0") {
+    plateElement.classList.add("direction-go");
+  } else if (bus.direction === "1") {
+    plateElement.classList.add("direction-back");
+  }
 
   plateElement.textContent = bus.plateNumber;
+  
   // 將元素添加到車輛項目中
   busItem.appendChild(routeElement);
   busItem.appendChild(plateElement);
