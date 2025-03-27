@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.2(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2283,8 +2283,8 @@ function updateBusEditingInterface() {
   // 確保提交按鈕可用
   resetSubmitButtonState();
   
-  // 滾動到編輯區域
-  inputContainer.scrollIntoView({ behavior: "smooth" });
+  // 移除自動滾動到編輯區域的功能
+  // inputContainer.scrollIntoView({ behavior: "smooth" });
 }
 
 // 4. 創建編輯標籤列
