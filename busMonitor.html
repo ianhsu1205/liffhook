@@ -1387,7 +1387,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.7.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.7.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2356,17 +2356,19 @@ function updateEditingTabs() {
       <span class="tab-close" data-index="${index}">×</span>
     `;
     
-    // 點擊標籤切換到對應的編輯視圖
-    tab.addEventListener("click", function(e) {
-      // 忽略關閉按鈕的點擊
-      if (e.target.classList.contains("tab-close")) return;
-      
-      activeEditingBusIndex = index;
-      updateBusEditingInterface();
-    });
-    
-    tabsContainer.appendChild(tab);
-  });
+// 點擊標籤切換到對應的編輯視圖
+tab.addEventListener("click", function(e) {
+  // 忽略關閉按鈕的點擊
+  if (e.target.classList.contains("tab-close")) return;
+  
+  activeEditingBusIndex = index;
+  
+  // 確保編輯區域是可見的
+  document.getElementById("busInputContainer").classList.remove("hidden");
+  
+  // 更新編輯界面
+  updateBusEditingInterface();
+});
   
   // 為關閉按鈕添加事件監聽
   const closeButtons = tabsContainer.querySelectorAll(".tab-close");
@@ -2383,7 +2385,9 @@ function updateEditingTabs() {
       scrollToActiveTab();
     }, 10);
   }
+});
 }
+
 // 替換
 function confirmCancelEditing(index) {
   const confirmModal = document.getElementById("confirmModal");
