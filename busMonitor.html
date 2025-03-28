@@ -1565,7 +1565,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2421,12 +2421,6 @@ function scrollToActiveTab() {
 window.isHandlingItemClick = false;
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
-  console.log("當前編輯的車輛:", JSON.stringify({
-  index: activeEditingBusIndex,
-  id: bus.uniqueId,
-  plateNumber: bus.plateNumber,
-  selectedOtherItems: bus.selectedOtherItems
-}));
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     // 沒有活躍的編輯車輛，隱藏編輯區域
     document.getElementById("busInputContainer").classList.add("hidden");
@@ -2741,9 +2735,6 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
    
   // 確保提交按鈕可用
   resetSubmitButtonState();
-  console.log("更新後的車輛狀態:", JSON.stringify({
-  selectedOtherItems: bus.selectedOtherItems
-}));
 }
 // 改進的頁面切換函數
 function swipeToPageImproved(pageIndex) {
