@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>路口查核記錄</title>
+    <title>定點或隨車查核</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -1339,7 +1339,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
 
     <div class="container">
-      <h2>路口查核</h2>
+      <h2>車輛查核</h2>
 
       <div id="statusMessage" class="status-message"></div>
 
@@ -1357,7 +1357,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       <div class="form-group">
         <label for="location" class="required">我的位置</label>
         <div class="input-group">
-          <input type="text" id="location" placeholder="選擇附近路口" />
+          <input type="text" id="location" placeholder="選擇附近位置" />
           <div class="icon-button" onclick="openLocationModal()">
             <i class="fas fa-map-marker-alt"></i>
           </div>
@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.8(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.8.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2345,6 +2345,7 @@ function scrollToActiveTab() {
 }
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
+// 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     // 沒有活躍的編輯車輛，隱藏編輯區域
@@ -2467,8 +2468,63 @@ function updateBusEditingInterface() {
   const otherItemsContainer = document.getElementById("otherItemsContainer");
   otherItemsContainer.innerHTML = '';
 
-  // 獲取所有不重複的類別
-  const categories = [...new Set(otherItems.map(item => item.Catolog || "其它"))];
+  // 獲取所有不重複的類別，過濾掉null和undefined值
+  const categories = [...new Set(
+    otherItems
+      .map(item => item.catolog)
+      .filter(cat => cat) // 移除所有falsy值，包括null和undefined
+  )];
+
+  // 如果沒有有效的類別，則不創建分類界面
+  if (categories.length === 0) {
+    // 簡單顯示所有項目，不進行分類
+    const itemsContainer = document.createElement("div");
+    itemsContainer.className = "quick-other-items";
+    
+    otherItems.forEach(item => {
+      const itemButton = document.createElement("div");
+      itemButton.className = "quick-other-item";
+      
+      // 根據 ItemType 添加不同的樣式
+      if (item.ItemType === 1) {
+        itemButton.classList.add("positive-item");
+      } else if (item.ItemType === -1) {
+        itemButton.classList.add("negative-item");
+      }
+      
+      itemButton.textContent = item.itemName;
+      itemButton.dataset.value = item.itemName;
+      itemButton.dataset.type = item.ItemType;
+      
+      // 如果此項目已選，標記為已選
+      if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
+        itemButton.classList.add("selected");
+      }
+      
+      itemButton.onclick = function() {
+        this.classList.toggle("selected");
+        
+        // 初始化選擇數組如果不存在
+        if (!bus.selectedOtherItems) {
+          bus.selectedOtherItems = [];
+        }
+        
+        // 更新選擇
+        if (this.classList.contains("selected")) {
+          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+            bus.selectedOtherItems.push(this.dataset.value);
+          }
+        } else {
+          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+        }
+      };
+      
+      itemsContainer.appendChild(itemButton);
+    });
+    
+    otherItemsContainer.appendChild(itemsContainer);
+    return;
+  }
 
   // 創建分類導航標籤
   const categoryNav = document.createElement("div");
@@ -2506,7 +2562,7 @@ function updateBusEditingInterface() {
     swipePage.className = "swipe-page";
     
     // 篩選該類別的項目
-    const categoryItems = otherItems.filter(item => (item.Catolog || "其它") === category);
+    const categoryItems = otherItems.filter(item => item.catolog === category);
     
     // 創建項目容器
     const itemsContainer = document.createElement("div");
@@ -2595,10 +2651,12 @@ function updateBusEditingInterface() {
 
   swipeContainer.addEventListener('touchstart', function(e) {
     startX = e.touches[0].clientX;
-  }, { passive: true });
+    e.preventDefault(); // 防止頁面滾動
+  }, { passive: false });
 
   swipeContainer.addEventListener('touchmove', function(e) {
     if (!startX) return;
+    e.preventDefault(); // 防止頁面滾動
     
     const currentX = e.touches[0].clientX;
     const diff = startX - currentX;
@@ -2614,7 +2672,7 @@ function updateBusEditingInterface() {
     // 應用偏移，無動畫
     swipeWrapper.style.transition = 'none';
     swipeWrapper.style.transform = `translateX(${offset}%)`;
-  }, { passive: true });
+  }, { passive: false });
 
   swipeContainer.addEventListener('touchend', function(e) {
     if (!startX) return;
@@ -2650,6 +2708,7 @@ function updateBusEditingInterface() {
   // 確保提交按鈕可用
   resetSubmitButtonState();
 }
+
 // 新增一個函數，用於同步更新所有使用該車輛的地方
 function updateAllBusReferences(bus) {
   // 更新編輯標籤顯示
@@ -3524,7 +3583,7 @@ function createBusCard(bus, index) {
   otherItemsLabel.textContent = "其它:";
   
   // 獲取所有不重複的類別
-  const categories = [...new Set(otherItems.map(item => item.Catolog || "其它"))];
+  const categories = [...new Set(otherItems.map(item => item.catolog || "其它"))];
 
   // 創建分類導航標籤
   const categoryNav = document.createElement("div");
@@ -3562,7 +3621,7 @@ function createBusCard(bus, index) {
     swipePage.className = "swipe-page";
     
     // 篩選該類別的項目
-    const categoryItems = otherItems.filter(item => (item.Catolog || "其它") === category);
+    const categoryItems = otherItems.filter(item => (item.catolog || "其它") === category);
     
     // 創建項目容器
     const itemsContainer = document.createElement("div");
@@ -3791,7 +3850,7 @@ function submitSelectedBus() {
   
   // 確保選擇了位置
   if (!document.getElementById("location").value) {
-    showStatusMessage("請選擇查核路口", "error");
+    showStatusMessage("請選擇查核位置", "error");
     return;
   }
   
@@ -4152,7 +4211,7 @@ function refreshLocationList() {
     loadingMsg.id = "locationListLoading";
     loadingMsg.className = "no-data-message";
     loadingMsg.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近位置...';
     container.appendChild(loadingMsg);
 
     // 獲取位置並刷新路口列表
@@ -4204,7 +4263,7 @@ function openLocationModal() {
   loadingMsg.id = "locationListLoading";
   loadingMsg.className = "no-data-message";
   loadingMsg.innerHTML =
-    '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
+    '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近位置...';
   container.appendChild(loadingMsg);
 
   // 獲取位置並獲取附近路口
@@ -4274,9 +4333,9 @@ async function fetchIntersections() {
 
     if (data && data.length > 0) {
       intersections = data;
-      console.log("找到附近路口:", intersections);
+      console.log("找到附近位置:", intersections);
     } else {
-      console.log("附近未找到路口");
+      console.log("附近未找到位置");
       intersections = [];
     }
 
@@ -4286,7 +4345,7 @@ async function fetchIntersections() {
   } catch (error) {
     console.error("獲取路口失敗:", error);
     hideLoading();
-    showStatusMessage("無法獲取附近路口，請重新偵測", "error",true);
+    showStatusMessage("無法獲取附近可能路口，請重新偵測", "error",true);
   }
 }
 // 更新位置列表
@@ -4307,7 +4366,7 @@ function updateLocationList() {
     const noDataElement = document.createElement("p");
     noDataElement.id = "locationListNoData";
     noDataElement.className = "no-data-message";
-    noDataElement.textContent = "附近未找到交叉路口，請點擊重新偵測";
+    noDataElement.textContent = "附近未找到路口，請點擊重新偵測";
     container.appendChild(noDataElement);
     return;
   }
@@ -4337,16 +4396,16 @@ function updateLocationList() {
 // 獲取其他項目列表
 async function fetchOtherItems() {
   try {
-    // 預設項目，包含新的 Catolog 和 ItemType 欄位
+    // 預設項目，包含明確的 Catolog 和 ItemType 欄位
     const defaultItems = [
-      { id: "1", itemName: "車身未清潔", Catolog: "設備問題", ItemType: -1 },
-      { id: "2", itemName: "車輛燈號故障", Catolog: "設備問題", ItemType: -1 },
-      { id: "3", itemName: "闖紅燈", Catolog: "駕駛行為", ItemType: -1 },
-      { id: "4", itemName: "LED故障", Catolog: "設備問題", ItemType: -1 },
-      { id: "5", itemName: "無動態", Catolog: "設備問題", ItemType: -1 },
-      { id: "6", itemName: "服務態度佳", Catolog: "服務態度", ItemType: 1 },
-      { id: "7", itemName: "禮讓行人", Catolog: "駕駛行為", ItemType: 1 },
-      { id: "8", itemName: "主動協助乘客", Catolog: "服務態度", ItemType: 1 }
+      { id: "1", itemName: "車身未清潔", catolog: "設備問題", ItemType: -1 },
+      { id: "2", itemName: "車輛燈號故障", catolog: "設備問題", ItemType: -1 },
+      { id: "3", itemName: "闖紅燈", catolog: "駕駛行為", ItemType: -1 },
+      { id: "4", itemName: "LED故障", catolog: "設備問題", ItemType: -1 },
+      { id: "5", itemName: "無動態", catolog: "設備問題", ItemType: -1 },
+      { id: "6", itemName: "服務態度佳", catolog: "服務態度", ItemType: 1 },
+      { id: "7", itemName: "禮讓行人", catolog: "駕駛行為", ItemType: 1 },
+      { id: "8", itemName: "主動協助乘客", catolog: "服務態度", ItemType: 1 }
     ];
 
     const response = await fetch(`${base_url}monitor/otherItem`);
@@ -4354,6 +4413,7 @@ async function fetchOtherItems() {
     if (response.ok) {
       const data = await response.json();
       if (data && data.data && data.data.length > 0) {
+        // 直接使用API返回的數據，不自動添加分類
         otherItems = data.data;
         console.log("獲取其他項目:", otherItems);
       } else {
@@ -4370,6 +4430,7 @@ async function fetchOtherItems() {
     otherItems = defaultItems;
   }
 }
+
 // 打開已提交歷史紀錄
 async function openSubmittedHistoryModal() {
   document.getElementById("historyModal").style.display = "block";
