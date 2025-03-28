@@ -245,11 +245,31 @@
       }
 
       .quick-item.selected {
-        background-color: #06c755;
-        color: white;
-        border-color: #06c755;
+  background-color: #06c755;
+  color: white;
+  border-color: #04a73e;
+  box-shadow: 0 2px 6px rgba(6, 199, 85, 0.3);
+  transform: translateY(-2px);
+  position: relative;
+  font-weight: bold;
       }
-      
+      .quick-item.selected::after {
+  content: "✓";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #04a73e;
+  color: white;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
       /* 其他項目簡化樣式 */
       .quick-other-items {
         display: flex;
@@ -270,11 +290,33 @@
       }
       
       .quick-other-item.selected {
-        background-color: #e7f3fe;
-        color: #004085;
-        border-color: #b8daff;
+  background-color: #e7f3fe;
+  color: #004085;
+  border-color: #b8daff;
+  border-width: 2px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  position: relative;
       }
-
+/* 為其他項目添加選中標記 */
+.quick-other-item.selected::after {
+  content: "✓";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #007bff;
+  color: white;
+  font-size: 12px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
       .status-message {
         margin-top: 15px;
         padding: 10px;
@@ -1322,13 +1364,20 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 .quick-other-item.positive-item.selected {
   background-color: #d4edda;
   color: #155724;
-  border-color: #c3e6cb;
+  border-color: #28a745;
+  border-width: 2px;
 }
-
+.quick-other-item.positive-item.selected::after {
+  background-color: #28a745;
+}
 .quick-other-item.negative-item.selected {
   background-color: #f8d7da;
   color: #721c24;
-  border-color: #f5c6cb;
+  border-color: #dc3545;
+  border-width: 2px;
+}
+.quick-other-item.negative-item.selected::after {
+  background-color: #dc3545;
 }
     </style>
   </head>
@@ -1499,7 +1548,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.9(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2632,12 +2681,18 @@ let startX = 0;
 let currentPage = 0;
 
 pagesContainer.addEventListener('touchstart', function(e) {
+  // 如果點擊的是選項按鈕，不啟動滑動
+  if (e.target.classList.contains('quick-other-item')) {
+    startX = 0; // 不啟動滑動
+    return;
+  }
   startX = e.touches[0].clientX;
-  e.stopPropagation(); // 防止事件冒泡
+  e.stopPropagation();
 }, { passive: false });
 
 pagesContainer.addEventListener('touchmove', function(e) {
-  if (!startX) return;
+  // 如果不是從滑動開始的，或者點擊的是選項按鈕，就不處理滑動
+  if (!startX || e.target.classList.contains('quick-other-item')) return;
   
   const currentX = e.touches[0].clientX;
   const diff = startX - currentX;
@@ -2654,12 +2709,13 @@ pagesContainer.addEventListener('touchmove', function(e) {
   pagesContainer.style.transition = 'none';
   pagesContainer.style.transform = `translateX(${offset}%)`;
   
-  e.preventDefault(); // 防止頁面滑動
-  e.stopPropagation(); // 防止事件冒泡
+  e.preventDefault();
+  e.stopPropagation();
 }, { passive: false });
 
 pagesContainer.addEventListener('touchend', function(e) {
-  if (!startX) return;
+  // 如果不是從滑動開始的，或者點擊的是選項按鈕，就不處理滑動結束
+  if (!startX || e.target.classList.contains('quick-other-item')) return;
   
   const currentX = e.changedTouches[0].clientX;
   const diff = startX - currentX;
@@ -2693,7 +2749,7 @@ pagesContainer.addEventListener('touchend', function(e) {
   });
   
   startX = 0;
-  e.stopPropagation(); // 防止事件冒泡
+  e.stopPropagation();
 }, { passive: false });
   
   // 確保提交按鈕可用
@@ -3938,12 +3994,27 @@ function createQuickItems() {
 }
 // 提交車輛記錄
 
+// 修改 submitBusRecord 函數，處理 otherItem 和 goodItem 欄位
 async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   showLoading();
   
   try {
     // 確保 selectedOtherItems 是數組
-    const itemsArray = Array.isArray(selectedOtherItems) ? selectedOtherItems : [];
+    let itemsArray = [];
+    
+    // 處理不同的輸入情形
+    if (Array.isArray(selectedOtherItems)) {
+      itemsArray = selectedOtherItems;
+    } else if (typeof selectedOtherItems === 'string') {
+      // 如果是字符串，可能是逗號分隔的列表
+      itemsArray = selectedOtherItems.split(',').map(item => item.trim());
+    } else if (selectedOtherItems && typeof selectedOtherItems === 'object') {
+      // 可能是其他對象形式
+      console.log("其他項目資料類型:", typeof selectedOtherItems, selectedOtherItems);
+      itemsArray = Object.values(selectedOtherItems);
+    }
+    
+    console.log("選中的其他項目:", itemsArray);
     
     // 將正向和負向項目分開
     const negativeItems = [];
@@ -3951,6 +4022,8 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     
     // 遍歷所有選中項目，檢查類型並分類
     itemsArray.forEach(itemName => {
+      if (!itemName) return; // 跳過空值
+      
       // 在 otherItems 中查找該項目
       const foundItem = otherItems.find(oi => oi.itemName === itemName);
       if (foundItem) {
@@ -3958,15 +4031,22 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
           negativeItems.push(itemName);
         } else if (foundItem.ItemType === 1) {
           positiveItems.push(itemName);
+        } else {
+          // 默認為負向項目
+          negativeItems.push(itemName);
         }
+      } else {
+        // 如果在 otherItems 中找不到，默認為負向項目
+        negativeItems.push(itemName);
       }
     });
     
-    console.log("提交資料:", {
+    console.log("處理後資料:", {
       "負向項目": negativeItems,
       "正向項目": positiveItems
     });
     
+    // 構建資料物件
     const data = {
       userId: document.getElementById("userId").value,
       location: document.getElementById("location").value,
@@ -3978,9 +4058,11 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
         bus.position?.longitude || currentLongitude
       })`,
       mainItem: mainItem,
-      otherItem: negativeItems.join(", "),
-      goodItem: positiveItems.join(", ") // 確保正確設置 goodItem
+      otherItem: negativeItems.join(", "), // 負向項目
+      goodItem: positiveItems.join(", ")   // 正向項目
     };
+    
+    console.log("提交的完整資料:", data);
     
     const response = await fetch(base_url + "monitor/records", {
       method: "POST",
