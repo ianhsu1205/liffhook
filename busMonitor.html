@@ -1564,7 +1564,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.4(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2600,7 +2600,8 @@ function updateBusEditingInterface() {
     // 創建內容包裹容器
     const contentWrapper = document.createElement("div");
     contentWrapper.style.cssText = "display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 5px 0;";
-    
+    contentWrapper.style.position = "relative";
+contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
     // 篩選該分類的項目
     const categoryItems = category === "未分類" 
       ? otherItems.filter(item => !item.catolog)
@@ -2631,21 +2632,17 @@ function updateBusEditingInterface() {
       }
       
       // 添加點擊事件
-itemBtn.addEventListener("click", function(e) {
-    e.stopPropagation(); // 阻止事件冒泡
-
-      // 確保不在滑動過程中
-  if (window.isSwiping) return;
- 
-    // 防止短時間內重複點擊
-  if (this._clickTimeout) return;
-
-    // 設置點擊超時標記
-  this._clickTimeout = true;
-  setTimeout(() => { this._clickTimeout = false; }, 200);
+itemBtn.onclick = function(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  console.log("其他項目被點擊:", this.textContent);
   
+  // 切換選中狀態
   this.classList.toggle("selected");
   
+  // 更新數據
   if (!bus.selectedOtherItems) {
     bus.selectedOtherItems = [];
   }
@@ -2653,11 +2650,15 @@ itemBtn.addEventListener("click", function(e) {
   if (this.classList.contains("selected")) {
     if (!bus.selectedOtherItems.includes(this.dataset.value)) {
       bus.selectedOtherItems.push(this.dataset.value);
+      console.log("添加項目:", this.dataset.value);
     }
   } else {
     bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+    console.log("移除項目:", this.dataset.value);
   }
-});
+  
+  return false; // 阻止事件進一步傳播
+};
       
       contentWrapper.appendChild(itemBtn);
     });
@@ -4565,7 +4566,10 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
   
   pagesContainer.addEventListener('touchmove', function(e) {
     if (!startX) return;
-    
+      // 檢查是否點擊在項目元素上
+  if (e.target.closest('.quick-other-item')) {
+    return; // 不處理在項目上的滑動
+  }
       // 如果滑動距離夠大，立即標記為滑動中
   if (Math.abs(diffX) > 5) {
     window.isSwiping = true;
