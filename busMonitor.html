@@ -1564,7 +1564,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.6(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4558,9 +4558,6 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
   let isScrollingVertical = false;
   
   pagesContainer.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.quick-other-item')) {
-    return; // 如果點擊在選項上，不開始滑動
-  }
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isScrollingVertical = false;
