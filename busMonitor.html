@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2515,6 +2515,69 @@ function updateBusEditingInterface() {
   // 創建內容容器
   const contentContainer = document.createElement("div");
   contentContainer.style.cssText = "position: relative; width: 100%; overflow: hidden;";
+// 滑動功能處理
+let startX = 0;
+let currentPage = 0;
+
+pagesContainer.addEventListener('touchstart', function(e) {
+  startX = e.touches[0].clientX;
+}, { passive: true });
+
+pagesContainer.addEventListener('touchmove', function(e) {
+  if (!startX) return;
+  
+  const currentX = e.touches[0].clientX;
+  const diff = startX - currentX;
+  const percentMove = (diff / contentContainer.offsetWidth) * 100;
+  
+  // 計算當前偏移量
+  let offset = -(currentPage * 100) - percentMove;
+  
+  // 邊界限制
+  if (offset > 0) offset = 0;
+  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+  
+  // 應用偏移，無動畫
+  pagesContainer.style.transition = 'none';
+  pagesContainer.style.transform = `translateX(${offset}%)`;
+}, { passive: true });
+
+pagesContainer.addEventListener('touchend', function(e) {
+  if (!startX) return;
+  
+  const currentX = e.changedTouches[0].clientX;
+  const diff = startX - currentX;
+  
+  // 滑動距離足夠大時切換頁面
+  if (Math.abs(diff) > contentContainer.offsetWidth * 0.2) {
+    if (diff > 0 && currentPage < categories.length - 1) {
+      // 左滑 -> 下一頁
+      currentPage++;
+    } else if (diff < 0 && currentPage > 0) {
+      // 右滑 -> 上一頁
+      currentPage--;
+    }
+  }
+  
+  // 重新套用過渡效果
+  pagesContainer.style.transition = 'transform 0.3s ease';
+  pagesContainer.style.transform = `translateX(-${currentPage * 100}%)`;
+  
+  // 更新選中標籤
+  categoryNav.querySelectorAll('.category-tab').forEach((tab, idx) => {
+    if (idx === currentPage) {
+      tab.classList.add('active');
+      tab.style.backgroundColor = '#06c755';
+      tab.style.color = 'white';
+    } else {
+      tab.classList.remove('active');
+      tab.style.backgroundColor = '#f8f9fa';
+      tab.style.color = '#333';
+    }
+  });
+  
+  startX = 0;
+}, { passive: true });
 
   // 創建滑動面板
   const pagesContainer = document.createElement("div");
@@ -3869,20 +3932,34 @@ function createQuickItems() {
 }
 // 提交車輛記錄
 
-async function submitBusRecord(bus, index, mainItem, otherItems) {
+async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   showLoading();
   
   try {
-    // 將正向和負向項目分開
-    const negativeItems = bus.selectedOtherItems?.filter(item => {
-      const foundItem = otherItems.find(oi => oi.itemName === item);
-      return foundItem && foundItem.ItemType === -1;
-    }) || [];
+    // 確保 selectedOtherItems 是數組
+    const itemsArray = Array.isArray(selectedOtherItems) ? selectedOtherItems : [];
     
-    const positiveItems = bus.selectedOtherItems?.filter(item => {
-      const foundItem = otherItems.find(oi => oi.itemName === item);
-      return foundItem && foundItem.ItemType === 1;
-    }) || [];
+    // 將正向和負向項目分開
+    const negativeItems = [];
+    const positiveItems = [];
+    
+    // 遍歷所有選中項目，檢查類型並分類
+    itemsArray.forEach(itemName => {
+      // 在 otherItems 中查找該項目
+      const foundItem = otherItems.find(oi => oi.itemName === itemName);
+      if (foundItem) {
+        if (foundItem.ItemType === -1) {
+          negativeItems.push(itemName);
+        } else if (foundItem.ItemType === 1) {
+          positiveItems.push(itemName);
+        }
+      }
+    });
+    
+    console.log("提交資料:", {
+      "負向項目": negativeItems,
+      "正向項目": positiveItems
+    });
     
     const data = {
       userId: document.getElementById("userId").value,
@@ -3896,7 +3973,7 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
       })`,
       mainItem: mainItem,
       otherItem: negativeItems.join(", "),
-      goodItem: positiveItems.join(", ") // 新增的 goodItem 欄位
+      goodItem: positiveItems.join(", ") // 確保正確設置 goodItem
     };
     
     const response = await fetch(base_url + "monitor/records", {
