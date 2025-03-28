@@ -1564,7 +1564,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.5(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2632,33 +2632,35 @@ contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
       }
       
       // 添加點擊事件
-itemBtn.onclick = function(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  console.log("其他項目被點擊:", this.textContent);
-  
-  // 切換選中狀態
-  this.classList.toggle("selected");
-  
-  // 更新數據
-  if (!bus.selectedOtherItems) {
-    bus.selectedOtherItems = [];
-  }
-  
-  if (this.classList.contains("selected")) {
-    if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-      bus.selectedOtherItems.push(this.dataset.value);
-      console.log("添加項目:", this.dataset.value);
-    }
-  } else {
-    bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-    console.log("移除項目:", this.dataset.value);
-  }
-  
-  return false; // 阻止事件進一步傳播
-};
+    // 使用addEventListener替代onclick，更好的控制
+    itemBtn.addEventListener("click", function(event) {
+      // 阻止事件冒泡以防觸發滑動事件
+      event.stopPropagation();
+      event.preventDefault();
+      
+      console.log("項目被點擊:", this.textContent);
+      
+      // 切換選中狀態
+      this.classList.toggle("selected");
+      
+      // 確保selectedOtherItems陣列存在
+      if (!bus.selectedOtherItems) {
+        bus.selectedOtherItems = [];
+      }
+      
+      // 更新選中狀態
+      if (this.classList.contains("selected")) {
+        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+          bus.selectedOtherItems.push(this.dataset.value);
+          console.log("添加項目:", this.dataset.value);
+        }
+      } else {
+        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+        console.log("移除項目:", this.dataset.value);
+      }
+      
+      return false; // 阻止事件進一步傳播
+    });
       
       contentWrapper.appendChild(itemBtn);
     });
@@ -4556,6 +4558,9 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
   let isScrollingVertical = false;
   
   pagesContainer.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.quick-other-item')) {
+    return; // 如果點擊在選項上，不開始滑動
+  }
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isScrollingVertical = false;
