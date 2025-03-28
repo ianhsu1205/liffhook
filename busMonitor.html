@@ -1240,6 +1240,96 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   background-color: #5a6268;
   box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
 }
+/* 分類導航樣式 */
+.category-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 5px 0;
+  margin-bottom: 8px;
+  scrollbar-width: none; /* 隱藏 Firefox 滾動條 */
+  -ms-overflow-style: none; /* 隱藏 IE/Edge 滾動條 */
+}
+
+.category-nav::-webkit-scrollbar {
+  display: none; /* 隱藏 Chrome/Safari 滾動條 */
+}
+
+.category-tab {
+  padding: 5px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-tab.active {
+  background-color: #06c755;
+  color: white;
+  border-color: #06c755;
+}
+
+/* 滑動容器樣式 */
+.swipe-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.swipe-wrapper {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+
+.swipe-page {
+  min-width: 100%;
+  flex-shrink: 0;
+}
+
+/* 滑動指示器樣式 */
+.swipe-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.swipe-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ddd;
+  transition: all 0.2s ease;
+}
+
+.swipe-dot.active {
+  background-color: #06c755;
+  transform: scale(1.2);
+}
+
+/* 正向和負向項目的樣式 */
+.quick-other-item.positive-item {
+  border-left: 3px solid #28a745;
+}
+
+.quick-other-item.negative-item {
+  border-left: 3px solid #dc3545;
+}
+
+.quick-other-item.positive-item.selected {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.quick-other-item.negative-item.selected {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1409,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.6(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3228,6 +3318,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return distance;
 }
 // 創建車輛卡片
+// 創建車輛卡片
 function createBusCard(bus, index) {
   const busCard = document.createElement("div");
   busCard.className = "bus-card";
@@ -3282,34 +3373,107 @@ function createBusCard(bus, index) {
   const otherItemsLabel = document.createElement("label");
   otherItemsLabel.textContent = "其它:";
   
-  const otherItemsContainer = document.createElement("div");
-  otherItemsContainer.className = "quick-other-items";
-  otherItems.forEach((item) => {
-    const itemButton = document.createElement("div");
-    itemButton.className = "quick-other-item";
-    itemButton.textContent = item.itemName;
-    itemButton.dataset.value = item.itemName;
-    itemButton.onclick = function () {
-      // 切換選擇
-      this.classList.toggle("selected");
+  // 獲取所有不重複的類別
+  const categories = [...new Set(otherItems.map(item => item.Catolog || "其它"))];
 
-      // 初始化選擇數組如果不存在
-      if (!bus.selectedOtherItems) {
-        bus.selectedOtherItems = [];
-      }
-
-      // 更新選擇
-      if (this.classList.contains("selected")) {
-        bus.selectedOtherItems.push(this.dataset.value);
-      } else {
-        bus.selectedOtherItems = bus.selectedOtherItems.filter(
-          (i) => i !== this.dataset.value
-        );
-      }
+  // 創建分類導航標籤
+  const categoryNav = document.createElement("div");
+  categoryNav.className = "category-nav";
+  categories.forEach((category, idx) => {
+    const tab = document.createElement("div");
+    tab.className = "category-tab";
+    if (idx === 0) tab.classList.add("active");
+    tab.textContent = category;
+    tab.dataset.category = category;
+    tab.onclick = function() {
+      // 更新選中標籤
+      categoryNav.querySelectorAll(".category-tab").forEach(el => {
+        el.classList.remove("active");
+      });
+      this.classList.add("active");
+      // 滑動到對應頁面
+      swipeToPage(idx);
     };
-    otherItemsContainer.appendChild(itemButton);
+    categoryNav.appendChild(tab);
   });
 
+  // 創建滑動容器
+  const swipeContainer = document.createElement("div");
+  swipeContainer.className = "swipe-container";
+
+  // 創建滑動包裝器
+  const swipeWrapper = document.createElement("div");
+  swipeWrapper.className = "swipe-wrapper";
+  swipeWrapper.style.width = `${categories.length * 100}%`;
+
+  // 創建每個類別的頁面
+  categories.forEach((category, idx) => {
+    const swipePage = document.createElement("div");
+    swipePage.className = "swipe-page";
+    
+    // 篩選該類別的項目
+    const categoryItems = otherItems.filter(item => (item.Catolog || "其它") === category);
+    
+    // 創建項目容器
+    const itemsContainer = document.createElement("div");
+    itemsContainer.className = "quick-other-items";
+    
+    // 添加該類別的所有項目
+    categoryItems.forEach(item => {
+      const itemButton = document.createElement("div");
+      itemButton.className = "quick-other-item";
+      // 根據 ItemType 添加不同的樣式
+      if (item.ItemType === 1) {
+        itemButton.classList.add("positive-item");
+      } else if (item.ItemType === -1) {
+        itemButton.classList.add("negative-item");
+      }
+      itemButton.textContent = item.itemName;
+      itemButton.dataset.value = item.itemName;
+      itemButton.dataset.type = item.ItemType;
+      
+      // 如果此項目已選，標記為已選
+      if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
+        itemButton.classList.add("selected");
+      }
+      
+      itemButton.onclick = function() {
+        this.classList.toggle("selected");
+        
+        // 初始化選擇數組如果不存在
+        if (!bus.selectedOtherItems) {
+          bus.selectedOtherItems = [];
+        }
+        
+        // 更新選擇
+        if (this.classList.contains("selected")) {
+          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+            bus.selectedOtherItems.push(this.dataset.value);
+          }
+        } else {
+          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+        }
+      };
+      
+      itemsContainer.appendChild(itemButton);
+    });
+    
+    swipePage.appendChild(itemsContainer);
+    swipeWrapper.appendChild(swipePage);
+  });
+
+  swipeContainer.appendChild(swipeWrapper);
+
+  // 添加滑動指示器
+  const indicators = document.createElement("div");
+  indicators.className = "swipe-indicators";
+  categories.forEach((_, idx) => {
+    const dot = document.createElement("div");
+    dot.className = "swipe-dot";
+    if (idx === 0) dot.classList.add("active");
+    indicators.appendChild(dot);
+  });
+  
   // 操作按鈕
   const actionsContainer = document.createElement("div");
   actionsContainer.className = "bus-card-actions";
@@ -3319,17 +3483,95 @@ function createBusCard(bus, index) {
   submitButton.className = "action-button submit-button";
   submitButton.innerHTML = '<i class="fas fa-check"></i> 提交記錄';
   submitButton.onclick = function () {
-    submitBusRecord(bus, index);
+    submitBusRecord(bus, index, bus.selectedMainItem, otherItems);
   };
 
   // 只添加提交按鈕
   actionsContainer.appendChild(submitButton);
 
+  // 滑動功能
+  let startX = 0;
+  let currentPage = 0;
+
+  swipeContainer.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  swipeContainer.addEventListener('touchmove', function(e) {
+    if (!startX) return;
+    
+    const currentX = e.touches[0].clientX;
+    const diff = startX - currentX;
+    const percentMove = (diff / swipeContainer.offsetWidth) * 100;
+    
+    // 計算當前偏移量
+    let offset = -(currentPage * 100) - percentMove;
+    
+    // 邊界限制
+    if (offset > 0) offset = 0;
+    if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+    
+    // 應用偏移，無動畫
+    swipeWrapper.style.transition = 'none';
+    swipeWrapper.style.transform = `translateX(${offset}%)`;
+  }, { passive: true });
+
+  swipeContainer.addEventListener('touchend', function(e) {
+    if (!startX) return;
+    
+    const currentX = e.changedTouches[0].clientX;
+    const diff = startX - currentX;
+    
+    // 滑動距離足夠大時切換頁面
+    if (Math.abs(diff) > swipeContainer.offsetWidth * 0.25) {
+      if (diff > 0 && currentPage < categories.length - 1) {
+        // 左滑 -> 下一頁
+        currentPage++;
+      } else if (diff < 0 && currentPage > 0) {
+        // 右滑 -> 上一頁
+        currentPage--;
+      }
+    }
+    
+    swipeToPage(currentPage);
+    
+    // 更新選中標籤
+    categoryNav.querySelectorAll(".category-tab").forEach((tab, idx) => {
+      if (idx === currentPage) {
+        tab.classList.add("active");
+      } else {
+        tab.classList.remove("active");
+      }
+    });
+    
+    startX = 0;
+  }, { passive: true });
+
+  // 切換到指定頁面
+  function swipeToPage(pageIndex) {
+    currentPage = pageIndex;
+    swipeWrapper.style.transition = 'transform 0.3s ease';
+    swipeWrapper.style.transform = `translateX(-${pageIndex * 100}%)`;
+    
+    // 更新指示點
+    const dots = indicators.querySelectorAll(".swipe-dot");
+    dots.forEach((dot, idx) => {
+      if (idx === pageIndex) {
+        dot.classList.add("active");
+      } else {
+        dot.classList.remove("active");
+      }
+    });
+  }
+
   body.appendChild(routeInfo);
   body.appendChild(mainItemsLabel);
   body.appendChild(mainItemsContainer);
   body.appendChild(otherItemsLabel);
-  body.appendChild(otherItemsContainer);
+  // 添加分類導航和滑動容器
+  body.appendChild(categoryNav);
+  body.appendChild(swipeContainer);
+  body.appendChild(indicators);
   body.appendChild(actionsContainer);
 
   busCard.appendChild(header);
@@ -3337,6 +3579,8 @@ function createBusCard(bus, index) {
 
   return busCard;
 }
+
+
 // 顯示新偵測通知
 function showNewDetectionNotification(count) {
   const notification = document.getElementById("realTimeDetection");
@@ -3469,14 +3713,22 @@ function createQuickItems() {
     });
 }
 // 提交車輛記錄
-// 修改 submitBusRecord 函數，移除對 selectedBusIndex 的設置
-// 修改 submitBusRecord 函數中的成功提示部分
-// 找到約在 3100-3150 行左右的這段代碼
 
 async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
   try {
+     // 將正向和負向項目分開
+    const negativeItems = bus.selectedOtherItems?.filter(item => {
+      const foundItem = otherItems.find(oi => oi.itemName === item);
+      return foundItem && foundItem.ItemType === -1;
+    }) || [];
+    
+    const positiveItems = bus.selectedOtherItems?.filter(item => {
+      const foundItem = otherItems.find(oi => oi.itemName === item);
+      return foundItem && foundItem.ItemType === 1;
+    }) || [];
+    
     const data = {
       userId: document.getElementById("userId").value,
       location: document.getElementById("location").value,
@@ -3488,7 +3740,8 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
         bus.position?.longitude || currentLongitude
       })`,
       mainItem: mainItem,
-      otherItem: otherItems.join(", "),
+      otherItem: negativeItems.join(", "),
+      goodItem: positiveItems.join(", ") // 新增的 goodItem 欄位
     };
     
     const response = await fetch(base_url + "monitor/records", {
@@ -3934,12 +4187,16 @@ function updateLocationList() {
 // 獲取其他項目列表
 async function fetchOtherItems() {
   try {
+    // 預設項目，包含新的 Catolog 和 ItemType 欄位
     const defaultItems = [
-      { id: "1", itemName: "車身未清潔" },
-      { id: "2", itemName: "車輛燈號故障" },
-      { id: "3", itemName: "闖紅燈" },
-      { id: "4", itemName: "LED故障" },
-      { id: "5", itemName: "無動態" },
+      { id: "1", itemName: "車身未清潔", Catolog: "設備問題", ItemType: -1 },
+      { id: "2", itemName: "車輛燈號故障", Catolog: "設備問題", ItemType: -1 },
+      { id: "3", itemName: "闖紅燈", Catolog: "駕駛行為", ItemType: -1 },
+      { id: "4", itemName: "LED故障", Catolog: "設備問題", ItemType: -1 },
+      { id: "5", itemName: "無動態", Catolog: "設備問題", ItemType: -1 },
+      { id: "6", itemName: "服務態度佳", Catolog: "服務態度", ItemType: 1 },
+      { id: "7", itemName: "禮讓行人", Catolog: "駕駛行為", ItemType: 1 },
+      { id: "8", itemName: "主動協助乘客", Catolog: "服務態度", ItemType: 1 }
     ];
 
     const response = await fetch(`${base_url}monitor/otherItem`);
@@ -3960,13 +4217,7 @@ async function fetchOtherItems() {
   } catch (error) {
     console.error("獲取其他項目失敗:", error);
     // 使用預設項目
-    otherItems = [
-      { id: "1", itemName: "車身未清潔" },
-      { id: "2", itemName: "車輛燈號故障" },
-      { id: "3", itemName: "闖紅燈" },
-      { id: "4", itemName: "LED故障" },
-      { id: "5", itemName: "無動態" },
-    ];
+    otherItems = defaultItems;
   }
 }
 // 打開已提交歷史紀錄
