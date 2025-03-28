@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.7(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2344,6 +2344,7 @@ function scrollToActiveTab() {
   }, 50); // 短暫延遲，確保DOM已更新
 }
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
+// 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     // 沒有活躍的編輯車輛，隱藏編輯區域
@@ -2391,9 +2392,10 @@ function updateBusEditingInterface() {
 
   // 更新公司和車號信息
   document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
- // 修改這裡：將車號純文字改為輸入框
+  
+  // 修改這裡：將車號純文字改為輸入框
   const inputBusNumberElement = document.getElementById("inputBusNumber");
-    // 檢查是否已經是輸入框，如果不是則替換為輸入框
+  // 檢查是否已經是輸入框，如果不是則替換為輸入框
   if (bus.isManualInput) {
     // 如果是手動新增的車輛，且不是輸入框，替換為輸入框
     if (inputBusNumberElement.tagName !== 'INPUT') {
@@ -2434,6 +2436,7 @@ function updateBusEditingInterface() {
       inputBusNumberElement.textContent = bus.plateNumber || '';
     }
   }
+  
   // 清除並重新生成主要項目選項
   const mainItemsContainer = document.getElementById("mainItemsContainer");
   mainItemsContainer.innerHTML = '';
@@ -2460,45 +2463,192 @@ function updateBusEditingInterface() {
     mainItemsContainer.appendChild(itemButton);
   });
 
-  // 清除並重新生成其他項目選項
+  // 清除並重新生成其他項目選項 - 以下是分類與滑動部分
   const otherItemsContainer = document.getElementById("otherItemsContainer");
   otherItemsContainer.innerHTML = '';
-  otherItems.forEach(item => {
-    const itemButton = document.createElement("div");
-    itemButton.className = "quick-other-item";
-    itemButton.textContent = item.itemName;
-    itemButton.dataset.value = item.itemName;
+
+  // 獲取所有不重複的類別
+  const categories = [...new Set(otherItems.map(item => item.Catolog || "其它"))];
+
+  // 創建分類導航標籤
+  const categoryNav = document.createElement("div");
+  categoryNav.className = "category-nav";
+  categories.forEach((category, idx) => {
+    const tab = document.createElement("div");
+    tab.className = "category-tab";
+    if (idx === 0) tab.classList.add("active");
+    tab.textContent = category;
+    tab.dataset.category = category;
+    tab.onclick = function() {
+      // 更新選中標籤
+      categoryNav.querySelectorAll(".category-tab").forEach(el => {
+        el.classList.remove("active");
+      });
+      this.classList.add("active");
+      // 滑動到對應頁面
+      swipeToPage(idx);
+    };
+    categoryNav.appendChild(tab);
+  });
+
+  // 創建滑動容器
+  const swipeContainer = document.createElement("div");
+  swipeContainer.className = "swipe-container";
+
+  // 創建滑動包裝器
+  const swipeWrapper = document.createElement("div");
+  swipeWrapper.className = "swipe-wrapper";
+  swipeWrapper.style.width = `${categories.length * 100}%`;
+
+  // 創建每個類別的頁面
+  categories.forEach((category, idx) => {
+    const swipePage = document.createElement("div");
+    swipePage.className = "swipe-page";
     
-    // 如果此項目已選，標記為已選
-    if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
-      itemButton.classList.add("selected");
+    // 篩選該類別的項目
+    const categoryItems = otherItems.filter(item => (item.Catolog || "其它") === category);
+    
+    // 創建項目容器
+    const itemsContainer = document.createElement("div");
+    itemsContainer.className = "quick-other-items";
+    
+    // 添加該類別的所有項目
+    categoryItems.forEach(item => {
+      const itemButton = document.createElement("div");
+      itemButton.className = "quick-other-item";
+      // 根據 ItemType 添加不同的樣式
+      if (item.ItemType === 1) {
+        itemButton.classList.add("positive-item");
+      } else if (item.ItemType === -1) {
+        itemButton.classList.add("negative-item");
+      }
+      itemButton.textContent = item.itemName;
+      itemButton.dataset.value = item.itemName;
+      itemButton.dataset.type = item.ItemType;
+      
+      // 如果此項目已選，標記為已選
+      if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
+        itemButton.classList.add("selected");
+      }
+      
+      itemButton.onclick = function() {
+        this.classList.toggle("selected");
+        
+        // 初始化選擇數組如果不存在
+        if (!bus.selectedOtherItems) {
+          bus.selectedOtherItems = [];
+        }
+        
+        // 更新選擇
+        if (this.classList.contains("selected")) {
+          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+            bus.selectedOtherItems.push(this.dataset.value);
+          }
+        } else {
+          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+        }
+      };
+      
+      itemsContainer.appendChild(itemButton);
+    });
+    
+    swipePage.appendChild(itemsContainer);
+    swipeWrapper.appendChild(swipePage);
+  });
+
+  swipeContainer.appendChild(swipeWrapper);
+
+  // 添加滑動指示器
+  const indicators = document.createElement("div");
+  indicators.className = "swipe-indicators";
+  categories.forEach((_, idx) => {
+    const dot = document.createElement("div");
+    dot.className = "swipe-dot";
+    if (idx === 0) dot.classList.add("active");
+    indicators.appendChild(dot);
+  });
+
+  // 添加到文檔
+  otherItemsContainer.appendChild(categoryNav);
+  otherItemsContainer.appendChild(swipeContainer);
+  otherItemsContainer.appendChild(indicators);
+
+  // 滑動功能
+  let startX = 0;
+  let currentPage = 0;
+
+  function swipeToPage(pageIndex) {
+    currentPage = pageIndex;
+    swipeWrapper.style.transition = 'transform 0.3s ease';
+    swipeWrapper.style.transform = `translateX(-${pageIndex * 100}%)`;
+    
+    // 更新指示點
+    const dots = indicators.querySelectorAll(".swipe-dot");
+    dots.forEach((dot, idx) => {
+      if (idx === pageIndex) {
+        dot.classList.add("active");
+      } else {
+        dot.classList.remove("active");
+      }
+    });
+  }
+
+  swipeContainer.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  swipeContainer.addEventListener('touchmove', function(e) {
+    if (!startX) return;
+    
+    const currentX = e.touches[0].clientX;
+    const diff = startX - currentX;
+    const percentMove = (diff / swipeContainer.offsetWidth) * 100;
+    
+    // 計算當前偏移量
+    let offset = -(currentPage * 100) - percentMove;
+    
+    // 邊界限制
+    if (offset > 0) offset = 0;
+    if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+    
+    // 應用偏移，無動畫
+    swipeWrapper.style.transition = 'none';
+    swipeWrapper.style.transform = `translateX(${offset}%)`;
+  }, { passive: true });
+
+  swipeContainer.addEventListener('touchend', function(e) {
+    if (!startX) return;
+    
+    const currentX = e.changedTouches[0].clientX;
+    const diff = startX - currentX;
+    
+    // 滑動距離足夠大時切換頁面
+    if (Math.abs(diff) > swipeContainer.offsetWidth * 0.25) {
+      if (diff > 0 && currentPage < categories.length - 1) {
+        // 左滑 -> 下一頁
+        currentPage++;
+      } else if (diff < 0 && currentPage > 0) {
+        // 右滑 -> 上一頁
+        currentPage--;
+      }
     }
     
-    itemButton.onclick = function() {
-      this.classList.toggle("selected");
-      
-      // 初始化選擇數組如果不存在
-      if (!bus.selectedOtherItems) {
-        bus.selectedOtherItems = [];
-      }
-      
-      // 更新選擇
-      if (this.classList.contains("selected")) {
-        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-          bus.selectedOtherItems.push(this.dataset.value);
-        }
+    swipeToPage(currentPage);
+    
+    // 更新選中標籤
+    categoryNav.querySelectorAll(".category-tab").forEach((tab, idx) => {
+      if (idx === currentPage) {
+        tab.classList.add("active");
       } else {
-        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+        tab.classList.remove("active");
       }
-    };
-    otherItemsContainer.appendChild(itemButton);
-  });
+    });
+    
+    startX = 0;
+  }, { passive: true });
   
   // 確保提交按鈕可用
   resetSubmitButtonState();
-  
-  // 移除自動滾動到編輯區域的功能
-  // inputContainer.scrollIntoView({ behavior: "smooth" });
 }
 // 新增一個函數，用於同步更新所有使用該車輛的地方
 function updateAllBusReferences(bus) {
@@ -3718,7 +3868,7 @@ async function submitBusRecord(bus, index, mainItem, otherItems) {
   showLoading();
   
   try {
-     // 將正向和負向項目分開
+    // 將正向和負向項目分開
     const negativeItems = bus.selectedOtherItems?.filter(item => {
       const foundItem = otherItems.find(oi => oi.itemName === item);
       return foundItem && foundItem.ItemType === -1;
