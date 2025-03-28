@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.4(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2557,33 +2557,30 @@ function updateBusEditingInterface() {
   swipeWrapper.style.width = `${categories.length * 100}%`;
 
   // 創建每個類別的頁面
-// 將這段代碼修改為以下版本
 // 創建每個類別的頁面
 categories.forEach((category, idx) => {
   const swipePage = document.createElement("div");
   swipePage.className = "swipe-page";
+  // 設置swipePage樣式，確保頁面有合適的尺寸和布局
+  swipePage.style.cssText = "position: relative !important; height: auto !important; min-height: 200px !important; width: 100% !important; box-sizing: border-box !important;";
   
   // 篩選該類別的項目
   const categoryItems = otherItems.filter(item => item.catolog === category);
   
-  // 創建項目容器 - 直接添加內聯樣式確保多行顯示
+  // 創建項目容器 - 優化布局
   const itemsContainer = document.createElement("div");
   itemsContainer.className = "quick-other-items";
   
-  // 強制使用多行顯示，提高樣式優先級
-  // 調整容器高度，確保不會太高但能顯示多行
-// 調整項目容器樣式，確保可見且能正確滾動
-itemsContainer.style.cssText = "display: flex !important; flex-wrap: wrap !important; gap: 4px !important; width: 100% !important; max-height: 200px !important; overflow-y: auto !important; padding: 5px !important; scrollbar-width: thin !important;";
+  // 改進容器樣式，確保項目能夠正確換行和顯示
+  itemsContainer.style.cssText = "display: flex !important; flex-flow: row wrap !important; gap: 4px !important; width: 100% !important; height: auto !important; max-height: 170px !important; overflow-y: auto !important; padding: 8px 5px 20px 5px !important; scrollbar-width: thin !important; align-content: flex-start !important;";
   
   // 添加該類別的所有項目
   categoryItems.forEach(item => {
     const itemButton = document.createElement("div");
     itemButton.className = "quick-other-item";
     
-    // 使用style屬性而非setAttribute，確保樣式被應用
-    // 修改這段代碼，減小項目尺寸
-// 縮減項目尺寸，減小內邊距和外邊距
-itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; min-width: 40px !important; margin-bottom: 2px !important; z-index: 10 !important; padding: 3px 6px !important; font-size: 14px !important;";
+    // 調整按鈕樣式，確保正確顯示並支持換行
+    itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; flex: 0 0 auto !important; min-width: 40px !important; margin: 2px !important; z-index: 2 !important; padding: 3px 6px !important; font-size: 14px !important;";
     
     // 根據 ItemType 添加不同的樣式
     if (item.ItemType === 1) {
@@ -2606,40 +2603,32 @@ itemButton.style.cssText = "cursor: pointer !important; user-select: none !impor
       e.stopPropagation();
     });
     
-itemButton.addEventListener("click", function(e) {
-  // 如果是滑動操作的結束，不觸發點擊事件
-  if (window.isSwiping) {
-    window.isSwiping = false;
-    return;
-  }
-  
-  // 正常處理點擊
-  console.log("項目被點擊:", item.itemName);
-  this.classList.toggle("selected");
+    itemButton.addEventListener("click", function(e) {
+      // 處理點擊事件
+      if (window.isSwiping) {
+        window.isSwiping = false;
+        return;
+      }
       
-  // 初始化選擇數組如果不存在
-  if (!bus.selectedOtherItems) {
-    bus.selectedOtherItems = [];
-  }
-  
-  // 更新選擇
-  if (this.classList.contains("selected")) {
-    if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-      bus.selectedOtherItems.push(this.dataset.value);
-      console.log("項目已添加:", this.dataset.value, bus.selectedOtherItems);
-    }
-  } else {
-    bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-    console.log("項目已移除:", this.dataset.value, bus.selectedOtherItems);
-  }
-});
+      this.classList.toggle("selected");
+      
+      if (!bus.selectedOtherItems) {
+        bus.selectedOtherItems = [];
+      }
+      
+      if (this.classList.contains("selected")) {
+        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+          bus.selectedOtherItems.push(this.dataset.value);
+        }
+      } else {
+        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+      }
+    });
     
     itemsContainer.appendChild(itemButton);
   });
-  // 設置swipePage為相對定位，以便放置滾動指示器
-  swipePage.style.cssText = "position: relative !important;";
   
-  // 創建滾動指示器 - 底部漸變陰影效果
+  // 設置滾動指示器，確保不會遮擋內容
   const scrollIndicator = document.createElement('div');
   scrollIndicator.style.cssText = "position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 15px !important; background: linear-gradient(to top, rgba(248,249,250,0.8), transparent) !important; pointer-events: none !important; opacity: 0.7 !important; z-index: 5 !important;";
   
