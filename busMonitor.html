@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.5(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2547,40 +2547,30 @@ function updateBusEditingInterface() {
     categoryNav.appendChild(tab);
   });
 
-  // 創建滑動容器
-  const swipeContainer = document.createElement("div");
-  swipeContainer.className = "swipe-container";
+// 創建滑動包裝器
+const swipeWrapper = document.createElement("div");
+swipeWrapper.className = "swipe-wrapper";
+swipeWrapper.style.cssText = `width: ${categories.length * 100}% !important; display: flex !important; flex-wrap: nowrap !important; transition: transform 0.3s ease !important;`;
 
-  // 創建滑動包裝器
-  const swipeWrapper = document.createElement("div");
-  swipeWrapper.className = "swipe-wrapper";
-  swipeWrapper.style.width = `${categories.length * 100}%`;
-
-  // 創建每個類別的頁面
 // 創建每個類別的頁面
 categories.forEach((category, idx) => {
   const swipePage = document.createElement("div");
   swipePage.className = "swipe-page";
-  // 設置swipePage樣式，確保頁面有合適的尺寸和布局
-  swipePage.style.cssText = "position: relative !important; height: auto !important; min-height: 200px !important; width: 100% !important; box-sizing: border-box !important;";
+  swipePage.style.cssText = "flex: 0 0 " + (100 / categories.length) + "% !important; padding: 0 5px !important; box-sizing: border-box !important; position: relative !important;";
   
   // 篩選該類別的項目
   const categoryItems = otherItems.filter(item => item.catolog === category);
   
-  // 創建項目容器 - 優化布局
+  // 創建項目容器
   const itemsContainer = document.createElement("div");
   itemsContainer.className = "quick-other-items";
-  
-  // 改進容器樣式，確保項目能夠正確換行和顯示
-  itemsContainer.style.cssText = "display: flex !important; flex-flow: row wrap !important; gap: 4px !important; width: 100% !important; height: auto !important; max-height: 170px !important; overflow-y: auto !important; padding: 8px 5px 20px 5px !important; scrollbar-width: thin !important; align-content: flex-start !important;";
+  itemsContainer.style.cssText = "display: flex !important; flex-flow: row wrap !important; gap: 6px !important; width: 100% !important; height: auto !important; max-height: 170px !important; overflow-y: auto !important; padding: 8px 5px !important; box-sizing: border-box !important;";
   
   // 添加該類別的所有項目
   categoryItems.forEach(item => {
     const itemButton = document.createElement("div");
     itemButton.className = "quick-other-item";
-    
-    // 調整按鈕樣式，確保正確顯示並支持換行
-    itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; flex: 0 0 auto !important; min-width: 40px !important; margin: 2px !important; z-index: 2 !important; padding: 3px 6px !important; font-size: 14px !important;";
+    itemButton.style.cssText = "flex: 0 0 auto !important; min-width: 40px !important; max-width: calc(50% - 8px) !important; margin: 0 !important; padding: 6px 10px !important; font-size: 14px !important; white-space: normal !important; text-align: center !important; border-radius: 6px !important; border: 1px solid #eee !important; background-color: #f8f9fa !important;";
     
     // 根據 ItemType 添加不同的樣式
     if (item.ItemType === 1) {
@@ -2598,13 +2588,14 @@ categories.forEach((category, idx) => {
       itemButton.classList.add("selected");
     }
     
-    // 使用不同的事件綁定方式
     itemButton.addEventListener("mousedown", function(e) {
       e.stopPropagation();
     });
     
     itemButton.addEventListener("click", function(e) {
-      // 處理點擊事件
+      e.preventDefault();
+      e.stopPropagation();
+      
       if (window.isSwiping) {
         window.isSwiping = false;
         return;
@@ -2628,9 +2619,9 @@ categories.forEach((category, idx) => {
     itemsContainer.appendChild(itemButton);
   });
   
-  // 設置滾動指示器，確保不會遮擋內容
+  // 設置滾動指示器
   const scrollIndicator = document.createElement('div');
-  scrollIndicator.style.cssText = "position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 15px !important; background: linear-gradient(to top, rgba(248,249,250,0.8), transparent) !important; pointer-events: none !important; opacity: 0.7 !important; z-index: 5 !important;";
+  scrollIndicator.style.cssText = "position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 15px !important; background: linear-gradient(to top, rgba(248,249,250,0.8), transparent) !important; pointer-events: none !important;";
   
   swipePage.appendChild(itemsContainer);
   swipePage.appendChild(scrollIndicator);
@@ -2823,12 +2814,15 @@ function updateEditingTabs() {
       companyAbbr = companyAbbr.length > 2 ? companyAbbr.substring(0, 2) : companyAbbr;
     }
     
-    tab.innerHTML = `
+    // tab.innerHTML = `
+    //   <span>${bus.plateNumber || ''}</span>
+    //   <span class="tab-company">${companyAbbr}</span>
+    //   <span class="tab-close" data-index="${index}">×</span>
+    // `;
+        tab.innerHTML = `
       <span>${bus.plateNumber || ''}</span>
-      <span class="tab-company">${companyAbbr}</span>
       <span class="tab-close" data-index="${index}">×</span>
     `;
-    
 // 點擊標籤切換到對應的編輯視圖
 tab.addEventListener("click", function(e) {
   // 忽略關閉按鈕的點擊
