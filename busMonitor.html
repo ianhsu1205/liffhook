@@ -1409,7 +1409,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團路口查核平台-v1.0.8.4(瀏覽器模式)
+      <div class="line-brand">首都集團路口查核平台-v1.0.8.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2281,34 +2281,45 @@ function updateBusEditingInterface() {
  // 修改這裡：將車號純文字改為輸入框
   const inputBusNumberElement = document.getElementById("inputBusNumber");
     // 檢查是否已經是輸入框，如果不是則替換為輸入框
-  if (inputBusNumberElement.tagName !== 'INPUT') {
-    const inputBox = document.createElement('input');
-    inputBox.type = 'text';
-    inputBox.id = 'inputBusNumber';
-    inputBox.value = bus.plateNumber || '';
-    inputBox.style.width = '100px';
-    inputBox.style.padding = '3px 6px';
-    inputBox.style.border = '1px solid #ddd';
-    inputBox.style.borderRadius = '4px';
-    inputBox.style.fontWeight = 'bold';
-    
-    // 添加事件監聽器，確保車號修改後更新到車輛對象
-    inputBox.addEventListener('input', function() {
-      // 將更改保存到當前編輯的車輛對象
-      bus.plateNumber = this.value;
+  if (bus.isManualInput) {
+    // 如果是手動新增的車輛，且不是輸入框，替換為輸入框
+    if (inputBusNumberElement.tagName !== 'INPUT') {
+      const inputBox = document.createElement('input');
+      inputBox.type = 'text';
+      inputBox.id = 'inputBusNumber';
+      inputBox.value = bus.plateNumber || '';
+      inputBox.style.width = '100px';
+      inputBox.style.padding = '3px 6px';
+      inputBox.style.border = '1px solid #ddd';
+      inputBox.style.borderRadius = '4px';
+      inputBox.style.fontWeight = 'bold';
       
-      // 更新編輯標籤顯示
-      updateEditingTabs();
+      // 添加事件監聽器，確保車號修改後更新到車輛對象
+      inputBox.addEventListener('input', function() {
+        // 將更改保存到當前編輯的車輛對象
+        bus.plateNumber = this.value;
+        
+        // 同步更新所有相關顯示
+        updateAllBusReferences(bus);
+      });
       
-      // 更新列表中的車牌顯示
-      updateBusSelectionInList();
-    });
-    
-    // 替換原有元素
-    inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
+      // 替換原有元素
+      inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
+    } else {
+      // 如果已經是輸入框，只更新值
+      inputBusNumberElement.value = bus.plateNumber || '';
+    }
   } else {
-    // 如果已經是輸入框，只更新值
-    inputBusNumberElement.value = bus.plateNumber || '';
+    // 如果不是手動新增的車輛，顯示為純文字
+    if (inputBusNumberElement.tagName === 'INPUT') {
+      const textSpan = document.createElement('strong');
+      textSpan.id = 'inputBusNumber';
+      textSpan.textContent = bus.plateNumber || '';
+      inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
+    } else {
+      // 如果已經是文字元素，只更新內容
+      inputBusNumberElement.textContent = bus.plateNumber || '';
+    }
   }
   // 清除並重新生成主要項目選項
   const mainItemsContainer = document.getElementById("mainItemsContainer");
@@ -2376,7 +2387,38 @@ function updateBusEditingInterface() {
   // 移除自動滾動到編輯區域的功能
   // inputContainer.scrollIntoView({ behavior: "smooth" });
 }
-
+// 新增一個函數，用於同步更新所有使用該車輛的地方
+function updateAllBusReferences(bus) {
+  // 更新編輯標籤顯示
+  updateEditingTabs();
+  
+  // 更新列表中的車牌顯示
+  updateBusSelectionInList();
+  
+  // 同步更新 displayedBuses 和 allDetectedBuses 中相同車輛的資料
+  const plateNumber = bus.plateNumber;
+  
+  // 更新 displayedBuses 中的對應車輛
+  for (let i = 0; i < displayedBuses.length; i++) {
+    if (displayedBuses[i].isInEditing && 
+        displayedBuses[i].position === bus.position && 
+        displayedBuses[i].isManualInput === bus.isManualInput) {
+      displayedBuses[i].plateNumber = plateNumber;
+    }
+  }
+  
+  // 更新 allDetectedBuses 中的對應車輛
+  for (let i = 0; i < allDetectedBuses.length; i++) {
+    if (allDetectedBuses[i].isInEditing && 
+        allDetectedBuses[i].position === bus.position && 
+        allDetectedBuses[i].isManualInput === bus.isManualInput) {
+      allDetectedBuses[i].plateNumber = plateNumber;
+    }
+  }
+  
+  // 更新車輛列表顯示
+  updateDetectedBusesList();
+}
 // 4. 創建編輯標籤列
 function updateEditingTabs() {
   // 檢查標籤容器是否存在，如果不存在則創建
