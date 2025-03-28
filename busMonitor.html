@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.1(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2558,6 +2558,7 @@ function updateBusEditingInterface() {
 
   // 創建每個類別的頁面
 // 將這段代碼修改為以下版本
+// 創建每個類別的頁面
 categories.forEach((category, idx) => {
   const swipePage = document.createElement("div");
   swipePage.className = "swipe-page";
@@ -2569,16 +2570,16 @@ categories.forEach((category, idx) => {
   const itemsContainer = document.createElement("div");
   itemsContainer.className = "quick-other-items";
   
-  // 確保多行顯示的關鍵樣式
-  itemsContainer.setAttribute("style", "display: flex !important; flex-wrap: wrap !important; gap: 6px !important; width: 100% !important;");
+  // 強制使用多行顯示，提高樣式優先級
+  itemsContainer.style.cssText = "display: flex !important; flex-wrap: wrap !important; gap: 6px !important; width: 100% !important; min-height: 150px !important;";
   
   // 添加該類別的所有項目
   categoryItems.forEach(item => {
     const itemButton = document.createElement("div");
     itemButton.className = "quick-other-item";
     
-    // 添加額外的內聯樣式，確保項目可點擊
-    itemButton.setAttribute("style", "cursor: pointer !important; user-select: none !important; -webkit-user-select: none !important;");
+    // 使用style屬性而非setAttribute，確保樣式被應用
+    itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; min-width: 70px !important; margin-bottom: 8px !important; z-index: 10 !important;";
     
     // 根據 ItemType 添加不同的樣式
     if (item.ItemType === 1) {
@@ -2596,11 +2597,15 @@ categories.forEach((category, idx) => {
       itemButton.classList.add("selected");
     }
     
-    // 使用原生onclick而非addEventListener，可能更可靠
-    itemButton.onclick = function(e) {
-      console.log("項目被點擊:", item.itemName); // 添加調試輸出
-      e.preventDefault();
+    // 使用不同的事件綁定方式
+    itemButton.addEventListener("mousedown", function(e) {
       e.stopPropagation();
+    });
+    
+    itemButton.addEventListener("click", function(e) {
+      console.log("項目被點擊:", item.itemName);
+      e.stopPropagation();
+      e.preventDefault();
       
       this.classList.toggle("selected");
       
@@ -2613,15 +2618,13 @@ categories.forEach((category, idx) => {
       if (this.classList.contains("selected")) {
         if (!bus.selectedOtherItems.includes(this.dataset.value)) {
           bus.selectedOtherItems.push(this.dataset.value);
-          console.log("項目已添加:", this.dataset.value, bus.selectedOtherItems); // 調試
+          console.log("項目已添加:", this.dataset.value, bus.selectedOtherItems);
         }
       } else {
         bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        console.log("項目已移除:", this.dataset.value, bus.selectedOtherItems); // 調試
+        console.log("項目已移除:", this.dataset.value, bus.selectedOtherItems);
       }
-      
-      return false; // 阻止事件繼續傳播
-    };
+    });
     
     itemsContainer.appendChild(itemButton);
   });
@@ -2667,15 +2670,19 @@ categories.forEach((category, idx) => {
     });
   }
 
-  swipeContainer.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].clientX;
-    e.preventDefault(); // 防止頁面滾動
-  }, { passive: false });
+swipeContainer.addEventListener('touchstart', function(e) {
+  // 如果點擊的是項目按鈕，不阻止默認行為
+  if (e.target.classList.contains('quick-other-item')) {
+    return;
+  }
+  startX = e.touches[0].clientX;
+}, { passive: true }); // 使用 passive: true
 
-  swipeContainer.addEventListener('touchmove', function(e) {
-    if (!startX) return;
-    e.preventDefault(); // 防止頁面滾動
-    
+swipeContainer.addEventListener('touchmove', function(e) {
+  if (!startX) return;
+  
+  // 只有在非項目區域滑動時才處理滑動
+  if (!e.target.classList.contains('quick-other-item')) {
     const currentX = e.touches[0].clientX;
     const diff = startX - currentX;
     const percentMove = (diff / swipeContainer.offsetWidth) * 100;
@@ -2690,7 +2697,8 @@ categories.forEach((category, idx) => {
     // 應用偏移，無動畫
     swipeWrapper.style.transition = 'none';
     swipeWrapper.style.transform = `translateX(${offset}%)`;
-  }, { passive: false });
+  }
+}, { passive: true });
 
   swipeContainer.addEventListener('touchend', function(e) {
     if (!startX) return;
