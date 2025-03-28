@@ -1548,7 +1548,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.0(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2392,6 +2392,8 @@ function scrollToActiveTab() {
     });
   }, 50); // 短暫延遲，確保DOM已更新
 }
+
+window.isHandlingItemClick = false;
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
@@ -2611,21 +2613,25 @@ function updateBusEditingInterface() {
       }
       
       // 添加點擊事件
-      itemBtn.addEventListener("click", function(e) {
-        this.classList.toggle("selected");
-        
-        if (!bus.selectedOtherItems) {
-          bus.selectedOtherItems = [];
-        }
-        
-        if (this.classList.contains("selected")) {
-          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-            bus.selectedOtherItems.push(this.dataset.value);
-          }
-        } else {
-          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        }
-      });
+itemBtn.addEventListener("click", function(e) {
+  // 設置標記，表示正在處理項目點擊
+  window.isHandlingItemClick = true;
+  setTimeout(() => { window.isHandlingItemClick = false; }, 300); // 300ms後重置
+  
+  this.classList.toggle("selected");
+  
+  if (!bus.selectedOtherItems) {
+    bus.selectedOtherItems = [];
+  }
+  
+  if (this.classList.contains("selected")) {
+    if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+      bus.selectedOtherItems.push(this.dataset.value);
+    }
+  } else {
+    bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+  }
+});
       
       contentWrapper.appendChild(itemBtn);
     });
@@ -2649,24 +2655,25 @@ function updateBusEditingInterface() {
   otherItemsContainer.appendChild(categoryNav);
   otherItemsContainer.appendChild(contentContainer);
 
-  // 添加分類切換邏輯
-  categoryNav.querySelectorAll('.category-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      // 更新標籤狀態
-      categoryNav.querySelectorAll('.category-tab').forEach(t => {
-        t.classList.remove('active');
-        t.style.backgroundColor = '#f8f9fa';
-        t.style.color = '#333';
-      });
-      this.classList.add('active');
-      this.style.backgroundColor = '#06c755';
-      this.style.color = 'white';
-      
-      // 滑動到對應的面板
-      const index = parseInt(this.dataset.index);
-      pagesContainer.style.transform = `translateX(-${index * 100}%)`;
+// 修改分類標籤點擊事件
+categoryNav.querySelectorAll('.category-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    // 更新標籤狀態
+    categoryNav.querySelectorAll('.category-tab').forEach(t => {
+      t.classList.remove('active');
+      t.style.backgroundColor = '#f8f9fa';
+      t.style.color = '#333';
     });
+    this.classList.add('active');
+    this.style.backgroundColor = '#06c755';
+    this.style.color = 'white';
+    
+    // 獲取索引並滑動到對應頁面
+    const index = Array.from(categoryNav.children).indexOf(this);
+    currentSwipePage = index;
+    swipeToPageImproved(index);
   });
+});
 
   // 預設選中第一個標籤
   if (categoryNav.querySelector('.category-tab')) {
@@ -2677,67 +2684,106 @@ function updateBusEditingInterface() {
   }
   
   // 處理滑動功能 - 放在最後以確保 pagesContainer 已定義
-let startX = 0;
-let currentPage = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let currentSwipePage = 0;
+let isScrollingVertically = false;
 
 pagesContainer.addEventListener('touchstart', function(e) {
-  // 如果點擊的是選項按鈕，不啟動滑動
-  if (e.target.classList.contains('quick-other-item')) {
-    startX = 0; // 不啟動滑動
+  // 如果正在處理選項點擊，不啟動滑動
+  if (window.isHandlingItemClick) {
     return;
   }
-  startX = e.touches[0].clientX;
-  e.stopPropagation();
-}, { passive: false });
+  
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  isScrollingVertically = false;
+}, { passive: true });
 
+// 觸摸移動
 pagesContainer.addEventListener('touchmove', function(e) {
-  // 如果不是從滑動開始的，或者點擊的是選項按鈕，就不處理滑動
-  if (!startX || e.target.classList.contains('quick-other-item')) return;
+  // 如果正在處理選項點擊，不處理滑動
+  if (window.isHandlingItemClick || !touchStartX) {
+    return;
+  }
   
-  const currentX = e.touches[0].clientX;
-  const diff = startX - currentX;
-  const percentMove = (diff / contentContainer.offsetWidth) * 100;
+  const touchCurrentX = e.touches[0].clientX;
+  const touchCurrentY = e.touches[0].clientY;
+  const diffX = touchStartX - touchCurrentX;
+  const diffY = touchStartY - touchCurrentY;
   
-  // 計算當前偏移量
-  let offset = -(currentPage * 100) - percentMove;
+  // 確定是垂直滾動還是水平滑動（首次判斷）
+  if (!isScrollingVertically && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
+    isScrollingVertically = true;
+    return; // 是垂直滾動，退出滑動處理
+  }
   
-  // 邊界限制
-  if (offset > 0) offset = 0;
-  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+  // 如果是垂直滾動，不處理水平滑動
+  if (isScrollingVertically) {
+    return;
+  }
+  
+  // 防止在水平滑動時頁面也跟著滾動
+  e.preventDefault();
+  
+  // 計算水平偏移量
+  const percentMove = (diffX / pagesContainer.offsetWidth) * 100;
+  let offset = -(currentSwipePage * 100) - percentMove;
+  
+  // 邊界限制（添加彈性效果）
+  if (offset > 20) {
+    offset = 20;
+  } else if (offset < -((categories.length - 1) * 100 + 20)) {
+    offset = -((categories.length - 1) * 100 + 20);
+  }
   
   // 應用偏移，無動畫
   pagesContainer.style.transition = 'none';
   pagesContainer.style.transform = `translateX(${offset}%)`;
-  
-  e.preventDefault();
-  e.stopPropagation();
 }, { passive: false });
 
 pagesContainer.addEventListener('touchend', function(e) {
-  // 如果不是從滑動開始的，或者點擊的是選項按鈕，就不處理滑動結束
-  if (!startX || e.target.classList.contains('quick-other-item')) return;
+  // 如果正在處理選項點擊或沒有開始滑動，不處理
+  if (window.isHandlingItemClick || !touchStartX || isScrollingVertically) {
+    touchStartX = 0;
+    touchStartY = 0;
+    return;
+  }
   
-  const currentX = e.changedTouches[0].clientX;
-  const diff = startX - currentX;
+  const touchEndX = e.changedTouches[0].clientX;
+  const diffX = touchStartX - touchEndX;
+  
+  // 重置觸摸起始位置
+  touchStartX = 0;
+  touchStartY = 0;
   
   // 滑動距離足夠大時切換頁面
-  if (Math.abs(diff) > contentContainer.offsetWidth * 0.2) {
-    if (diff > 0 && currentPage < categories.length - 1) {
+  if (Math.abs(diffX) > pagesContainer.offsetWidth * 0.15) {
+    if (diffX > 0 && currentSwipePage < categories.length - 1) {
       // 左滑 -> 下一頁
-      currentPage++;
-    } else if (diff < 0 && currentPage > 0) {
+      currentSwipePage++;
+    } else if (diffX < 0 && currentSwipePage > 0) {
       // 右滑 -> 上一頁
-      currentPage--;
+      currentSwipePage--;
     }
   }
   
-  // 更新當前頁面
-  pagesContainer.style.transition = 'transform 0.3s ease';
-  pagesContainer.style.transform = `translateX(-${currentPage * 100}%)`;
+  // 平滑過渡到目標頁面
+  swipeToPageImproved(currentSwipePage);
+}, { passive: true });
   
-  // 更新標籤狀態
+  // 確保提交按鈕可用
+  resetSubmitButtonState();
+}
+// 改進的頁面切換函數
+function swipeToPageImproved(pageIndex) {
+  currentSwipePage = pageIndex;
+  pagesContainer.style.transition = 'transform 0.3s ease';
+  pagesContainer.style.transform = `translateX(-${pageIndex * 100}%)`;
+  
+  // 更新分類標籤的選中狀態
   categoryNav.querySelectorAll('.category-tab').forEach((tab, idx) => {
-    if (idx === currentPage) {
+    if (idx === pageIndex) {
       tab.classList.add('active');
       tab.style.backgroundColor = '#06c755';
       tab.style.color = 'white';
@@ -2748,12 +2794,17 @@ pagesContainer.addEventListener('touchend', function(e) {
     }
   });
   
-  startX = 0;
-  e.stopPropagation();
-}, { passive: false });
-  
-  // 確保提交按鈕可用
-  resetSubmitButtonState();
+  // 更新指示點（如果有的話）
+  const indicators = document.querySelector('.swipe-indicators');
+  if (indicators) {
+    indicators.querySelectorAll('.swipe-dot').forEach((dot, idx) => {
+      if (idx === pageIndex) {
+        dot.classList.add('active');
+      } else {
+        dot.classList.remove('active');
+      }
+    });
+  }
 }
 
 // 新增一個函數，用於同步更新所有使用該車輛的地方
@@ -3999,6 +4050,8 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   showLoading();
   
   try {
+    console.log("準備提交記錄，選中的項目:", selectedOtherItems);
+    
     // 確保 selectedOtherItems 是數組
     let itemsArray = [];
     
@@ -4007,43 +4060,89 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       itemsArray = selectedOtherItems;
     } else if (typeof selectedOtherItems === 'string') {
       // 如果是字符串，可能是逗號分隔的列表
-      itemsArray = selectedOtherItems.split(',').map(item => item.trim());
+      itemsArray = selectedOtherItems.split(',').map(item => item.trim()).filter(item => item);
     } else if (selectedOtherItems && typeof selectedOtherItems === 'object') {
       // 可能是其他對象形式
       console.log("其他項目資料類型:", typeof selectedOtherItems, selectedOtherItems);
-      itemsArray = Object.values(selectedOtherItems);
+      itemsArray = Object.values(selectedOtherItems).filter(item => item);
     }
     
-    console.log("選中的其他項目:", itemsArray);
+    console.log("處理後的選中項目數組:", itemsArray);
     
     // 將正向和負向項目分開
     const negativeItems = [];
     const positiveItems = [];
     
-    // 遍歷所有選中項目，檢查類型並分類
-    itemsArray.forEach(itemName => {
-      if (!itemName) return; // 跳過空值
+    // 確保 otherItems 存在且是數組
+    if (!Array.isArray(otherItems) || otherItems.length === 0) {
+      console.warn("otherItems 不存在或為空數組，無法分類項目");
+      // 如果 otherItems 不可用，將所有選項放入 otherItem
+      const data = {
+        userId: document.getElementById("userId").value,
+        location: document.getElementById("location").value,
+        plateNumbCompany: bus.operatorName || "不明",
+        routeName: bus.routeName?.chinese || "不明",
+        plateNumber: bus.plateNumber,
+        direction: bus.direction,
+        positionLat: `(${bus.position?.latitude || currentLatitude},${
+          bus.position?.longitude || currentLongitude
+        })`,
+        mainItem: mainItem,
+        otherItem: itemsArray.join(", "), // 全部放入 otherItem
+        goodItem: "" // goodItem 為空
+      };
+      
+      console.log("沒有分類信息，提交資料:", data);
+      
+      const response = await fetch(base_url + "monitor/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "提交記錄失敗");
+      }
+      
+      // 成功處理
+      handleSubmitSuccess(bus);
+      return Promise.resolve();
+    }
+    
+    // 正常處理：遍歷所有選中項目，檢查類型並分類
+    console.log("開始分類項目...");
+    for (let i = 0; i < itemsArray.length; i++) {
+      const itemName = itemsArray[i];
+      if (!itemName) continue; // 跳過空值
       
       // 在 otherItems 中查找該項目
-      const foundItem = otherItems.find(oi => oi.itemName === itemName);
+      const foundItem = otherItems.find(item => item.itemName === itemName);
+      console.log(`檢查項目 "${itemName}"`, foundItem);
+      
       if (foundItem) {
-        if (foundItem.ItemType === -1) {
-          negativeItems.push(itemName);
-        } else if (foundItem.ItemType === 1) {
+        // 顯式檢查 ItemType
+        if (foundItem.ItemType === 1) {
+          console.log(`項目 "${itemName}" 是正向項目 (ItemType=${foundItem.ItemType})`);
           positiveItems.push(itemName);
+        } else if (foundItem.ItemType === -1) {
+          console.log(`項目 "${itemName}" 是負向項目 (ItemType=${foundItem.ItemType})`);
+          negativeItems.push(itemName);
         } else {
-          // 默認為負向項目
+          // ItemType 不是 1 也不是 -1，默認作為負向項目
+          console.log(`項目 "${itemName}" 無效 ItemType (${foundItem.ItemType})，默認為負向項目`);
           negativeItems.push(itemName);
         }
       } else {
-        // 如果在 otherItems 中找不到，默認為負向項目
+        // 找不到對應的項目，默認作為負向項目
+        console.log(`項目 "${itemName}" 在 otherItems 中未找到，默認為負向項目`);
         negativeItems.push(itemName);
       }
-    });
+    }
     
-    console.log("處理後資料:", {
-      "負向項目": negativeItems,
-      "正向項目": positiveItems
+    console.log("分類結果:", {
+      "正向項目 (goodItem)": positiveItems,
+      "負向項目 (otherItem)": negativeItems
     });
     
     // 構建資料物件
@@ -4070,40 +4169,13 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       body: JSON.stringify(data),
     });
     
-    if (response.ok) {
-      // 清除頂部錯誤訊息
-      const statusElement = document.getElementById("statusMessage");
-      statusElement.textContent = "";
-      statusElement.className = "status-message";
-      
-      // 添加到已提交列表
-      submittedBuses.push(bus.plateNumber);
-      
-      // 設置提交時間，3分鐘內不再顯示
-      const submissionTime = Date.now();
-      localStorage.setItem(`submitted_${bus.plateNumber}`, submissionTime);
-      
-      // 從顯示列表移除
-      displayedBuses = displayedBuses.filter(item => item.plateNumber !== bus.plateNumber);
-      
-      // 更新UI
-      updateDetectedBusesList();
-      
-      // 隱藏輸入區域
-      document.getElementById("busInputContainer").classList.add("hidden");
-      selectedBusIndex = -1;
-      
-      // 修改這行，添加詳細資訊到成功提示
-      const routeName = bus.routeName?.chinese || "未知路線";
-      const companyName = bus.operatorName || "未知公司";
-      const successMessage = `已成功送出記錄：${bus.plateNumber} (${companyName} ${routeName})`;
-      
-      // 使用浮動通知顯示詳細資訊
-      showFloatingNotification(successMessage, "success");
-    } else {
+    if (!response.ok) {
       const error = await response.text();
       throw new Error(error || "提交記錄失敗");
     }
+    
+    // 成功處理
+    handleSubmitSuccess(bus);
     return Promise.resolve();
   } catch (error) {
     console.error("提交記錄失敗:", error);
@@ -4114,6 +4186,38 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   }
 }
 
+// 提取提交成功後的處理邏輯為單獨函數
+function handleSubmitSuccess(bus) {
+  // 清除頂部錯誤訊息
+  const statusElement = document.getElementById("statusMessage");
+  statusElement.textContent = "";
+  statusElement.className = "status-message";
+  
+  // 添加到已提交列表
+  submittedBuses.push(bus.plateNumber);
+  
+  // 設置提交時間，3分鐘內不再顯示
+  const submissionTime = Date.now();
+  localStorage.setItem(`submitted_${bus.plateNumber}`, submissionTime);
+  
+  // 從顯示列表移除
+  displayedBuses = displayedBuses.filter(item => item.plateNumber !== bus.plateNumber);
+  
+  // 更新UI
+  updateDetectedBusesList();
+  
+  // 隱藏輸入區域
+  document.getElementById("busInputContainer").classList.add("hidden");
+  selectedBusIndex = -1;
+  
+  // 修改這行，添加詳細資訊到成功提示
+  const routeName = bus.routeName?.chinese || "未知路線";
+  const companyName = bus.operatorName || "未知公司";
+  const successMessage = `已成功送出記錄：${bus.plateNumber} (${companyName} ${routeName})`;
+  
+  // 使用浮動通知顯示詳細資訊
+  showFloatingNotification(successMessage, "success");
+}
 // 添加浮動通知函數
 function showFloatingNotification(message, type) {
   // 先檢查是否已存在通知元素
