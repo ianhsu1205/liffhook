@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>定點或隨車查核</title>
+    <title>查核記錄</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.8.9(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2567,7 +2567,10 @@ function updateBusEditingInterface() {
     // 創建項目容器
     const itemsContainer = document.createElement("div");
     itemsContainer.className = "quick-other-items";
-    
+      // 添加強制多行顯示的樣式
+  itemsContainer.style.display = "flex";
+  itemsContainer.style.flexWrap = "wrap";
+  itemsContainer.style.gap = "6px";
     // 添加該類別的所有項目
     categoryItems.forEach(item => {
       const itemButton = document.createElement("div");
@@ -2587,26 +2590,28 @@ function updateBusEditingInterface() {
         itemButton.classList.add("selected");
       }
       
-      itemButton.onclick = function() {
-        this.classList.toggle("selected");
-        
-        // 初始化選擇數組如果不存在
-        if (!bus.selectedOtherItems) {
-          bus.selectedOtherItems = [];
-        }
-        
-        // 更新選擇
-        if (this.classList.contains("selected")) {
-          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-            bus.selectedOtherItems.push(this.dataset.value);
-          }
-        } else {
-          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        }
-      };
+    itemButton.addEventListener('click', function(e) {
+      e.preventDefault(); // 防止事件冒泡
+      e.stopPropagation();
+      this.classList.toggle("selected");
       
-      itemsContainer.appendChild(itemButton);
-    });
+      // 初始化選擇數組如果不存在
+      if (!bus.selectedOtherItems) {
+        bus.selectedOtherItems = [];
+      }
+      
+      // 更新選擇
+      if (this.classList.contains("selected")) {
+        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+          bus.selectedOtherItems.push(this.dataset.value);
+        }
+      } else {
+        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+      }
+    }, true); // 使用事件捕獲以確保點擊事件被處理
+    
+    itemsContainer.appendChild(itemButton);
+  });
     
     swipePage.appendChild(itemsContainer);
     swipeWrapper.appendChild(swipePage);
