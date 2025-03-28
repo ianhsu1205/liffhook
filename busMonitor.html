@@ -472,21 +472,7 @@
   padding: 0 20px;
   margin: 0;
 }
-      /* 已提交卡片樣式 */
-      .bus-card.submitted {
-        opacity: 0.7;
-        pointer-events: none;
-      }
-      
-      .submitted-label {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-      }
-      
+           
       /* 查詢歷史樣式 */
       .history-list {
         margin-top: 15px;
@@ -1578,7 +1564,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.2(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1637,10 +1623,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
   <script>
 // 全局變數
-let liffInitialized = false;
 const base_url = "https://35.221.146.143.nip.io/linehook/";
 const channelId = "2006992891";
-const liffId = "2006993665-1Nvo0AvX".trim(); // LIFFID
 let currentLatitude = 0;
 let currentLongitude = 0;
 let intersections = [];
@@ -1650,7 +1634,6 @@ let submittedBuses = []; // 已提交的車輛
 let otherItems = [];
 let globalLoadingTimeout = null;
 let watchId = null;
-let selectedBusIndex = -1;
 let isProcessingBus = false;
 let startY = 0;
 let lastLoadingTime = 0;
@@ -2649,9 +2632,17 @@ function updateBusEditingInterface() {
       
       // 添加點擊事件
 itemBtn.addEventListener("click", function(e) {
-  // 設置標記，表示正在處理項目點擊
-  window.isHandlingItemClick = true;
-  setTimeout(() => { window.isHandlingItemClick = false; }, 300); // 300ms後重置
+    e.stopPropagation(); // 阻止事件冒泡
+
+      // 確保不在滑動過程中
+  if (window.isSwiping) return;
+ 
+    // 防止短時間內重複點擊
+  if (this._clickTimeout) return;
+
+    // 設置點擊超時標記
+  this._clickTimeout = true;
+  setTimeout(() => { this._clickTimeout = false; }, 200);
   
   this.classList.toggle("selected");
   
@@ -3070,41 +3061,6 @@ function isGroupCompany(operatorName) {
   );
 }
 
-// 檢查 startLocationWatching 函數（約在行 500 左右）：
-function startLocationWatching(silent = false) {
-  // 先停止現有的監視，避免重複監視
-  stopLocationWatching();
-  
-  if (!navigator.geolocation) {
-  console.log("瀏覽器不支持地理位置API");
-  if (!silent) {
-    showStatusMessage("您的設備不支持位置功能", "error");
-  }
-  return;
-}
-  if (navigator.geolocation) {
-    window.watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        console.log("位置已更新");
-        currentLatitude = position.coords.latitude;
-        currentLongitude = position.coords.longitude;
-        savePosition(currentLatitude, currentLongitude);
-      },
-      (error) => {
-        console.log("位置監聽錯誤:", error);
-        if (!silent) {
-          showStatusMessage("暫時無法獲取位置，請至室外", "info");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 10000, // 允许10秒内的位置缓存
-      }
-    );
-    console.log("已啟動位置監視，watchId:", window.watchId);
-  }
-}
-
 // 停止位置監視
 function stopLocationWatching() {
   if (window.watchId) {
@@ -3131,31 +3087,6 @@ function savePosition(latitude, longitude) {
   }
 }
 
-
-// 確保有正確的 callAPI 函數實現（約在行 460 左右）：
-async function callAPI(url, options = {}, errorMessage = "操作失敗，請稍後再試", showErrorToUser = true) {
-  try {
-    const response = await fetchWithRetry(url, options, 3);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP錯誤 ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error(`API調用失敗 (${url}):`, error);
-    if (showErrorToUser) {
-      showStatusMessage(errorMessage, "error");
-    }
-    throw error;
-  }
-}
-// 初始化 LIFF
-async function initLIFF() {
-    console.log("外部瀏覽器模式，跳過LIFF初始化");
-  return Promise.resolve();
-}
 
 // 檢查用戶是否已存在/註冊
 async function checkUserExists(userId, channelId) {
@@ -3577,289 +3508,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   
   return distance;
 }
-// 創建車輛卡片
-// 創建車輛卡片
-function createBusCard(bus, index) {
-  const busCard = document.createElement("div");
-  busCard.className = "bus-card";
-  busCard.id = `bus-card-${index}`;
-
-  // 公司名稱顯示，移除"客運"
-  let companyName = bus.operatorName || "未知公司";
-  companyName = companyName.replace(/客運$/, "");
-
-  // 頭部信息
-  const header = document.createElement("div");
-  header.className = "bus-card-header";
-  header.innerHTML = `
-    <span class="bus-card-company">${companyName}</span>
-    <span class="bus-card-plate">${bus.plateNumber || "無車號"}</span>
-    `;
-
-  // 主體內容
-  const body = document.createElement("div");
-  body.className = "bus-card-body";
-
-  // 路線信息
-  const routeInfo = document.createElement("div");
-  routeInfo.className = "bus-card-route";
-  routeInfo.textContent = `路線: ${bus.routeName?.chinese || "未知路線"}`;
-
-  // 主要項目選擇器
-  const mainItemsLabel = document.createElement("label");
-  mainItemsLabel.textContent = "查核結果:";
-  
-  const mainItemsContainer = document.createElement("div");
-  mainItemsContainer.className = "quick-items";
-  mainItems.forEach((item) => {
-    const itemButton = document.createElement("div");
-    itemButton.className = "quick-item";
-    itemButton.textContent = item;
-    itemButton.dataset.value = item;
-    itemButton.onclick = function () {
-      // 移除同組其他選中
-      mainItemsContainer.querySelectorAll(".quick-item").forEach((el) => {
-        el.classList.remove("selected");
-      });
-      // 選中當前
-      this.classList.add("selected");
-      // 儲存選擇到bus對象
-      bus.selectedMainItem = this.dataset.value;
-    };
-    mainItemsContainer.appendChild(itemButton);
-  });
-
-  // 其他項目選擇器
-  const otherItemsLabel = document.createElement("label");
-  otherItemsLabel.textContent = "其它:";
-  
-  // 獲取所有不重複的類別
-  const categories = [...new Set(otherItems.map(item => item.catolog || "其它"))];
-
-  // 創建分類導航標籤
-  const categoryNav = document.createElement("div");
-  categoryNav.className = "category-nav";
-  categories.forEach((category, idx) => {
-    const tab = document.createElement("div");
-    tab.className = "category-tab";
-    if (idx === 0) tab.classList.add("active");
-    tab.textContent = category;
-    tab.dataset.category = category;
-    tab.onclick = function() {
-      // 更新選中標籤
-      categoryNav.querySelectorAll(".category-tab").forEach(el => {
-        el.classList.remove("active");
-      });
-      this.classList.add("active");
-      // 滑動到對應頁面
-      swipeToPage(idx);
-    };
-    categoryNav.appendChild(tab);
-  });
-
-  // 創建滑動容器
-  const swipeContainer = document.createElement("div");
-  swipeContainer.className = "swipe-container";
-
-  // 創建滑動包裝器
-  const swipeWrapper = document.createElement("div");
-  swipeWrapper.className = "swipe-wrapper";
-  swipeWrapper.style.width = `${categories.length * 100}%`;
-
-  // 創建每個類別的頁面
-  categories.forEach((category, idx) => {
-    const swipePage = document.createElement("div");
-    swipePage.className = "swipe-page";
-    
-    // 篩選該類別的項目
-    const categoryItems = otherItems.filter(item => (item.catolog || "其它") === category);
-    
-    // 創建項目容器
-    const itemsContainer = document.createElement("div");
-    itemsContainer.className = "quick-other-items";
-    
-    // 添加該類別的所有項目
-    categoryItems.forEach(item => {
-      const itemButton = document.createElement("div");
-      itemButton.className = "quick-other-item";
-      // 根據 ItemType 添加不同的樣式
-      if (item.ItemType === 1) {
-        itemButton.classList.add("positive-item");
-      } else if (item.ItemType === -1) {
-        itemButton.classList.add("negative-item");
-      }
-      itemButton.textContent = item.itemName;
-      itemButton.dataset.value = item.itemName;
-      itemButton.dataset.type = item.ItemType;
-      
-      // 如果此項目已選，標記為已選
-      if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
-        itemButton.classList.add("selected");
-      }
-      
-      itemButton.onclick = function() {
-        this.classList.toggle("selected");
-        
-        // 初始化選擇數組如果不存在
-        if (!bus.selectedOtherItems) {
-          bus.selectedOtherItems = [];
-        }
-        
-        // 更新選擇
-        if (this.classList.contains("selected")) {
-          if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-            bus.selectedOtherItems.push(this.dataset.value);
-          }
-        } else {
-          bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        }
-      };
-      
-      itemsContainer.appendChild(itemButton);
-    });
-     // 設置swipePage為相對定位，以便放置滾動指示器
-  swipePage.style.cssText = "position: relative !important;";
-  
-  // 創建滾動指示器 - 底部漸變陰影效果
-  const scrollIndicator = document.createElement('div');
-  scrollIndicator.style.cssText = "position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 15px !important; background: linear-gradient(to top, rgba(248,249,250,0.8), transparent) !important; pointer-events: none !important; opacity: 0.7 !important; z-index: 5 !important;";
-    swipePage.appendChild(itemsContainer);
-      swipePage.appendChild(scrollIndicator);
-    swipeWrapper.appendChild(swipePage);
-  });
-
-  swipeContainer.appendChild(swipeWrapper);
-
-  // 添加滑動指示器
-  const indicators = document.createElement("div");
-  indicators.className = "swipe-indicators";
-  categories.forEach((_, idx) => {
-    const dot = document.createElement("div");
-    dot.className = "swipe-dot";
-    if (idx === 0) dot.classList.add("active");
-    indicators.appendChild(dot);
-  });
-  
-  // 操作按鈕
-  const actionsContainer = document.createElement("div");
-  actionsContainer.className = "bus-card-actions";
-
-  // 提交按鈕
-  const submitButton = document.createElement("div");
-  submitButton.className = "action-button submit-button";
-  submitButton.innerHTML = '<i class="fas fa-check"></i> 提交記錄';
-  submitButton.onclick = function () {
-    submitBusRecord(bus, index, bus.selectedMainItem, otherItems);
-  };
-
-  // 只添加提交按鈕
-  actionsContainer.appendChild(submitButton);
-
-  // 滑動功能
-  let startX = 0;
-  let currentPage = 0;
-
-swipeContainer.addEventListener('touchstart', function(e) {
-  window.isSwiping = false;
-  startX = e.touches[0].clientX;
-}, { passive: true });
-
-
-// 修改touchmove事件處理，允許在任何區域滑動
-swipeContainer.addEventListener('touchmove', function(e) {
-  if (!startX) return;
-  
-  // 移除這個條件判斷，允許在所有區域滑動
-  // if (!e.target.classList.contains('quick-other-item')) {
-  const currentX = e.touches[0].clientX;
-  const diff = startX - currentX;
-  const percentMove = (diff / swipeContainer.offsetWidth) * 100;
-  
-  // 計算當前偏移量
-  let offset = -(currentPage * 100) - percentMove;
-  
-  // 邊界限制
-  if (offset > 0) offset = 0;
-  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
-  
-  // 應用偏移，無動畫
-  swipeWrapper.style.transition = 'none';
-  swipeWrapper.style.transform = `translateX(${offset}%)`;
-  // }
-}, { passive: true });
-
-// touchend 事件處理器需修改
-// touchend 事件處理器需修改
-swipeContainer.addEventListener('touchend', function(e) {
-  if (!startX) return;
-  
-  const currentX = e.changedTouches[0].clientX;
-  const diff = startX - currentX;
-  
-  // 判斷滑動：添加此段代碼
-  if (Math.abs(diff) > 10) {
-    window.isSwiping = true;
-    setTimeout(() => { window.isSwiping = false; }, 100);
-  }
-  
-  // 滑動距離足夠大時切換頁面
-  if (Math.abs(diff) > swipeContainer.offsetWidth * 0.25) {
-    if (diff > 0 && currentPage < categories.length - 1) {
-      // 左滑 -> 下一頁
-      currentPage++;
-    } else if (diff < 0 && currentPage > 0) {
-      // 右滑 -> 上一頁
-      currentPage--;
-    }
-  }
-  
-  swipeToPage(currentPage);
-  
-  // 更新選中標籤
-  categoryNav.querySelectorAll(".category-tab").forEach((tab, idx) => {
-    if (idx === currentPage) {
-      tab.classList.add("active");
-    } else {
-      tab.classList.remove("active");
-    }
-  });
-  
-  startX = 0;
-}, { passive: true });
-
-  // 切換到指定頁面
-  function swipeToPage(pageIndex) {
-    currentPage = pageIndex;
-    swipeWrapper.style.transition = 'transform 0.3s ease';
-    swipeWrapper.style.transform = `translateX(-${pageIndex * 100}%)`;
-    
-    // 更新指示點
-    const dots = indicators.querySelectorAll(".swipe-dot");
-    dots.forEach((dot, idx) => {
-      if (idx === pageIndex) {
-        dot.classList.add("active");
-      } else {
-        dot.classList.remove("active");
-      }
-    });
-  }
-
-  body.appendChild(routeInfo);
-  body.appendChild(mainItemsLabel);
-  body.appendChild(mainItemsContainer);
-  body.appendChild(otherItemsLabel);
-  // 添加分類導航和滑動容器
-  body.appendChild(categoryNav);
-  body.appendChild(swipeContainer);
-  body.appendChild(indicators);
-  body.appendChild(actionsContainer);
-
-  busCard.appendChild(header);
-  busCard.appendChild(body);
-
-  return busCard;
-}
-
 
 // 顯示新偵測通知
 function showNewDetectionNotification(count) {
@@ -4145,7 +3793,7 @@ function handleSubmitSuccess(bus) {
   
   // 隱藏輸入區域
   document.getElementById("busInputContainer").classList.add("hidden");
-  selectedBusIndex = -1;
+  activeEditingBusIndex = -1;
   
   // 修改這行，添加詳細資訊到成功提示
   const routeName = bus.routeName?.chinese || "未知路線";
@@ -4584,80 +4232,6 @@ async function fetchOtherItems() {
   }
 }
 
-// 打開已提交歷史紀錄
-async function openSubmittedHistoryModal() {
-  document.getElementById("historyModal").style.display = "block";
-
-  // 清空並顯示載入中
-  const container = document.getElementById("historyList");
-  container.innerHTML =
-    '<p class="no-data-message"><i class="fas fa-spinner fa-spin"></i> 載入紀錄中...</p>';
-
-  try {
-    // 獲取用戶ID
-    const userId = document.getElementById("userId").value;
-    if (!userId) {
-      throw new Error("未獲取到用戶ID");
-    }
-
-    // 獲取歷史紀錄
-    const response = await fetch(
-      `${base_url}monitor/records/${userId}/today`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP 錯誤 ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // 清空容器
-    container.innerHTML = "";
-
-    // 檢查是否有記錄
-    if (!data || !data.length) {
-      container.innerHTML =
-        '<p class="no-data-message">今日尚無提交紀錄</p>';
-      return;
-    }
-
-    // 顯示記錄
-    data.forEach((record) => {
-      const item = document.createElement("div");
-      item.className = "history-item";
-
-      // 格式化時間
-      const recordTime = new Date(record.created_at);
-      const timeString = recordTime.toLocaleTimeString("zh-TW", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      item.innerHTML = `
-            <div>
-                <strong>${record.plateNumber}</strong>
-                <small>${record.mainItem}</small>
-            </div>
-            <div class="history-time">${timeString}</div>
-        `;
-
-      container.appendChild(item);
-      
-      // 添加到已提交列表，確保不會重複偵測
-      if (!submittedBuses.includes(record.plateNumber)) {
-        submittedBuses.push(record.plateNumber);
-        
-        // 為每條記錄設置提交時間
-        const submissionTime = new Date(record.created_at).getTime();
-        localStorage.setItem(`submitted_${record.plateNumber}`, submissionTime);
-      }
-    });
-  } catch (error) {
-    console.error("獲取歷史紀錄失敗:", error);
-    container.innerHTML =
-      '<p class="no-data-message">獲取紀錄失敗，請稍後再試</p>';
-  }
-}
 
 // 清理過期的提交記錄，使用清晰的常量命名
 function cleanupExpiredSubmissions() {
@@ -4992,6 +4566,11 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
   pagesContainer.addEventListener('touchmove', function(e) {
     if (!startX) return;
     
+      // 如果滑動距離夠大，立即標記為滑動中
+  if (Math.abs(diffX) > 5) {
+    window.isSwiping = true;
+  }
+
     const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
     const diffX = startX - currentX;
@@ -5061,6 +4640,9 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
       // 滑動不夠遠，回到當前頁
       updateSwipePageDisplay(currentSwipePage);
     }
+    setTimeout(() => {
+  window.isSwiping = false;
+}, 100);
   }, { passive: true });
   
   // 設置分類標籤點擊事件
