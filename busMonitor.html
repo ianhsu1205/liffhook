@@ -1395,28 +1395,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   gap: 8px;
   padding: 5px 0;
 }
-/*調適用 */
-.quick-other-item {
-  pointer-events: auto !important; /* 確保元素可以接受點擊 */
-  position: relative !important; /* 確保定位正確 */
-  z-index: 10 !important; /* 確保在其他元素上方 */
-  user-select: none !important; /* 防止文本選擇干擾點擊 */
-}
 
-.quick-other-item:before {
-  content: "" !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  z-index: -1 !important; /* 位於內容之下 */
-  background-color: rgba(255, 0, 0, 0.2) !important; /* 紅色半透明背景用於調試 */
-}
-
-.quick-other-item:active {
-  background-color: yellow !important; /* 點擊時顯示明顯的顏色 */
-}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1586,7 +1565,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.0.6(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.0.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2375,7 +2354,8 @@ function selectBusForInput(bus, index, scrollToView = false) {
     // 如果已存在，切換到該編輯視圖，不創建新的
     activeEditingBusIndex = existingIndex;
     busToEdit = editingBuses[existingIndex]; 
-    
+      // 添加日誌
+  console.log("使用已存在的編輯車輛:", busToEdit.uniqueId);
     // 只更新位置信息
     if (bus.position) {
       busToEdit.position = bus.position;
@@ -2384,6 +2364,9 @@ function selectBusForInput(bus, index, scrollToView = false) {
     // 不存在，添加到編輯列表
     busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝，確保原始數據不被修改
     busToEdit.selectedOtherItems = busToEdit.selectedOtherItems || [];
+
+      // 添加日誌
+  console.log("創建新的編輯車輛:", busToEdit.uniqueId);
     // 確保唯一ID被保留
     if (!busToEdit.uniqueId) {
       busToEdit.uniqueId = 'bus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -2391,7 +2374,9 @@ function selectBusForInput(bus, index, scrollToView = false) {
     editingBuses.push(busToEdit);
     activeEditingBusIndex = editingBuses.length - 1;
   }
-  
+  // 添加調試日誌
+console.log("當前編輯中的車輛數量:", editingBuses.length);
+console.log("活躍編輯車輛索引:", activeEditingBusIndex);
   // 重置處理狀態，確保可以選擇新車輛
   isProcessingBus = true;
   
@@ -2436,6 +2421,12 @@ function scrollToActiveTab() {
 window.isHandlingItemClick = false;
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
+  console.log("當前編輯的車輛:", JSON.stringify({
+  index: activeEditingBusIndex,
+  id: bus.uniqueId,
+  plateNumber: bus.plateNumber,
+  selectedOtherItems: bus.selectedOtherItems
+}));
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     // 沒有活躍的編輯車輛，隱藏編輯區域
     document.getElementById("busInputContainer").classList.add("hidden");
@@ -2654,35 +2645,46 @@ contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
       }
       
       // 添加點擊事件
-    // 使用addEventListener替代onclick，更好的控制
-    itemBtn.addEventListener("click", function(event) {
-      // 阻止事件冒泡以防觸發滑動事件
-      event.stopPropagation();
-      event.preventDefault();
-      
-      console.log("項目被點擊:", this.textContent);
-      
-      // 切換選中狀態
-      this.classList.toggle("selected");
-      
-      // 確保selectedOtherItems陣列存在
-      if (!bus.selectedOtherItems) {
-        bus.selectedOtherItems = [];
-      }
-      
-      // 更新選中狀態
-      if (this.classList.contains("selected")) {
-        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-          bus.selectedOtherItems.push(this.dataset.value);
-          console.log("添加項目:", this.dataset.value);
-        }
-      } else {
-        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        console.log("移除項目:", this.dataset.value);
-      }
-      
-      return false; // 阻止事件進一步傳播
-    });
+itemBtn.onclick = function() {
+  console.log(`點擊項目 "${this.textContent}" 前的選中狀態:`, this.classList.contains("selected"));
+  console.log(`點擊前的 selectedOtherItems:`, JSON.stringify(bus.selectedOtherItems));
+  
+  // 切換視覺效果
+  this.classList.toggle("selected");
+  const isNowSelected = this.classList.contains("selected");
+  console.log(`點擊後的選中狀態:`, isNowSelected);
+  
+  // 確保數組已初始化
+  if (!bus.selectedOtherItems) {
+    console.log("初始化 selectedOtherItems 陣列");
+    bus.selectedOtherItems = [];
+  }
+  
+  const itemValue = this.dataset.value;
+  console.log(`項目值 (dataset.value):`, itemValue);
+  
+  // 更新數據陣列
+  if (isNowSelected) {
+    if (!bus.selectedOtherItems.includes(itemValue)) {
+      bus.selectedOtherItems.push(itemValue);
+      console.log(`添加項目 "${itemValue}" 到陣列`);
+    } else {
+      console.log(`項目 "${itemValue}" 已在陣列中，不重複添加`);
+    }
+  } else {
+    const prevLength = bus.selectedOtherItems.length;
+    bus.selectedOtherItems = bus.selectedOtherItems.filter(item => item !== itemValue);
+    const newLength = bus.selectedOtherItems.length;
+    
+    if (prevLength !== newLength) {
+      console.log(`從陣列中移除項目 "${itemValue}"`);
+    } else {
+      console.log(`陣列中找不到項目 "${itemValue}" 無法移除`);
+    }
+  }
+  
+  console.log(`點擊後的 selectedOtherItems:`, JSON.stringify(bus.selectedOtherItems));
+};
       
       contentWrapper.appendChild(itemBtn);
     });
@@ -2739,6 +2741,9 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
    
   // 確保提交按鈕可用
   resetSubmitButtonState();
+  console.log("更新後的車輛狀態:", JSON.stringify({
+  selectedOtherItems: bus.selectedOtherItems
+}));
 }
 // 改進的頁面切換函數
 function swipeToPageImproved(pageIndex) {
