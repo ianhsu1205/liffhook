@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.2(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2571,7 +2571,8 @@ categories.forEach((category, idx) => {
   itemsContainer.className = "quick-other-items";
   
   // 強制使用多行顯示，提高樣式優先級
-  itemsContainer.style.cssText = "display: flex !important; flex-wrap: wrap !important; gap: 6px !important; width: 100% !important; min-height: 150px !important;";
+  // 調整容器高度，確保不會太高但能顯示多行
+itemsContainer.style.cssText = "display: flex !important; flex-wrap: wrap !important; gap: 6px !important; width: 100% !important; min-height: 80px !important; max-height: 250px !important; overflow-y: auto !important;";
   
   // 添加該類別的所有項目
   categoryItems.forEach(item => {
@@ -2579,7 +2580,8 @@ categories.forEach((category, idx) => {
     itemButton.className = "quick-other-item";
     
     // 使用style屬性而非setAttribute，確保樣式被應用
-    itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; min-width: 70px !important; margin-bottom: 8px !important; z-index: 10 !important;";
+    // 修改這段代碼，減小項目尺寸
+itemButton.style.cssText = "cursor: pointer !important; user-select: none !important; min-width: 50px !important; margin-bottom: 4px !important; z-index: 10 !important; padding: 5px 8px !important;";
     
     // 根據 ItemType 添加不同的樣式
     if (item.ItemType === 1) {
@@ -2602,29 +2604,33 @@ categories.forEach((category, idx) => {
       e.stopPropagation();
     });
     
-    itemButton.addEventListener("click", function(e) {
-      console.log("項目被點擊:", item.itemName);
-      e.stopPropagation();
-      e.preventDefault();
+itemButton.addEventListener("click", function(e) {
+  // 如果是滑動操作的結束，不觸發點擊事件
+  if (window.isSwiping) {
+    window.isSwiping = false;
+    return;
+  }
+  
+  // 正常處理點擊
+  console.log("項目被點擊:", item.itemName);
+  this.classList.toggle("selected");
       
-      this.classList.toggle("selected");
-      
-      // 初始化選擇數組如果不存在
-      if (!bus.selectedOtherItems) {
-        bus.selectedOtherItems = [];
-      }
-      
-      // 更新選擇
-      if (this.classList.contains("selected")) {
-        if (!bus.selectedOtherItems.includes(this.dataset.value)) {
-          bus.selectedOtherItems.push(this.dataset.value);
-          console.log("項目已添加:", this.dataset.value, bus.selectedOtherItems);
-        }
-      } else {
-        bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
-        console.log("項目已移除:", this.dataset.value, bus.selectedOtherItems);
-      }
-    });
+  // 初始化選擇數組如果不存在
+  if (!bus.selectedOtherItems) {
+    bus.selectedOtherItems = [];
+  }
+  
+  // 更新選擇
+  if (this.classList.contains("selected")) {
+    if (!bus.selectedOtherItems.includes(this.dataset.value)) {
+      bus.selectedOtherItems.push(this.dataset.value);
+      console.log("項目已添加:", this.dataset.value, bus.selectedOtherItems);
+    }
+  } else {
+    bus.selectedOtherItems = bus.selectedOtherItems.filter(i => i !== this.dataset.value);
+    console.log("項目已移除:", this.dataset.value, bus.selectedOtherItems);
+  }
+});
     
     itemsContainer.appendChild(itemButton);
   });
@@ -2671,33 +2677,31 @@ categories.forEach((category, idx) => {
   }
 
 swipeContainer.addEventListener('touchstart', function(e) {
-  // 如果點擊的是項目按鈕，不阻止默認行為
-  if (e.target.classList.contains('quick-other-item')) {
-    return;
-  }
+  window.isSwiping = false;
   startX = e.touches[0].clientX;
-}, { passive: true }); // 使用 passive: true
+}, { passive: true });
 
+// 修改touchmove事件處理，允許在任何區域滑動
 swipeContainer.addEventListener('touchmove', function(e) {
   if (!startX) return;
   
-  // 只有在非項目區域滑動時才處理滑動
-  if (!e.target.classList.contains('quick-other-item')) {
-    const currentX = e.touches[0].clientX;
-    const diff = startX - currentX;
-    const percentMove = (diff / swipeContainer.offsetWidth) * 100;
-    
-    // 計算當前偏移量
-    let offset = -(currentPage * 100) - percentMove;
-    
-    // 邊界限制
-    if (offset > 0) offset = 0;
-    if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
-    
-    // 應用偏移，無動畫
-    swipeWrapper.style.transition = 'none';
-    swipeWrapper.style.transform = `translateX(${offset}%)`;
-  }
+  // 移除這個條件判斷，允許在所有區域滑動
+  // if (!e.target.classList.contains('quick-other-item')) {
+  const currentX = e.touches[0].clientX;
+  const diff = startX - currentX;
+  const percentMove = (diff / swipeContainer.offsetWidth) * 100;
+  
+  // 計算當前偏移量
+  let offset = -(currentPage * 100) - percentMove;
+  
+  // 邊界限制
+  if (offset > 0) offset = 0;
+  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+  
+  // 應用偏移，無動畫
+  swipeWrapper.style.transition = 'none';
+  swipeWrapper.style.transform = `translateX(${offset}%)`;
+  // }
 }, { passive: true });
 
   swipeContainer.addEventListener('touchend', function(e) {
@@ -3728,59 +3732,73 @@ function createBusCard(bus, index) {
   let startX = 0;
   let currentPage = 0;
 
-  swipeContainer.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].clientX;
-  }, { passive: true });
+swipeContainer.addEventListener('touchstart', function(e) {
+  window.isSwiping = false;
+  startX = e.touches[0].clientX;
+}, { passive: true });
 
-  swipeContainer.addEventListener('touchmove', function(e) {
-    if (!startX) return;
-    
-    const currentX = e.touches[0].clientX;
-    const diff = startX - currentX;
-    const percentMove = (diff / swipeContainer.offsetWidth) * 100;
-    
-    // 計算當前偏移量
-    let offset = -(currentPage * 100) - percentMove;
-    
-    // 邊界限制
-    if (offset > 0) offset = 0;
-    if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
-    
-    // 應用偏移，無動畫
-    swipeWrapper.style.transition = 'none';
-    swipeWrapper.style.transform = `translateX(${offset}%)`;
-  }, { passive: true });
 
-  swipeContainer.addEventListener('touchend', function(e) {
-    if (!startX) return;
-    
-    const currentX = e.changedTouches[0].clientX;
-    const diff = startX - currentX;
-    
-    // 滑動距離足夠大時切換頁面
-    if (Math.abs(diff) > swipeContainer.offsetWidth * 0.25) {
-      if (diff > 0 && currentPage < categories.length - 1) {
-        // 左滑 -> 下一頁
-        currentPage++;
-      } else if (diff < 0 && currentPage > 0) {
-        // 右滑 -> 上一頁
-        currentPage--;
-      }
+// 修改touchmove事件處理，允許在任何區域滑動
+swipeContainer.addEventListener('touchmove', function(e) {
+  if (!startX) return;
+  
+  // 移除這個條件判斷，允許在所有區域滑動
+  // if (!e.target.classList.contains('quick-other-item')) {
+  const currentX = e.touches[0].clientX;
+  const diff = startX - currentX;
+  const percentMove = (diff / swipeContainer.offsetWidth) * 100;
+  
+  // 計算當前偏移量
+  let offset = -(currentPage * 100) - percentMove;
+  
+  // 邊界限制
+  if (offset > 0) offset = 0;
+  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+  
+  // 應用偏移，無動畫
+  swipeWrapper.style.transition = 'none';
+  swipeWrapper.style.transform = `translateX(${offset}%)`;
+  // }
+}, { passive: true });
+
+// touchend 事件處理器需修改
+// touchend 事件處理器需修改
+swipeContainer.addEventListener('touchend', function(e) {
+  if (!startX) return;
+  
+  const currentX = e.changedTouches[0].clientX;
+  const diff = startX - currentX;
+  
+  // 判斷滑動：添加此段代碼
+  if (Math.abs(diff) > 10) {
+    window.isSwiping = true;
+    setTimeout(() => { window.isSwiping = false; }, 100);
+  }
+  
+  // 滑動距離足夠大時切換頁面
+  if (Math.abs(diff) > swipeContainer.offsetWidth * 0.25) {
+    if (diff > 0 && currentPage < categories.length - 1) {
+      // 左滑 -> 下一頁
+      currentPage++;
+    } else if (diff < 0 && currentPage > 0) {
+      // 右滑 -> 上一頁
+      currentPage--;
     }
-    
-    swipeToPage(currentPage);
-    
-    // 更新選中標籤
-    categoryNav.querySelectorAll(".category-tab").forEach((tab, idx) => {
-      if (idx === currentPage) {
-        tab.classList.add("active");
-      } else {
-        tab.classList.remove("active");
-      }
-    });
-    
-    startX = 0;
-  }, { passive: true });
+  }
+  
+  swipeToPage(currentPage);
+  
+  // 更新選中標籤
+  categoryNav.querySelectorAll(".category-tab").forEach((tab, idx) => {
+    if (idx === currentPage) {
+      tab.classList.add("active");
+    } else {
+      tab.classList.remove("active");
+    }
+  });
+  
+  startX = 0;
+}, { passive: true });
 
   // 切換到指定頁面
   function swipeToPage(pageIndex) {
