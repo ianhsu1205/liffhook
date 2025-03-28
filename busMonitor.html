@@ -1499,7 +1499,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.0.9.8(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.0.9.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2515,69 +2515,6 @@ function updateBusEditingInterface() {
   // 創建內容容器
   const contentContainer = document.createElement("div");
   contentContainer.style.cssText = "position: relative; width: 100%; overflow: hidden;";
-// 滑動功能處理
-let startX = 0;
-let currentPage = 0;
-
-pagesContainer.addEventListener('touchstart', function(e) {
-  startX = e.touches[0].clientX;
-}, { passive: true });
-
-pagesContainer.addEventListener('touchmove', function(e) {
-  if (!startX) return;
-  
-  const currentX = e.touches[0].clientX;
-  const diff = startX - currentX;
-  const percentMove = (diff / contentContainer.offsetWidth) * 100;
-  
-  // 計算當前偏移量
-  let offset = -(currentPage * 100) - percentMove;
-  
-  // 邊界限制
-  if (offset > 0) offset = 0;
-  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
-  
-  // 應用偏移，無動畫
-  pagesContainer.style.transition = 'none';
-  pagesContainer.style.transform = `translateX(${offset}%)`;
-}, { passive: true });
-
-pagesContainer.addEventListener('touchend', function(e) {
-  if (!startX) return;
-  
-  const currentX = e.changedTouches[0].clientX;
-  const diff = startX - currentX;
-  
-  // 滑動距離足夠大時切換頁面
-  if (Math.abs(diff) > contentContainer.offsetWidth * 0.2) {
-    if (diff > 0 && currentPage < categories.length - 1) {
-      // 左滑 -> 下一頁
-      currentPage++;
-    } else if (diff < 0 && currentPage > 0) {
-      // 右滑 -> 上一頁
-      currentPage--;
-    }
-  }
-  
-  // 重新套用過渡效果
-  pagesContainer.style.transition = 'transform 0.3s ease';
-  pagesContainer.style.transform = `translateX(-${currentPage * 100}%)`;
-  
-  // 更新選中標籤
-  categoryNav.querySelectorAll('.category-tab').forEach((tab, idx) => {
-    if (idx === currentPage) {
-      tab.classList.add('active');
-      tab.style.backgroundColor = '#06c755';
-      tab.style.color = 'white';
-    } else {
-      tab.classList.remove('active');
-      tab.style.backgroundColor = '#f8f9fa';
-      tab.style.color = '#333';
-    }
-  });
-  
-  startX = 0;
-}, { passive: true });
 
   // 創建滑動面板
   const pagesContainer = document.createElement("div");
@@ -2689,6 +2626,75 @@ pagesContainer.addEventListener('touchend', function(e) {
     firstTab.style.backgroundColor = '#06c755';
     firstTab.style.color = 'white';
   }
+  
+  // 處理滑動功能 - 放在最後以確保 pagesContainer 已定義
+let startX = 0;
+let currentPage = 0;
+
+pagesContainer.addEventListener('touchstart', function(e) {
+  startX = e.touches[0].clientX;
+  e.stopPropagation(); // 防止事件冒泡
+}, { passive: false });
+
+pagesContainer.addEventListener('touchmove', function(e) {
+  if (!startX) return;
+  
+  const currentX = e.touches[0].clientX;
+  const diff = startX - currentX;
+  const percentMove = (diff / contentContainer.offsetWidth) * 100;
+  
+  // 計算當前偏移量
+  let offset = -(currentPage * 100) - percentMove;
+  
+  // 邊界限制
+  if (offset > 0) offset = 0;
+  if (offset < -((categories.length - 1) * 100)) offset = -((categories.length - 1) * 100);
+  
+  // 應用偏移，無動畫
+  pagesContainer.style.transition = 'none';
+  pagesContainer.style.transform = `translateX(${offset}%)`;
+  
+  e.preventDefault(); // 防止頁面滑動
+  e.stopPropagation(); // 防止事件冒泡
+}, { passive: false });
+
+pagesContainer.addEventListener('touchend', function(e) {
+  if (!startX) return;
+  
+  const currentX = e.changedTouches[0].clientX;
+  const diff = startX - currentX;
+  
+  // 滑動距離足夠大時切換頁面
+  if (Math.abs(diff) > contentContainer.offsetWidth * 0.2) {
+    if (diff > 0 && currentPage < categories.length - 1) {
+      // 左滑 -> 下一頁
+      currentPage++;
+    } else if (diff < 0 && currentPage > 0) {
+      // 右滑 -> 上一頁
+      currentPage--;
+    }
+  }
+  
+  // 更新當前頁面
+  pagesContainer.style.transition = 'transform 0.3s ease';
+  pagesContainer.style.transform = `translateX(-${currentPage * 100}%)`;
+  
+  // 更新標籤狀態
+  categoryNav.querySelectorAll('.category-tab').forEach((tab, idx) => {
+    if (idx === currentPage) {
+      tab.classList.add('active');
+      tab.style.backgroundColor = '#06c755';
+      tab.style.color = 'white';
+    } else {
+      tab.classList.remove('active');
+      tab.style.backgroundColor = '#f8f9fa';
+      tab.style.color = '#333';
+    }
+  });
+  
+  startX = 0;
+  e.stopPropagation(); // 防止事件冒泡
+}, { passive: false });
   
   // 確保提交按鈕可用
   resetSubmitButtonState();
