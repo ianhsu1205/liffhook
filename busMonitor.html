@@ -1569,7 +1569,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.1.3(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.1.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2072,6 +2072,8 @@ async function initializePage() {
     // 清理過期提交記錄
     cleanupExpiredSubmissions();
     
+    // 添加這行：清理過期的唯一ID
+     cleanupInvalidIds();
     // 從URL獲取userId
     //const urlParams = new URLSearchParams(window.location.search);
     //const userId = urlParams.get('userId');
@@ -2268,11 +2270,13 @@ function setupNetworkListeners() {
   });
 }
 // 添加手動輸入的車輛
+// 添加手動輸入的車輛，確保有可靠的唯一ID
 function addManualBus() {
   const plateNumber = document.getElementById("manualPlateNumber").value.trim();
   const company = document.getElementById("manualCompany").value;
   const route = document.getElementById("manualRoute").value.trim();
   const direction = document.getElementById("manualDirection").value;
+  
   // 車號驗證
   if (!plateNumber) {
     showManualInputError("請輸入車號");
@@ -2290,24 +2294,57 @@ function addManualBus() {
     showStatusMessage("此車輛近期已提交記錄，請稍後再試", "error");
     return;
   }
-    // 創建新車輛對象
-  const uniqueTime = Date.now();
-  const uniqueRandom = Math.random().toString(36).substr(2, 9);
+  
+  // 檢查是否已存在相同車牌號的車輛
+  const existingVehicleIndex = allDetectedBuses.findIndex(bus => 
+    bus.plateNumber === plateNumber && bus.operatorName === company);
+  
+  if (existingVehicleIndex !== -1) {
+    // 如果已存在，提示用戶並問是否編輯該車輛
+    if (confirm(`車號 ${plateNumber} 已在列表中存在，是否直接編輯？`)) {
+      const existingVehicle = allDetectedBuses[existingVehicleIndex];
+      
+      // 查找在顯示列表中的索引
+      const displayIndex = displayedBuses.findIndex(bus => 
+        bus.uniqueId === existingVehicle.uniqueId);
+      
+      if (displayIndex !== -1) {
+        // 直接選擇現有車輛進行編輯
+        selectBusForInput(existingVehicle, displayIndex, true);
+        closeManualInputModal();
+        return;
+      }
+    }
+  }
+  
+  // 創建可靠的唯一ID
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substr(2, 9);
+  const uniqueId = `manual_${plateNumber}_${timestamp}_${randomString}`;
+  
   // 創建新車輛對象
   const newBus = {
     plateNumber: plateNumber,
     operatorName: company,
-    routeName: { chinese: route },
+    routeName: { chinese: route || "手動輸入" },
     direction: direction, 
     position: {
       latitude: currentLatitude,
       longitude: currentLongitude
     },
     isManualInput: true,
-    originalPlateNumber: plateNumber, // 添加原始車號
-    uniqueId: 'manual_bus_' + uniqueTime + '_' + uniqueRandom // 使用不同前綴區分
+    originalPlateNumber: plateNumber,
+    uniqueId: generateUniqueVehicleId({
+    plateNumber: plateNumber,
+    operatorName: company
+  }, "manual"), // 使用一致的唯一ID格式
+    createdAt: timestamp, // 添加創建時間戳，便於後續追蹤
+    lastUpdated: timestamp
   };
-  // 添加到顯示列表
+  
+  console.log(`添加手動車輛 - 車號: ${plateNumber}, ID: ${uniqueId}`);
+  
+  // 添加到顯示列表和全局列表
   displayedBuses.push(newBus);
   allDetectedBuses.push(newBus);
   
@@ -2318,7 +2355,7 @@ function addManualBus() {
   closeManualInputModal();
   
   // 選擇新添加的車輛進行輸入
-  selectBusForInput(newBus, displayedBuses.length - 1);
+  selectBusForInput(newBus, displayedBuses.length - 1, true);
 }
 
 // 檢查是否近期提交過（3分鐘內）
@@ -2332,11 +2369,27 @@ function isRecentlySubmitted(plateNumber) {
 
 // 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
 function selectBusForInput(bus, index, scrollToView = false) {
-  console.log(`選擇車輛進行編輯 - 索引: ${index}, 車牌: ${bus.plateNumber}`);
+ logVehicleState(`開始選擇車輛-${bus.plateNumber}`);
   
   // 確保有唯一ID，如果沒有則創建
   if (!bus.uniqueId) {
     bus.uniqueId = 'bus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + index;
+    
+    // 同步到顯示列表和全局列表
+    if (displayedBuses[index]) {
+      displayedBuses[index].uniqueId = bus.uniqueId;
+    }
+    
+    // 嘗試在全局列表中找到對應車輛並同步ID
+    const globalIndex = allDetectedBuses.findIndex(item => 
+      item.plateNumber === bus.plateNumber && 
+      item.operatorName === bus.operatorName
+    );
+    
+    if (globalIndex !== -1) {
+      allDetectedBuses[globalIndex].uniqueId = bus.uniqueId;
+    }
+    
     console.log(`創建新唯一ID: ${bus.uniqueId}`);
   }
   
@@ -2367,6 +2420,19 @@ function selectBusForInput(bus, index, scrollToView = false) {
     
     console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
     
+    // 標記基礎資料來源列表中的車輛為正在編輯
+    if (displayedBuses[originalIndex]) {
+      displayedBuses[originalIndex].isInEditing = true;
+    }
+    
+    // 查找並標記全局列表中的對應車輛
+    if (bus.uniqueId) {
+      const globalBus = allDetectedBuses.find(item => item.uniqueId === bus.uniqueId);
+      if (globalBus) {
+        globalBus.isInEditing = true;
+      }
+    }
+    
     editingBuses.push(busToEdit);
     activeEditingBusIndex = editingBuses.length - 1;
   }
@@ -2382,6 +2448,10 @@ function selectBusForInput(bus, index, scrollToView = false) {
   if (scrollToView) {
     scrollToEditingArea();
   }
+  
+  // 添加日誌記錄，幫助調試
+  console.log(`編輯狀態更新 - 當前編輯索引: ${activeEditingBusIndex}, 共有 ${editingBuses.length} 台車輛在編輯中`);
+  console.log(`編輯中的車輛列表:`, editingBuses.map(b => ({ plate: b.plateNumber, id: b.uniqueId })));
 }
 
 // 添加新函數，用於滾動到活動標籤
@@ -2796,6 +2866,25 @@ function updateVehicleByUniqueId(bus) {
   // 更新顯示
   updateDetectedBusesList();
 }
+// 定期清理無效或過期的 uniqueId
+function cleanupInvalidIds() {
+  const now = Date.now();
+  const oneHourAgo = now - (60 * 60 * 1000);
+  
+  // 檢查 ID 中的時間戳部分是否過舊
+  [...allDetectedBuses, ...displayedBuses].forEach(bus => {
+    if (bus.uniqueId) {
+      const parts = bus.uniqueId.split(':');
+      if (parts.length >= 4) {
+        const timestamp = parseInt(parts[3]);
+        if (timestamp && timestamp < oneHourAgo) {
+          // 生成新的 ID 替換舊的
+          bus.uniqueId = generateUniqueVehicleId(bus, parts[0]);
+        }
+      }
+    }
+  });
+}
 // 改進的頁面切換函數
 function swipeToPageImproved(pageIndex) {
   currentSwipePage = pageIndex;
@@ -2828,66 +2917,61 @@ function swipeToPageImproved(pageIndex) {
   }
 }
 
-// 新增一個函數，用於同步更新所有使用該車輛的地方
-// 修改 updateAllBusReferences 函數
+
+// 強化版的車輛數據同步函數
 function updateAllBusReferences(bus) {
-  console.log(`正在同步更新車輛 ID:${bus.uniqueId}, 車號: ${bus.plateNumber}`);
+  console.log(`全面同步車輛數據 - ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
   
-  // 保存車輛信息
-  const plateNumber = bus.plateNumber;
-  const uniqueId = bus.uniqueId;
+  if (!bus.uniqueId) {
+    console.warn("警告: 嘗試更新沒有唯一ID的車輛");
+    return;
+  }
   
-  // 更新所有列表
-  let updatedIndices = [];
+  // 創建一個含有關鍵數據的更新對象，只包含需要同步的字段
+  const updateData = {
+    plateNumber: bus.plateNumber,
+    selectedMainItem: bus.selectedMainItem,
+    selectedOtherItems: bus.selectedOtherItems || [],
+    isInEditing: bus.isInEditing
+  };
+  
+  // 更新計數器
+  let updatedCount = 0;
   
   // 1. 更新 displayedBuses
-  for (let i = 0; i < displayedBuses.length; i++) {
-    if (uniqueId && displayedBuses[i].uniqueId === uniqueId) {
-      console.log(`更新顯示列表中車輛 ${i}`);
-      displayedBuses[i].plateNumber = plateNumber;
-      updatedIndices.push(`display_${i}`);
+  displayedBuses.forEach((item, index) => {
+    if (item.uniqueId === bus.uniqueId) {
+      Object.assign(displayedBuses[index], updateData);
+      updatedCount++;
     }
-  }
+  });
   
   // 2. 更新 allDetectedBuses
-  for (let i = 0; i < allDetectedBuses.length; i++) {
-    if (uniqueId && allDetectedBuses[i].uniqueId === uniqueId) {
-      console.log(`更新所有偵測車輛中車輛 ${i}`);
-      allDetectedBuses[i].plateNumber = plateNumber;
-      updatedIndices.push(`detected_${i}`);
+  allDetectedBuses.forEach((item, index) => {
+    if (item.uniqueId === bus.uniqueId) {
+      Object.assign(allDetectedBuses[index], updateData);
+      updatedCount++;
     }
-  }
+  });
   
-  // 3. 更新其他編輯中的車輛
-  for (let i = 0; i < editingBuses.length; i++) {
-    if (i !== activeEditingBusIndex && uniqueId && editingBuses[i].uniqueId === uniqueId) {
-      console.log(`更新編輯列表中車輛 ${i}`);
-      editingBuses[i].plateNumber = plateNumber;
-      updatedIndices.push(`editing_${i}`);
+  // 3. 更新 editingBuses (跳過當前活躍的車輛)
+  editingBuses.forEach((item, index) => {
+    if (index !== activeEditingBusIndex && item.uniqueId === bus.uniqueId) {
+      Object.assign(editingBuses[index], updateData);
+      updatedCount++;
     }
-  }
+  });
   
-  if (updatedIndices.length === 0) {
-    console.warn(`警告：未找到匹配車輛，ID: ${uniqueId}`);
-  } else {
-    console.log(`共更新了 ${updatedIndices.length} 個車輛引用：${updatedIndices.join(', ')}`);
-  }
+  console.log(`共同步更新了 ${updatedCount} 個車輛引用`);
   
-  // 強制完全重繪車輛列表
-  const busList = document.getElementById("detectedBusesList");
-  if (busList) {
-    // 先保存滾動位置
-    const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // 完全重新渲染列表
+  // 只有在確實有更新時才刷新UI
+  if (updatedCount > 0) {
+    // 更新UI
     updateDetectedBusesList();
-    
-    // 恢復滾動位置
-    window.scrollTo(0, scrollPos);
+    updateEditingTabs();
   }
   
-  // 更新編輯標籤
-  updateEditingTabs();
+  return updatedCount > 0;
 }
 
 function debounceClick(func, wait = 200) {
@@ -3275,7 +3359,8 @@ async function detectBuses(isAutoDetection = false) {
   // 顯示偵測指示器
   const indicatorMsg = isAutoDetection ? "自動偵測中..." : "正在偵測車輛...";
   showDetectionIndicator(indicatorMsg);
-  
+    // 添加這行：清理無效的唯一ID
+  cleanupInvalidIds();
   try {
     // 獲取最新位置
     const positionResult = await forceUpdatePosition(isAutoDetection);
@@ -3312,6 +3397,10 @@ async function detectBuses(isAutoDetection = false) {
     
     if (data && data.buses && data.buses.length > 0) {
       data.buses.forEach((bus) => {
+          // 如果車輛沒有唯一ID，生成一個
+  if (!bus.uniqueId) {
+    bus.uniqueId = generateUniqueVehicleId(bus, "detect");
+  }
         // 檢查這輛車是否在編輯列表中
         const editingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
         
@@ -3385,8 +3474,25 @@ async function detectBuses(isAutoDetection = false) {
       showStatusMessage("偵測車輛失敗，請稍後再試", "error", true);
     }
   }
+    if (!isAutoDetection) {
+    logVehicleState("偵測車輛完成");
+  }
 }
-
+// 新增一個專用函數，統一生成車輛唯一ID
+function generateUniqueVehicleId(vehicle, source) {
+  const plateNumber = vehicle.plateNumber || "未知車號";
+  const operatorName = vehicle.operatorName || "未知公司";
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substr(2, 8);
+  
+  // 組合唯一ID: 來源前綴 + 車牌號 + 公司簡寫 + 時間戳 + 隨機字串
+  // 使用特殊字符分隔各部分，便於後續解析
+  const companyAbbr = operatorName.replace(/客運$/, "").substring(0, 2);
+  const uniqueId = `${source}:${plateNumber}:${companyAbbr}:${timestamp}:${randomString}`;
+  
+  console.log(`生成唯一ID: ${uniqueId}, 來源: ${source}`);
+  return uniqueId;
+}
 // 新增顯示無車輛的浮動通知函數
 function showZeroDetectionNotification() {
   const notification = document.getElementById("realTimeDetection");
@@ -3658,6 +3764,7 @@ function showDetectedBuses() {
 // 提交選中的車輛
 // 7. 修改submitSelectedBus函數
 function submitSelectedBus() {
+    logVehicleState("提交前");
   // 清除之前的錯誤訊息
   const statusElement = document.getElementById("statusMessage");
   statusElement.textContent = "";
@@ -3670,6 +3777,13 @@ function submitSelectedBus() {
   
   // 獲取當前活躍的編輯車輛
   const bus = editingBuses[activeEditingBusIndex];
+  // 保存車牌號碼和唯一ID用於後續清理
+  const plateNumber = bus.plateNumber;
+  const uniqueId = bus.uniqueId;
+  const currentIndex = activeEditingBusIndex; // 保存當前索引
+  
+  // 深拷貝車輛數據，用於潛在的還原
+  const busCopy = JSON.parse(JSON.stringify(bus));
   
   // 確保選擇了主要項目
   if (!bus.selectedMainItem) {
@@ -3687,39 +3801,96 @@ function submitSelectedBus() {
   const submitButton = document.querySelector(".action-button.submit-button");
   submitButton.classList.add("disabled");
   
+  // 記錄提交開始時間
+  const submitStartTime = Date.now();
+  
   // 提交記錄
   submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || [])
     .then(() => {
+        logVehicleState("提交成功後");
       // 清除錯誤訊息
       statusElement.textContent = "";
       statusElement.className = "status-message";
       
+      // 測量提交耗時
+      const submitDuration = Date.now() - submitStartTime;
+      console.log(`提交成功，處理耗時: ${submitDuration}ms`);
+      
+      // 從 displayedBuses 和 allDetectedBuses 中移除此車輛
+      if (uniqueId) {
+        displayedBuses = displayedBuses.filter(item => item.uniqueId !== uniqueId);
+        allDetectedBuses = allDetectedBuses.filter(item => item.uniqueId !== uniqueId);
+      } else {
+        // 後備方案: 使用車牌號匹配
+        displayedBuses = displayedBuses.filter(item => item.plateNumber !== plateNumber);
+        allDetectedBuses = allDetectedBuses.filter(item => item.plateNumber !== plateNumber);
+      }
+      
+      // 添加到已提交列表
+      submittedBuses.push(plateNumber);
+      
+      // 設置提交時間，3分鐘內不再顯示
+      localStorage.setItem(`submitted_${plateNumber}`, Date.now().toString());
+      
       // 提交成功後，從編輯列表中移除
-      editingBuses.splice(activeEditingBusIndex, 1);
+      editingBuses.splice(currentIndex, 1);
       
       // 調整活躍編輯索引
       if (editingBuses.length === 0) {
         // 沒有編輯中的車輛了
         activeEditingBusIndex = -1;
+        isProcessingBus = false;
         document.getElementById("busInputContainer").classList.add("hidden");
       } else {
         // 如果還有其他車輛在編輯中
-        activeEditingBusIndex = Math.min(activeEditingBusIndex, editingBuses.length - 1);
+        activeEditingBusIndex = Math.min(currentIndex, editingBuses.length - 1);
         // 確保更新編輯界面
         updateBusEditingInterface();
       }
       
-      // 更新標籤
+      // 更新標籤和車輛列表
       updateEditingTabs();
+      updateDetectedBusesList();
+      updateBusSelectionInList();
+      
+      // 顯示成功訊息
+      const routeName = bus.routeName?.chinese || "未知路線";
+      const companyName = bus.operatorName || "未知公司";
+      const successMessage = `已成功送出記錄：${plateNumber} (${companyName} ${routeName})`;
+      showFloatingNotification(successMessage, "success");
     })
     .catch(error => {
-      // 出錯時已經在 submitBusRecord 中處理了
+      console.error("提交失敗:", error);
+      
+      // 提交失敗的恢復機制 - 確保車輛仍在編輯列表中
+      const stillExists = editingBuses.some(item => item.uniqueId === uniqueId);
+      
+      if (!stillExists) {
+        console.log("提交失敗，恢復車輛到編輯列表");
+        // 恢復車輛回編輯列表
+        editingBuses.splice(currentIndex, 0, busCopy);
+        
+        // 確保編輯狀態正確
+        activeEditingBusIndex = Math.min(currentIndex, editingBuses.length - 1);
+        isProcessingBus = true;
+        
+        // 更新UI
+        updateEditingTabs();
+        updateBusEditingInterface();
+        document.getElementById("busInputContainer").classList.remove("hidden");
+      }
+      
+      // 顯示錯誤訊息
+      showFloatingNotification(`提交失敗: ${error.message || "伺服器錯誤"}`, "error");
+    })
+    .finally(() => {
+      // 恢復按鈕狀態
+      setTimeout(() => {
+        if (submitButton) {
+          submitButton.classList.remove("disabled");
+        }
+      }, 2000);
     });
-  
-  // 5秒後恢復按鈕
-  setTimeout(() => {
-    submitButton.classList.remove("disabled");
-  }, 5000);
 }
 // 添加一個新函數來重置提交按鈕狀態
 function resetSubmitButtonState() {
@@ -3728,7 +3899,65 @@ function resetSubmitButtonState() {
         submitButton.classList.remove("disabled");
     }
 }
-
+// 新增一個日誌記錄與診斷函數，用於調試
+function logVehicleState(action) {
+  const timestamp = new Date().toISOString();
+  console.log(`========== 車輛狀態報告 [${action}] ${timestamp} ==========`);
+  
+  // 摘要信息
+  console.log(`顯示車輛數量: ${displayedBuses.length}`);
+  console.log(`全局車輛數量: ${allDetectedBuses.length}`);
+  console.log(`編輯中車輛數量: ${editingBuses.length}`);
+  console.log(`當前編輯索引: ${activeEditingBusIndex}`);
+  
+  // 如果當前有活躍編輯的車輛，詳細記錄
+  if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
+    const activeBus = editingBuses[activeEditingBusIndex];
+    console.log("當前編輯車輛:", {
+      uniqueId: activeBus.uniqueId,
+      plateNumber: activeBus.plateNumber,
+      originalPlateNumber: activeBus.originalPlateNumber,
+      company: activeBus.operatorName,
+      route: activeBus.routeName?.chinese,
+      isManualInput: activeBus.isManualInput,
+      selectedMainItem: activeBus.selectedMainItem,
+      selectedOtherItems: activeBus.selectedOtherItems
+    });
+    
+    // 檢查此車是否也在顯示列表中
+    const inDisplayed = displayedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
+    console.log(`此車在顯示列表中: ${inDisplayed}`);
+    
+    // 檢查此車是否在全局列表中
+    const inAll = allDetectedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
+    console.log(`此車在全局列表中: ${inAll}`);
+  }
+  
+  // 檢查唯一ID一致性
+  const uniqueIdsInDisplayed = new Set(displayedBuses.map(bus => bus.uniqueId));
+  const uniqueIdsInAll = new Set(allDetectedBuses.map(bus => bus.uniqueId));
+  const uniqueIdsInEditing = new Set(editingBuses.map(bus => bus.uniqueId));
+  
+  console.log(`顯示列表中唯一ID數量: ${uniqueIdsInDisplayed.size}`);
+  console.log(`全局列表中唯一ID數量: ${uniqueIdsInAll.size}`);
+  console.log(`編輯列表中唯一ID數量: ${uniqueIdsInEditing.size}`);
+  
+  // 檢查車牌號重複情況
+  const plateCountsDisplay = {};
+  displayedBuses.forEach(bus => {
+    plateCountsDisplay[bus.plateNumber] = (plateCountsDisplay[bus.plateNumber] || 0) + 1;
+  });
+  
+  const duplicatePlates = Object.entries(plateCountsDisplay)
+    .filter(([_, count]) => count > 1)
+    .map(([plate, count]) => `${plate}(${count}次)`);
+  
+  if (duplicatePlates.length > 0) {
+    console.warn(`顯示列表中有重複車牌號: ${duplicatePlates.join(', ')}`);
+  }
+  
+  console.log("========== 報告結束 ==========");
+}
 // 在創建快速選項時添加這個功能
 function createQuickItems() {
     const mainItemsContainer = document.getElementById("mainItemsContainer");
@@ -3895,15 +4124,44 @@ function handleSubmitSuccess(bus) {
   const submissionTime = Date.now();
   localStorage.setItem(`submitted_${bus.plateNumber}`, submissionTime);
   
-  // 從顯示列表移除
-  displayedBuses = displayedBuses.filter(item => item.plateNumber !== bus.plateNumber);
+  // 記錄重要識別資訊
+  const uniqueId = bus.uniqueId;
+  
+  // 從所有列表中移除此車輛
+  if (uniqueId) {
+    // 使用唯一ID進行準確匹配
+    displayedBuses = displayedBuses.filter(item => item.uniqueId !== uniqueId);
+    allDetectedBuses = allDetectedBuses.filter(item => item.uniqueId !== uniqueId);
+    // 檢查編輯列表並移除匹配的車輛
+    for (let i = editingBuses.length - 1; i >= 0; i--) {
+      if (editingBuses[i].uniqueId === uniqueId) {
+        editingBuses.splice(i, 1);
+        if (i === activeEditingBusIndex) {
+          activeEditingBusIndex = editingBuses.length > 0 ? 0 : -1;
+        } else if (i < activeEditingBusIndex) {
+          activeEditingBusIndex--;
+        }
+      }
+    }
+  } else {
+    // 使用車牌作為後備識別方式
+    displayedBuses = displayedBuses.filter(item => item.plateNumber !== bus.plateNumber);
+    allDetectedBuses = allDetectedBuses.filter(item => item.plateNumber !== bus.plateNumber);
+  }
   
   // 更新UI
   updateDetectedBusesList();
+  updateEditingTabs();
   
-  // 隱藏輸入區域
-  document.getElementById("busInputContainer").classList.add("hidden");
-  activeEditingBusIndex = -1;
+  // 如果沒有編輯中的車輛，隱藏輸入區域
+  if (editingBuses.length === 0) {
+    document.getElementById("busInputContainer").classList.add("hidden");
+    activeEditingBusIndex = -1;
+    isProcessingBus = false; // 重要：確保重置處理狀態
+  } else {
+    // 如果還有車輛在編輯中，更新編輯界面
+    updateBusEditingInterface();
+  }
   
   // 修改這行，添加詳細資訊到成功提示
   const routeName = bus.routeName?.chinese || "未知路線";
@@ -3912,8 +4170,10 @@ function handleSubmitSuccess(bus) {
   
   // 使用浮動通知顯示詳細資訊
   showFloatingNotification(successMessage, "success");
+  
+  // 更新車輛選中狀態
+  updateBusSelectionInList();
 }
-
 // 添加浮動通知函數
 function showFloatingNotification(message, type) {
   // 先檢查是否已存在通知元素
@@ -4030,7 +4290,8 @@ async function getCurrentPosition(silent = false) {
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     console.log('頁面重新變為可見，更新位置...');
-    
+        // 添加這行：確保ID有效
+    cleanupInvalidIds();
     // 如果位置監視器不存在，重新啟動
     if (!window.watchId) {
       startHighAccuracyLocationWatching(true);
