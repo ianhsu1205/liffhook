@@ -1569,7 +1569,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.1.6(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.1.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2617,25 +2617,32 @@ inputBox.addEventListener('input', function() {
 
   // 獲取所有不重複的類別，過濾掉null和undefined值
   let categories = [];
-  try {
-    categories = [...new Set(
-      otherItems
-        .filter(item => item && item.catolog) // 確保 item 和 item.catolog 存在
-        .map(item => item.catolog)
-    )];
-    console.log("分類清單:", categories);
-  } catch (e) {
-    console.error("解析分類時出錯:", e);
-    categories = ["未分類"]; // 默認分類
-  }
-
-  // 如果沒有分類，將所有項目放在一個默認分類下
-  if (categories.length === 0) {
-    categories = ["未分類"];
-  }
-
-  console.log(`找到 ${categories.length} 個分類，共 ${otherItems.length} 個項目`);
-
+try {
+  // 先收集每个分类和它的代表性itemType值
+  const categoryTypes = {};
+  
+  otherItems.forEach(item => {
+    if (item && item.catolog) {
+      const category = item.catolog;
+      // 如果该分类还没有itemType值，或者当前项的itemType小于已记录的值，则更新
+      if (!(category in categoryTypes) || 
+          (item.itemType !== undefined && 
+           (categoryTypes[category] === undefined || Number(item.itemType) < categoryTypes[category]))) {
+        categoryTypes[category] = Number(item.itemType);
+      }
+    }
+  });
+  
+  // 提取分类列表并按itemType从小到大排序
+  categories = Object.keys(categoryTypes).sort((a, b) => {
+    return categoryTypes[a] - categoryTypes[b];
+  });
+  
+  console.log("按itemType排序的分类清单:", categories);
+} catch (e) {
+  console.error("解析分类时出错:", e);
+  categories = ["未分类"]; // 默认分类
+}
   // 創建分類導航標籤
   const categoryNav = document.createElement("div");
   categoryNav.className = "category-nav";
