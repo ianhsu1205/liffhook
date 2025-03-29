@@ -1497,7 +1497,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   </div>
   
   <div class="input-section">
-    <label>查核結果:</label>
+    <label>重點查核:</label>
     <div id="mainItemsContainer" class="quick-items">
       <!-- 主要項目將在這裡生成 -->
     </div>
@@ -1569,7 +1569,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.1.5(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.1.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2676,7 +2676,13 @@ contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
     const categoryItems = category === "未分類" 
       ? otherItems.filter(item => !item.catolog)
       : otherItems.filter(item => item.catolog === category);
-    
+    // 添加这段：按 itemType 从小到大排序
+categoryItems.sort((a, b) => {
+  // 确保有 itemType 值，如果没有则设为默认值 0
+  const typeA = a.itemType !== undefined ? Number(a.itemType) : 0;
+  const typeB = b.itemType !== undefined ? Number(b.itemType) : 0;
+  return typeA - typeB;  // 从小到大排序
+});
     // 創建項目按鈕
     categoryItems.forEach(item => {
       if (!item || !item.itemName) return; // 跳過無效項目
