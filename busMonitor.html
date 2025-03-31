@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.1(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1666,7 +1666,7 @@ let currentLongitude = 0;
 let intersections = [];
 let allDetectedBuses = []; // 所有偵測到的車輛
 let displayedBuses = []; // 目前顯示的車輛
-let submittedBuses = []; // 已提交的車輛
+let submittedBuses = []; // 已新增的車輛
 let otherItems = [];
 let globalLoadingTimeout = null;
 let watchId = null;
@@ -1889,16 +1889,16 @@ function refreshDisplayedBuses() {
     // 包含所有車輛 - 合併所有偵測到的車輛
     displayedBuses = [...allDetectedBuses];
   } else {
-    // 只顯示未提交過的車輛
+    // 只顯示未新增過的車輛
     const threeMinutes = 3 * 60 * 1000; // 3分鐘轉換為毫秒
     const currentTime = Date.now();
     
     displayedBuses = allDetectedBuses.filter(bus => {
-      // 如果車牌在已提交列表中且提交時間小於3分鐘，則不顯示
+      // 如果車牌在已新增列表中且新增時間小於3分鐘，則不顯示
       if (submittedBuses.includes(bus.plateNumber)) {
         const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
         if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
-          return false; // 排除近期已提交的車輛
+          return false; // 排除近期已新增的車輛
         }
       }
       return true; // 保留其他車輛
@@ -2100,7 +2100,7 @@ async function initializePage() {
       showStatusMessage("本地存儲不可用，部分功能可能受限", "warning", true);
     }
     
-    // 清理過期提交記錄
+    // 清理過期新增記錄
     cleanupExpiredSubmissions();
     
     // 添加這行：清理過期的唯一ID
@@ -2320,9 +2320,9 @@ function addManualBus() {
     return;
   }
   
-  // 檢查是否已提交過
+  // 檢查是否已新增過
   if (isRecentlySubmitted(plateNumber)) {
-    showStatusMessage("此車輛近期已提交記錄，請稍後再試", "error");
+    showStatusMessage("此車輛近期已新增記錄，請稍後再試", "error");
     return;
   }
   
@@ -2389,7 +2389,7 @@ function addManualBus() {
   selectBusForInput(newBus, displayedBuses.length - 1, true);
 }
 
-// 檢查是否近期提交過（3分鐘內）
+// 檢查是否近期新增過（3分鐘內）
 function isRecentlySubmitted(plateNumber) {
   const submissionTime = localStorage.getItem(`submitted_${plateNumber}`);
   if (!submissionTime) return false;
@@ -2888,7 +2888,7 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
     firstTab.style.color = 'white';
   }
    
-  // 確保提交按鈕可用
+  // 確保新增按鈕可用
   resetSubmitButtonState();
 }
 
@@ -3925,10 +3925,10 @@ function showDetectedBuses() {
   });
 }
 
-// 提交選中的車輛
+// 新增選中的車輛
 // 7. 修改submitSelectedBus函數
 function submitSelectedBus() {
-    logVehicleState("提交前");
+    logVehicleState("新增前");
   // 清除之前的錯誤訊息
   const statusElement = document.getElementById("statusMessage");
   statusElement.textContent = "";
@@ -3951,13 +3951,13 @@ function submitSelectedBus() {
   
   // 確保選擇了主要項目
   if (!bus.selectedMainItem) {
-    showStatusMessage("請選擇查核結果", "error");
+    showFloatingNotification("請選擇重點查核結果", "error");
     return;
   }
   
   // 確保選擇了位置
   if (!document.getElementById("location").value) {
-    showStatusMessage("請選擇查核位置", "error");
+    showFloatingNotification("請選擇查核位置", "error");
     return;
   }
   
@@ -3965,20 +3965,20 @@ function submitSelectedBus() {
   const submitButton = document.querySelector(".action-button.submit-button");
   submitButton.classList.add("disabled");
   
-  // 記錄提交開始時間
+  // 記錄新增開始時間
   const submitStartTime = Date.now();
   
-  // 提交記錄
+  // 新增記錄
   submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || [])
     .then(() => {
-        logVehicleState("提交成功後");
+        logVehicleState("新增成功後");
       // 清除錯誤訊息
       statusElement.textContent = "";
       statusElement.className = "status-message";
       
-      // 測量提交耗時
+      // 測量新增耗時
       const submitDuration = Date.now() - submitStartTime;
-      console.log(`提交成功，處理耗時: ${submitDuration}ms`);
+      console.log(`新增成功，處理耗時: ${submitDuration}ms`);
       
       // 從 displayedBuses 和 allDetectedBuses 中移除此車輛
       if (uniqueId) {
@@ -3990,13 +3990,13 @@ function submitSelectedBus() {
         allDetectedBuses = allDetectedBuses.filter(item => item.plateNumber !== plateNumber);
       }
       
-      // 添加到已提交列表
+      // 添加到已新增列表
       submittedBuses.push(plateNumber);
       
-      // 設置提交時間，3分鐘內不再顯示
+      // 設置新增時間，3分鐘內不再顯示
       localStorage.setItem(`submitted_${plateNumber}`, Date.now().toString());
       
-      // 提交成功後，從編輯列表中移除
+      // 新增成功後，從編輯列表中移除
       editingBuses.splice(currentIndex, 1);
       
       // 調整活躍編輯索引
@@ -4020,17 +4020,17 @@ function submitSelectedBus() {
       // 顯示成功訊息
       const routeName = bus.routeName?.chinese || "未知路線";
       const companyName = bus.operatorName || "未知公司";
-      const successMessage = `已成功送出記錄：${plateNumber} (${companyName} ${routeName})`;
+      const successMessage = `成功新增：${plateNumber} (${companyName} ${routeName})`;
       showFloatingNotification(successMessage, "success");
     })
     .catch(error => {
-      console.error("提交失敗:", error);
+      console.error("新增交失敗:", error);
       
-      // 提交失敗的恢復機制 - 確保車輛仍在編輯列表中
+      // 新增失敗的恢復機制 - 確保車輛仍在編輯列表中
       const stillExists = editingBuses.some(item => item.uniqueId === uniqueId);
       
       if (!stillExists) {
-        console.log("提交失敗，恢復車輛到編輯列表");
+        console.log("新增失敗，恢復車輛到編輯列表");
         // 恢復車輛回編輯列表
         editingBuses.splice(currentIndex, 0, busCopy);
         
@@ -4045,7 +4045,7 @@ function submitSelectedBus() {
       }
       
       // 顯示錯誤訊息
-      showFloatingNotification(`提交失敗: ${error.message || "伺服器錯誤"}`, "error");
+      showFloatingNotification(`新增失敗: ${error.message || "伺服器錯誤"}`, "error");
     })
     .finally(() => {
       // 恢復按鈕狀態
@@ -4056,7 +4056,7 @@ function submitSelectedBus() {
       }, 2000);
     });
 }
-// 添加一個新函數來重置提交按鈕狀態
+// 添加一個新函數來重置新增按鈕狀態
 function resetSubmitButtonState() {
     const submitButton = document.querySelector(".action-button.submit-button");
     if (submitButton && submitButton.classList.contains("disabled")) {
@@ -4137,16 +4137,16 @@ function createQuickItems() {
             });
             this.classList.add("selected");
             
-            // 選擇項目後檢查並啟用提交按鈕
+            // 選擇項目後檢查並啟用新增按鈕
             resetSubmitButtonState();
         };
         mainItemsContainer.appendChild(itemButton);
     });
 }
-// 提交車輛記錄
+// 新增車輛記錄
 
 // 修改 submitBusRecord 函數，處理 otherItem 和 goodItem 欄位
-// 完全重寫提交記錄函數
+// 完全重寫新增記錄函數
 async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   showLoading();
   
@@ -4224,7 +4224,7 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     // 將未分類項目加入負向項目列表
     const finalNegativeItems = [...negativeItems, ...unclassifiedItems];
     
-    // 構建最終提交數據
+    // 構建最終新增數據
     const submissionData = {
       userId: document.getElementById("userId").value,
       location: document.getElementById("location").value,
@@ -4240,8 +4240,8 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       goodItem: positiveItems.join(", ")        // 正向項目
     };
     
-    // 詳細記錄最終提交的數據
-    console.log("最終提交數據:", JSON.stringify(submissionData, null, 2));
+    // 詳細記錄最終新增的數據
+    console.log("最終新增數據:", JSON.stringify(submissionData, null, 2));
     console.log("正向項目(goodItem):", positiveItems);
     console.log("負向項目(otherItem):", finalNegativeItems);
     
@@ -4259,32 +4259,32 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     
     // 處理成功響應
     const data = await response.json();
-    console.log("提交成功，服務器響應:", data);
+    console.log("新增成功，服務器響應:", data);
     
     // 更新UI和本地存儲
     handleSubmitSuccess(bus);
     
     return Promise.resolve(data);
   } catch (error) {
-    console.error("提交失敗:", error);
-    showFloatingNotification(`提交失敗: ${error.message}`, "error");
+    console.error("新增失敗:", error);
+    showFloatingNotification(`新增失敗: ${error.message}`, "error");
     return Promise.reject(error);
   } finally {
     hideLoading();
   }
 }
 
-// 提取提交成功後的處理邏輯為單獨函數
+// 提取新增成功後的處理邏輯為單獨函數
 function handleSubmitSuccess(bus) {
   // 清除頂部錯誤訊息
   const statusElement = document.getElementById("statusMessage");
   statusElement.textContent = "";
   statusElement.className = "status-message";
   
-  // 添加到已提交列表
+  // 添加到已新增列表
   submittedBuses.push(bus.plateNumber);
   
-  // 設置提交時間，3分鐘內不再顯示
+  // 設置新增時間，3分鐘內不再顯示
   const submissionTime = Date.now();
   localStorage.setItem(`submitted_${bus.plateNumber}`, submissionTime);
   
@@ -4358,11 +4358,12 @@ function showFloatingNotification(message, type) {
   
   // 顯示通知
   notification.classList.add("show");
-  
+    // 錯誤提示顯示時間稍長一些，讓用戶有更多時間看到
+  const displayTime = type === "error" ? 5000 : 4000;
   // 3秒後自動隱藏
   setTimeout(() => {
     notification.classList.remove("show");
-  }, 3000);
+  }, displayTime);
 }
 // 修改定位函數，提高精度
 async function getCurrentPosition(silent = false) {
@@ -4768,13 +4769,13 @@ async function fetchOtherItems() {
 }
 
 
-// 清理過期的提交記錄，使用清晰的常量命名
+// 清理過期的新增記錄，使用清晰的常量命名
 function cleanupExpiredSubmissions() {
   const SUBMISSION_EXPIRY_TIME_MS = 3 * 60 * 1000; // 3分鐘
   const currentTime = Date.now();
   
   try {
-    // 遍歷 localStorage 查找所有提交記錄
+    // 遍歷 localStorage 查找所有新增記錄
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('submitted_')) {
@@ -4786,7 +4787,7 @@ function cleanupExpiredSubmissions() {
       }
     }
   } catch (error) {
-    console.error("清理過期提交記錄失敗:", error);
+    console.error("清理過期新增記錄失敗:", error);
   }
 }
 
