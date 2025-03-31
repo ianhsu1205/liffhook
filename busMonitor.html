@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.2(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2827,7 +2827,7 @@ itemBtn.onclick = function() {
   
   console.log("選中的項目:", bus.selectedOtherItems);
     // 更新編輯界面以反映項目計數變化
-  updateBusEditingInterface();
+   updateItemCountBadges(bus);
   updateEditingTabs();
 };
         // 專門為觸屏設備添加觸摸結束事件
@@ -2892,6 +2892,29 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
   resetSubmitButtonState();
 }
 
+// 只更新計數標記的函數
+function updateItemCountBadges(bus) {
+  // 計算已選項目數量
+  let selectedItemsCount = 0;
+  if (bus.selectedMainItem) selectedItemsCount++;
+  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
+    selectedItemsCount += bus.selectedOtherItems.length;
+  }
+  
+  // 更新編輯區域的計數標記
+  const numberContainer = document.getElementById("inputBusNumber").parentNode;
+  
+  // 移除舊的計數標記（如果存在）
+  const oldBadge = document.getElementById("editingItemCountBadge");
+  if (oldBadge) oldBadge.remove();
+  
+  // 如果有選項，添加計數標記
+  if (selectedItemsCount > 0) {
+    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+  }
+}
+// 全局變量
+let currentCategoryTabIndex = 0;
 function setupSimpleTabs(navBar, pagesContainer, totalPages) {
   // 初始顯示第一頁
   for (let i = 0; i < totalPages; i++) {
@@ -2905,6 +2928,8 @@ function setupSimpleTabs(navBar, pagesContainer, totalPages) {
   const tabs = navBar.querySelectorAll('.category-tab');
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', function() {
+         // 更新當前索引
+       currentCategoryTabIndex = index;
       // 更新標籤樣式
       tabs.forEach((t, i) => {
         t.classList.toggle('active', i === index);
@@ -2920,6 +2945,18 @@ function setupSimpleTabs(navBar, pagesContainer, totalPages) {
         }
       }
     });
+  });
+    // 確保初始顯示正確的頁籤為活躍狀態
+  tabs.forEach((tab, i) => {
+    if (i === currentCategoryTabIndex) {
+      tab.classList.add('active');
+      tab.style.backgroundColor = '#06c755';
+      tab.style.color = 'white';
+    } else {
+      tab.classList.remove('active');
+      tab.style.backgroundColor = '#f8f9fa';
+      tab.style.color = '#333';
+    }
   });
 }
 // 3. 新增專門針對單一車輛進行更新的函數
