@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.6(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3128,6 +3128,7 @@ function debounceClick(func, wait = 200) {
   };
 }
 // 4. 創建編輯標籤列
+// 修改 updateEditingTabs 函數，恢復 countSpan.style.cssText 設置
 function updateEditingTabs() {
   // 檢查標籤容器是否存在，如果不存在則創建
   let tabsContainer = document.querySelector(".editing-tabs-container");
@@ -3136,7 +3137,6 @@ function updateEditingTabs() {
     if (tabsContainer) tabsContainer.style.display = "none";
     return;
   }
-  
   // 如果有編輯中的車輛，但沒有標籤容器，創建它
   if (!tabsContainer) {
     tabsContainer = document.createElement("div");
@@ -3146,7 +3146,6 @@ function updateEditingTabs() {
     const inputContainer = document.getElementById("busInputContainer");
     inputContainer.parentNode.insertBefore(tabsContainer, inputContainer);
   }
-  
   // 確保標籤容器可見
   tabsContainer.style.display = "flex";
   
@@ -3168,6 +3167,7 @@ function updateEditingTabs() {
       selectedItemsCount += bus.selectedOtherItems.length;
     }
     
+    // 設置標籤內容
     tab.innerHTML = `
       <span>${bus.plateNumber || ''}</span>
       <span class="tab-close" data-index="${index}">×</span>
@@ -3197,46 +3197,14 @@ function updateEditingTabs() {
       tab.insertBefore(countSpan, closeBtn);
     }
     
-    // 為標籤設置明確的索引屬性，幫助調試
-    tab.dataset.busIndex = index;
+    // 設置點擊事件，使用全局函數
+    tab.setAttribute("onclick", `switchToEditingTab(${index})`);
     
-    // 修改點擊事件處理邏輯，使用閉包捕獲正確的索引
-    tab.addEventListener("click", function(e) {
-      // 忽略關閉按鈕的點擊
-      if (e.target.classList.contains("tab-close")) return;
-      
-      console.log("點擊標籤，切換到索引:", index);
-      
-      // 明確設置活躍索引
-      window.activeEditingBusIndex = index;
-      
-      // 確保編輯區域是可見的
-      document.getElementById("busInputContainer").classList.remove("hidden");
-      
-      // 更新標籤樣式
-      document.querySelectorAll('.editing-tab').forEach((t, i) => {
-        t.classList.toggle('active', i === index);
-      });
-      
-      // 重新載入編輯界面
-      updateBusEditingInterface();
-      
-      // 滾動到編輯區域
-      scrollToEditingArea();
-    });
+    // 為關閉按鈕添加獨立的點擊事件
+    const closeBtn = tab.querySelector(".tab-close");
+    closeBtn.setAttribute("onclick", `event.stopPropagation(); confirmCancelEditing(${index});`);
     
     tabsContainer.appendChild(tab);
-  });
-
-  // 為關閉按鈕添加事件監聽
-  const closeButtons = tabsContainer.querySelectorAll(".tab-close");
-  closeButtons.forEach(button => {
-    button.addEventListener("click", function(e) {
-      e.stopPropagation(); // 阻止事件冒泡，避免觸發標籤點擊
-      
-      const index = parseInt(this.dataset.index);
-      confirmCancelEditing(index);
-    });
   });
   
   if (editingBuses.length > 0) {
@@ -3245,7 +3213,96 @@ function updateEditingTabs() {
     }, 10);
   }
 }
-
+// 處理標籤點擊的函數
+function switchToEditingTab(index) {
+  console.log("標籤點擊，切換到索引:", index);
+  
+  // 設置活躍索引
+  activeEditingBusIndex = index;
+  
+  // 更新標籤樣式
+  const tabs = document.querySelectorAll('.editing-tab');
+  tabs.forEach((tab, i) => {
+    tab.classList.toggle('active', i === index);
+  });
+  
+  // 確保編輯區域可見
+  document.getElementById("busInputContainer").classList.remove("hidden");
+  
+  // 更新編輯界面
+  updateBusEditingInterface();
+  
+  // 滾動到編輯區域
+  scrollToEditingArea();
+}
+// 只更新計數標記的函數
+function updateItemCountBadges(bus) {
+  // 計算已選項目數量
+  let selectedItemsCount = 0;
+  if (bus.selectedMainItem) selectedItemsCount++;
+  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
+    selectedItemsCount += bus.selectedOtherItems.length;
+  }
+  
+  // 更新編輯區域的計數標記
+  const numberContainer = document.getElementById("inputBusNumber").parentNode;
+  
+  // 移除舊的計數標記（如果存在）
+  const oldBadge = document.getElementById("editingItemCountBadge");
+  if (oldBadge) oldBadge.remove();
+  
+  // 如果有選項，添加計數標記
+  if (selectedItemsCount > 0) {
+    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+  }
+  
+  // 更新標籤上的計數標記
+  const tabsContainer = document.querySelector(".editing-tabs-container");
+  if (tabsContainer) {
+    const tabs = tabsContainer.querySelectorAll('.editing-tab');
+    
+    tabs.forEach((tab, index) => {
+      // 找到對應的車輛
+      const tabBus = editingBuses[index];
+      if (!tabBus) return;
+      
+      // 移除舊的計數標記
+      const oldTabBadge = tab.querySelector(".tab-item-count");
+      if (oldTabBadge) oldTabBadge.remove();
+      
+      // 計算此車輛的項目數量
+      let itemCount = 0;
+      if (tabBus.selectedMainItem) itemCount++;
+      if (tabBus.selectedOtherItems && Array.isArray(tabBus.selectedOtherItems)) {
+        itemCount += tabBus.selectedOtherItems.length;
+      }
+      
+      // 如果有選項，添加計數標記
+      if (itemCount > 0) {
+        const countSpan = document.createElement("span");
+        countSpan.className = "tab-item-count";
+        countSpan.textContent = itemCount;
+        countSpan.style.cssText = `
+          display: inline-block;
+          background-color: ${index === activeEditingBusIndex ? 'rgba(255,255,255,0.3)' : '#06c755'};
+          color: white;
+          border-radius: 50%;
+          width: 18px;
+          height: 18px;
+          font-size: 11px;
+          line-height: 18px;
+          text-align: center;
+          margin-left: 5px;
+          font-weight: bold;
+        `;
+        
+        // 將計數標記插入到關閉按鈕之前
+        const closeBtn = tab.querySelector(".tab-close");
+        tab.insertBefore(countSpan, closeBtn);
+      }
+    });
+  }
+}
 // 替換
 function confirmCancelEditing(index) {
   const confirmModal = document.getElementById("confirmModal");
