@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>查核記錄查詢</title>
+    <title>查核記錄列表</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -412,6 +412,71 @@
         background-color: #28a745;
         color: white;
       }
+      /* 需要添加的 CSS 樣式 */
+      .category-nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 5px 0;
+        margin-bottom: 8px;
+        scrollbar-width: none; /* 隱藏 Firefox 滾動條 */
+        -ms-overflow-style: none; /* 隱藏 IE/Edge 滾動條 */
+      }
+
+      .category-nav::-webkit-scrollbar {
+        display: none; /* 隱藏 Chrome/Safari 滾動條 */
+      }
+
+      .category-tab {
+        padding: 6px 15px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 14px;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0; /* 防止標籤被壓縮 */
+      }
+
+      .category-tab.active {
+        background-color: #06c755 !important;
+        color: white !important;
+        border-color: #06c755 !important;
+      }
+
+      .category-pages {
+        display: block;
+        width: 100%;
+      }
+
+      .category-page {
+        width: 100%;
+        min-width: auto;
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      /* 正向和負向項目的樣式 */
+      .quick-other-item.positive-item {
+        border-left: 3px solid #28a745;
+      }
+
+      .quick-other-item.negative-item {
+        border-left: 3px solid #dc3545;
+      }
+
+      .quick-other-item.positive-item.selected {
+        background-color: #d4edda;
+        color: #155724;
+        border-color: #28a745;
+      }
+
+      .quick-other-item.negative-item.selected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-color: #dc3545;
+      }
     </style>
   </head>
   <body>
@@ -470,7 +535,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">首都集團路口查核平台</div>
+      <div class="line-brand">首都集團查核平台-v1.0.0.2</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -900,7 +965,7 @@
         // 清除錯誤訊息
         document.getElementById("editModalError").style.display = "none"
 
-        // 填充主要項目選項
+        // 填充主要項目選項 (保持不變)
         const mainItemsContainer = document.getElementById(
           "editMainItemsContainer"
         )
@@ -923,7 +988,7 @@
           mainItemsContainer.appendChild(itemButton)
         })
 
-        // 填充其他項目選項
+        // 填充其他項目選項 - 使用與 busMonitor.html 相似的分類方式
         const otherItemsContainer = document.getElementById(
           "editOtherItemsContainer"
         )
@@ -934,19 +999,148 @@
           ? record.otherItem.split(", ")
           : []
 
-        otherItems.forEach((item) => {
-          const itemButton = document.createElement("div")
-          itemButton.className = "quick-other-item"
-          if (selectedOtherItems.includes(item.itemName)) {
-            itemButton.classList.add("selected")
-          }
-          itemButton.textContent = item.itemName
-          itemButton.dataset.value = item.itemName
-          itemButton.onclick = function () {
-            this.classList.toggle("selected")
-          }
-          otherItemsContainer.appendChild(itemButton)
+        // 獲取所有不重複的類別
+        let categories = []
+        try {
+          // 先收集每个分类和它的代表性itemType值
+          const categoryTypes = {}
+
+          otherItems.forEach((item) => {
+            if (item && item.catolog) {
+              const category = item.catolog
+              // 如果该分类还没有itemType值，或者当前项的itemType小于已记录的值，则更新
+              if (
+                !(category in categoryTypes) ||
+                (item.itemType !== undefined &&
+                  (categoryTypes[category] === undefined ||
+                    Number(item.itemType) < categoryTypes[category]))
+              ) {
+                categoryTypes[category] = Number(item.itemType)
+              }
+            }
+          })
+
+          // 提取分类列表并按itemType从小到大排序
+          categories = Object.keys(categoryTypes).sort((a, b) => {
+            return categoryTypes[a] - categoryTypes[b]
+          })
+        } catch (e) {
+          console.error("解析分类时出错:", e)
+          categories = ["未分類"] // 默认分类
+        }
+
+        // 創建分類導航標籤
+        const categoryNav = document.createElement("div")
+        categoryNav.className = "category-nav"
+        categoryNav.style.cssText =
+          "display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; margin-bottom: 8px;"
+
+        // 創建分類標籤
+        categories.forEach((category, idx) => {
+          const tab = document.createElement("div")
+          tab.className = "category-tab" + (idx === 0 ? " active" : "")
+          tab.style.cssText =
+            "padding: 5px 12px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 20px; font-size: 14px; white-space: nowrap; cursor: pointer;"
+          tab.textContent = category || "未分類"
+          tab.dataset.index = idx
+          categoryNav.appendChild(tab)
         })
+
+        // 創建內容容器
+        const contentContainer = document.createElement("div")
+        contentContainer.style.cssText =
+          "position: relative; width: 100%; overflow: hidden;"
+
+        // 創建滑動面板
+        const pagesContainer = document.createElement("div")
+        pagesContainer.className = "category-pages"
+        pagesContainer.style.cssText =
+          "display: flex; width: 100%; transition: transform 0.3s ease;"
+
+        // 為每個分類創建一個面板
+        categories.forEach((category, idx) => {
+          // 創建分類面板
+          const pageDiv = document.createElement("div")
+          pageDiv.className = "category-page"
+          pageDiv.style.cssText =
+            "flex: 0 0 100%; width: 100%; min-height: 120px; padding: 5px; box-sizing: border-box;"
+
+          // 創建內容包裹容器
+          const contentWrapper = document.createElement("div")
+          contentWrapper.style.cssText =
+            "display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 5px 0;"
+          contentWrapper.style.position = "relative"
+          contentWrapper.style.zIndex = "5" // 確保在滑動層上方
+
+          // 篩選該分類的項目
+          const categoryItems =
+            category === "未分類"
+              ? otherItems.filter((item) => !item.catolog)
+              : otherItems.filter((item) => item.catolog === category)
+
+          // 按 itemType 从小到大排序
+          categoryItems.sort((a, b) => {
+            // 确保有 itemType 值，如果没有则设为默认值 0
+            const typeA = a.itemType !== undefined ? Number(a.itemType) : 0
+            const typeB = b.itemType !== undefined ? Number(b.itemType) : 0
+            return typeA - typeB // 从小到大排序
+          })
+
+          // 創建項目按鈕
+          categoryItems.forEach((item) => {
+            if (!item || !item.itemName) return // 跳過無效項目
+
+            const itemBtn = document.createElement("div")
+            itemBtn.className = "quick-other-item"
+            itemBtn.style.cssText =
+              "background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; margin: 0; flex: 0 0 auto; max-width: calc(50% - 8px); white-space: normal;"
+
+            // 根據項目類型添加樣式
+            if (item.itemType === 1) {
+              itemBtn.classList.add("positive-item")
+            } else if (item.itemType === -1) {
+              itemBtn.classList.add("negative-item")
+            }
+
+            itemBtn.textContent = item.itemName
+            itemBtn.dataset.value = item.itemName
+            itemBtn.dataset.type = item.itemType
+
+            // 如果此項目已選，標記為已選
+            if (selectedOtherItems.includes(item.itemName)) {
+              itemBtn.classList.add("selected")
+            }
+
+            // 添加點擊事件
+            itemBtn.onclick = function () {
+              // 切換選中狀態
+              this.classList.toggle("selected")
+            }
+
+            contentWrapper.appendChild(itemBtn)
+          })
+
+          // 如果沒有項目，顯示提示訊息
+          if (categoryItems.length === 0) {
+            const noItemsMsg = document.createElement("div")
+            noItemsMsg.textContent = "此分類無可用選項"
+            noItemsMsg.style.padding = "10px"
+            noItemsMsg.style.color = "#666"
+            contentWrapper.appendChild(noItemsMsg)
+          }
+
+          pageDiv.appendChild(contentWrapper)
+          pagesContainer.appendChild(pageDiv)
+        })
+
+        contentContainer.appendChild(pagesContainer)
+
+        // 添加到主容器
+        otherItemsContainer.appendChild(categoryNav)
+        otherItemsContainer.appendChild(contentContainer)
+
+        // 設置標籤切換功能
+        setupEditModalTabs(categoryNav, pagesContainer, categories.length)
 
         // 設置確認按鈕的點擊事件
         document.getElementById("confirmEditButton").onclick = function () {
@@ -956,12 +1150,45 @@
         // 顯示模態框
         document.getElementById("editModal").style.display = "block"
       }
+      // 設置標籤切換功能
+      function setupEditModalTabs(navBar, pagesContainer, totalPages) {
+        // 初始顯示第一頁
+        for (let i = 0; i < totalPages; i++) {
+          const page = pagesContainer.children[i]
+          if (page) {
+            page.style.display = i === 0 ? "block" : "none"
+          }
+        }
+
+        // 為所有標籤添加點擊事件
+        const tabs = navBar.querySelectorAll(".category-tab")
+        tabs.forEach((tab, index) => {
+          tab.addEventListener("click", function () {
+            // 更新標籤樣式
+            tabs.forEach((t, i) => {
+              t.classList.toggle("active", i === index)
+              t.style.backgroundColor = i === index ? "#06c755" : "#f8f9fa"
+              t.style.color = i === index ? "white" : "#333"
+            })
+
+            // 顯示對應頁面，隱藏其他頁面
+            for (let i = 0; i < totalPages; i++) {
+              const page = pagesContainer.children[i]
+              if (page) {
+                page.style.display = i === index ? "block" : "none"
+              }
+            }
+          })
+        })
+      }
+
       // 關閉修改模態框
       function closeEditModal() {
         document.getElementById("editModal").style.display = "none"
         currentEditRecordId = null
       }
       // 保存修改的記錄
+      // 修改 saveEditedRecord 函數，區分正向項目和負向項目
       async function saveEditedRecord() {
         try {
           if (!currentEditRecordId) {
@@ -983,18 +1210,57 @@
             return
           }
 
-          // 獲取選中的其他項目
+          // 獲取選中的其他項目 - 從所有分類頁中收集
           const otherItemsContainer = document.getElementById(
             "editOtherItemsContainer"
           )
-          const selectedOtherItems = Array.from(
-            otherItemsContainer.querySelectorAll(".quick-other-item.selected")
-          ).map((item) => item.dataset.value)
+          const allPages =
+            otherItemsContainer.querySelectorAll(".category-page")
 
-          // 構建更新數據
+          // 創建兩個數組分別存儲正向和負向項目
+          const positiveItems = []
+          const negativeItems = []
+          const unclassifiedItems = []
+
+          // 從所有頁面中收集選中的項目
+          allPages.forEach((page) => {
+            const selectedItems = page.querySelectorAll(
+              ".quick-other-item.selected"
+            )
+            selectedItems.forEach((item) => {
+              const itemValue = item.dataset.value
+              const itemType = item.dataset.type
+
+              if (!itemValue) return
+
+              // 根據 itemType 將項目分類
+              if (itemType === "1") {
+                // 正向項目加入 positiveItems
+                if (!positiveItems.includes(itemValue)) {
+                  positiveItems.push(itemValue)
+                }
+              } else if (itemType === "-1") {
+                // 負向項目加入 negativeItems
+                if (!negativeItems.includes(itemValue)) {
+                  negativeItems.push(itemValue)
+                }
+              } else {
+                // 未分類項目加入 unclassifiedItems
+                if (!unclassifiedItems.includes(itemValue)) {
+                  unclassifiedItems.push(itemValue)
+                }
+              }
+            })
+          })
+
+          // 將未分類項目加入負向項目列表
+          const finalNegativeItems = [...negativeItems, ...unclassifiedItems]
+
+          // 構建更新數據，分別填入 otherItem 和 goodItem
           const updateData = {
             mainItem: selectedMainItem.dataset.value,
-            otherItem: selectedOtherItems.join(", "),
+            otherItem: finalNegativeItems.join(", "), // 負向項目和未分類項目
+            goodItem: positiveItems.join(", "), // 正向項目
           }
 
           showLoading()
