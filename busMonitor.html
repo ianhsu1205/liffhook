@@ -1399,7 +1399,38 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   gap: 8px;
   padding: 5px 0;
 }
-
+/* 標籤上的項目計數標記樣式 */
+.tab-item-count {
+  display: inline-block;
+  background-color: #06c755;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  margin-left: 5px;
+  font-weight: bold;
+}
+.editing-tab.active .tab-item-count {
+  background-color: rgba(255,255,255,0.3);
+}
+/* 編輯區車號旁的計數標記樣式 */
+#editingItemCountBadge {
+  display: inline-block;
+  background-color: #06c755;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  font-weight: bold;
+  margin-left: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1569,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.0(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2474,7 +2505,30 @@ function scrollToActiveTab() {
     });
   }, 50); // 短暫延遲，確保DOM已更新
 }
-
+// 添加輔助函數，用於在元素旁添加計數標記
+function addItemCountBadgeToElement(container, count) {
+  // 創建計數標記
+  const badge = document.createElement("span");
+  badge.id = "editingItemCountBadge";
+  badge.textContent = count;
+  badge.style.cssText = `
+    display: inline-block;
+    background-color: #06c755;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+    font-weight: bold;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  `;
+  
+  // 添加到容器中
+  container.appendChild(badge);
+}
 window.isHandlingItemClick = false;
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
@@ -2522,11 +2576,23 @@ function updateBusEditingInterface() {
     }
   }, 20);
 
-  // 更新公司和車號信息
+  // 更新公司信息
   document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
-  
+    // 計算已選項目數量
+  let selectedItemsCount = 0;
+  if (bus.selectedMainItem) selectedItemsCount++;
+  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
+    selectedItemsCount += bus.selectedOtherItems.length;
+  }
   // 修改這裡：將車號純文字改為輸入框
   const inputBusNumberElement = document.getElementById("inputBusNumber");
+   
+  const numberContainer = inputBusNumberElement.parentNode;
+
+    // 移除舊的計數標記（如果存在）
+  const oldBadge = document.getElementById("editingItemCountBadge");
+  if (oldBadge) oldBadge.remove();
+
   // 檢查是否已經是輸入框，如果不是則替換為輸入框
   if (bus.isManualInput) {
     // 如果是手動新增的車輛，且不是輸入框，替換為輸入框
@@ -2558,9 +2624,20 @@ inputBox.addEventListener('input', function() {
       
       // 替換原有元素
       inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
+           // 現在輸入框已經設定好，保存引用
+      const newInputBox = document.getElementById('inputBusNumber');
+      
+      // 如果有選項，添加計數標記
+      if (selectedItemsCount > 0) {
+        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+      }
     } else {
       // 如果已經是輸入框，只更新值
       inputBusNumberElement.value = bus.plateNumber || '';
+            // 如果有選項，添加計數標記
+      if (selectedItemsCount > 0) {
+        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+      }
     }
   } else {
     // 如果不是手動新增的車輛，顯示為純文字
@@ -2569,9 +2646,17 @@ inputBox.addEventListener('input', function() {
       textSpan.id = 'inputBusNumber';
       textSpan.textContent = bus.plateNumber || '';
       inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
+            // 如果有選項，添加計數標記
+      if (selectedItemsCount > 0) {
+        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+      }
     } else {
       // 如果已經是文字元素，只更新內容
       inputBusNumberElement.textContent = bus.plateNumber || '';
+       // 如果有選項，添加計數標記
+      if (selectedItemsCount > 0) {
+        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+      }
     }
   }
   
@@ -2597,6 +2682,10 @@ inputBox.addEventListener('input', function() {
       
       // 儲存選擇到當前編輯的車輛對象
       bus.selectedMainItem = this.dataset.value;
+
+        // 更新編輯界面以反映項目計數變化
+  updateBusEditingInterface();
+  updateEditingTabs();
     };
     mainItemsContainer.appendChild(itemButton);
   });
@@ -2737,6 +2826,9 @@ itemBtn.onclick = function() {
   }
   
   console.log("選中的項目:", bus.selectedOtherItems);
+    // 更新編輯界面以反映項目計數變化
+  updateBusEditingInterface();
+  updateEditingTabs();
 };
         // 專門為觸屏設備添加觸摸結束事件
   itemBtn.addEventListener('touchend', function(e) {
@@ -3033,16 +3125,40 @@ function updateEditingTabs() {
       companyAbbr = companyAbbr.length > 2 ? companyAbbr.substring(0, 2) : companyAbbr;
     }
     
-    // tab.innerHTML = `
-    //   <span>${bus.plateNumber || ''}</span>
-    //   <span class="tab-company">${companyAbbr}</span>
-    //   <span class="tab-close" data-index="${index}">×</span>
-    // `;
+    // 計算已選項目數量
+    let selectedItemsCount = 0;
+    if (bus.selectedMainItem) selectedItemsCount++;
+    if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
+      selectedItemsCount += bus.selectedOtherItems.length;
+    }
         tab.innerHTML = `
       <span>${bus.plateNumber || ''}</span>
 
       <span class="tab-close" data-index="${index}">×</span>
     `;
+        // 如果有選項，添加計數標記
+    if (selectedItemsCount > 0) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "tab-item-count";
+      countSpan.textContent = selectedItemsCount;
+      countSpan.style.cssText = `
+        display: inline-block;
+        background-color: ${index === activeEditingBusIndex ? 'rgba(255,255,255,0.3)' : '#06c755'};
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 11px;
+        line-height: 18px;
+        text-align: center;
+        margin-left: 5px;
+        font-weight: bold;
+      `;
+      
+      // 將計數標記插入到關閉按鈕之前
+      const closeBtn = tab.querySelector(".tab-close");
+      tab.insertBefore(countSpan, closeBtn);
+    }
 // 點擊標籤切換到對應的編輯視圖
 tab.addEventListener("click", function(e) {
   // 忽略關閉按鈕的點擊
