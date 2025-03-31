@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.8(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3683,24 +3683,17 @@ async function detectBuses(isAutoDetection = false) {
       return;
     }
 
-    // 保存當前編輯中的車輛，後續將保留它們
-    const currentEditingBuses = [...editingBuses];
-    
-    // 創建編輯中車輛的唯一ID集合，便於快速查詢
-    const editingBusIds = new Set(currentEditingBuses.map(bus => bus.uniqueId));
-    
-    // 清空檢測列表，但將保留編輯中的車輛
-    const tempAllDetectedBuses = allDetectedBuses.filter(bus => 
+    // 保存當前編輯中的車輛的唯一ID
+    const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+
+    // 清空全局列表，但保留編輯中的車輛
+    allDetectedBuses = allDetectedBuses.filter(bus => 
       editingBusIds.has(bus.uniqueId)
     );
     
-    const tempDisplayedBuses = displayedBuses.filter(bus => 
+    displayedBuses = displayedBuses.filter(bus => 
       editingBusIds.has(bus.uniqueId)
     );
-    
-    // 重置全局列表
-    allDetectedBuses = [...tempAllDetectedBuses];
-    displayedBuses = [...tempDisplayedBuses];
 
     // 獲取附近車輛
     const response = await fetchWithRetry(
@@ -3725,39 +3718,41 @@ async function detectBuses(isAutoDetection = false) {
           bus.uniqueId = generateUniqueVehicleId(bus, "detect");
         }
         
-        // 檢查這輛車是否已在編輯列表中 (通過唯一ID精確匹配)
+        // 檢查這輛車是否已在編輯列表中(使用唯一ID)
         const isInEditing = editingBusIds.has(bus.uniqueId);
         
-        // 如果在編輯列表中，標記為已在編輯中
+        // 如果在編輯列表中，僅更新位置數據
         if (isInEditing) {
-          bus.isInEditing = true;
-          
           // 更新編輯中車輛的位置信息
-          const editingBusIndex = editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
-          if (editingBusIndex !== -1) {
-            editingBuses[editingBusIndex].position = bus.position;
+          const editingIndex = editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+          if (editingIndex !== -1) {
+            editingBuses[editingIndex].position = bus.position;
           }
+          
+          // 標記為已在編輯中
+          bus.isInEditing = true;
         }
         
+        // 檢查是否是集團公司且未在近期提交列表中
         if (isGroupCompany(bus.operatorName) && 
             !(submittedBuses.includes(bus.plateNumber) && 
             (currentTime - parseInt(localStorage.getItem(`submitted_${bus.plateNumber}`) || '0')) < threeMinutes)) {
           
-          // 檢查是否已存在於顯示列表，避免添加重複項
-          const existingIndex = allDetectedBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+          // 重要：檢查是否已存在該車輛(使用唯一ID)
+          const existingBusIndex = allDetectedBuses.findIndex(item => item.uniqueId === bus.uniqueId);
           
-          if (existingIndex === -1) {
-            // 添加到全局列表
+          if (existingBusIndex === -1) {
+            // 不存在，添加到全局列表
             allDetectedBuses.push(bus);
             
             if (includeRecordedVehicles || !submittedBuses.includes(bus.plateNumber) || 
                 (submittedBuses.includes(bus.plateNumber) && 
                 ((currentTime - parseInt(localStorage.getItem(`submitted_${bus.plateNumber}`) || '0')) >= threeMinutes))) {
               
-              // 檢查是否已存在於顯示列表，避免添加重複項
-              const displayIndex = displayedBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+              // 檢查是否已存在於顯示列表(使用唯一ID)
+              const existsInDisplay = displayedBuses.some(item => item.uniqueId === bus.uniqueId);
               
-              if (displayIndex === -1) {
+              if (!existsInDisplay) {
                 displayedBuses.push(bus);
                 
                 // 只有不在編輯列表中的車輛才算作新偵測結果
@@ -3766,14 +3761,31 @@ async function detectBuses(isAutoDetection = false) {
                 }
               }
             }
+          } else {
+            // 已存在，更新位置等信息
+            allDetectedBuses[existingBusIndex] = {
+              ...allDetectedBuses[existingBusIndex],
+              position: bus.position,
+              lastUpdated: Date.now()
+            };
+            
+            // 如果也在顯示列表中，更新顯示列表中的數據
+            const displayIndex = displayedBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+            if (displayIndex !== -1) {
+              displayedBuses[displayIndex] = {
+                ...displayedBuses[displayIndex],
+                position: bus.position,
+                lastUpdated: Date.now()
+              };
+            }
           }
         }
       });
     }
     
     // 確保所有編輯中的車輛都在顯示列表中
-    currentEditingBuses.forEach(editingBus => {
-      // 檢查這輛車是否已經在顯示列表中
+    editingBuses.forEach(editingBus => {
+      // 檢查這輛車是否已經在顯示列表中(使用唯一ID)
       const displayIndex = displayedBuses.findIndex(item => item.uniqueId === editingBus.uniqueId);
       
       // 如果不在顯示列表中，添加進去
@@ -3784,10 +3796,8 @@ async function detectBuses(isAutoDetection = false) {
         // 添加到顯示列表
         displayedBuses.push(editingBus);
         
-        // 檢查是否在全局列表中
-        const globalIndex = allDetectedBuses.findIndex(item => item.uniqueId === editingBus.uniqueId);
-        
         // 如果也不在全局列表中，添加進去
+        const globalIndex = allDetectedBuses.findIndex(item => item.uniqueId === editingBus.uniqueId);
         if (globalIndex === -1) {
           allDetectedBuses.push(editingBus);
         }
