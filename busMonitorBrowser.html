@@ -597,7 +597,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">首都集團查核平台-v1.0.0.4</div>
+      <div class="line-brand">首都集團查核平台-v1.0.0.5</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -904,6 +904,7 @@
       }
 
       // 修改 updateRecordsDisplay 函數部分
+      // 修改 updateRecordsDisplay 函數，合併顯示 otherItem 和 goodItem
       function updateRecordsDisplay(data) {
         const records = data.data || []
         const recordCount = records.length
@@ -944,21 +945,33 @@
                 : record.direction === "1"
                 ? '<span class="direction-tag back-tag">返程</span>'
                 : ""
+
+            // 合併 otherItem 和 goodItem
+            let combinedItems = []
+            if (record.otherItem && record.otherItem.trim()) {
+              combinedItems.push(record.otherItem)
+            }
+            if (record.goodItem && record.goodItem.trim()) {
+              combinedItems.push(record.goodItem)
+            }
+            const combinedItemsDisplay =
+              combinedItems.length > 0 ? combinedItems.join(", ") : "-"
+
             const row = document.createElement("tr")
             row.innerHTML = `
                 <td>${companyName}</td>
                 <td>${record.routeName || "-"}</td>
                 <td>${record.plateNumber || "-"}</td>
                 <td>${record.mainItem || "-"}</td>
-                <td>${record.otherItem || "-"}</td>
+                <td>${combinedItemsDisplay}</td>
                 <td>${timeFormatted}  ${directionTag}</td>
                 <td>
-                     <button class="edit-button" onclick="showEditModal('${
-                       record.id
-                     }')"><i class="fas fa-edit"></i></button>
-        <button class="delete-button" onclick="showDeleteConfirm('${
-          record.id
-        }')"><i class="fas fa-trash"></i></button>
+                    <button class="edit-button" onclick="showEditModal('${
+                      record.id
+                    }')"><i class="fas fa-edit"></i></button>
+                    <button class="delete-button" onclick="showDeleteConfirm('${
+                      record.id
+                    }')"><i class="fas fa-trash"></i></button>
                 </td>
             `
 
@@ -989,18 +1002,16 @@
                     </div>
                     <div class="data-card-item">
                         <div class="data-card-label"><strong>其它:</strong></div>
-                        <div class="data-card-value">${
-                          record.otherItem || "-"
-                        }</div>
+                        <div class="data-card-value">${combinedItemsDisplay}</div>
                     </div>
                 </div>
                 <div class="data-card-footer">
-       <button class="edit-button" onclick="showEditModal('${
-         record.id
-       }')"><i class="fas fa-edit"></i> 修改</button>
-        <button class="delete-button" onclick="showDeleteConfirm('${
-          record.id
-        }')"><i class="fas fa-trash"></i> 刪除</button>
+                   <button class="edit-button" onclick="showEditModal('${
+                     record.id
+                   }')"><i class="fas fa-edit"></i> 修改</button>
+                   <button class="delete-button" onclick="showDeleteConfirm('${
+                     record.id
+                   }')"><i class="fas fa-trash"></i> 刪除</button>
                 </div>
             `
             cardView.appendChild(card)
@@ -1015,6 +1026,7 @@
         }
       }
       // 顯示修改模態框
+      // 修改 showEditModal 函數，處理合併顯示 otherItem 和 goodItem
       function showEditModal(recordId) {
         currentEditRecordId = recordId
         const record = globalRecords.find((r) => r.id === recordId)
@@ -1056,9 +1068,12 @@
         )
         otherItemsContainer.innerHTML = ""
 
-        // 分割已選擇的其他項目
+        // 分割已選擇的 otherItem 和 goodItem
         const selectedOtherItems = record.otherItem
           ? record.otherItem.split(", ")
+          : []
+        const selectedGoodItems = record.goodItem
+          ? record.goodItem.split(", ")
           : []
 
         // 獲取所有不重複的類別
@@ -1158,20 +1173,28 @@
               "background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; margin: 0; flex: 0 0 auto; max-width: calc(50% - 8px); white-space: normal;"
 
             // 根據項目類型添加樣式
-            if (item.itemType === 1) {
+            if (item.itemType === "1" || item.itemType === 1) {
               itemBtn.classList.add("positive-item")
-            } else if (item.itemType === -1) {
+              // 如果此項目在 goodItem 中已選，標記為已選
+              if (selectedGoodItems.includes(item.itemName)) {
+                itemBtn.classList.add("selected")
+              }
+            } else if (item.itemType === "-1" || item.itemType === -1) {
               itemBtn.classList.add("negative-item")
+              // 如果此項目在 otherItem 中已選，標記為已選
+              if (selectedOtherItems.includes(item.itemName)) {
+                itemBtn.classList.add("selected")
+              }
+            } else {
+              // 未分類項目，檢查是否在 otherItem 中
+              if (selectedOtherItems.includes(item.itemName)) {
+                itemBtn.classList.add("selected")
+              }
             }
 
             itemBtn.textContent = item.itemName
             itemBtn.dataset.value = item.itemName
             itemBtn.dataset.type = item.itemType
-
-            // 如果此項目已選，標記為已選
-            if (selectedOtherItems.includes(item.itemName)) {
-              itemBtn.classList.add("selected")
-            }
 
             // 添加點擊事件
             itemBtn.onclick = function () {
@@ -1252,6 +1275,7 @@
       // 保存修改的記錄
       // 修改 saveEditedRecord 函數，區分正向項目和負向項目
       // 修改 saveEditedRecord 函數
+      // 修改 saveEditedRecord 函數，將正向項目存入 goodItem，負向項目存入 otherItem
       async function saveEditedRecord() {
         try {
           if (!currentEditRecordId) {
@@ -1281,9 +1305,8 @@
             otherItemsContainer.querySelectorAll(".category-page")
 
           // 創建兩個數組分別存儲正向和負向項目
-          const positiveItems = []
-          const negativeItems = []
-          const unclassifiedItems = []
+          const positiveItems = [] // 將存入 goodItem
+          const negativeItems = [] // 將存入 otherItem
 
           // 從所有頁面中收集選中的項目
           allPages.forEach((page) => {
@@ -1297,39 +1320,29 @@
               if (!itemValue) return
 
               // 根據 itemType 將項目分類
-              if (itemType === "1") {
-                // 正向項目加入 positiveItems
+              if (itemType === "1" || itemType === 1) {
+                // 正向項目加入 positiveItems (goodItem)
                 if (!positiveItems.includes(itemValue)) {
                   positiveItems.push(itemValue)
                 }
-              } else if (itemType === "-1") {
-                // 負向項目加入 negativeItems
+              } else {
+                // 負向項目和未分類項目加入 negativeItems (otherItem)
                 if (!negativeItems.includes(itemValue)) {
                   negativeItems.push(itemValue)
-                }
-              } else {
-                // 未分類項目加入 unclassifiedItems
-                if (!unclassifiedItems.includes(itemValue)) {
-                  unclassifiedItems.push(itemValue)
                 }
               }
             })
           })
 
-          // 將未分類項目加入負向項目列表
-          const finalNegativeItems = [...negativeItems, ...unclassifiedItems]
-
           // 構建更新數據，分別填入 otherItem 和 goodItem
           // 即使為空陣列，也要確保傳遞空字串，而不是undefined
           const updateData = {
             mainItem: selectedMainItem.dataset.value,
-            otherItem:
-              finalNegativeItems.length > 0
-                ? finalNegativeItems.join(", ")
-                : "", // 負向項目和未分類項目
+            otherItem: negativeItems.length > 0 ? negativeItems.join(", ") : "", // 負向項目和未分類項目
             goodItem: positiveItems.length > 0 ? positiveItems.join(", ") : "", // 正向項目
           }
 
+          // 顯示載入中
           showLoading()
 
           // 發送更新請求
