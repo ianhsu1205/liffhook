@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.3.3(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.3.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2366,10 +2366,7 @@ function addManualBus() {
     },
     isManualInput: true,
     originalPlateNumber: plateNumber,
-    uniqueId: generateUniqueVehicleId({
-    plateNumber: plateNumber,
-    operatorName: company
-  }, "manual"), // 使用一致的唯一ID格式
+    uniqueId: uuid.v4(), // 使用一致的唯一ID格式
     createdAt: timestamp, // 添加創建時間戳，便於後續追蹤
     lastUpdated: timestamp
   };
@@ -3039,7 +3036,7 @@ function cleanupInvalidIds() {
         const timestamp = parseInt(parts[3]);
         if (timestamp && timestamp < oneHourAgo) {
           // 生成新的 ID 替換舊的
-          bus.uniqueId = generateUniqueVehicleId(bus, parts[0]);
+          bus.uniqueId = uuid.v4(); // 使用 uuid 庫生成新的唯一 ID
         }
       }
     }
@@ -3738,7 +3735,7 @@ async function detectBuses(isAutoDetection = false) {
       data.buses.forEach((bus) => {
         // 如果車輛沒有唯一ID，生成一個
         if (!bus.uniqueId) {
-          bus.uniqueId = generateUniqueVehicleId(bus, "detect");
+          bus.uniqueId = uuid.v4();
         }
         
         // 檢查這輛車是否已在編輯列表中(使用唯一ID)
@@ -3855,14 +3852,7 @@ async function detectBuses(isAutoDetection = false) {
 
 }
 
-// 新增一個專用函數，統一生成車輛唯一ID
-function generateUniqueVehicleId(vehicle, source) {
 
- 
-  const uniqueId = uuid.v4();
-  console.log(`生成唯一ID: ${uniqueId}, 來源: ${source}`);
-  return uniqueId;
-}
 // 新增顯示無車輛的浮動通知函數
 function showZeroDetectionNotification() {
   const notification = document.getElementById("realTimeDetection");
