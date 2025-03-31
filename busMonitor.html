@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.3.4(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.3.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3028,16 +3028,33 @@ function cleanupInvalidIds() {
   const now = Date.now();
   const oneHourAgo = now - (60 * 60 * 1000);
   
-  // 檢查 ID 中的時間戳部分是否過舊
+  // 檢查手動生成的ID格式
   [...allDetectedBuses, ...displayedBuses].forEach(bus => {
-    if (bus.uniqueId) {
-      const parts = bus.uniqueId.split(':');
-      if (parts.length >= 4) {
-        const timestamp = parseInt(parts[3]);
-        if (timestamp && timestamp < oneHourAgo) {
-          // 生成新的 ID 替換舊的
-          bus.uniqueId = uuid.v4(); // 使用 uuid 庫生成新的唯一 ID
+    if (bus.uniqueId && typeof bus.uniqueId === 'string') {
+      // 檢查是否是舊格式的ID (包含手動生成的timestamp)
+      if (bus.uniqueId.includes('manual_') && bus.uniqueId.split('_').length >= 3) {
+        try {
+          // 嘗試從ID提取時間戳
+          const timestampPart = bus.uniqueId.split('_')[2];
+          const timestamp = parseInt(timestampPart);
+          
+          // 如果時間戳超過一小時，重新生成ID
+          if (!isNaN(timestamp) && timestamp < oneHourAgo) {
+            console.log(`重新生成過期ID: 舊=${bus.uniqueId}`);
+            bus.uniqueId = generateUniqueId();
+            console.log(`新=${bus.uniqueId}`);
+          }
+        } catch (e) {
+          // 如果解析失敗，也重新生成ID
+          console.log(`ID格式無法解析，重新生成: ${bus.uniqueId}`);
+          bus.uniqueId = generateUniqueId();
         }
+      }
+      
+      // 如果是空ID或格式異常也重新生成
+      if (!bus.uniqueId || bus.uniqueId === 'undefined' || bus.uniqueId === 'null') {
+        console.log(`發現無效ID，重新生成`);
+        bus.uniqueId = generateUniqueId();
       }
     }
   });
@@ -3108,10 +3125,15 @@ function updateAllBusReferences(bus) {
   
   // 創建一個含有關鍵數據的更新對象，只包含需要同步的字段
   const updateData = {
+    uniqueId: bus.uniqueId, // 確保ID同步
     plateNumber: bus.plateNumber,
+    operatorName: bus.operatorName,
+    routeName: bus.routeName,
+    direction: bus.direction,
     selectedMainItem: bus.selectedMainItem,
     selectedOtherItems: bus.selectedOtherItems || [],
-    isInEditing: bus.isInEditing
+    isInEditing: bus.isInEditing,
+    lastUpdated: Date.now() // 添加更新時間戳
   };
   
   // 更新計數器
@@ -3120,7 +3142,7 @@ function updateAllBusReferences(bus) {
   // 1. 更新 displayedBuses
   displayedBuses.forEach((item, index) => {
     if (item.uniqueId === bus.uniqueId) {
-      Object.assign(displayedBuses[index], updateData);
+      displayedBuses[index] = { ...item, ...updateData };
       updatedCount++;
     }
   });
@@ -3128,7 +3150,7 @@ function updateAllBusReferences(bus) {
   // 2. 更新 allDetectedBuses
   allDetectedBuses.forEach((item, index) => {
     if (item.uniqueId === bus.uniqueId) {
-      Object.assign(allDetectedBuses[index], updateData);
+      allDetectedBuses[index] = { ...item, ...updateData };
       updatedCount++;
     }
   });
@@ -3136,7 +3158,7 @@ function updateAllBusReferences(bus) {
   // 3. 更新 editingBuses (跳過當前活躍的車輛)
   editingBuses.forEach((item, index) => {
     if (index !== activeEditingBusIndex && item.uniqueId === bus.uniqueId) {
-      Object.assign(editingBuses[index], updateData);
+      editingBuses[index] = { ...item, ...updateData };
       updatedCount++;
     }
   });
@@ -3148,9 +3170,10 @@ function updateAllBusReferences(bus) {
     // 更新UI
     updateDetectedBusesList();
     updateEditingTabs();
+    return true;
   }
   
-  return updatedCount > 0;
+  return false;
 }
 
 function debounceClick(func, wait = 200) {
@@ -5154,16 +5177,18 @@ function showStatusMessage(message, type, autoHide = false) {
 
 // 顯示載入中
 function showLoading(timeoutMs = 10000) {
-  // 檢查是否距離上次loading時間太短
   const currentTime = Date.now();
+  const loadingElement = document.getElementById("loading-overlay");
+  
+  // 檢查是否距離上次loading時間太短
   if (currentTime - lastLoadingTime < MIN_LOADING_INTERVAL) {
-    console.log("短時間內連續loading，忽略此次請求");
-    return null;
+    console.log("短時間內連續loading，使用快速模式");
+    // 不顯示loading但仍返回元素
+    return loadingElement;
   }
+  
   // 記錄本次loading時間
   lastLoadingTime = currentTime;
-
-  const loadingElement = document.getElementById("loading-overlay");
   loadingElement.classList.remove("hidden");
   
   // 添加自動超時
