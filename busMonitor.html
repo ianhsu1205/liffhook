@@ -1569,7 +1569,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.1.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.1.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2421,13 +2421,13 @@ function selectBusForInput(bus, index, scrollToView = false) {
     console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
     
     // 標記基礎資料來源列表中的車輛為正在編輯
-    if (displayedBuses[originalIndex]) {
+    if (displayedBuses[originalIndex] && displayedBuses[originalIndex].uniqueId === bus.uniqueId) {
       displayedBuses[originalIndex].isInEditing = true;
     }
     
     // 查找並標記全局列表中的對應車輛
-    if (bus.uniqueId) {
-      const globalBus = allDetectedBuses.find(item => item.uniqueId === bus.uniqueId);
+    if (bus.uniqueId ) {
+       const globalBus = allDetectedBuses.find(item => item.uniqueId === bus.uniqueId);
       if (globalBus) {
         globalBus.isInEditing = true;
       }
@@ -3147,6 +3147,7 @@ function removeEditingBus(index) {
 }
 
 // 新增：更新列表中車輛的選中狀態
+// 修改：更新列表中車輛的選中狀態
 function updateBusSelectionInList() {
   // 清除所有選中狀態
   document.querySelectorAll('.simple-bus-item').forEach(item => {
@@ -3155,13 +3156,18 @@ function updateBusSelectionInList() {
   
   // 為所有正在編輯的車輛添加標記
   if (editingBuses.length > 0) {
-    const editingPlateNumbers = editingBuses.map(bus => bus.plateNumber);
+    // 收集所有編輯中車輛的唯一ID
+    const editingBusIds = editingBuses.map(bus => bus.uniqueId);
     
     // 找到對應的列表項並標記為正在編輯
     document.querySelectorAll('.simple-bus-item').forEach(item => {
-      const plateElement = item.querySelector('.bus-plate');
-      if (plateElement && editingPlateNumbers.includes(plateElement.textContent)) {
-        item.classList.add('selected-bus-item');
+      // 嘗試從列表項中獲取車輛的唯一ID
+      const itemIndex = parseInt(item.dataset.index);
+      if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < displayedBuses.length) {
+        const busId = displayedBuses[itemIndex].uniqueId;
+        if (editingBusIds.includes(busId)) {
+          item.classList.add('selected-bus-item');
+        }
       }
     });
   }
@@ -3625,7 +3631,7 @@ function createBusListItem(bus, index) {
   
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
-  
+   busItem.dataset.index = index; // 添加這行，設置索引
   // 如果車輛已在編輯中，添加編輯中樣式
   // 使用唯一ID或多條件匹配檢查是否在編輯中
   const isEditing = bus.isInEditing || editingBuses.some(editingBus => {
