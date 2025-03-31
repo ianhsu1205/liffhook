@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2624,6 +2624,7 @@ inputBox.addEventListener('input', function() {
   
   // 只更新當前編輯的車輛
   updateVehicleByUniqueId(currentBus);
+  
 });
       
       // 替換原有元素
@@ -2894,6 +2895,13 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
    
   // 確保新增按鈕可用
   resetSubmitButtonState();
+
+  if (currentSwipePage >= 0) {
+  const categoryNav = document.querySelector('.category-nav');
+  if (categoryNav) {
+    ensureSingleActiveTab(categoryNav, currentSwipePage);
+  }
+}
 }
 
 // 只更新計數標記的函數
@@ -2932,14 +2940,17 @@ function setupSimpleTabs(navBar, pagesContainer, totalPages) {
   const tabs = navBar.querySelectorAll('.category-tab');
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', function() {
-         // 更新當前索引
-       currentCategoryTabIndex = index;
-      // 更新標籤樣式
-      tabs.forEach((t, i) => {
-        t.classList.toggle('active', i === index);
-        t.style.backgroundColor = i === index ? '#06c755' : '#f8f9fa';
-        t.style.color = i === index ? 'white' : '#333';
+      // 先清除所有標籤的活動狀態
+      tabs.forEach((t) => {
+        t.classList.remove('active');
+        t.style.backgroundColor = '#f8f9fa';
+        t.style.color = '#333';
       });
+      
+      // 然後設置當前標籤為活動狀態
+      this.classList.add('active');
+      this.style.backgroundColor = '#06c755';
+      this.style.color = 'white';
       
       // 顯示對應頁面，隱藏其他頁面
       for (let i = 0; i < totalPages; i++) {
@@ -2950,18 +2961,21 @@ function setupSimpleTabs(navBar, pagesContainer, totalPages) {
       }
     });
   });
-    // 確保初始顯示正確的頁籤為活躍狀態
-  tabs.forEach((tab, i) => {
-    if (i === currentCategoryTabIndex) {
-      tab.classList.add('active');
-      tab.style.backgroundColor = '#06c755';
-      tab.style.color = 'white';
-    } else {
-      tab.classList.remove('active');
-      tab.style.backgroundColor = '#f8f9fa';
-      tab.style.color = '#333';
-    }
-  });
+  
+  // 確保一開始只有一個標籤處於活動狀態
+  if (tabs.length > 0) {
+    tabs.forEach((tab, idx) => {
+      if (idx === 0) {
+        tab.classList.add('active');
+        tab.style.backgroundColor = '#06c755';
+        tab.style.color = 'white';
+      } else {
+        tab.classList.remove('active');
+        tab.style.backgroundColor = '#f8f9fa';
+        tab.style.color = '#333';
+      }
+    });
+  }
 }
 // 3. 新增專門針對單一車輛進行更新的函數
 function updateVehicleByUniqueId(bus) {
@@ -3033,13 +3047,48 @@ function cleanupInvalidIds() {
 }
 // 改進的頁面切換函數
 function swipeToPageImproved(pageIndex) {
+  if (pageIndex < 0 || pageIndex >= totalPages || !pagesContainer || !categoryNav) return;
+  
+  // 更新當前頁碼
   currentSwipePage = pageIndex;
+  
+  // 更新分類標籤的選中狀態 - 確保先清除所有標籤的選中狀態
+  const tabs = categoryNav.querySelectorAll('.category-tab');
+  
+  // 先清除所有標籤的選中狀態
+  tabs.forEach(tab => {
+    tab.classList.remove('active');
+    tab.style.backgroundColor = '#f8f9fa';
+    tab.style.color = '#333';
+  });
+  
+  // 然後只設置目標標籤為選中狀態
+  if (tabs[pageIndex]) {
+    tabs[pageIndex].classList.add('active');
+    tabs[pageIndex].style.backgroundColor = '#06c755';
+    tabs[pageIndex].style.color = 'white';
+  }
+  
+  // 平滑滑動到對應頁面
   pagesContainer.style.transition = 'transform 0.3s ease';
   pagesContainer.style.transform = `translateX(-${pageIndex * 100}%)`;
+}
+
+// 新增：確保只有一個分類標籤處於活動狀態
+function ensureSingleActiveTab(categoryNav, activeIndex) {
+  if (!categoryNav) return;
   
-  // 更新分類標籤的選中狀態
-  categoryNav.querySelectorAll('.category-tab').forEach((tab, idx) => {
-    if (idx === pageIndex) {
+  const tabs = categoryNav.querySelectorAll('.category-tab');
+  if (tabs.length === 0) return;
+  
+  // 確保 activeIndex 有效
+  if (activeIndex < 0 || activeIndex >= tabs.length) {
+    activeIndex = 0; // 默認選中第一個標籤
+  }
+  
+  // 清除所有標籤的活動狀態
+  tabs.forEach((tab, idx) => {
+    if (idx === activeIndex) {
       tab.classList.add('active');
       tab.style.backgroundColor = '#06c755';
       tab.style.color = 'white';
@@ -3049,20 +3098,7 @@ function swipeToPageImproved(pageIndex) {
       tab.style.color = '#333';
     }
   });
-  
-  // 更新指示點（如果有的話）
-  const indicators = document.querySelector('.swipe-indicators');
-  if (indicators) {
-    indicators.querySelectorAll('.swipe-dot').forEach((dot, idx) => {
-      if (idx === pageIndex) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
-    });
-  }
 }
-
 
 // 強化版的車輛數據同步函數
 function updateAllBusReferences(bus) {
