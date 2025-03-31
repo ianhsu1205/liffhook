@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.3.2(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.3.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4143,6 +4143,7 @@ function showDetectedBuses() {
 // 7. 修改submitSelectedBus函數
 // 完全重寫的 submitSelectedBus 函數
 function submitSelectedBus() {
+
   logVehicleState("新增前");
   
   // 清除之前的錯誤訊息
@@ -4213,9 +4214,7 @@ function submitSelectedBus() {
       
       // 關鍵修改: 從所有列表中只移除當前車輛，但保留其他編輯中的車輛
       
-      // 1. 從編輯列表中移除當前車輛
-      editingBuses.splice(currentIndex, 1);
-      
+     
       // 2. 從顯示列表中移除當前車輛，但保留其他編輯中的車輛
       displayedBuses = displayedBuses.filter(item => {
         // 如果唯一ID與當前提交的車輛匹配，則移除
@@ -4247,20 +4246,25 @@ function submitSelectedBus() {
         if (globalItem) globalItem.isInEditing = true;
       });
       
-      // 調整活躍編輯索引
-      if (editingBuses.length === 0) {
-        // 沒有編輯中的車輛了
-        activeEditingBusIndex = -1;
-        isProcessingBus = false;
-        document.getElementById("busInputContainer").classList.add("hidden");
-      } else {
-        // 如果還有其他車輛在編輯中，保持活躍索引或調整為有效值
-        activeEditingBusIndex = Math.min(currentIndex, editingBuses.length - 1);
-        // 確保更新編輯界面
-        updateBusEditingInterface();
-        // 確保編輯區域可見
-        document.getElementById("busInputContainer").classList.remove("hidden");
-      }
+       // 1. 從編輯列表中移除當前車輛 - 重要修改！
+  // 使用 filter 替代 splice，基于唯一ID精確過濾
+  editingBuses = editingBuses.filter(item => item.uniqueId !== uniqueId);
+  console.log("過濾後剩餘編輯車輛:", editingBuses.map(b => ({id: b.uniqueId, plate: b.plateNumber})));
+ 
+  // 調整活躍編輯索引
+        if (editingBuses.length === 0) {
+          // 沒有編輯中的車輛了
+          activeEditingBusIndex = -1;
+          isProcessingBus = false;
+          document.getElementById("busInputContainer").classList.add("hidden");
+        } else {
+          // 如果還有其他車輛在編輯中，總是選擇第一輛車作為活躍車輛
+          activeEditingBusIndex = 0;
+          // 確保更新編輯界面
+          updateBusEditingInterface();
+          // 確保編輯區域可見
+          document.getElementById("busInputContainer").classList.remove("hidden");
+        }
       
       // 檢查並輸出剩餘編輯車輛的狀態
       console.log("提交後剩餘編輯車輛:", editingBuses.map(b => ({id: b.uniqueId, plate: b.plateNumber})));
