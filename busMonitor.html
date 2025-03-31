@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.3.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.3.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2353,6 +2353,8 @@ function addManualBus() {
         closeManualInputModal();
         return;
       }
+    }else{
+      return;
     }
   }
   
@@ -2614,6 +2616,10 @@ function updateBusEditingInterface() {
       
 // 修改輸入事件處理
 inputBox.addEventListener('input', function() {
+   // 轉換為大寫
+      this.value = this.value.toUpperCase();
+       // 格式化車牌號碼
+      formatPlateNumber(this);
   // 獲取當前編輯的車輛
   const currentBus = editingBuses[activeEditingBusIndex];
   
@@ -2627,7 +2633,25 @@ inputBox.addEventListener('input', function() {
   updateVehicleByUniqueId(currentBus);
   
 });
+       // 添加失去焦點時的重複檢查
+    inputBox.addEventListener('blur', function() {
+      // 獲取當前編輯的車輛
+      const currentBus = editingBuses[activeEditingBusIndex];
+      const newPlateNumber = this.value;
       
+      // 檢查是否與其他車輛重複 (排除當前車輛自身)
+      const duplicateVehicle = allDetectedBuses.find(bus => 
+        bus.plateNumber === newPlateNumber && bus.uniqueId !== currentBus.uniqueId
+      );
+      
+      if (duplicateVehicle) {
+        showFloatingNotification(`車號 ${newPlateNumber} 已存在，請使用其他車號`, "error");
+        // 可以選擇恢復原始車牌或讓用戶繼續編輯
+        // this.value = currentBus.originalPlateNumber;
+        // currentBus.plateNumber = currentBus.originalPlateNumber;
+        // updateVehicleByUniqueId(currentBus);
+      }
+    });
       // 替換原有元素
       inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
            // 現在輸入框已經設定好，保存引用
@@ -3820,8 +3844,7 @@ async function detectBuses(isAutoDetection = false) {
         if (isGroupCompany(bus.operatorName)) {
           // 檢查是否已存在相同車牌號的車輛（在全局列表中）
           const existingBusIndex = allDetectedBuses.findIndex(item => 
-            item.plateNumber === bus.plateNumber && item.operatorName === bus.operatorName
-          );
+            item.plateNumber === bus.plateNumber);
           
           if (existingBusIndex === -1) {
             // 不存在，添加到全局列表
@@ -4299,9 +4322,18 @@ function submitSelectedBus() {
   const uniqueId = bus.uniqueId;
   const currentIndex = activeEditingBusIndex; // 保存當前索引
   
+    // 添加：檢查是否與其他車輛重複 (排除當前車輛自身)
+  const duplicateVehicle = allDetectedBuses.find(vehicle => 
+    vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
+  );
+    if (duplicateVehicle) {
+    showFloatingNotification(`車號 ${plateNumber} 已存在於列表中，請修改車號`, "error");
+    return;
+  }
   // 深拷貝當前編輯中的所有車輛，用於可能的還原和狀態追蹤
   const allBusesCopy = JSON.parse(JSON.stringify(editingBuses));
   
+
   // 確保選擇了主要項目
   if (!bus.selectedMainItem) {
     showFloatingNotification("請選擇重點查核結果", "error");
