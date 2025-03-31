@@ -1569,7 +1569,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.1.9(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3090,62 +3090,71 @@ function confirmCancelEditing(index) {
   confirmMessage.textContent = "是否取消對此車輛的編輯？";
   confirmModal.style.display = "block";
   
-  // 存儲要刪除的索引，供確認按鈕使用
-  confirmYes.dataset.index = index;
-  
-  // 清除之前的事件監聽器
+  // 移除之前所有的事件監聽器
   const newConfirmYes = confirmYes.cloneNode(true);
   const newConfirmNo = confirmNo.cloneNode(true);
   confirmYes.parentNode.replaceChild(newConfirmYes, confirmYes);
   confirmNo.parentNode.replaceChild(newConfirmNo, confirmNo);
   
-  // 添加新的事件監聽器
+  // 為新按鈕添加明確的事件處理程序
   newConfirmYes.addEventListener("click", function() {
-    const indexToRemove = parseInt(this.dataset.index);
-        // 清除被取消編輯車輛的狀態
-    const busToRemove = editingBuses[indexToRemove];
-    if (busToRemove && busToRemove.uniqueId) {
-      // 在所有數據源中清除編輯標記
-      [displayedBuses, allDetectedBuses].forEach(busArray => {
-        const foundBus = busArray.find(b => b.uniqueId === busToRemove.uniqueId);
-        if (foundBus) {
-          foundBus.isInEditing = false;
-        }
-      });
-    }
-    removeEditingBus(indexToRemove);
+    console.log("確認取消編輯，索引:", index);
+    
+    // 明確調用 removeEditingBus 函數
+    removeEditingBus(index);
+    
+    // 隱藏確認對話框
     confirmModal.style.display = "none";
+    
+    // 更新 UI
+    updateDetectedBusesList();
+    updateBusSelectionInList();
   });
   
   newConfirmNo.addEventListener("click", function() {
+    console.log("取消操作");
     confirmModal.style.display = "none";
   });
 }
+
 // 修改 removeEditingBus 函數
 function removeEditingBus(index) {
-  // 保存刪除前的信息
-  const removedPlateNumber = editingBuses[index]?.plateNumber;
-    if (removedBus && removedBus.uniqueId) {
-    // 在 displayedBuses 中找到並清除編輯狀態
-    const displayBus = displayedBuses.find(bus => bus.uniqueId === removedBus.uniqueId);
-    if (displayBus) {
-      displayBus.isInEditing = false;
-    }
-    
-    // 在 allDetectedBuses 中找到並清除編輯狀態
-    const globalBus = allDetectedBuses.find(bus => bus.uniqueId === removedBus.uniqueId);
-    if (globalBus) {
-      globalBus.isInEditing = false;
-    }
+  console.log("開始移除編輯中車輛，索引:", index);
+  
+  // 檢查索引是否有效
+  if (index < 0 || index >= editingBuses.length) {
+    console.error("嘗試移除無效索引的車輛:", index);
+    return;
   }
+  
+  // 保存刪除前的信息
+  const removedBus = editingBuses[index];
+  console.log("將要移除的車輛:", removedBus);
+  
+  // 在所有相關數據源中清除編輯標記
+  if (removedBus && removedBus.uniqueId) {
+    displayedBuses.forEach(bus => {
+      if (bus.uniqueId === removedBus.uniqueId) {
+        bus.isInEditing = false;
+      }
+    });
+    
+    allDetectedBuses.forEach(bus => {
+      if (bus.uniqueId === removedBus.uniqueId) {
+        bus.isInEditing = false;
+      }
+    });
+  }
+  
   // 移除指定索引的編輯車輛
   editingBuses.splice(index, 1);
+  console.log("移除後編輯車輛列表:", editingBuses);
   
   // 調整活躍編輯索引
   if (editingBuses.length === 0) {
     // 沒有編輯中的車輛了
     activeEditingBusIndex = -1;
-    isProcessingBus = false; // 關鍵修改：重置處理狀態
+    isProcessingBus = false; // 重置處理狀態
     document.getElementById("busInputContainer").classList.add("hidden");
     
     // 隱藏標籤容器
@@ -3161,12 +3170,14 @@ function removeEditingBus(index) {
     }
   }
   
-  // 更新列表中的選中狀態 - 不傳入被移除的車牌號，讓所有編輯中的車輛都顯示編輯標記
-  updateBusSelectionInList();
-  
-  // 更新標籤和編輯界面
+  // 更新標籤和編輯界面 - 這兩行是必要的！
   updateEditingTabs();
   updateBusEditingInterface();
+  
+  // 更新列表中的選中狀態
+  updateBusSelectionInList();
+  
+  console.log("移除編輯中車輛完成，當前活躍索引:", activeEditingBusIndex);
 }
 
 // 新增：更新列表中車輛的選中狀態
