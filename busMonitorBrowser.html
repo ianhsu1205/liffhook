@@ -597,7 +597,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">首都集團查核平台-v1.0.0.3</div>
+      <div class="line-brand">首都集團查核平台-v1.0.0.4</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -1251,6 +1251,7 @@
       }
       // 保存修改的記錄
       // 修改 saveEditedRecord 函數，區分正向項目和負向項目
+      // 修改 saveEditedRecord 函數
       async function saveEditedRecord() {
         try {
           if (!currentEditRecordId) {
@@ -1319,10 +1320,14 @@
           const finalNegativeItems = [...negativeItems, ...unclassifiedItems]
 
           // 構建更新數據，分別填入 otherItem 和 goodItem
+          // 即使為空陣列，也要確保傳遞空字串，而不是undefined
           const updateData = {
             mainItem: selectedMainItem.dataset.value,
-            otherItem: finalNegativeItems.join(", "), // 負向項目和未分類項目
-            goodItem: positiveItems.join(", "), // 正向項目
+            otherItem:
+              finalNegativeItems.length > 0
+                ? finalNegativeItems.join(", ")
+                : "", // 負向項目和未分類項目
+            goodItem: positiveItems.length > 0 ? positiveItems.join(", ") : "", // 正向項目
           }
 
           showLoading()
