@@ -1600,7 +1600,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.2.5(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.2.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2541,6 +2541,10 @@ function updateBusEditingInterface() {
   // 獲取當前活躍的編輯車輛
   const bus = editingBuses[activeEditingBusIndex];
   
+    if (!bus) {
+    console.error("活躍索引無效，無法找到車輛:", activeEditingBusIndex);
+    return;
+  }
   // 更新編輯標籤列
   updateEditingTabs();
   
@@ -3132,6 +3136,7 @@ function updateEditingTabs() {
     if (tabsContainer) tabsContainer.style.display = "none";
     return;
   }
+  
   // 如果有編輯中的車輛，但沒有標籤容器，創建它
   if (!tabsContainer) {
     tabsContainer = document.createElement("div");
@@ -3141,6 +3146,7 @@ function updateEditingTabs() {
     const inputContainer = document.getElementById("busInputContainer");
     inputContainer.parentNode.insertBefore(tabsContainer, inputContainer);
   }
+  
   // 確保標籤容器可見
   tabsContainer.style.display = "flex";
   
@@ -3155,25 +3161,19 @@ function updateEditingTabs() {
       tab.classList.add("active");
     }
     
-    // 標籤顯示車號和公司簡稱
-    let companyAbbr = '';
-    if (bus.operatorName) {
-      companyAbbr = bus.operatorName.replace(/客運$/, "");
-      companyAbbr = companyAbbr.length > 2 ? companyAbbr.substring(0, 2) : companyAbbr;
-    }
-    
     // 計算已選項目數量
     let selectedItemsCount = 0;
     if (bus.selectedMainItem) selectedItemsCount++;
     if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
       selectedItemsCount += bus.selectedOtherItems.length;
     }
-        tab.innerHTML = `
+    
+    tab.innerHTML = `
       <span>${bus.plateNumber || ''}</span>
-
       <span class="tab-close" data-index="${index}">×</span>
     `;
-        // 如果有選項，添加計數標記
+    
+    // 如果有選項，添加計數標記
     if (selectedItemsCount > 0) {
       const countSpan = document.createElement("span");
       countSpan.className = "tab-item-count";
@@ -3196,25 +3196,37 @@ function updateEditingTabs() {
       const closeBtn = tab.querySelector(".tab-close");
       tab.insertBefore(countSpan, closeBtn);
     }
-// 點擊標籤切換到對應的編輯視圖
-tab.addEventListener("click", function(e) {
-  // 忽略關閉按鈕的點擊
-  if (e.target.classList.contains("tab-close")) return;
-  
-  activeEditingBusIndex = index;
-  
-  // 確保編輯區域是可見的
-  document.getElementById("busInputContainer").classList.remove("hidden");
-  
-  // 更新編輯界面
-  updateItemCountBadges();
-
-    // 添加：滾動到編輯區域
-  scrollToEditingArea();
-});
-  
+    
+    // 為標籤設置明確的索引屬性，幫助調試
+    tab.dataset.busIndex = index;
+    
+    // 修改點擊事件處理邏輯，使用閉包捕獲正確的索引
+    tab.addEventListener("click", function(e) {
+      // 忽略關閉按鈕的點擊
+      if (e.target.classList.contains("tab-close")) return;
+      
+      console.log("點擊標籤，切換到索引:", index);
+      
+      // 明確設置活躍索引
+      window.activeEditingBusIndex = index;
+      
+      // 確保編輯區域是可見的
+      document.getElementById("busInputContainer").classList.remove("hidden");
+      
+      // 更新標籤樣式
+      document.querySelectorAll('.editing-tab').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+      });
+      
+      // 重新載入編輯界面
+      updateBusEditingInterface();
+      
+      // 滾動到編輯區域
+      scrollToEditingArea();
+    });
+    
     tabsContainer.appendChild(tab);
-});
+  });
 
   // 為關閉按鈕添加事件監聽
   const closeButtons = tabsContainer.querySelectorAll(".tab-close");
@@ -3226,6 +3238,7 @@ tab.addEventListener("click", function(e) {
       confirmCancelEditing(index);
     });
   });
+  
   if (editingBuses.length > 0) {
     setTimeout(() => {
       scrollToActiveTab();
