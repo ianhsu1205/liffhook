@@ -1432,6 +1432,49 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   margin-left: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+/* 位置權限相關樣式 */
+.permission-button {
+  margin-top: 10px;
+  padding: 8px 15px;
+  background-color: #06c755;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.permission-button:hover {
+  background-color: #04a73e;
+}
+
+.error-list {
+  text-align: left;
+  margin-left: 20px;
+  margin-top: 5px;
+  font-size: 14px;
+  color: #721c24;
+}
+
+.error-list li {
+  margin-bottom: 4px;
+}
+
+#retryLocation {
+  margin-top: 10px;
+  padding: 8px 15px;
+  background-color: #06c755;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+#retryLocation:hover {
+  background-color: #04a73e;
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1601,7 +1644,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.3.9(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1713,6 +1756,27 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func.apply(this, arguments), wait);
   };
 }
+
+// 請求位置權限的專用函數
+function requestLocationPermission() {
+  showStatusMessage("為了提供精確服務，請允許位置權限", "info", true);
+  
+  // 添加一個明顯的按鈕讓用戶主動觸發位置請求
+  const permissionButton = document.createElement('button');
+  permissionButton.textContent = "授予位置權限";
+  permissionButton.className = "permission-button";
+  permissionButton.style.cssText = "margin-top: 10px; padding: 8px 15px; background-color: #06c755; color: white; border: none; border-radius: 4px; font-weight: 500;";
+  permissionButton.onclick = () => {
+    getCurrentPosition(false);
+    const statusElement = document.getElementById("statusMessage");
+    if (statusElement.contains(permissionButton)) {
+      statusElement.removeChild(permissionButton);
+    }
+  };
+  
+  document.getElementById("statusMessage").appendChild(permissionButton);
+}
+
 // 創建防抖版本的跑馬燈初始化函數
 const debouncedInitMarquees = debounce(initializeMarquees, 100);
 
@@ -2075,30 +2139,8 @@ function setupAutoDetectHealthCheck() {
     }
   });
 }
-// 添加完整的頁面初始化函數，包含錯誤處理和回調
-// 修改頁面初始化函數，使用URL參數而非LIFF登錄
+// 修改 initializePage 函數中的位置權限處理部分
 async function initializePage() {
-  if (navigator.permissions) {
-  navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
-    if (result.state === 'granted') {
-      console.log('已有位置權限');
-      startHighAccuracyLocationWatching();
-    } else if (result.state === 'prompt') {
-      console.log('需要顯式請求位置權限');
-      // 顯式請求位置以觸發權限請求
-      navigator.geolocation.getCurrentPosition(
-        () => { console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
-        (error) => { console.error('位置權限請求失敗:', error); },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else if (result.state === 'denied') {
-      showStatusMessage('請在瀏覽器設置中開啟位置權限以獲取準確位置', 'error');
-    }
-  });
-} else {
-  // 瀏覽器不支持permissions API，直接請求位置
-  startHighAccuracyLocationWatching();
-}
   try {
     showLoading();
     console.log("初始化頁面...");
@@ -2111,12 +2153,14 @@ async function initializePage() {
     // 清理過期新增記錄
     cleanupExpiredSubmissions();
     
-    // 添加這行：清理過期的唯一ID
-     cleanupInvalidIds();
+    // 清理過期的唯一ID
+    cleanupInvalidIds();
+    
     // 從URL獲取userId
     //const urlParams = new URLSearchParams(window.location.search);
     //const userId = urlParams.get('userId');
     const userId="U7847e47596af60b761523637f41d19c9";
+    
     if (userId) {
       document.getElementById("userId").value = userId;
       console.log("從URL獲取到userId:", userId);
@@ -2134,8 +2178,41 @@ async function initializePage() {
       // 獲取其他項目列表
       await fetchOtherItems();
       
-      // 立即啟動高精度位置監控
-      startHighAccuracyLocationWatching();
+      // 改進的位置權限請求
+      if (navigator.permissions) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+          
+          if (permissionStatus.state === 'granted') {
+            console.log('已有位置權限');
+            startHighAccuracyLocationWatching();
+          } else if (permissionStatus.state === 'prompt') {
+            console.log('需要顯式請求位置權限');
+            // 顯示定制的權限請求UI
+            requestLocationPermission();
+          } else if (permissionStatus.state === 'denied') {
+            console.log('位置權限已被拒絕');
+            // 顯示如何開啟權限的指導
+            handleLocationError({ code: 1 }); // 1是PERMISSION_DENIED
+          }
+          
+          // 監聽權限狀態變化
+          permissionStatus.onchange = function() {
+            if (this.state === 'granted') {
+              console.log('用戶已授予位置權限');
+              startHighAccuracyLocationWatching();
+            }
+          };
+        } catch (permError) {
+          console.error('檢查權限失敗:', permError);
+          // 檢查設備類型並提供特定指導
+          checkDeviceAndRequestPermission();
+        }
+      } else {
+        console.log('瀏覽器不支持Permissions API，直接請求位置');
+        // 檢查設備類型並提供特定指導
+        checkDeviceAndRequestPermission();
+      }
       
       // 設置自動偵測健康檢查
       setupAutoDetectHealthCheck();
@@ -2155,9 +2232,10 @@ async function initializePage() {
     showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
     hideLoading();
   }
+  
   document.addEventListener('click', function() {
-  requestWakeLock();
-}, { once: true });
+    requestWakeLock();
+  }, { once: true });
 
   // 添加在函數最後
   setupBackButtonHandler();
@@ -2186,6 +2264,7 @@ async function requestWakeLock() {
   }
 }
 // 高精度位置監視函數
+// 高精度位置監視函數 - 改進版
 function startHighAccuracyLocationWatching(silent = false) {
   // 先停止現有的監視
   stopLocationWatching();
@@ -2209,6 +2288,7 @@ function startHighAccuracyLocationWatching(silent = false) {
     maximumAge: 0             // 不使用緩存的位置
   };
   
+  console.log("開始監聽高精度位置...");
   
   window.watchId = navigator.geolocation.watchPosition(
     (position) => {
@@ -2229,11 +2309,54 @@ function startHighAccuracyLocationWatching(silent = false) {
     (error) => {
       console.log("位置監聽錯誤:", error);
       if (!silent) {
-        showStatusMessage("暫時無法獲取位置，請至室外或開啟位置權限", "info");
+        // 使用改進的錯誤處理
+        if (error.code === error.PERMISSION_DENIED) {
+          handleLocationError(error);
+        } else {
+          showStatusMessage("暫時無法獲取位置，請至室外或開啟位置權限", "info");
+        }
       }
       
       // 錯誤時也更新位置精度指示器
       updateLocationAccuracyIndicator(999);
+      
+      // 如果是權限拒絕，停止嘗試監聽位置
+      if (error.code === error.PERMISSION_DENIED) {
+        stopLocationWatching();
+      } else {
+        // 其他錯誤可能是暫時的，嘗試使用標準精度
+        if (window.watchId) {
+          navigator.geolocation.clearWatch(window.watchId);
+        }
+        
+        // 使用標準精度重試
+        window.watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            console.log("位置已更新（標準精度）");
+            currentLatitude = position.coords.latitude;
+            currentLongitude = position.coords.longitude;
+            
+            // 記錄位置精度
+            const accuracy = position.coords.accuracy;
+            console.log("位置精度:", accuracy, "公尺 (標準精度)");
+            
+            // 更新位置精度指示器
+            updateLocationAccuracyIndicator(accuracy);
+            
+            // 保存位置
+            savePosition(currentLatitude, currentLongitude);
+          },
+          (fallbackError) => {
+            console.log("標準精度位置監聽也失敗:", fallbackError);
+            updateLocationAccuracyIndicator(999);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 30000
+          }
+        );
+      }
     },
     geoOptions
   );
@@ -4844,32 +4967,122 @@ function showFloatingNotification(message, type) {
     notification.classList.remove("show");
   }, displayTime);
 }
-// 修改定位函數，提高精度
+function checkDeviceAndRequestPermission() {
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const android = /Android/.test(navigator.userAgent);
+  
+  if (iOS) {
+    // iOS設備需要特殊處理
+    showStatusMessage("iOS設備需要在「設定->隱私->定位服務」中允許網頁使用定位", "info", true);
+  } else if (android) {
+    // Android設備指導
+    showStatusMessage("請確保已在瀏覽器設置中允許位置權限", "info", true);
+  }
+  
+  // 繼續請求位置
+  getCurrentPosition(false);
+}
+// 處理位置錯誤的專用函數
+function handleLocationError(error) {
+  const errorDiv = document.createElement('div');
+  
+  switch(error.code) {
+    case error.PERMISSION_DENIED:
+      errorDiv.innerHTML = `
+        <p>位置權限被拒絕。請按照以下步驟開啟：</p>
+        <ul style="text-align: left; margin-left: 20px;">
+          <li>iOS設備：設定 > 隱私 > 定位服務 > Safari > 允許</li>
+          <li>Android設備：設定 > 應用程式 > 瀏覽器 > 權限 > 位置</li>
+        </ul>
+        <button id="retryLocation" style="margin-top: 10px; padding: 8px 15px; background-color: #06c755; color: white; border: none; border-radius: 4px;">重試獲取位置</button>
+      `;
+      break;
+    case error.POSITION_UNAVAILABLE:
+      errorDiv.innerHTML = `
+        <p>無法獲取位置信息。可能原因：</p>
+        <ul style="text-align: left; margin-left: 20px;">
+          <li>GPS信號不佳，請移至室外開闊處</li>
+          <li>建議開啟手機的高精確度定位模式</li>
+        </ul>
+        <button id="retryLocation" style="margin-top: 10px; padding: 8px 15px; background-color: #06c755; color: white; border: none; border-radius: 4px;">重試獲取位置</button>
+      `;
+      break;
+    case error.TIMEOUT:
+      errorDiv.innerHTML = `
+        <p>位置請求超時。可能原因：</p>
+        <ul style="text-align: left; margin-left: 20px;">
+          <li>網絡連接不穩定</li>
+          <li>GPS信號弱</li>
+        </ul>
+        <button id="retryLocation" style="margin-top: 10px; padding: 8px 15px; background-color: #06c755; color: white; border: none; border-radius: 4px;">重試獲取位置</button>
+      `;
+      break;
+  }
+  
+  const statusMsg = showStatusMessage("位置獲取失敗", "error");
+  statusMsg.appendChild(errorDiv);
+  
+  // 添加點擊事件監聽
+  setTimeout(() => {
+    const retryButton = document.getElementById("retryLocation");
+    if (retryButton) {
+      retryButton.addEventListener("click", () => {
+        getCurrentPosition(false);
+      });
+    }
+  }, 100);
+}
+// 修改現有的 getCurrentPosition 函數
 async function getCurrentPosition(silent = false) {
   showLoading();
   console.log("開始獲取高精度位置...");
   
-  let retryCount = 0;
-  const maxRetries = 3;
-
   try {
-    while (retryCount < maxRetries && navigator.geolocation) {
-      try {
-        // 清除之前的位置監視，避免衝突
-        if (window.watchId) {
-          navigator.geolocation.clearWatch(window.watchId);
-          window.watchId = null;
-        }
+    if (!navigator.geolocation) {
+      throw new Error("瀏覽器不支持地理位置功能");
+    }
+    
+    // 先嘗試使用高精度定位
+    try {
+      const position = await new Promise((resolve, reject) => {
+        const highAccuracyOptions = {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        };
         
+        navigator.geolocation.getCurrentPosition(resolve, reject, highAccuracyOptions);
+      });
+      
+      console.log("高精度位置獲取成功");
+      currentLatitude = position.coords.latitude;
+      currentLongitude = position.coords.longitude;
+      savePosition(currentLatitude, currentLongitude);
+      
+      // 更新位置精度指示器
+      updateLocationAccuracyIndicator(position.coords.accuracy);
+      
+      // 重新啟動位置監視
+      startHighAccuracyLocationWatching(true);
+      
+      hideLoading();
+      return true;
+    } catch (highAccuracyError) {
+      console.log("高精度位置獲取失敗，嘗試標準精度...");
+      
+      // 如果高精度獲取失敗，嘗試使用標準精度
+      try {
         const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, // 高精度模式
-            timeout: 20000,           // 更長的超時時間(20秒)
-            maximumAge: 0             // 不使用緩存位置
-          });
+          const standardOptions = {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 30000
+          };
+          
+          navigator.geolocation.getCurrentPosition(resolve, reject, standardOptions);
         });
-
-        console.log("高精度位置獲取成功");
+        
+        console.log("標準精度位置獲取成功");
         currentLatitude = position.coords.latitude;
         currentLongitude = position.coords.longitude;
         savePosition(currentLatitude, currentLongitude);
@@ -4882,41 +5095,11 @@ async function getCurrentPosition(silent = false) {
         
         hideLoading();
         return true;
-      } catch (geoError) {
-        console.error("位置API錯誤:", geoError.code, geoError.message);
-        retryCount++;
-        
-        if (retryCount < maxRetries) {
-          console.log(`位置獲取失敗，進行第${retryCount}次重試`);
-          // 延遲3秒後重試，給予更多時間獲取GPS信號
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        } else {
-          console.log("達到最大重試次數");
-          break;
-        }
+      } catch (standardError) {
+        console.error("標準精度位置也獲取失敗:", standardError);
+        throw standardError; // 拋出錯誤，進入下面的錯誤處理
       }
     }
-
- if (loadLastPosition()) {
-      console.log("使用本地緩存位置作為後備");
-      hideLoading();
-      return true;
-    }
-    // 3. 如果所有嘗試都失敗，使用默認位置作為後備
-    console.log("使用預設位置作為後備");
-    currentLatitude = 25.033; // 台北市中心位置
-    currentLongitude = 121.565;
-    savePosition(currentLatitude, currentLongitude);
-    
-    // 更新位置精度指示器為最低精度
-    updateLocationAccuracyIndicator(999);
-    
-    hideLoading();
-
-    if (!silent) {
-      showStatusMessage("無法準確獲取位置，請確認位置服務已開啟", "warning", true);
-    }
-    return true;
   } catch (error) {
     console.error("位置獲取完全失敗:", error);
     hideLoading();
@@ -4924,9 +5107,22 @@ async function getCurrentPosition(silent = false) {
     // 更新位置精度指示器為出錯狀態
     updateLocationAccuracyIndicator(999);
     
+    // 嘗試加載上次保存的位置
+    if (loadLastPosition()) {
+      console.log("使用本地緩存位置作為後備");
+      if (!silent) {
+        showStatusMessage("無法獲取最新位置，使用上次已知位置", "warning", true);
+      }
+      return true;
+    }
+    
+    // 如果不是靜默模式，顯示詳細錯誤處理
     if (!silent) {
+      handleLocationError(error);
+    } else {
       showStatusMessage("無法獲取位置，請開啟位置權限或至室外", "error", true);
     }
+    
     return false;
   }
 }
