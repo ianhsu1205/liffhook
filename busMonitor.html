@@ -1275,7 +1275,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   gap: 8px;
   overflow-x: auto;
   padding: 5px 0;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   scrollbar-width: none; /* 隱藏 Firefox 滾動條 */
   -ms-overflow-style: none; /* 隱藏 IE/Edge 滾動條 */
   -webkit-overflow-scrolling: touch; /* 提高滾動流暢度 */
@@ -1308,16 +1308,18 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   width: 100%;
   overflow: hidden;
   position: relative;
+  margin-bottom: 8px;
 }
 
 .swipe-wrapper {
+  width: 100%;
   display: flex;
   transition: transform 0.3s ease;
 }
 
 .swipe-page {
-  min-width: 100%;
   flex-shrink: 0;
+  min-height: 150px;
 }
 
 /* 滑動指示器樣式 */
@@ -1325,7 +1327,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-top: 10px;
+  margin: 8px 0;
 }
 
 .swipe-dot {
@@ -1644,7 +1646,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.0(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.5.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2888,7 +2890,7 @@ try {
   // 創建分類導航標籤
   const categoryNav = document.createElement("div");
   categoryNav.className = "category-nav";
-  categoryNav.style.cssText = "display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; margin-bottom: 8px;";
+  
 
   // 創建分類標籤
   categories.forEach((category, idx) => {
@@ -2905,41 +2907,50 @@ try {
   contentContainer.style.cssText = "position: relative; width: 100%; overflow: hidden;";
 
   // 創建滑動面板
-  const pagesContainer = document.createElement("div");
-  pagesContainer.className = "category-pages";
-  pagesContainer.style.cssText = "display: flex; width: 100%; transition: transform 0.3s ease;";
+  // 創建滑動容器
+const pagesContainer = document.createElement("div");
+pagesContainer.className = "swipe-wrapper";
+pagesContainer.style.display = "flex";
+pagesContainer.style.width = `${categories.length * 100}%`;
 
   // 為每個分類創建一個面板
   categories.forEach((category, idx) => {
     // 創建分類面板
-    const pageDiv = document.createElement("div");
-    pageDiv.className = "category-page";
-    pageDiv.style.cssText = "flex: 0 0 100%; width: 100%; min-height: 120px; padding: 5px; box-sizing: border-box;";
+  const pageDiv = document.createElement("div");
+  pageDiv.className = "swipe-page";
+  pageDiv.style.width = `${100 / categories.length}%`;
+  pageDiv.style.flex = `0 0 ${100 / categories.length}%`;
+  pageDiv.style.overflowY = "auto";
+  pageDiv.style.padding = "5px";
+  pageDiv.style.boxSizing = "border-box";
     
-    // 創建內容包裹容器
-    const contentWrapper = document.createElement("div");
-    contentWrapper.style.cssText = "display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 5px 0;";
-    contentWrapper.style.position = "relative";
-contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
-    // 篩選該分類的項目
-    const categoryItems = category === "未分類" 
-      ? otherItems.filter(item => !item.catolog)
-      : otherItems.filter(item => item.catolog === category);
-    // 添加这段：按 itemType 从小到大排序
-categoryItems.sort((a, b) => {
-  // 确保有 itemType 值，如果没有则设为默认值 0
-  const typeA = a.itemType !== undefined ? Number(a.itemType) : 0;
-  const typeB = b.itemType !== undefined ? Number(b.itemType) : 0;
-  return typeA - typeB;  // 从小到大排序
+   // 創建內容包裹容器
+  const contentWrapper = document.createElement("div");
+  contentWrapper.style.display = "flex";
+  contentWrapper.style.flexWrap = "wrap";
+  contentWrapper.style.gap = "8px";
+  contentWrapper.style.maxHeight = "180px";
+  contentWrapper.style.overflowY = "auto";
+  // 篩選該分類的項目
+  const categoryItems = category === "未分類" 
+    ? otherItems.filter(item => !item.catolog)
+    : otherItems.filter(item => item.catolog === category);
+  
+  // 按 itemType 從小到大排序
+  categoryItems.sort((a, b) => {
+    // 確保有 itemType 值，如果沒有則設為默認值 0
+    const typeA = a.itemType !== undefined ? Number(a.itemType) : 0;
+    const typeB = b.itemType !== undefined ? Number(b.itemType) : 0;
+    return typeA - typeB;  // 從小到大排序
 });
     // 創建項目按鈕
     categoryItems.forEach(item => {
       if (!item || !item.itemName) return; // 跳過無效項目
       
-      const itemBtn = document.createElement("div");
-      itemBtn.className = "quick-other-item";
-      itemBtn.style.cssText = "background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; margin: 0; flex: 0 0 auto; max-width: calc(50% - 8px); white-space: normal;";
-      
+        const itemBtn = document.createElement("div");
+    itemBtn.className = "quick-other-item";
+    itemBtn.style.flex = "0 0 calc(50% - 8px)";
+    itemBtn.style.maxWidth = "calc(50% - 8px)";
       // 根據項目類型添加樣式
       if (item.itemType === 1) {
         itemBtn.classList.add("positive-item");
@@ -2959,8 +2970,19 @@ categoryItems.sort((a, b) => {
       // 添加點擊事件
   // 使用更穩定的事件處理方式
 itemBtn.onclick = function() {
+  // 如果正在滑動，忽略點擊
+  if (isCurrentlySwiping()) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  
+  // 防止點擊事件觸發父元素的滑動
+  e.stopPropagation();
+  
   // 切換選中狀態
   this.classList.toggle("selected");
+
   
   // 確保陣列已初始化
   if (!bus.selectedOtherItems) bus.selectedOtherItems = [];
@@ -2983,35 +3005,41 @@ itemBtn.onclick = function() {
    updateItemCountBadges(bus);
   updateEditingTabs();
 };
-        // 專門為觸屏設備添加觸摸結束事件
-  itemBtn.addEventListener('touchend', function(e) {
-    // 停止事件傳播，避免觸發container的touchend
-    e.stopPropagation();
-  }, { passive: true });
-      contentWrapper.appendChild(itemBtn);
-    });
-    
-    // 如果沒有項目，顯示提示訊息
-    if (categoryItems.length === 0) {
-      const noItemsMsg = document.createElement("div");
-      noItemsMsg.textContent = "此分類無可用選項";
-      noItemsMsg.style.padding = "10px";
-      noItemsMsg.style.color = "#666";
-      contentWrapper.appendChild(noItemsMsg);
-    }
+    contentWrapper.appendChild(itemBtn);
+   // 如果沒有項目，顯示提示訊息
+  if (categoryItems.length === 0) {
+    const noItemsMsg = document.createElement("div");
+    noItemsMsg.textContent = "此分類無可用選項";
+    noItemsMsg.style.padding = "10px";
+    noItemsMsg.style.color = "#666";
+    contentWrapper.appendChild(noItemsMsg);
+  }
+  });
     
     pageDiv.appendChild(contentWrapper);
     pagesContainer.appendChild(pageDiv);
   });
+// 添加滑動指示器
+const swipeIndicators = document.createElement("div");
+swipeIndicators.className = "swipe-indicators";
+swipeIndicators.style.display = "flex";
+swipeIndicators.style.justifyContent = "center";
+swipeIndicators.style.gap = "6px";
+swipeIndicators.style.marginTop = "8px";
 
-  contentContainer.appendChild(pagesContainer);
-
-  // 添加到主容器
+categories.forEach((_, idx) => {
+  const dot = document.createElement("div");
+  dot.className = "swipe-dot" + (idx === 0 ? " active" : "");
+  swipeIndicators.appendChild(dot);
+});
   otherItemsContainer.appendChild(categoryNav);
-  otherItemsContainer.appendChild(contentContainer);
+    otherItemsContainer.appendChild(contentContainer);
+  contentContainer.appendChild(swipeIndicators);
 
-  // 設置滑動功能
-setupSimpleTabs(categoryNav, pagesContainer, categories.length);
+// 設置滑動功能
+setTimeout(() => {
+  window.categorySwipe = setupSwipeNavigation(pagesContainer, categoryNav, categories.length);
+}, 100);
 
 // 修改分類標籤點擊事件
 categoryNav.querySelectorAll('.category-tab').forEach(tab => {
@@ -5932,6 +5960,217 @@ function logItemClassification(itemName, foundItem) {
     console.log(`項目 "${itemName}" 的 itemType 值 ${foundItem.itemType} 不是 1 或 -1`);
     return null;
   }
+}
+// 修改 updateCategoryPageDisplay 函數來更新指示器
+function updateCategoryPageDisplay(pageIndex) {
+  // 更新標籤狀態
+  const tabs = navBar.querySelectorAll('.category-tab');
+  tabs.forEach((tab, index) => {
+    if (index === pageIndex) {
+      tab.classList.add('active');
+      tab.style.backgroundColor = '#06c755';
+      tab.style.color = 'white';
+    } else {
+      tab.classList.remove('active');
+      tab.style.backgroundColor = '#f8f9fa';
+      tab.style.color = '#333';
+    }
+  });
+  
+  // 計算位移距離
+  const pageWidth = container.offsetWidth;
+  const translateX = -pageIndex * pageWidth;
+  
+  // 設置過渡動畫並移動到指定頁面
+  container.style.transition = 'transform 0.3s ease';
+  container.style.transform = `translateX(${translateX}px)`;
+  
+  // 更新滑動指示器
+  updateSwipeIndicators(pageIndex);
+}
+// 滑動功能設置
+function setupSwipeNavigation(container, navBar, totalPages) {
+  if (!container || !navBar || totalPages <= 1) return;
+  
+  let currentPage = 0;
+  let startX = null;
+  let currentX = null;
+  let isScrollingVertical = false;
+  
+  // 設置初始頁面
+  updateCategoryPageDisplay(0);
+  
+  // 觸摸開始
+container.addEventListener('touchstart', function(e) {
+  // 如果點擊在項目元素上，不啟動滑動
+  if (e.target.closest('.quick-other-item')) {
+    return;
+  }
+  
+  isSwipingCategory = false; // 初始化為非滑動狀態
+  startX = e.touches[0].clientX;
+  const startY = e.touches[0].clientY;
+  currentX = startX;
+  isScrollingVertical = false;
+  
+  // 移除過渡效果，確保滑動流暢
+  container.style.transition = 'none';
+}, { passive: true });
+  
+  // 觸摸移動
+  container.addEventListener('touchmove', function(e) {
+    if (startX === null) return;
+        const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const diffX = startX - touchX;
+    const diffY = startY - touchY;
+      if (moveDistance > 10) { // 超過10px視為滑動
+    isSwipingCategory = true;
+  }
+    // 如果點擊在項目元素上，不處理滑動
+    if (e.target.closest('.quick-other-item')) {
+      return;
+    }
+    
+
+    // 判斷是否垂直滾動
+    if (!isScrollingVertical && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
+      isScrollingVertical = true;
+      return;
+    }
+    
+    // 如果是垂直滾動，不處理水平滑動
+    if (isScrollingVertical) return;
+    
+    // 防止滑動時頁面一起滾動
+    e.preventDefault();
+    
+    currentX = touchX;
+    
+    // 計算滑動距離
+    const pageWidth = container.offsetWidth;
+    const moveX = touchX - startX;
+    const offset = -currentPage * pageWidth + moveX;
+    
+    // 添加阻尼效果，防止過度滑動
+    if ((currentPage === 0 && moveX > 0) || 
+        (currentPage === totalPages - 1 && moveX < 0)) {
+      container.style.transform = `translateX(${offset * 0.4}px)`;
+    } else {
+      container.style.transform = `translateX(${offset}px)`;
+    }
+  }, { passive: false });
+  
+  // 觸摸結束
+  container.addEventListener('touchend', function(e) {
+  // 在結束時延遲重置滑動狀態，避免誤觸
+  setTimeout(() => {
+    isSwipingCategory = false;
+  }, 100);
+    
+    // 如果觸摸在項目元素上結束，不處理滑動
+    if (e.target.closest('.quick-other-item')) {
+      startX = null;
+      return;
+    }
+    
+    // 恢復過渡效果
+    container.style.transition = 'transform 0.3s ease';
+    
+    const pageWidth = container.offsetWidth;
+    const moveDistance = startX - currentX;
+    
+    // 判斷是否滑動足夠距離來換頁
+    if (Math.abs(moveDistance) > pageWidth * 0.2) { // 滑動超過20%寬度
+      if (moveDistance > 0 && currentPage < totalPages - 1) {
+        // 向左滑動，顯示下一頁
+        changeCategoryPage(currentPage + 1);
+      } else if (moveDistance < 0 && currentPage > 0) {
+        // 向右滑動，顯示上一頁
+        changeCategoryPage(currentPage - 1);
+      } else {
+        // 邊界情況，回到當前頁
+        updateCategoryPageDisplay(currentPage);
+      }
+    } else {
+      // 滑動距離不足，回到當前頁
+      updateCategoryPageDisplay(currentPage);
+    }
+    
+    startX = null;
+    currentX = null;
+  }, { passive: true });
+  
+  // 為每個分類標籤添加點擊事件
+  const tabs = navBar.querySelectorAll('.category-tab');
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', function() {
+      changeCategoryPage(index);
+    });
+  });
+  
+  // 切換分類頁面
+  function changeCategoryPage(pageIndex) {
+    if (pageIndex < 0 || pageIndex >= totalPages) return;
+    
+    currentPage = pageIndex;
+    updateCategoryPageDisplay(pageIndex);
+  }
+  
+  // 更新分類頁面顯示
+  function updateCategoryPageDisplay(pageIndex) {
+    // 更新標籤狀態
+    const tabs = navBar.querySelectorAll('.category-tab');
+    tabs.forEach((tab, index) => {
+      if (index === pageIndex) {
+        tab.classList.add('active');
+        tab.style.backgroundColor = '#06c755';
+        tab.style.color = 'white';
+      } else {
+        tab.classList.remove('active');
+        tab.style.backgroundColor = '#f8f9fa';
+        tab.style.color = '#333';
+      }
+    });
+    
+    // 計算位移距離
+    const pageWidth = container.offsetWidth;
+    const translateX = -pageIndex * pageWidth;
+    
+    // 設置過渡動畫並移動到指定頁面
+    container.style.transition = 'transform 0.3s ease';
+    container.style.transform = `translateX(${translateX}px)`;
+  }
+  
+  // 響應式調整頁面位置
+  window.addEventListener('resize', function() {
+    updateCategoryPageDisplay(currentPage);
+  });
+  
+  return {
+    getCurrentPage: () => currentPage,
+    changePage: changeCategoryPage
+  };
+}
+// 更新滑動指示器的函數
+function updateSwipeIndicators(currentPage) {
+  const indicators = document.querySelectorAll('.swipe-indicators .swipe-dot');
+  if (!indicators || indicators.length === 0) return;
+  
+  indicators.forEach((dot, index) => {
+    if (index === currentPage) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+}
+// 添加到全局變量區域
+let isSwipingCategory = false;
+
+// 添加檢測是否正在滑動的函數
+function isCurrentlySwiping() {
+  return isSwipingCategory;
 }
     </script>
 </html>
