@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.1(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1759,7 +1759,9 @@ function setupBackButtonHandler() {
 function handleBackButton() {
   const currentTime = Date.now();
   
-   // 先檢查確認對話框是否已顯示，如果是則關閉它
+  // 先檢查各種模態框是否開啟
+  
+  // 如果確認對話框已顯示，直接關閉它
   if (document.getElementById("confirmModal").style.display === "block") {
     document.getElementById("confirmModal").style.display = "none";
     return;
@@ -1781,8 +1783,12 @@ function handleBackButton() {
     return;
   }
   
-  // 如果正在編輯車輛，取消編輯
-  if (isProcessingBus) {
+  // 更精確地檢查是否真的在編輯車輛
+  // 必須同時滿足：處理狀態為true 且 有編輯中的車輛 且 busInputContainer 可見
+  if (isProcessingBus && 
+      editingBuses.length > 0 && 
+      activeEditingBusIndex >= 0 &&
+      !document.getElementById("busInputContainer").classList.contains("hidden")) {
     cancelBusInput();
     return;
   }
