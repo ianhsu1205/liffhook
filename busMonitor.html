@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.2(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1693,6 +1693,8 @@ let currentSwipePage = 0;
 let pagesContainer = null;
 let categoryNav = null;
 let totalPages = 0;
+// 添加一個全局變數，用於防止連續處理
+let backButtonHandlingDelay = false;
 // 公司列表數據
 const companies = [
   { id: "1", name: "首都客運" },
@@ -1759,6 +1761,11 @@ function setupBackButtonHandler() {
 function handleBackButton() {
   const currentTime = Date.now();
   
+  // 如果正在處理延遲期，忽略此次返回
+  if (backButtonHandlingDelay) {
+    return;
+  }
+  
   // 先檢查各種模態框是否開啟
   
   // 如果確認對話框已顯示，直接關閉它
@@ -1767,24 +1774,35 @@ function handleBackButton() {
     return;
   }
 
-  // 如果有打開的模態框，先關閉模態框
+  // 如果有打開的模態框，先關閉模態框並設置延遲標記
   if (document.getElementById("locationModal").style.display === "block") {
     closeLocationModal();
+    
+    // 設置延遲標記，短暫防止再次處理
+    backButtonHandlingDelay = true;
+    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
     return;
   }
   
   if (document.getElementById("manualInputModal").style.display === "block") {
     closeManualInputModal();
+    
+    // 設置延遲標記，短暫防止再次處理
+    backButtonHandlingDelay = true;
+    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
     return;
   }
   
   if (document.getElementById("historyModal").style.display === "block") {
     closeHistoryModal();
+    
+    // 設置延遲標記，短暫防止再次處理
+    backButtonHandlingDelay = true;
+    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
     return;
   }
   
   // 更精確地檢查是否真的在編輯車輛
-  // 必須同時滿足：處理狀態為true 且 有編輯中的車輛 且 busInputContainer 可見
   if (isProcessingBus && 
       editingBuses.length > 0 && 
       activeEditingBusIndex >= 0 &&
