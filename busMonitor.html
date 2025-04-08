@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.7(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2433,8 +2433,16 @@ function isRecentlySubmitted(plateNumber) {
 
 // 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
 function selectBusForInput(bus, index, scrollToView = false) {
+    // 如果已有車輛在提交中，不允許切換
+  if (window.isSubmitting) {
+    showStatusMessage("有車輛正在提交中，請稍候", "info");
+    return;
+  }
  logVehicleState(`開始選擇車輛-${bus.plateNumber}`);
-  
+    // 首先確保車輛數據有效
+  if (!ensureValidBusBeforeEdit(bus)) {
+    return; // 如果無效，直接返回，不繼續處理
+  }
   // 確保有唯一ID，如果沒有則創建
   if (!bus.uniqueId) {
     bus.uniqueId = 'bus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + index;
@@ -2651,7 +2659,10 @@ inputBox.addEventListener('input', function() {
       formatPlateNumber(this);
   // 獲取當前編輯的車輛
   const currentBus = editingBuses[activeEditingBusIndex];
-  
+    // 確保車輛有效
+  if (!ensureValidBusBeforeEdit(currentBus)) {
+    return;
+  }
   // 保存新車號
   currentBus.plateNumber = this.value;
   
@@ -3033,6 +3044,10 @@ function setupSimpleTabs(navBar, pagesContainer, totalPages) {
 }
 // 3. 新增專門針對單一車輛進行更新的函數
 function updateVehicleByUniqueId(bus) {
+    // 檢查車輛數據有效性
+  if (!ensureValidBusBeforeEdit(bus)) {
+    return;
+  }
   // 獲取關鍵信息
   const plateNumber = bus.plateNumber;
   const uniqueId = bus.uniqueId;
@@ -3331,7 +3346,18 @@ function updateEditingTabs() {
 // 處理標籤點擊的函數
 function switchToEditingTab(index) {
   console.log("標籤點擊，切換到索引:", index);
-  
+    // 確保索引有效
+  if (index < 0 || index >= editingBuses.length) {
+    console.error("嘗試切換到無效的編輯索引:", index);
+    return;
+  }
+
+
+    // 確保車輛有效
+  const busToEdit = editingBuses[index];
+  if (!ensureValidBusBeforeEdit(busToEdit)) {
+    return;
+  }
   // 設置活躍索引
   activeEditingBusIndex = index;
   
@@ -4331,7 +4357,9 @@ function showDetectedBuses() {
 // 7. 修改submitSelectedBus函數
 // 完全重寫的 submitSelectedBus 函數
 function submitSelectedBus() {
-
+  // 防止重複提交
+  if (window.isSubmitting) return;
+  window.isSubmitting = true;
   logVehicleState("新增前");
   
   // 清除之前的錯誤訊息
@@ -4345,7 +4373,11 @@ function submitSelectedBus() {
   }
   
   // 獲取當前活躍的編輯車輛
-  const bus = editingBuses[activeEditingBusIndex];
+  const bus = JSON.parse(JSON.stringify(editingBuses[activeEditingBusIndex]));
+      // 在提交前檢查車輛有效性
+  if (!ensureValidBusBeforeEdit(bus)) {
+    return;
+  }
   // 保存車牌號碼和唯一ID用於後續清理
   const plateNumber = bus.plateNumber;
   const uniqueId = bus.uniqueId;
@@ -4498,6 +4530,7 @@ function submitSelectedBus() {
       showFloatingNotification(`新增失敗: ${error.message || "伺服器錯誤"}`, "error");
     })
     .finally(() => {
+        window.isSubmitting = false;
       // 恢復按鈕狀態
       setTimeout(() => {
         if (submitButton) {
@@ -4505,6 +4538,17 @@ function submitSelectedBus() {
         }
       }, 2000);
     });
+}
+
+
+// 在編輯車輛前添加防護檢查
+function ensureValidBusBeforeEdit(bus) {
+  if (!bus || !bus.uniqueId) {
+    console.error("嘗試編輯無效車輛:", bus);
+    showStatusMessage("選擇的車輛數據無效，請重新選擇", "error");
+    return false;
+  }
+  return true;
 }
 
 // 完整重寫的 updateBusSelectionInList 函數
@@ -4636,6 +4680,13 @@ function createQuickItems() {
 // 修改 submitBusRecord 函數，處理 otherItem 和 goodItem 欄位
 // 完全重寫新增記錄函數
 async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
+    // 確認提交的車輛與當前選中的車輛是同一輛
+  if (activeEditingBusIndex >= 0 && 
+      editingBuses[activeEditingBusIndex] && 
+      editingBuses[activeEditingBusIndex].uniqueId !== bus.uniqueId) {
+    console.error("提交車輛與當前選中車輛不一致");
+    return Promise.reject(new Error("車輛數據已變更，請重新確認"));
+  }
   showLoading();
   
   try {
