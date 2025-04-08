@@ -745,7 +745,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.5</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -1088,17 +1088,21 @@
         })
       }
       // 顯示申請記錄
+      // 顯示申請記錄
       function displayRecords(records) {
         const recordsListElement = document.getElementById("recordsList")
-        const emptyListMessage = document.getElementById("emptyListMessage")
 
-        if (records.length === 0) {
-          emptyListMessage.style.display = "block"
-          recordsListElement.innerHTML = ""
+        if (!recordsListElement) {
+          console.error("找不到記錄列表元素")
           return
         }
 
-        emptyListMessage.style.display = "none"
+        if (!records || records.length === 0) {
+          // 直接設置空記錄訊息
+          recordsListElement.innerHTML =
+            '<div class="empty-list">無申請記錄</div>'
+          return
+        }
 
         let html = ""
 
@@ -1127,7 +1131,11 @@
         <div class="record-header">
           <div class="record-title">
             <span class="record-status ${statusClass}">${statusText}</span>
-            ${record.eventItem.itemName || "未知項目"}
+            ${
+              record.eventItem
+                ? record.eventItem.itemName || "未知項目"
+                : "未知項目"
+            }
           </div>
           <div class="record-date">${record.leaveDate} ${record.leaveTime}</div>
         </div>
@@ -1147,46 +1155,6 @@
         })
 
         recordsListElement.innerHTML = html
-      }
-      // 確認撤銷申請
-      function confirmCancelApplication(recordId) {
-        const confirmMessage = "您確定要撤銷此申請嗎？撤銷後將無法恢復。"
-        showConfirmDialog(confirmMessage, () => cancelApplication(recordId))
-      }
-
-      // 撤銷申請
-      async function cancelApplication(recordId) {
-        showLoading()
-        try {
-          const response = await fetch(`${base_url}Leave/${recordId}/cancel`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: currentUser.userId,
-            }),
-          })
-
-          if (response.ok) {
-            showStatusMessage("申請已成功撤銷", "success")
-            // 重新載入記錄
-            await loadRecords()
-          } else {
-            if (response.status === 400) {
-              const errorData = await response.json()
-              showStatusMessage(
-                errorData.message || "撤銷失敗，可能是跨月申請無法撤銷",
-                "error"
-              )
-            } else {
-              showStatusMessage("撤銷申請失敗", "error")
-            }
-          }
-        } catch (error) {
-          console.error("撤銷申請失敗:", error)
-          showStatusMessage("撤銷申請時發生錯誤", "error")
-        } finally {
-          hideLoading()
-        }
       }
       // 顯示確認對話框
       function showConfirmDialog(message, callback) {
