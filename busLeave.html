@@ -468,6 +468,55 @@
         color: white;
         border-color: #06c755;
       }
+      /* 日期和時間放在同一行的樣式 */
+      .date-time-group {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .date-time-group .form-group {
+        flex: 1;
+        margin-bottom: 0;
+      }
+      /* 在小屏幕上自動堆疊 */
+      @media (max-width: 576px) {
+        .date-time-group {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .date-time-group .form-group {
+          margin-bottom: 10px;
+        }
+      }
+      .date-range-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .date-range-container .form-group {
+        flex: 1;
+      }
+
+      .date-separator {
+        margin-top: 25px;
+        font-weight: 500;
+      }
+
+      .search-bar {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .search-bar button {
+        align-self: flex-end;
+        width: auto;
+        padding: 12px 30px;
+      }
     </style>
   </head>
   <body>
@@ -498,23 +547,26 @@
 
       <!-- 搜尋條件區 -->
       <div class="search-bar">
-        <div class="form-group">
-          <label for="startDate">起始日期</label>
-          <input
-            type="text"
-            id="startDate"
-            class="date-picker"
-            placeholder="選擇開始日期"
-          />
-        </div>
-        <div class="form-group">
-          <label for="endDate">結束日期</label>
-          <input
-            type="text"
-            id="endDate"
-            class="date-picker"
-            placeholder="選擇結束日期"
-          />
+        <div class="date-range-container">
+          <div class="form-group">
+            <label for="startDate">起始日期</label>
+            <input
+              type="text"
+              id="startDate"
+              class="date-picker"
+              placeholder="選擇開始日期"
+            />
+          </div>
+          <div class="date-separator">至</div>
+          <div class="form-group">
+            <label for="endDate">結束日期</label>
+            <input
+              type="text"
+              id="endDate"
+              class="date-picker"
+              placeholder="選擇結束日期"
+            />
+          </div>
         </div>
         <button id="searchBtn" class="button">搜尋</button>
       </div>
@@ -532,8 +584,9 @@
             <div class="modal-title">新增申請</div>
             <button class="modal-close">&times;</button>
           </div>
+          <!-- 新增申請對話框表單中的日期和時間調整 -->
           <div class="modal-body">
-            <!-- 分類選擇區 -->
+            <!-- 分類選擇區保持不變 -->
             <div id="categoryTabs" class="category-tabs">
               <!-- 分類會由JavaScript動態填入 -->
             </div>
@@ -551,59 +604,92 @@
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="leaveDate" class="required">申請日期</label>
-                <input
-                  type="text"
-                  id="leaveDate"
-                  class="date-picker"
-                  required
-                  placeholder="選擇日期"
-                />
-                <div class="error-tooltip" id="leaveDate-error">
-                  請選擇申請日期
+              <!-- 申請日期和時間（同一行） -->
+              <div class="date-time-group">
+                <div class="form-group">
+                  <label for="leaveDate" class="required">申請日期</label>
+                  <input
+                    type="text"
+                    id="leaveDate"
+                    class="date-picker"
+                    required
+                    placeholder="選擇日期"
+                  />
+                  <div class="error-tooltip" id="leaveDate-error">
+                    請選擇申請日期
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="leaveTime" class="required">申請時間</label>
+                  <select id="leaveTime" required>
+                    <option value="">選擇時間</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                  </select>
+                  <div class="error-tooltip" id="leaveTime-error">
+                    請選擇申請時間
+                  </div>
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="leaveTime" class="required">申請時間</label>
-                <div class="time-ranges" id="timeRanges">
-                  <div class="time-range-option" data-value="上午">上午</div>
-                  <div class="time-range-option" data-value="下午">下午</div>
-                  <div class="time-range-option" data-value="全天">全天</div>
+              <!-- 結束日期和時間（同一行） -->
+              <div class="date-time-group">
+                <div class="form-group">
+                  <label for="backDate">結束日期</label>
+                  <input
+                    type="text"
+                    id="backDate"
+                    class="date-picker"
+                    placeholder="選擇結束日期"
+                  />
+                  <div class="error-tooltip" id="backDate-error">
+                    結束日期必須在申請日期之後
+                  </div>
                 </div>
-                <input type="hidden" id="leaveTime" required />
-                <div class="error-tooltip" id="leaveTime-error">
-                  請選擇申請時間
+                <div class="form-group">
+                  <label for="backTime">結束時間</label>
+                  <select id="backTime">
+                    <option value="">選擇時間</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                  </select>
+                  <div class="error-tooltip" id="backTime-error">
+                    請選擇結束時間
+                  </div>
                 </div>
               </div>
 
-              <div class="form-group" id="backDateGroup">
-                <label for="backDate">結束日期</label>
-                <input
-                  type="text"
-                  id="backDate"
-                  class="date-picker"
-                  placeholder="選擇結束日期"
-                />
-                <div class="error-tooltip" id="backDate-error">
-                  結束日期必須在申請日期之後
-                </div>
-              </div>
-
-              <div class="form-group" id="backTimeGroup">
-                <label for="backTime">結束時間</label>
-                <div class="time-ranges" id="backTimeRanges">
-                  <div class="time-range-option" data-value="上午">上午</div>
-                  <div class="time-range-option" data-value="下午">下午</div>
-                  <div class="time-range-option" data-value="全天">全天</div>
-                </div>
-                <input type="hidden" id="backTime" />
-                <div class="error-tooltip" id="backTime-error">
-                  請選擇結束時間
-                </div>
-              </div>
-
+              <!-- 其餘表單項目保持不變 -->
               <div class="form-group" id="locationGroup">
                 <label for="location">前往地點</label>
                 <input type="text" id="location" placeholder="請輸入地點" />
@@ -659,7 +745,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.1</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.2</div>
     </div>
 
     <!-- JavaScript -->
@@ -1174,16 +1260,6 @@
 
         // 清除時間選擇
         clearTimeSelections()
-
-        // 填充申請人資訊
-        document
-          .getElementById("timeRanges")
-          .querySelector(".selected")
-          ?.classList.remove("selected")
-        document
-          .getElementById("backTimeRanges")
-          .querySelector(".selected")
-          ?.classList.remove("selected")
 
         // 更新主管選擇下拉選單
         updateApproverOptions()
