@@ -745,7 +745,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.4</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.5</div>
     </div>
 
     <!-- JavaScript -->
@@ -883,8 +883,11 @@
             const profile = await liff.getProfile()
             console.log("獲取用戶資料成功:", profile.displayName)
 
+            // 存儲LIFF提供的userId
+            const liffUserId = profile.userId
+
             // 使用用戶 ID 檢查用戶是否已存在
-            await checkAndLoadUserInfo(profile.userId)
+            await checkAndLoadUserInfo(liffUserId)
           } catch (error) {
             console.error("獲取用戶資料失敗:", error)
             showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error")
@@ -902,6 +905,13 @@
       // 檢查並載入用戶資訊
       async function checkAndLoadUserInfo(userId) {
         try {
+          // 先設置 userId 為 LIFF 提供的值
+          if (!currentUser) {
+            currentUser = {
+              userId: userId,
+            }
+          }
+
           const response = await fetch(`${base_url}User/checkUser`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -909,12 +919,16 @@
           })
 
           if (response.status === 200) {
+            // 更新其他使用者資訊，但保留 userId
             const userData = await response.json()
             console.log("獲取到的用戶資訊:", userData)
-            currentUser = userData
+            currentUser = {
+              ...userData,
+              userId: userId, // 確保使用 LIFF 提供的 userId
+            }
 
             // 顯示用戶資訊
-            displayUserInfo(userData)
+            displayUserInfo(currentUser)
 
             // 載入申請項目
             await loadEventItems()
