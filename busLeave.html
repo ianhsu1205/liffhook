@@ -745,7 +745,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.2</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -836,23 +836,6 @@
             if (typeof confirmCallback === "function") {
               confirmCallback()
               confirmCallback = null
-            }
-          })
-
-        // 時間範圍選擇
-        document
-          .getElementById("timeRanges")
-          .addEventListener("click", (event) => {
-            if (event.target.classList.contains("time-range-option")) {
-              selectTimeRange(event.target)
-            }
-          })
-
-        document
-          .getElementById("backTimeRanges")
-          .addEventListener("click", (event) => {
-            if (event.target.classList.contains("time-range-option")) {
-              selectBackTimeRange(event.target)
             }
           })
       }
@@ -1258,9 +1241,6 @@
         // 重置表單
         document.getElementById("applicationForm").reset()
 
-        // 清除時間選擇
-        clearTimeSelections()
-
         // 更新主管選擇下拉選單
         updateApproverOptions()
 
@@ -1273,40 +1253,6 @@
       function clearTimeSelections() {
         document.getElementById("leaveTime").value = ""
         document.getElementById("backTime").value = ""
-
-        document
-          .querySelectorAll(".time-range-option.selected")
-          .forEach((item) => {
-            item.classList.remove("selected")
-          })
-      }
-
-      // 選擇申請時間
-      function selectTimeRange(element) {
-        // 清除其他選擇
-        element.parentElement
-          .querySelectorAll(".time-range-option")
-          .forEach((item) => {
-            item.classList.remove("selected")
-          })
-
-        // 設置當前選擇
-        element.classList.add("selected")
-        document.getElementById("leaveTime").value = element.dataset.value
-      }
-
-      // 選擇結束時間
-      function selectBackTimeRange(element) {
-        // 清除其他選擇
-        element.parentElement
-          .querySelectorAll(".time-range-option")
-          .forEach((item) => {
-            item.classList.remove("selected")
-          })
-
-        // 設置當前選擇
-        element.classList.add("selected")
-        document.getElementById("backTime").value = element.dataset.value
       }
 
       // 更新主管選擇下拉選單
