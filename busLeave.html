@@ -745,14 +745,13 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.3</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.4</div>
     </div>
 
     <!-- JavaScript -->
     <script>
       // 全局變數
       const base_url = "https://35.221.146.143.nip.io/linehook/" // API 基礎 URL
-      //const base_url=" https://60a6-124-6-30-23.ngrok-free.app/linehook/api/"
       const channelId = "2006992891" // 服務 ID
       const liffId = "2006993665-xkeLlPeW".trim() // LIFF ID
 
@@ -1383,8 +1382,17 @@
               .classList.add("hidden")
             await loadRecords()
           } else {
-            const errorData = await response.json()
-            showStatusMessage(errorData.message || "提交申請失敗", "error")
+            // 在 modal 內顯示錯誤
+            let errorMessage = "提交申請失敗"
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.message || errorMessage
+            } catch (parseError) {
+              console.error("解析錯誤回應失敗:", parseError)
+            }
+
+            // 在 modal 內顯示錯誤訊息
+            showModalError(errorMessage)
           }
         } catch (error) {
           console.error("提交申請失敗:", error)
@@ -1392,6 +1400,27 @@
         } finally {
           hideLoading()
         }
+      }
+
+      // 新增的函數，用於在 modal 內顯示錯誤
+      function showModalError(message) {
+        // 確保 modal 中有一個顯示錯誤的元素
+        const modalErrorElement = document.getElementById("modalErrorMessage")
+        if (!modalErrorElement) {
+          // 如果不存在，則創建一個
+          const errorDiv = document.createElement("div")
+          errorDiv.id = "modalErrorMessage"
+          errorDiv.className = "status-message error"
+          errorDiv.style.marginTop = "10px"
+
+          // 將錯誤訊息元素插入到 modal 表單後面
+          const modalForm = document.getElementById("applicationForm")
+          modalForm.after(errorDiv)
+        }
+
+        // 顯示錯誤訊息
+        document.getElementById("modalErrorMessage").textContent = message
+        document.getElementById("modalErrorMessage").style.display = "block"
       }
       // 顯示狀態訊息
       function showStatusMessage(message, type) {
