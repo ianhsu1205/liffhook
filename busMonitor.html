@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.6(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2144,7 +2144,7 @@ async function initializePage() {
     // 添加這行：清理過期的唯一ID
      cleanupInvalidIds();
     // 從URL獲取userId
-    //const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
     if (userId) {
       document.getElementById("userId").value = userId;
