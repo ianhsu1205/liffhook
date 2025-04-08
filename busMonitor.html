@@ -2141,8 +2141,6 @@ async function initializePage() {
     // 清理過期新增記錄
     cleanupExpiredSubmissions();
     
-    // 添加這行：清理過期的唯一ID
-     cleanupInvalidIds();
     // 從URL獲取userId
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
