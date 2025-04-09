@@ -363,11 +363,15 @@
 
       /* 分類選擇區 */
       .category-tabs {
+        display: flex;
+        flex-wrap: wrap; /* 允許換行 */
+        gap: 10px; /* 標籤之間的間距 */
+        margin-top: 5px;
         position: sticky;
         top: 0;
         background: white;
         z-index: 10;
-        padding-top: 10px;
+        padding-top: 5px;
         padding-bottom: 10px;
       }
       .category-tab {
@@ -376,13 +380,17 @@
         border-radius: 20px;
         cursor: pointer;
         transition: all 0.3s;
+        border: 1px solid transparent; /* 添加邊框用於選中時強調 */
       }
       .category-tab:hover {
         background-color: #e5e5e5;
       }
       .category-tab.active {
-        background-color: #06c755;
+        background-color: #06c755; /* 使用 LINE 綠色 */
         color: white;
+        box-shadow: 0 2px 4px rgba(6, 199, 85, 0.3); /* 添加陰影 */
+        transform: translateY(-2px); /* 輕微上浮效果 */
+        border-color: #04a73e; /* 更深色的邊框 */
       }
 
       /* 使用者資訊區 */
@@ -546,6 +554,10 @@
         width: auto;
         padding: 12px 30px;
       }
+      /* 新增：申請類別區塊樣式 */
+      .category-section {
+        margin-bottom: 15px;
+      }
       /* 新增：確保下拉選單打開時可以完整顯示 */
       select {
         position: relative;
@@ -620,9 +632,11 @@
           </div>
           <!-- 新增申請對話框表單中的日期和時間調整 -->
           <div class="modal-body">
-            <!-- 分類選擇區保持不變 -->
-            <div id="categoryTabs" class="category-tabs">
-              <!-- 分類會由JavaScript動態填入 -->
+            <div class="form-group category-section">
+              <label>申請類別</label>
+              <div id="categoryTabs" class="category-tabs">
+                <!-- 分類會由JavaScript動態填入 -->
+              </div>
             </div>
 
             <!-- 申請表單 -->
@@ -779,7 +793,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.1.2</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.1.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -879,7 +893,7 @@
         const sevenDaysAgo = new Date()
         sevenDaysAgo.setDate(today.getDate() - 7)
         const datePickerOptions = {
-          locale: "zh-tw",
+          locale: "zh_tw",
           dateFormat: "Y-m-d",
           disableMobile: true,
         }
@@ -1228,6 +1242,11 @@
 
             // 更新項目選擇
             updateEventItemOptions(category)
+            // 添加：滾動動畫效果，提升用戶體驗
+            tab.style.transition = "all 0.3s"
+            setTimeout(() => {
+              tab.style.transition = ""
+            }, 300)
           })
         })
       }
