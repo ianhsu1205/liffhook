@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">首都集團查核平台-v1.1.4.8(瀏覽器模式)
+      <div class="line-brand">首都集團查核平台-v1.1.4.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3307,14 +3307,15 @@ function updateEditingTabs() {
 }
 // 處理標籤點擊的函數
 function switchToEditingTab(index) {
-const debouncedSwitchToEditingTab = debounce(function(index) {
+debouncedSwitchTab(index);
+}
+
+// 先定義一個全局的防抖函數
+const debouncedSwitchTab = debounce(function(index) {
   console.log("標籤點擊，切換到索引:", index);
   
   // 設置活躍索引
   activeEditingBusIndex = index;
-  
-  // 其餘邏輯...
-}, 200); // 200ms防抖期
   
   // 更新標籤樣式
   const tabs = document.querySelectorAll('.editing-tab');
@@ -3330,9 +3331,11 @@ const debouncedSwitchToEditingTab = debounce(function(index) {
   
   // 滾動到編輯區域
   scrollToEditingArea();
-    // 在這裡添加同步函數調用
+  
+  // 同步編輯狀態
   syncEditingStatus();
-}
+}, 200);
+
 // 只更新計數標記的函數
 function updateItemCountBadges(bus) {
   // 計算已選項目數量
@@ -4321,6 +4324,7 @@ function submitSelectedBus() {
 
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     showStatusMessage("請先選擇車輛", "error");
+    isSubmitting = false;
     return;
   }
   
@@ -4337,6 +4341,7 @@ function submitSelectedBus() {
   );
     if (duplicateVehicle) {
     showFloatingNotification(`車號 ${plateNumber} 已存在於列表中，請修改車號`, "error");
+    isSubmitting = false; // 重置狀態
     return;
   }
   // 深拷貝當前編輯中的所有車輛，用於可能的還原和狀態追蹤
@@ -4346,12 +4351,14 @@ function submitSelectedBus() {
   // 確保選擇了主要項目
   if (!bus.selectedMainItem) {
     showFloatingNotification("請選擇重點查核結果", "error");
+     isSubmitting = false; // 重置狀態
     return;
   }
   
   // 確保選擇了位置
   if (!document.getElementById("location").value) {
     showFloatingNotification("請選擇查核位置", "error");
+     isSubmitting = false; // 重置狀態
     return;
   }
   
