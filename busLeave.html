@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.1.7</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.1.8</div>
     </div>
 
     <!-- JavaScript -->
@@ -1205,7 +1205,7 @@
           switch (record.approveResult) {
             case "pending":
               statusClass = "status-pending"
-              statusText = "申請中"
+              statusText = "簽核中"
               break
             case "pass":
               statusClass = "status-approved"
@@ -1213,7 +1213,7 @@
               break
             case "reject":
               statusClass = "status-rejected"
-              statusText = "拒絕(請聯繫主管)"
+              statusText = "不核準(請聯繫簽核人員)"
               break
           }
 
