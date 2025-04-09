@@ -721,7 +721,7 @@
             <button id="cancelApplicationBtn" class="button secondary-button">
               取消
             </button>
-            <button id="submitApplicationBtn" class="button">申請申請</button>
+            <button id="submitApplicationBtn" class="button">提交申請</button>
           </div>
         </div>
       </div>
@@ -745,7 +745,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.7</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.8</div>
     </div>
 
     <!-- JavaScript -->
@@ -815,7 +815,7 @@
               .classList.add("hidden")
           })
 
-        // 申請申請
+        // 提交申請
         document
           .getElementById("submitApplicationBtn")
           .addEventListener("click", () => {
@@ -1271,7 +1271,7 @@
         return false
       }
 
-      // 驗證並申請申請
+      // 驗證並提交申請
       function validateAndSubmitApplication() {
         // 隱藏所有錯誤提示
         document.querySelectorAll(".error-tooltip").forEach((tooltip) => {
@@ -1322,10 +1322,10 @@
         }
 
         // 顯示確認對話框
-        showConfirmDialog("您確定要送出申請嗎？", submitApplication)
+        showConfirmDialog("您確定要提交此申請嗎？", submitApplication)
       }
 
-      // 申請申請
+      // 提交申請
       async function submitApplication() {
         showLoading()
 
@@ -1351,21 +1351,21 @@
             approveUserId: document.getElementById("approveUserId").value,
           }
 
-          const response = await fetch(`${base_url}Leave/leave`, {
+          const response = await fetch(`${base_url}Leave/createLeave`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(applicationData),
           })
 
           if (response.ok) {
-            showStatusMessage("申請已成功申請", "success")
+            showStatusMessage("申請已成功提交", "success")
             document
               .getElementById("newApplicationModal")
               .classList.add("hidden")
             await loadRecords()
           } else {
             // 在 modal 內顯示錯誤
-            let errorMessage = "申請申請失敗"
+            let errorMessage = "提交申請失敗"
             try {
               const errorData = await response.json()
               errorMessage = errorData.message || errorMessage
@@ -1377,8 +1377,8 @@
             showModalError(errorMessage)
           }
         } catch (error) {
-          console.error("申請申請失敗:", error)
-          showStatusMessage("申請申請時發生錯誤", "error")
+          console.error("提交申請失敗:", error)
+          showStatusMessage("提交申請時發生錯誤", "error")
         } finally {
           hideLoading()
         }
