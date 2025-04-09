@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上申請-v1.0.1.5</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.1.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -1217,6 +1217,12 @@
               break
           }
 
+          // 只有在 pending 狀態時才顯示撤銷按鈕
+          const cancelButton =
+            record.approveResult === "pending"
+              ? `<button class="cancel-btn button danger-button" onclick="confirmCancelApplication('${record.id}')">撤銷此案</button>`
+              : ""
+
           html += `
       <div class="record-item" data-id="${record.id}">
         <div class="record-header">
@@ -1233,9 +1239,7 @@
           ${record.backTime ? `<br>結束時間: ${record.backTime}` : ""}
         </div>
         <div class="record-actions">
-          <button class="cancel-btn button danger-button" onclick="confirmCancelApplication('${
-            record.id
-          }')">撤銷此案</button>
+          ${cancelButton}
         </div>
       </div>
     `
