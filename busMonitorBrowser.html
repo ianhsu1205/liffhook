@@ -597,7 +597,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">首都集團查核平台-v1.0.0.5</div>
+      <div class="line-brand">首都集團查核平台-v1.0.0.6</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -907,6 +907,15 @@
       // 修改 updateRecordsDisplay 函數，合併顯示 otherItem 和 goodItem
       function updateRecordsDisplay(data) {
         const records = data.data || []
+
+        records.sort((a, b) => {
+          // 先比較日期
+          if (a.createdDate !== b.createdDate) {
+            return b.createdDate.localeCompare(a.createdDate) // 降序
+          }
+          // 日期相同時比較時間
+          return b.createdTime.localeCompare(a.createdTime) // 降序
+        })
         const recordCount = records.length
         const tableBody = document.getElementById("recordsList")
         const cardView = document.getElementById("cardView")
