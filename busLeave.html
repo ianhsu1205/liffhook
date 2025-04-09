@@ -629,9 +629,9 @@
 
       <!-- 申請狀態分頁 -->
       <div class="tabs">
-        <div class="tab active" data-status="pending">待核准</div>
+        <div class="tab active" data-status="pending">待簽核</div>
         <div class="tab" data-status="pass">已核准</div>
-        <div class="tab" data-status="reject">已拒絕</div>
+        <div class="tab" data-status="reject">不核準</div>
       </div>
 
       <!-- 搜尋條件區 -->
@@ -670,13 +670,13 @@
       <div id="newApplicationModal" class="modal-overlay hidden">
         <div class="modal">
           <div class="modal-header">
-            <div class="modal-title">新增申請</div>
+            <div class="modal-title">新增簽核事項</div>
             <button class="modal-close">&times;</button>
           </div>
           <!-- 新增申請對話框表單中的日期和時間調整 -->
           <div class="modal-body">
             <div class="form-group category-section">
-              <label>申請類別</label>
+              <label>類別</label>
               <div id="categoryTabs" class="category-tabs">
                 <!-- 分類會由JavaScript動態填入 -->
               </div>
@@ -685,33 +685,33 @@
             <!-- 申請表單 -->
             <form id="applicationForm" class="modal-form">
               <div class="form-group">
-                <label for="eventItem" class="required">申請項目</label>
+                <label for="eventItem" class="required">項目</label>
                 <select id="eventItem" required>
-                  <option value="">請選擇申請項目</option>
+                  <option value="">請選擇簽核項目</option>
                   <!-- 項目選項會由JavaScript動態填入 -->
                 </select>
                 <div class="error-tooltip" id="eventItem-error">
-                  請選擇申請項目
+                  請選擇簽核項目
                 </div>
               </div>
 
               <!-- 申請日期和時間（同一行） -->
               <div class="date-time-group">
                 <div class="form-group">
-                  <label for="leaveDate" class="required">申請日期</label>
+                  <label for="leaveDate" class="required">開始日期</label>
                   <input
                     type="text"
                     id="leaveDate"
                     class="date-picker"
                     required
-                    placeholder="選擇日期"
+                    placeholder="選擇開始日期"
                   />
                   <div class="error-tooltip" id="leaveDate-error">
-                    請選擇申請日期
+                    請選擇開始日期
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="leaveTime" class="required">申請時間</label>
+                  <label for="leaveTime" class="required">開始時間</label>
                   <select id="leaveTime" required>
                     <option value="">選擇時間</option>
                     <option value="07:00">07:00</option>
@@ -782,29 +782,29 @@
 
               <!-- 其餘表單項目保持不變 -->
               <div class="form-group" id="locationGroup">
-                <label for="location">前往地點</label>
+                <label for="location">地點</label>
                 <input type="text" id="location" placeholder="請輸入地點" />
               </div>
 
               <div class="form-group">
-                <label for="approveUserId" class="required">核准主管</label>
+                <label for="approveUserId" class="required">簽核人員</label>
                 <select id="approveUserId" required>
-                  <option value="">請選擇核准主管</option>
+                  <option value="">請選擇簽核人員</option>
                   <!-- 主管選項會由JavaScript動態填入 -->
                 </select>
                 <div class="error-tooltip" id="approveUserId-error">
-                  請選擇核准主管
+                  請選擇核准人員
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="desc" class="required">申請說明</label>
+                <label for="desc" class="required">事由</label>
                 <textarea
                   id="desc"
-                  placeholder="請輸入申請說明"
+                  placeholder="請輸入事由"
                   required
                 ></textarea>
-                <div class="error-tooltip" id="desc-error">請輸入申請說明</div>
+                <div class="error-tooltip" id="desc-error">請輸入事由</div>
               </div>
             </form>
           </div>
@@ -812,7 +812,7 @@
             <button id="cancelApplicationBtn" class="button secondary-button">
               取消
             </button>
-            <button id="submitApplicationBtn" class="button">送出申請</button>
+            <button id="submitApplicationBtn" class="button">送出簽核</button>
           </div>
         </div>
       </div>
@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.1.6</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.1.7</div>
     </div>
 
     <!-- JavaScript -->
