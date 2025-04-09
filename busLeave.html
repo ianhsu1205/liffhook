@@ -614,7 +614,7 @@
     </div>
 
     <div class="container">
-      <h2>線上申請</h2>
+      <h2>線上簽核</h2>
       <div id="statusMessage" class="status-message"></div>
 
       <!-- 使用者資訊區 -->
@@ -624,7 +624,7 @@
 
       <!-- 功能按鈕區 -->
       <div class="action-buttons">
-        <button id="newApplicationBtn" class="button">新增申請</button>
+        <button id="newApplicationBtn" class="button">新增簽核</button>
       </div>
 
       <!-- 申請狀態分頁 -->
@@ -662,7 +662,7 @@
 
       <!-- 申請記錄列表 -->
       <div id="recordsList" class="records-list">
-        <div class="empty-list" id="emptyListMessage">無申請記錄</div>
+        <div class="empty-list" id="emptyListMessage">無簽核記錄</div>
         <!-- 記錄將由JavaScript動態填入 -->
       </div>
 
@@ -733,7 +733,7 @@
                     <option value="23:00">23:00</option>
                   </select>
                   <div class="error-tooltip" id="leaveTime-error">
-                    請選擇申請時間
+                    請選擇開始時間
                   </div>
                 </div>
               </div>
@@ -749,7 +749,7 @@
                     placeholder="選擇結束日期"
                   />
                   <div class="error-tooltip" id="backDate-error">
-                    結束日期必須在申請日期之後
+                    結束日期必須在開始日期之後
                   </div>
                 </div>
                 <div class="form-group">
@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.1.8</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.1.9</div>
     </div>
 
     <!-- JavaScript -->
@@ -1048,7 +1048,7 @@
       function displayUserInfo(user) {
         const userInfoElement = document.getElementById("userInfo")
         userInfoElement.innerHTML = `
-    <strong>${user.name || "用戶"}${
+    <strong>${user.name || "使用者"}${
           user.empId ? " (" + user.empId + ")" : ""
         }</strong> - 
     ${user.company || ""} ${user.dept || ""} ${user.job || ""}
@@ -1065,7 +1065,7 @@
 
           if (response.ok) {
             eventItems = await response.json()
-            console.log("申請項目:", eventItems)
+            console.log("簽核項目:", eventItems)
 
             // 整理類別
             categories = [...new Set(eventItems.map((item) => item.catalog))]
@@ -1075,11 +1075,11 @@
             initCategoryTabs()
           } else {
             console.error("獲取申請項目失敗:", response.status)
-            showStatusMessage("無法獲取申請項目，請重新嘗試", "error")
+            showStatusMessage("無法獲取簽核項目，請重新嘗試", "error")
           }
         } catch (error) {
           console.error("載入申請項目失敗:", error)
-          showStatusMessage("載入申請項目時發生錯誤", "error")
+          showStatusMessage("載入簽核項目時發生錯誤", "error")
         }
       }
 
@@ -1098,12 +1098,12 @@
             approvers = await response.json()
             console.log("核准主管:", approvers)
           } else {
-            console.error("獲取核准主管失敗:", response.status)
-            showStatusMessage("無法獲取核准主管列表", "error")
+            console.error("獲取簽核人員失敗:", response.status)
+            showStatusMessage("無法獲取簽核人員列表", "error")
           }
         } catch (error) {
-          console.error("載入核准主管失敗:", error)
-          showStatusMessage("載入核准主管列表時發生錯誤", "error")
+          console.error("載入簽核人員失敗:", error)
+          showStatusMessage("載入簽核人員列表時發生錯誤", "error")
         }
       }
       // 載入申請記錄
@@ -1153,12 +1153,12 @@
             displayRecords(records)
           } else {
             console.error("獲取申請記錄失敗:", response.status)
-            showStatusMessage("無法獲取申請記錄", "error")
+            showStatusMessage("無法獲取簽核記錄", "error")
             displayRecords([])
           }
         } catch (error) {
           console.error("載入申請記錄失敗:", error)
-          showStatusMessage("載入申請記錄時發生錯誤", "error")
+          showStatusMessage("載入簽核記錄時發生錯誤", "error")
           displayRecords([])
         } finally {
           hideLoading()
@@ -1179,7 +1179,6 @@
         })
       }
       // 顯示申請記錄
-      // 顯示申請記錄
       function displayRecords(records) {
         const recordsListElement = document.getElementById("recordsList")
 
@@ -1191,7 +1190,7 @@
         if (!records || records.length === 0) {
           // 直接設置空記錄訊息
           recordsListElement.innerHTML =
-            '<div class="empty-list">無申請記錄</div>'
+            '<div class="empty-list">無簽核記錄</div>'
           return
         }
 
@@ -1300,7 +1299,7 @@
       // 更新項目選擇下拉選單
       function updateEventItemOptions(category) {
         const selectElement = document.getElementById("eventItem")
-        selectElement.innerHTML = '<option value="">請選擇申請項目</option>'
+        selectElement.innerHTML = '<option value="">請選擇簽核項目</option>'
 
         const filteredItems = eventItems.filter(
           (item) => item.catalog === category
@@ -1338,14 +1337,12 @@
       // 更新主管選擇下拉選單
       function updateApproverOptions() {
         const selectElement = document.getElementById("approveUserId")
-        selectElement.innerHTML = '<option value="">請選擇核准主管</option>'
+        selectElement.innerHTML = '<option value="">請選擇簽核人員</option>'
 
         approvers.forEach((approver) => {
           const option = document.createElement("option")
           option.value = approver.userId
-          option.textContent = `${approver.name} (${
-            approver.job || "未知職位"
-          })`
+          option.textContent = `${approver.name} (${approver.job || "未輸入"})`
           selectElement.appendChild(option)
         })
       }
@@ -1381,38 +1378,38 @@
         // 驗證申請項目
         const eventItemValue = document.getElementById("eventItem").value
         if (!eventItemValue) {
-          isValid = showError("eventItem", "請選擇申請項目") && isValid
+          isValid = showError("eventItem", "請選擇簽核項目") && isValid
         }
 
         // 驗證申請日期
         const leaveDate = document.getElementById("leaveDate").value
         if (!leaveDate) {
-          isValid = showError("leaveDate", "請選擇申請日期") && isValid
+          isValid = showError("leaveDate", "請選擇開始日期") && isValid
         }
 
         // 驗證申請時間
         const leaveTime = document.getElementById("leaveTime").value
         if (!leaveTime) {
-          isValid = showError("leaveTime", "請選擇申請時間") && isValid
+          isValid = showError("leaveTime", "請選擇開始時間") && isValid
         }
 
         // 驗證核准主管
         const approveUserId = document.getElementById("approveUserId").value
         if (!approveUserId) {
-          isValid = showError("approveUserId", "請選擇核准主管") && isValid
+          isValid = showError("approveUserId", "請選擇簽核人員") && isValid
         }
 
         // 驗證申請說明
         const desc = document.getElementById("desc").value.trim()
         if (!desc) {
-          isValid = showError("desc", "請輸入申請說明") && isValid
+          isValid = showError("desc", "請輸入事由") && isValid
         }
 
         // 驗證結束日期（如果有填寫）
         const backDate = document.getElementById("backDate").value
         if (backDate && leaveDate && new Date(backDate) < new Date(leaveDate)) {
           isValid =
-            showError("backDate", "結束日期必須在申請日期之後") && isValid
+            showError("backDate", "結束日期必須在開始日期之後") && isValid
         }
 
         if (!isValid) {
@@ -1459,14 +1456,14 @@
           })
 
           if (response.ok) {
-            showStatusMessage("申請已成功送出", "success")
+            showStatusMessage("簽核已成功送出", "success")
             document
               .getElementById("newApplicationModal")
               .classList.add("hidden")
             await loadRecords()
           } else {
             // 在 modal 內顯示錯誤
-            let errorMessage = "送出申請失敗"
+            let errorMessage = "送出簽核失敗"
             try {
               const errorData = await response.json()
               errorMessage = errorData.message || errorMessage
@@ -1478,8 +1475,8 @@
             showModalError(errorMessage)
           }
         } catch (error) {
-          console.error("送出申請失敗:", error)
-          showStatusMessage("送出申請時發生錯誤", "error")
+          console.error("送出簽核失敗:", error)
+          showStatusMessage("送出簽核時發生錯誤", "error")
         } finally {
           hideLoading()
         }
@@ -1578,7 +1575,7 @@
         )
 
         if (!recordItem) {
-          showStatusMessage("找不到此申請記錄", "error")
+          showStatusMessage("找不到此簽核記錄", "error")
           return
         }
 
@@ -1588,7 +1585,7 @@
           statusElement &&
           !statusElement.classList.contains("status-pending")
         ) {
-          showStatusMessage("只有申請中的記錄可以撤銷", "error")
+          showStatusMessage("只有簽核中的狀態可以撤銷", "error")
           return
         }
 
@@ -1602,12 +1599,12 @@
           leaveDate.getFullYear() !== currentDate.getFullYear() ||
           leaveDate.getMonth() !== currentDate.getMonth()
         ) {
-          showStatusMessage("跨月申請無法撤銷", "error")
+          showStatusMessage("跨月記錄無法撤銷", "error")
           return
         }
 
         // 顯示確認對話框
-        showConfirmDialog("您確定要撤銷此申請嗎？", () => cancelApplication(id))
+        showConfirmDialog("您確定要撤銷此簽核嗎？", () => cancelApplication(id))
       }
 
       // 新增「執行撤銷申請」函數
@@ -1628,12 +1625,12 @@
           })
 
           if (response.ok) {
-            showStatusMessage("申請已成功撤銷", "success")
+            showStatusMessage("簽核已成功撤銷", "success")
             // 重新載入申請記錄
             await loadRecords()
           } else {
             // 顯示錯誤訊息
-            let errorMessage = "撤銷申請失敗"
+            let errorMessage = "撤銷簽核失敗"
             try {
               const errorData = await response.json()
               errorMessage = errorData.message || errorMessage
@@ -1644,8 +1641,8 @@
             showStatusMessage(errorMessage, "error")
           }
         } catch (error) {
-          console.error("撤銷申請失敗:", error)
-          showStatusMessage("撤銷申請時發生錯誤，請稍後再試", "error")
+          console.error("撤銷簽核失敗:", error)
+          showStatusMessage("撤銷簽核時發生錯誤，請稍後再試", "error")
         } finally {
           hideLoading()
         }
