@@ -363,10 +363,12 @@
 
       /* 分類選擇區 */
       .category-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 20px;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        padding-top: 10px;
+        padding-bottom: 10px;
       }
       .category-tab {
         padding: 8px 15px;
@@ -481,13 +483,40 @@
       /* 在小屏幕上自動堆疊 */
       @media (max-width: 576px) {
         .date-time-group {
-          flex-direction: column;
-          gap: 10px;
+          gap: 8px;
         }
 
         .date-time-group .form-group {
           margin-bottom: 10px;
         }
+      }
+      /* 新增: 讓日期和時間輸入框更小一點 */
+      .date-time-group input,
+      .date-time-group select {
+        padding: 10px 8px;
+        font-size: 14px;
+      }
+
+      /* 新增: 調整標籤字體大小 */
+      .date-time-group label {
+        font-size: 14px;
+      }
+      /* 新增：選單置中相關樣式 */
+      .modal {
+        /* 確保 modal 在手機上也能居中 */
+        display: flex;
+        flex-direction: column;
+        max-height: 85vh; /* 稍微縮小高度，避免佔滿螢幕 */
+      }
+
+      .modal-body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* iOS 流暢滾動 */
+      }
+
+      /* 新增：當選單在靠近底部開啟時，自動向上滾動到視窗中間 */
+      .modal-overlay {
+        align-items: center; /* 垂直置中 */
       }
       .date-range-container {
         display: flex;
@@ -516,6 +545,11 @@
         align-self: flex-end;
         width: auto;
         padding: 12px 30px;
+      }
+      /* 新增：確保下拉選單打開時可以完整顯示 */
+      select {
+        position: relative;
+        z-index: 5;
       }
     </style>
   </head>
@@ -745,7 +779,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.8</div>
+      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.0.9</div>
     </div>
 
     <!-- JavaScript -->
@@ -1211,9 +1245,11 @@
         )
 
         filteredItems.forEach((item) => {
+          // 修改這裡: 不再使用 JSON.stringify，而是只儲存項目名稱
           const option = document.createElement("option")
-          option.value = JSON.stringify(item)
+          option.value = item.itemName // 只儲存 itemName 字串值
           option.textContent = item.itemName
+          option.dataset.catalog = item.catalog // 使用 dataset 儲存 catalog
           selectElement.appendChild(option)
         })
       }
@@ -1330,9 +1366,11 @@
         showLoading()
 
         try {
-          const eventItem = JSON.parse(
-            document.getElementById("eventItem").value
-          )
+          const eventItemSelect = document.getElementById("eventItem")
+          const eventItemValue = eventItemSelect.value
+          const eventCatalog =
+            eventItemSelect.options[eventItemSelect.selectedIndex].dataset
+              .catalog
 
           const applicationData = {
             userId: currentUser.userId,
@@ -1346,6 +1384,8 @@
             backDate: document.getElementById("backDate").value || null,
             backTime: document.getElementById("backTime").value || null,
             location: document.getElementById("location").value || null,
+            eventItem: eventItemValue,
+            eventCatalog: eventCatalog,
             eventItem: eventItem,
             desc: document.getElementById("desc").value,
             approveUserId: document.getElementById("approveUserId").value,
@@ -1445,6 +1485,30 @@
           console.log("不在 LINE 瀏覽器內，顯示提示訊息")
           showStatusMessage("操作已完成。請手動關閉此視窗", "info")
         }
+      }
+      // 新增：在顯示對話框函數中添加自動滾動到視圖中間的邏輯
+      function showNewApplicationModal() {
+        // 重置表單
+        document.getElementById("applicationForm").reset()
+
+        // 更新主管選擇下拉選單
+        updateApproverOptions()
+
+        // 顯示模態框
+        const modal = document.getElementById("newApplicationModal")
+        modal.classList.remove("hidden")
+
+        // 新增：確保模態框置中
+        setTimeout(() => {
+          const modalContent = modal.querySelector(".modal")
+          if (modalContent) {
+            // 滾動到頁面頂部，然後模態框會自動置中
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            })
+          }
+        }, 100)
       }
     </script>
   </body>
