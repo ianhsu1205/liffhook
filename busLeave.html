@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>線上申請</title>
+    <title>線上簽核</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -563,9 +563,52 @@
         position: relative;
         z-index: 5;
       }
+      /* 新增：全域錯誤浮動提示樣式 */
+      .global-error-tooltip {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #e74c3c;
+        color: white;
+        padding: 12px 18px;
+        border-radius: 4px;
+        font-size: 15px;
+        z-index: 1000;
+        max-width: 80%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        animation: fadeInOut 3s forwards;
+        text-align: center;
+      }
+
+      /* 新增：動畫效果 */
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -20px);
+        }
+        10% {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+        90% {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -20px);
+        }
+      }
     </style>
   </head>
   <body>
+    <!-- 新增：全域浮動提示容器 -->
+    <div
+      id="globalErrorTooltip"
+      class="global-error-tooltip"
+      style="display: none"
+    ></div>
     <div id="loading-overlay" class="loading-overlay">
       <div class="spinner"></div>
     </div>
@@ -793,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">首都集團多功能平台-線上申請-v1.0.1.4</div>
+      <div class="line-brand">多功能平台-線上申請-v1.0.1.5</div>
     </div>
 
     <!-- JavaScript -->
@@ -1440,36 +1483,33 @@
 
       // 新增的函數，用於在 modal 內顯示錯誤
       function showModalError(message) {
-        // 確保 modal 中有一個顯示錯誤的元素
-        const modalErrorElement = document.getElementById("modalErrorMessage")
-        if (!modalErrorElement) {
-          // 如果不存在，則創建一個
-          const errorDiv = document.createElement("div")
-          errorDiv.id = "modalErrorMessage"
-          errorDiv.className = "status-message error"
-          errorDiv.style.marginTop = "10px"
-
-          // 將錯誤訊息元素插入到 modal 表單後面
-          const modalForm = document.getElementById("applicationForm")
-          modalForm.after(errorDiv)
-        }
-
-        // 顯示錯誤訊息
-        document.getElementById("modalErrorMessage").textContent = message
-        document.getElementById("modalErrorMessage").style.display = "block"
+        showStatusMessage(message, "error")
       }
       // 顯示狀態訊息
       function showStatusMessage(message, type) {
-        const statusElement = document.getElementById("statusMessage")
-        statusElement.textContent = message
-        statusElement.className = "status-message"
-        statusElement.classList.add(type)
+        if (type === "error") {
+          // 使用全域浮動提示顯示錯誤
+          const tooltipElement = document.getElementById("globalErrorTooltip")
+          tooltipElement.textContent = message
+          tooltipElement.style.display = "block"
 
-        // 2秒後自動隱藏成功訊息
-        if (type === "success") {
+          // 3秒後自動消失
           setTimeout(() => {
-            statusElement.style.display = "none"
+            tooltipElement.style.display = "none"
           }, 3000)
+        } else {
+          // 成功和信息訊息保持原樣
+          const statusElement = document.getElementById("statusMessage")
+          statusElement.textContent = message
+          statusElement.className = "status-message"
+          statusElement.classList.add(type)
+
+          // 3秒後自動隱藏成功訊息
+          if (type === "success") {
+            setTimeout(() => {
+              statusElement.style.display = "none"
+            }, 3000)
+          }
         }
       }
 
