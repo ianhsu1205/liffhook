@@ -216,12 +216,12 @@
 
       <!-- 確認解除綁定的對話框 -->
       <div id="unbindConfirmation" class="confirmation-dialog hidden">
-        <div class="confirmation-message">您已經註冊，是否要刪除帳號？</div>
+        <div class="confirmation-message">您已經綁定，是否要解除綁定？</div>
         <div id="userInfoDisplay" class="user-info"></div>
         <div class="button-group">
-          <button onclick="unbindUser()">是，我要刪除帳號</button>
+          <button onclick="unbindUser()">是，我要解除綁定</button>
           <button class="secondary-button" onclick="closeWindowSafely()">
-            否，保持註冊
+            否，保持綁定
           </button>
         </div>
       </div>
@@ -320,7 +320,7 @@
 
         <button type="button" onclick="submitForm()">提交資料</button>
 
-        <div class="line-brand">大都會多功能平台-v1.0.0.2</div>
+        <div class="line-brand">大都會多功能平台-v1.0.0.3</div>
       </form>
 
       <div id="debugInfo" class="debug-info"></div>
@@ -643,19 +643,19 @@
 
           if (response.ok) {
             window.scrollTo(0, 0) // 滾動至頁面最上方
-            showStatusMessage("註冊成功！即將返回聊天室...", "success")
+            showStatusMessage("綁定成功！即將返回聊天室...", "success")
             // 註冊成功後自動關閉視窗回到聊天室
             setTimeout(closeWindowSafely, 2000) // 延遲 2 秒後關閉視窗，確保用戶看到成功訊息
           } else {
-            throw new Error(result || "註冊失敗，請稍後再試！")
+            throw new Error(result || "綁定失敗，請稍後再試！")
           }
         } catch (error) {
           console.error("錯誤:", error)
           showStatusMessage(
-            "註冊失敗: " + (error.message || "請稍後再試"),
+            "綁定失敗: " + (error.message || "請稍後再試"),
             "error"
           )
-          showDebugInfo("註冊失敗: " + error.message)
+          showDebugInfo("綁定失敗: " + error.message)
 
           // 啟用提交按鈕，允許重試
           submitButton.disabled = false
