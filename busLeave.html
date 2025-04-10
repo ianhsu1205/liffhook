@@ -741,7 +741,7 @@
               <!-- 結束日期和時間（同一行） -->
               <div class="date-time-group">
                 <div class="form-group">
-                  <label for="backDate">結束日期</label>
+                  <label for="backDate" class="required">結束日期</label>
                   <input
                     type="text"
                     id="backDate"
@@ -753,7 +753,7 @@
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="backTime">結束時間</label>
+                  <label for="backTime" class="required">結束時間</label>
                   <select id="backTime">
                     <option value="">選擇時間</option>
                     <option value="07:00">07:00</option>
@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.1</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.2</div>
     </div>
 
     <!-- JavaScript -->
@@ -929,6 +929,116 @@
               confirmCallback = null
             }
           })
+
+        // 新增功能：監聽開始日期變更，自動設定結束日期為同一天
+        document
+          .getElementById("leaveDate")
+          .addEventListener("change", function () {
+            const startDate = this.value
+            if (startDate) {
+              document.getElementById("backDate").value = startDate
+            }
+          })
+
+        // 新增功能：監聽項目選擇變化
+        document
+          .getElementById("eventItem")
+          .addEventListener("change", function () {
+            const selectedItem = this.value
+            const leaveTime = document.getElementById("leaveTime").value
+
+            // 如果選擇的是「未刷卡」項目
+            if (selectedItem === "未刷卡") {
+              // 設定地點預設為「公司」
+              document.getElementById("location").value = "公司"
+
+              // 設定事由預設為「未帶卡」
+              document.getElementById("desc").value = "未帶卡"
+
+              // 如果已選取開始時間，則結束時間設為相同
+              if (leaveTime) {
+                document.getElementById("backTime").value = leaveTime
+              }
+            } else {
+              // 不是未刷卡時清除預設值，但僅當這些欄位包含預設值時
+              if (
+                document.getElementById("location").value === "公司" &&
+                document.getElementById("desc").value === "未帶卡"
+              ) {
+                document.getElementById("location").value = ""
+                document.getElementById("desc").value = ""
+              }
+
+              // 如果已選取開始時間，重新計算結束時間
+              if (leaveTime) {
+                setEndTimePlus4Hours(leaveTime)
+              }
+            }
+          })
+
+        // 新增功能：監聽開始時間變更，根據選項自動設定結束時間
+        document
+          .getElementById("leaveTime")
+          .addEventListener("change", function () {
+            const selectedItem = document.getElementById("eventItem").value
+            const leaveTime = this.value
+
+            if (!leaveTime) return
+
+            if (selectedItem === "未刷卡") {
+              // 未刷卡項目：結束時間與開始時間相同
+              document.getElementById("backTime").value = leaveTime
+            } else {
+              // 其他項目：結束時間為開始時間+4小時
+              setEndTimePlus4Hours(leaveTime)
+            }
+          })
+      }
+      // 新增函數：設定結束時間為開始時間+4小時
+      function setEndTimePlus4Hours(startTimeStr) {
+        if (!startTimeStr) return
+
+        // 解析開始時間
+        const [startHour, startMinute] = startTimeStr.split(":").map(Number)
+
+        // 計算結束時間 (加4小時)
+        let endHour = startHour + 4
+
+        // 如果超過23點，設為23點
+        if (endHour > 23) {
+          endHour = 23
+        }
+
+        // 格式化結束時間
+        const endTimeStr = `${endHour.toString().padStart(2, "0")}:${startMinute
+          .toString()
+          .padStart(2, "0")}`
+
+        // 在下拉選單中找到最接近的選項
+        const backTimeSelect = document.getElementById("backTime")
+        const options = Array.from(backTimeSelect.options)
+
+        // 找到最接近或等於計算結果的時間選項
+        let bestOption = options[0]
+        let minDiff = Infinity
+
+        for (const option of options) {
+          if (!option.value) continue // 跳過空選項
+
+          const [optHour, optMinute] = option.value.split(":").map(Number)
+          const optTotalMinutes = optHour * 60 + optMinute
+          const endTotalMinutes = endHour * 60 + startMinute
+
+          const diff = Math.abs(optTotalMinutes - endTotalMinutes)
+
+          if (diff < minDiff) {
+            minDiff = diff
+            bestOption = option
+          }
+        }
+
+        // 設定結束時間
+        backTimeSelect.value = bestOption.value
       }
       // 初始化日期選擇器
       function initDatePickers() {
@@ -993,6 +1103,7 @@
           hideLoading()
         }
       }
+
       // 檢查並載入用戶資訊
       async function checkAndLoadUserInfo(userId) {
         try {
@@ -1393,6 +1504,35 @@
           isValid = showError("leaveTime", "請選擇開始時間") && isValid
         }
 
+        // 驗證結束日期（現在改為必填）
+        const backDate = document.getElementById("backDate").value
+        if (!backDate) {
+          isValid = showError("backDate", "請選擇結束日期") && isValid
+        } else if (leaveDate && new Date(backDate) < new Date(leaveDate)) {
+          isValid =
+            showError("backDate", "結束日期必須在開始日期之後") && isValid
+        }
+
+        // 驗證結束時間（現在改為必填）
+        const backTime = document.getElementById("backTime").value
+        if (!backTime) {
+          isValid = showError("backTime", "請選擇結束時間") && isValid
+        }
+
+        // 驗證同一天時間順序
+        if (
+          backDate &&
+          leaveDate &&
+          backDate === leaveDate &&
+          backTime &&
+          leaveTime
+        ) {
+          if (backTime <= leaveTime) {
+            isValid =
+              showError("backTime", "結束時間必須晚於開始時間") && isValid
+          }
+        }
+
         // 驗證核准主管
         const approveUserId = document.getElementById("approveUserId").value
         if (!approveUserId) {
@@ -1403,13 +1543,6 @@
         const desc = document.getElementById("desc").value.trim()
         if (!desc) {
           isValid = showError("desc", "請輸入事由") && isValid
-        }
-
-        // 驗證結束日期（如果有填寫）
-        const backDate = document.getElementById("backDate").value
-        if (backDate && leaveDate && new Date(backDate) < new Date(leaveDate)) {
-          isValid =
-            showError("backDate", "結束日期必須在開始日期之後") && isValid
         }
 
         if (!isValid) {
@@ -1440,8 +1573,8 @@
             name: currentUser.name,
             leaveDate: document.getElementById("leaveDate").value,
             leaveTime: document.getElementById("leaveTime").value,
-            backDate: document.getElementById("backDate").value || null,
-            backTime: document.getElementById("backTime").value || null,
+            backDate: document.getElementById("backDate").value,
+            backTime: document.getElementById("backTime").value,
             location: document.getElementById("location").value || null,
             eventName: eventItemValue,
             eventCatalog: eventCatalog,
