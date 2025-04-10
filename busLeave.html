@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.2</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -1527,7 +1527,7 @@
           backTime &&
           leaveTime
         ) {
-          if (backTime <= leaveTime) {
+          if (backTime < leaveTime) {
             isValid =
               showError("backTime", "結束時間必須晚於開始時間") && isValid
           }
