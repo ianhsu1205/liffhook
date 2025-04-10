@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">大都會查核平台-v1.1.5.2(瀏覽器模式)
+      <div class="line-brand">大都會查核平台-v1.1.5.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -5038,7 +5038,7 @@ function refreshLocationList() {
   if (detectButton) {
     const originalText = detectButton.innerHTML;
     detectButton.disabled = true;
-    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中..';
 
     // 移除任何存在的錯誤或無數據消息
     const errorMsg = document.getElementById("locationListError");
@@ -5051,7 +5051,7 @@ function refreshLocationList() {
     loadingMsg.id = "locationListLoading";
     loadingMsg.className = "no-data-message";
     loadingMsg.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近位置...';
+      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
     container.appendChild(loadingMsg);
 
     // 獲取位置並刷新路口列表
@@ -5464,7 +5464,7 @@ function detectAddress() {
   const addressButton = document.getElementById("detectAddressButton");
   const originalText = addressButton.innerHTML;
   addressButton.disabled = true;
-  addressButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+  addressButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中..';
   
   // 清空位置列表，添加載入中提示
   const container = document.getElementById("locationList");
@@ -5472,7 +5472,7 @@ function detectAddress() {
   const loadingMsg = document.createElement("p");
   loadingMsg.id = "locationListLoading";
   loadingMsg.className = "no-data-message";
-  loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在偵測地址...';
+  loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在偵測目前地址...';
   container.appendChild(loadingMsg);
   
   // 獲取位置並調用Google地址API
