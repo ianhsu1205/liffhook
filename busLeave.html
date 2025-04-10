@@ -836,7 +836,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.1.9</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.0</div>
     </div>
 
     <!-- JavaScript -->
@@ -1590,6 +1590,7 @@
         }
 
         // 檢查是否為跨月申請
+        /*
         const leaveDateStr = recordItem
           .querySelector(".record-date")
           .textContent.split(" ")[0]
@@ -1602,7 +1603,7 @@
           showStatusMessage("跨月記錄無法撤銷", "error")
           return
         }
-
+        */
         // 顯示確認對話框
         showConfirmDialog("您確定要撤銷此簽核嗎？", () => cancelApplication(id))
       }
