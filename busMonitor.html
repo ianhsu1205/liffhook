@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">大都會查核平台-v1.1.5.0(瀏覽器模式)
+      <div class="line-brand">大都會查核平台-v1.1.5.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1620,7 +1620,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
             class="secondary-button detect-button"
             onclick="refreshLocationList()"
           >
-            <i class="fas fa-sync-alt"></i> 偵測位置
+            <i class="fas fa-sync-alt"></i> 偵測路口
           </button>
             <!-- 新增隨車稽查按鈕 -->
       <button
@@ -1630,6 +1630,14 @@ content: "　"; /* 使用單個全角空格作為間隔 */
         onclick="selectOnBoardInspection()"
       >
         <i class="fas fa-bus"></i> 隨車稽查
+      </button>
+            <button
+        id="detectAddressButton"
+        type="button"
+        class="secondary-button detect-button"
+        onclick="detectAddress()"
+      >
+        <i class="fas fa-map-marked-alt"></i> 偵測地址
       </button>
         </div>
         <div id="locationList"></div>
@@ -5448,6 +5456,71 @@ function initDirectionButtons() {
       document.getElementById('manualDirection').value = this.dataset.value;
     });
   });
+}
+
+// 添加地址偵測功能
+function detectAddress() {
+  // 獲取按鈕並更新狀態
+  const addressButton = document.getElementById("detectAddressButton");
+  const originalText = addressButton.innerHTML;
+  addressButton.disabled = true;
+  addressButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中...';
+  
+  // 清空位置列表，添加載入中提示
+  const container = document.getElementById("locationList");
+  container.innerHTML = "";
+  const loadingMsg = document.createElement("p");
+  loadingMsg.id = "locationListLoading";
+  loadingMsg.className = "no-data-message";
+  loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在偵測地址...';
+  container.appendChild(loadingMsg);
+  
+  // 獲取位置並調用Google地址API
+  getCurrentPosition(false)
+    .then(async (success) => {
+      if (success) {
+        try {
+          // 調用Google地址API獲取地址
+          const response = await fetch(
+            `${base_url}monitor/address/google?latitude=${currentLatitude}&longitude=${currentLongitude}`
+          );
+          
+          if (!response.ok) {
+            throw new Error(`HTTP 錯誤 ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // 移除載入中提示
+          if (document.getElementById("locationListLoading")) {
+            document.getElementById("locationListLoading").remove();
+          }
+          
+          if (data.success && data.address) {
+            // 直接設置地址並關閉模態框
+            document.getElementById("location").value = data.address;
+            closeLocationModal();
+            showFloatingNotification("成功獲取地址", "success");
+          } else {
+            showLocationListError("無法獲取地址信息，請嘗試其他方式");
+          }
+        } catch (error) {
+          console.error("獲取地址失敗:", error);
+          showLocationListError("獲取地址失敗，請稍後再試");
+        }
+      } else {
+        showLocationListError("無法獲取位置，請確認位置權限");
+      }
+    })
+    .catch((error) => {
+      console.error("位置獲取失敗:", error);
+      showLocationListError("獲取位置失敗，請稍後再試");
+    })
+    .finally(() => {
+      // 恢復按鈕狀態
+      addressButton.disabled = false;
+      addressButton.innerHTML = originalText;
+    });
 }
 
 // 改進跑馬燈功能，解決卡住問題
