@@ -1132,13 +1132,16 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
 .direction-tag {
   display: inline-block;
-  background-color: #e7f3fe;
   color: #004085;
+  border: 1px solid #b8daff;
+  border-left: none; /* 移除左側色塊邊框 */
   border-radius: 4px;
   padding: 2px 6px;
+  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
   font-size: 14px;
   flex-shrink: 0; /* 防止被壓縮 */
   margin-left: 10px;
+  background-color: #f8f9fa; /* 淺色背景 */
 }
 
 .route-direction-container {
@@ -1150,10 +1153,10 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
-  color: #004d99;  /* 藍色系文字 */
-  border: 1px solid #66b0ff;  /* 四周邊框 */
-  border-left: none; /* 移除左側色塊邊框 */
-  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
+  color: #00734d;
+  border: 1px solid #66ffb3;
+  padding-left: 6px; /* 保留內邊距 */
+  background-color: #f8f9fa; /* 淺色背景 */
 }
 
 /* 返程 - 綠色系 */
@@ -1193,13 +1196,13 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 
 .direction-tag.go-tag {
-  background-color: #007bff;
   color: #004d99;
+  border-color: #66b0ff;
 }
 
 .direction-tag.back-tag {
-  background-color: #28a745;
-  color: white;
+  color: #00734d;
+  border-color: #66ffb3;
 }
 .direction-btn[data-value="0"] {
   border-left: 5px solid #007bff;
@@ -1655,7 +1658,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.1(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
