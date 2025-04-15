@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.5.6(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.5.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3513,65 +3513,6 @@ function removeEditingBus(index) {
   syncEditingStatus();
 }
 
-// 新增：更新列表中車輛的選中狀態
-// 修改：更新列表中車輛的選中狀態
-function memoizedUpdateBusSelectionInList() {
-  // 清除所有選中狀態
-  document.querySelectorAll('.simple-bus-item').forEach(item => {
-    item.classList.remove('selected-bus-item');
-  });
-  
-  // 為所有正在編輯的車輛添加標記
-  if (editingBuses.length > 0) {
-    // 收集所有編輯中車輛的唯一ID
-    const editingBusIds = editingBuses.map(bus => bus.uniqueId);
-    
-    // 找到對應的列表項並標記為正在編輯
-    document.querySelectorAll('.simple-bus-item').forEach((item, itemIndex) => {
-      if (itemIndex < displayedBuses.length) {
-        const bus = displayedBuses[itemIndex];
-        if (bus && bus.uniqueId && editingBusIds.includes(bus.uniqueId)) {
-          item.classList.add('selected-bus-item');
-        }
-      }
-    });
-  }
-    // 強制更新列表顯示
-  setTimeout(() => {
-    debouncedInitMarquees();
-  }, 50);
-}
-  // 添加視窗大小變化監聽，重新初始化跑馬燈
-  window.addEventListener('resize', function() {
-    debouncedInitMarquees();
-  });
-// 修改開始自動偵測函數，確保定時器正確設置
-function startAutoDetect() {
-  // 先清除任何現有的自動偵測計時器
-  if (autoDetectInterval) {
-    clearInterval(autoDetectInterval);
-    autoDetectInterval = null;
-  }
-  
-  // 立即執行一次偵測，標記為自動偵測
-  detectBuses(true);
-  
-  // 重新設置自動偵測間隔，每20秒執行一次
-  autoDetectInterval = setInterval(() => {
-    console.log("自動偵測觸發");
-    detectBuses(true); // 傳入true表示是自動偵測
-  }, 20000); // 每20秒
-  
-  // 開始倒數計時
-  startCountdown();
-  
-  // 視覺效果：添加自動偵測按鈕的活動樣式
-  const autoDetectButton = document.getElementById("autoDetectButton");
-  autoDetectButton.classList.add("auto-detect-active");
-  
-  // 顯示自動偵測已啟動的提示
-  showStatusMessage("自動偵測已啟動", "info", true);
-}
 // 3. 添加一個用於同步車輛編輯狀態的函數
 function syncEditingStatus() {
   // 收集所有編輯中車輛的唯一ID
