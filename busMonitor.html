@@ -42,7 +42,7 @@
         padding-bottom: 15px;
       }
 /* 車輛距離黃白漸層底色樣式 */
-.bus-plate.distance-veryclose { 
+/* .bus-plate.distance-veryclose { 
   background: linear-gradient(to right, #ffeb3b 100%, #ffffff 100%);
   border: 1px solid #ffc107;
 }
@@ -60,8 +60,40 @@
 .bus-plate.distance-far { 
   background: linear-gradient(to right, #ffeb3b 25%, #ffffff 25%);
   border: 1px solid #ffecb3;
+} */
+/* 距離漸層 - 去程（藍色） */
+.bus-plate.direction-go.distance-veryclose {
+  background: linear-gradient(to right, #e6f2ff 100%, #e6f2ff 100%);
 }
 
+.bus-plate.direction-go.distance-close {
+  background: linear-gradient(to right, #e6f2ff 75%, #ffffff 75%);
+}
+
+.bus-plate.direction-go.distance-medium {
+  background: linear-gradient(to right, #e6f2ff 50%, #ffffff 50%);
+}
+
+.bus-plate.direction-go.distance-far {
+  background: linear-gradient(to right, #e6f2ff 25%, #ffffff 25%);
+}
+
+/* 距離漸層 - 返程（綠色） */
+.bus-plate.direction-back.distance-veryclose {
+  background: linear-gradient(to right, #e6fff2 100%, #e6fff2 100%);
+}
+
+.bus-plate.direction-back.distance-close {
+  background: linear-gradient(to right, #e6fff2 75%, #ffffff 75%);
+}
+
+.bus-plate.direction-back.distance-medium {
+  background: linear-gradient(to right, #e6fff2 50%, #ffffff 50%);
+}
+
+.bus-plate.direction-back.distance-far {
+  background: linear-gradient(to right, #e6fff2 25%, #ffffff 25%);
+}
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
   background-color: #06c755 !important;
@@ -1118,46 +1150,28 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
-  background: linear-gradient(to bottom, #e6f2ff 0%, #b3d9ff 100%);
-  color: #004d99;
-  border: 1px solid #66b0ff;
-  border-left: 5px solid #007bff;
+  color: #004d99;  /* 藍色系文字 */
+  border: 1px solid #66b0ff;  /* 藍色系邊框 */
+  border-left: 5px solid #007bff;  /* 藍色系左邊框 */
 }
 
 /* 返程 - 綠色系 */
 .bus-plate.direction-back {
-  background: linear-gradient(to bottom, #e6fff2 0%, #b3ffd9 100%);
+  background-image: none; /* 移除原有漸層 */
   color: #00734d;
   border: 1px solid #66ffb3;
   border-left: 5px solid #28a745;
 }
 /* 方向標誌 */
 .bus-plate::after {
-  content: "去";
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background-color: #007bff;
-  color: white;
-  font-size: 10px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 1px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  display: none; /* 完全移除車牌右上角的去返標記 */
 }
 .direction-buttons {
   display: flex;
   gap: 10px;
   margin-top: 5px;
 }
-.bus-plate.direction-back::after {
-  content: "返";
-  background-color: #28a745;
-}
+
 .direction-btn {
   background-color: #f8f9fa;
   color: #333;
@@ -1640,7 +1654,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.5.9(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4298,14 +4312,7 @@ function createBusListItem(bus, index) {
 // 格式化車牌號碼，分離字母和數字部分
 const plateNumber = bus.plateNumber;
 // 嘗試分隔字母和數字部分
-const letterMatch = plateNumber.match(/[A-Z]+/);
-const numberMatch = plateNumber.match(/\d+/);
-
-if (letterMatch && numberMatch) {
-  plateElement.innerHTML = `<span class="plate-letter">${letterMatch[0]}</span><span class="plate-number">${numberMatch[0]}</span>`;
-} else {
-  plateElement.textContent = plateNumber;
-}
+plateElement.innerHTML = formatPlateDisplay(plateNumber);
   
   // 將元素添加到車輛項目中
   busItem.appendChild(routeElement);
@@ -4594,7 +4601,40 @@ const memoizedUpdateBusSelectionInList = (() => {
     });
   };
 })();
-
+// 修正車號格式解析的函數
+function formatPlateDisplay(plateNumber) {
+  // 處理 650-U5 這種格式
+  if (plateNumber.includes('-')) {
+    const parts = plateNumber.split('-');
+    // 檢查第一部分是數字，第二部分是字母開頭
+    if (!isNaN(parseInt(parts[0])) && /^[A-Z]/.test(parts[1])) {
+      return `<span class="plate-number">${parts[0]}</span><span class="plate-separator">-</span><span class="plate-letter">${parts[1]}</span>`;
+    }
+    // 檢查第一部分是字母，第二部分是數字開頭
+    else if (/^[A-Z]/.test(parts[0]) && !isNaN(parseInt(parts[1]))) {
+      return `<span class="plate-letter">${parts[0]}</span><span class="plate-separator">-</span><span class="plate-number">${parts[1]}</span>`;
+    }
+  }
+  
+  // 如果沒有破折號或不符合上述格式，嘗試分隔字母和數字
+  const letterMatch = plateNumber.match(/[A-Z]+/);
+  const numberMatch = plateNumber.match(/\d+/);
+  
+  if (letterMatch && numberMatch) {
+    const letterIndex = plateNumber.indexOf(letterMatch[0]);
+    const numberIndex = plateNumber.indexOf(numberMatch[0]);
+    
+    // 判斷字母和數字的順序
+    if (letterIndex < numberIndex) {
+      return `<span class="plate-letter">${letterMatch[0]}</span><span class="plate-number">${numberMatch[0]}</span>`;
+    } else {
+      return `<span class="plate-number">${numberMatch[0]}</span><span class="plate-letter">${letterMatch[0]}</span>`;
+    }
+  }
+  
+  // 沒有明確的格式，直接返回原始文本
+  return plateNumber;
+}
 // 添加一個新函數來重置新增按鈕狀態
 function resetSubmitButtonState() {
     const submitButton = document.querySelector(".action-button.submit-button");
