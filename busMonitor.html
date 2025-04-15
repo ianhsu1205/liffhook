@@ -1601,7 +1601,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.5.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.5.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1666,7 +1666,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   <span id="detectionMessage">正在偵測車輛...</span>
 </div>
 
-  <script>
+ <script>
 // 全局變數
 const base_url = "https://35.221.146.143.nip.io/linehook/";
 const channelId = "2006992891";
@@ -1682,2084 +1682,647 @@ let watchId = null;
 let isProcessingBus = false;
 let startY = 0;
 let lastLoadingTime = 0;
-// 1. 首先添加新的全局變數來跟踪編輯中的車輛
+// 其他全局變量
 let editingBuses = []; // 儲存所有正在編輯中的車輛
 let activeEditingBusIndex = -1; // 當前活躍的編輯車輛索引
 const MIN_LOADING_INTERVAL = 30000; // 最短loading間隔，毫秒
-// 全局變數，保存上次點擊返回的時間
 let lastBackPressTime = 0;
-// 添加全局變數
 let autoDetectInterval = null;
 let countdownInterval = null;
-// 添加全局變數
 let selectedBus = null; // 保存選中車輛的完整副本
 let countdownSeconds = 20; // 預設20秒
-// 全局變數 - 是否包含已記錄車輛
 let includeRecordedVehicles = false;
-//滑動全局變數
 let currentSwipePage = 0;
 let pagesContainer = null;
 let categoryNav = null;
 let totalPages = 0;
-// 添加一個全局變數，用於防止連續處理
 let backButtonHandlingDelay = false;
-// 公司列表數據
-const companies = [
-  { id: "1", name: "首都客運" },
-  { id: "2", name: "臺北客運" },
-  { id: "3", name: "大都會客運" },
-  { id: "4", name: "三重客運" },
-  { id: "5", name: "台中客運" },
-];
-
-// 主要項目預設值
-const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
-
-// 添加防抖函數 - 放在全局變數聲明後面
-function debounce(func, wait) {
-  let timeout;
-  return function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, arguments), wait);
-  };
-}
-// 創建防抖版本的跑馬燈初始化函數
-const debouncedInitMarquees = debounce(initializeMarquees, 100);
-
-document.addEventListener('touchstart', function(e) {
-  startY = e.touches[0].clientY;
-}, { passive: true }); // 使用passive: true以不影響滾動性能
-
-// 只在特定條件下阻止下拉刷新
-document.addEventListener('touchmove', function(e) {
-  // 只有當頁面處於頂部 AND 用戶向下拖動 AND 拖動幅度超過5像素時才阻止默認行為
-  const touchY = e.touches[0].clientY;
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+// 新增事件管理工具，用於統一管理事件監聽器，避免重複添加和內存洩漏
+const EventManager = {
+  listeners: {},
   
-  if (scrollTop <= 0 && touchY > startY + 5) {
-    // 只有這種情況下才阻止默認行為
-    e.preventDefault();
-  }
-}, { passive: false }); // 需要passive: false來允許preventDefault
-
-// 監聽返回按鈕事件
-function setupBackButtonHandler() {
-  // 檢查是否在Android環境中
-  const isAndroid = /android/i.test(navigator.userAgent);
-  
-  if (isAndroid) {
-    console.log("檢測到Android環境，設置返回按鈕處理");
+  // 添加事件監聽器並記錄
+  add: function(element, eventType, callback, options) {
+    if (!element) return false;
     
-    // 添加返回按鈕事件監聽
-    window.addEventListener('popstate', function(event) {
-      // 阻止默認的返回行為
-      event.preventDefault();
-      handleBackButton();
-      
-      // 保持在當前頁面
-      history.pushState(null, document.title, window.location.href);
-      return false;
-    });
+    const id = element.id || `elem_${Math.random().toString(36).substr(2, 9)}`;
+    if (!element.id) element.id = id;
     
-    // 添加一個history條目，確保有東西可以"返回"
-    history.pushState(null, document.title, window.location.href);
-  }
-}
-// 處理返回按鈕邏輯
-function handleBackButton() {
-  const currentTime = Date.now();
-  
-  // 如果正在處理延遲期，忽略此次返回
-  if (backButtonHandlingDelay) {
-    return;
-  }
-  
-  // 先檢查各種模態框是否開啟
-  
-  // 如果確認對話框已顯示，直接關閉它
-  if (document.getElementById("confirmModal").style.display === "block") {
-    document.getElementById("confirmModal").style.display = "none";
-    return;
-  }
-
-  // 如果有打開的模態框，先關閉模態框並設置延遲標記
-  if (document.getElementById("locationModal").style.display === "block") {
-    closeLocationModal();
+    const key = `${id}_${eventType}`;
     
-    // 設置延遲標記，短暫防止再次處理
-    backButtonHandlingDelay = true;
-    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
-    return;
-  }
-  
-  if (document.getElementById("manualInputModal").style.display === "block") {
-    closeManualInputModal();
+    // 如果已存在此事件，先移除
+    this.remove(element, eventType);
     
-    // 設置延遲標記，短暫防止再次處理
-    backButtonHandlingDelay = true;
-    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
-    return;
-  }
-  
-  if (document.getElementById("historyModal").style.display === "block") {
-    closeHistoryModal();
+    // 添加新事件並記錄
+    element.addEventListener(eventType, callback, options);
+    this.listeners[key] = {
+      element: element,
+      callback: callback
+    };
     
-    // 設置延遲標記，短暫防止再次處理
-    backButtonHandlingDelay = true;
-    setTimeout(() => { backButtonHandlingDelay = false; }, 300);
-    return;
-  }
+    return true;
+  },
   
-  // 更精確地檢查是否真的在編輯車輛
-  if (isProcessingBus && 
-      editingBuses.length > 0 && 
-      activeEditingBusIndex >= 0 &&
-      !document.getElementById("busInputContainer").classList.contains("hidden")) {
-    cancelBusInput();
-    return;
-  }
-  
-  // 雙擊返回才退出程序(2秒內)
-  if (currentTime - lastBackPressTime < 2000) {
-    showStatusMessage("再次點擊返回將退出應用", "info", true);
-  } else {
-    showStatusMessage("再按一次返回鍵退出應用", "info", true);
-    lastBackPressTime = currentTime;
-  }
-}
-
-// 初始化偵測指示器和按鈕事件
-function setupDetectionFeedback() {
-  // 添加偵測指示器到DOM
-  if (!document.getElementById('detectionIndicator')) {
-    const indicatorHTML = `
-      <div id="detectionIndicator" class="detection-indicator">
-        <div class="spinner"></div>
-        <span id="detectionMessage">正在偵測車輛...</span>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', indicatorHTML);
-  }
-  
-  // 綁定偵測按鈕點擊事件，添加立即反饋
-  const detectButton = document.querySelector('.utility-button:nth-child(1)');
-  if (detectButton) {
-    detectButton.addEventListener('click', function() {
-      // 按鈕點擊時立即添加視覺效果，不等待函數內部
-      this.classList.add('detecting');
-    });
-  }
-}
-// 在頁面初始化時設置返回按鈕處理
-document.addEventListener('DOMContentLoaded', function() {
-  setupBackButtonHandler();
-  setupDetectionFeedback();
-     setTimeout(() => {
-      debouncedInitMarquees();
-    }, 500);
-});
-
-const safeStorage = {
-  set: function(key, value) {
-    try {
-      // 檢查存儲是否可用
-      if (!this.isAvailable()) {
-        console.warn("localStorage不可用");
-        return false;
-      }
-      
-      if (typeof value === 'object') {
-        value = JSON.stringify(value);
-      }
-      localStorage.setItem(key, value);
+  // 移除事件監聽器
+  remove: function(element, eventType) {
+    if (!element) return false;
+    
+    const id = element.id;
+    if (!id) return false;
+    
+    const key = `${id}_${eventType}`;
+    const listener = this.listeners[key];
+    
+    if (listener) {
+      element.removeEventListener(eventType, listener.callback);
+      delete this.listeners[key];
       return true;
-    } catch (error) {
-      console.error("保存到localStorage失敗:", error);
-      return false;
     }
+    
+    return false;
   },
   
-  get: function(key, defaultValue = null) {
-    try {
-      const value = localStorage.getItem(key);
-      if (value === null) return defaultValue;
-      
-      // 嘗試解析JSON
-      try {
-        return JSON.parse(value);
-      } catch (e) {
-        // 如果不是JSON，直接返回值
-        return value;
+  // 清理特定元素的所有事件
+  cleanElement: function(element) {
+    if (!element || !element.id) return;
+    
+    const id = element.id;
+    
+    Object.keys(this.listeners).forEach(key => {
+      if (key.startsWith(id + '_')) {
+        const eventType = key.split('_')[1];
+        this.remove(element, eventType);
       }
-    } catch (error) {
-      console.error("從localStorage讀取失敗:", error);
-      return defaultValue;
-    }
-  },
-  
-  remove: function(key) {
-    try {
-      localStorage.removeItem(key);
-      return true;
-    } catch (error) {
-      console.error("從localStorage刪除失敗:", error);
-      return false;
-    }
-  },
-  
-  // 檢查存儲是否可用
-  isAvailable: function() {
-    try {
-      const testKey = "__test__";
-      localStorage.setItem(testKey, testKey);
-      const testValue = localStorage.getItem(testKey);
-      localStorage.removeItem(testKey);
-      return testValue === testKey;
-    } catch (e) {
-      return false;
-    }
+    });
   }
 };
 
-// 切換是否包含已記錄車輛的開關
-function toggleIncludeRecorded() {
-  includeRecordedVehicles = document.getElementById('includeRecordedToggle').checked;
-  console.log("包含已記錄車輛設置更改為:", includeRecordedVehicles);
+// 改進的滑動設置函數，使用 EventManager 管理事件
+function setupSwipeFeature(container, navBar, totalCategoryPages) {
+  pagesContainer = container;
+  categoryNav = navBar;
+  totalPages = totalCategoryPages;
+  currentSwipePage = 0; // 重置為第一頁
   
-  // 立即重新篩選顯示的車輛
-  refreshDisplayedBuses();
-}
-// 根據當前設置重新篩選要顯示的車輛
-function refreshDisplayedBuses() {
-  if (includeRecordedVehicles) {
-    // 包含所有車輛 - 合併所有偵測到的車輛
-    displayedBuses = [...allDetectedBuses];
-  } else {
-    // 只顯示未新增過的車輛
-    const threeMinutes = 3 * 60 * 1000; // 3分鐘轉換為毫秒
-    const currentTime = Date.now();
+  if (!pagesContainer || !categoryNav) return;
+  
+  // 應用初始頁面設置
+  updateSwipePageDisplay(0);
+  
+  // 設置新的事件處理
+  let startX, startY;
+  let isScrollingVertical = false;
+  let initialTarget = null; // 記錄觸摸開始的元素
+  
+  // 使用 EventManager 添加觸摸開始事件
+  EventManager.add(pagesContainer, 'touchstart', function(e) {
+    // 記錄初始觸摸的目標元素
+    initialTarget = e.target;
     
-    displayedBuses = allDetectedBuses.filter(bus => {
-      // 如果車牌在已新增列表中且新增時間小於3分鐘，則不顯示
-      if (submittedBuses.includes(bus.plateNumber)) {
-        const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
-        if (submissionTime && (currentTime - parseInt(submissionTime)) < threeMinutes) {
-          return false; // 排除近期已新增的車輛
+    // 如果初始觸摸是在項目元素上，則不啟動滑動
+    if (initialTarget.closest('.quick-other-item')) {
+      startX = null;
+      return;
+    }
+    
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isScrollingVertical = false;
+    
+    // 設置過渡為無，確保觸摸時響應迅速
+    pagesContainer.style.transition = 'none';
+  }, { passive: true });
+  
+  // 使用 EventManager 添加觸摸移動事件
+  EventManager.add(pagesContainer, 'touchmove', function(e) {
+    // 如果沒有啟動滑動或初始觸摸是在項目上，則不處理
+    if (!startX || initialTarget.closest('.quick-other-item')) return;
+    
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = startX - currentX;
+    const diffY = startY - currentY;
+    
+    // 設置滑動標記，供其他事件參考
+    if (Math.abs(diffX) > 5) {
+      window.isSwiping = true;
+    }
+    
+    // 判斷是否垂直滾動
+    if (!isScrollingVertical && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
+      isScrollingVertical = true;
+      return;
+    }
+    
+    // 如果是垂直滾動，不處理水平滑動
+    if (isScrollingVertical) return;
+    
+    // 防止事件冒泡，確保滑動時頁面不會跟著滾動
+    e.preventDefault();
+    
+    // 計算偏移量
+    const pageWidth = pagesContainer.offsetWidth;
+    const movePercent = (diffX / pageWidth) * 100;
+    const currentOffset = -currentSwipePage * 100;
+    const newOffset = currentOffset - movePercent;
+    
+    // 應用新的位置，添加阻尼效果
+    let finalOffset = newOffset;
+    if (newOffset > 0) {
+      finalOffset = newOffset * 0.3; // 左端阻尼
+    } else if (newOffset < -(totalPages - 1) * 100) {
+      const overScroll = newOffset + (totalPages - 1) * 100;
+      finalOffset = -(totalPages - 1) * 100 + overScroll * 0.3; // 右端阻尼
+    }
+    
+    pagesContainer.style.transform = `translateX(${finalOffset}%)`;
+  }, { passive: false });
+  
+  // 使用 EventManager 添加觸摸結束事件
+  EventManager.add(pagesContainer, 'touchend', function(e) {
+    // 如果沒有啟動滑動或是垂直滾動，不處理
+    if (!startX || isScrollingVertical || initialTarget.closest('.quick-other-item')) {
+      startX = null;
+      startY = null;
+      initialTarget = null;
+      return;
+    }
+    
+    const currentX = e.changedTouches[0].clientX;
+    const diffX = startX - currentX;
+    const pageWidth = pagesContainer.offsetWidth;
+    
+    // 重置起始點
+    startX = null;
+    startY = null;
+    initialTarget = null;
+    
+    // 恢復過渡效果
+    pagesContainer.style.transition = 'transform 0.3s ease';
+    
+    // 判斷是否需要翻頁
+    if (Math.abs(diffX) > pageWidth * 0.15) { // 只需15%的滑動距離
+      if (diffX > 0 && currentSwipePage < totalPages - 1) {
+        // 向左滑動 -> 下一頁
+        updateSwipePageDisplay(currentSwipePage + 1);
+      } else if (diffX < 0 && currentSwipePage > 0) {
+        // 向右滑動 -> 上一頁
+        updateSwipePageDisplay(currentSwipePage - 1);
+      } else {
+        // 邊界情況：回到當前頁
+        updateSwipePageDisplay(currentSwipePage);
+      }
+    } else {
+      // 滑動不夠遠，回到當前頁
+      updateSwipePageDisplay(currentSwipePage);
+    }
+    
+    // 延遲重置滑動標記
+    setTimeout(() => {
+      window.isSwiping = false;
+    }, 100);
+  }, { passive: true });
+  
+  // 設置分類標籤點擊事件
+  const tabs = categoryNav.querySelectorAll('.category-tab');
+  tabs.forEach((tab, index) => {
+    // 清理舊事件並添加新事件
+    EventManager.cleanElement(tab);
+    EventManager.add(tab, 'click', function() {
+      updateSwipePageDisplay(index);
+    });
+  });
+}
+// 車輛數據管理模塊，統一管理車輛數據，避免狀態不一致
+const BusManager = {
+  allDetectedBuses: [], // 全局車輛列表
+  displayedBuses: [],   // 顯示的車輛列表
+  editingBuses: [],     // 編輯中的車輛列表
+  submittedBuses: [],   // 已提交的車輛列表
+  activeEditingBusIndex: -1, // 當前編輯的車輛索引
+  
+  // 初始化模塊
+  init: function() {
+    // 從全局變量複製數據
+    this.allDetectedBuses = [...allDetectedBuses];
+    this.displayedBuses = [...displayedBuses];
+    this.editingBuses = [...editingBuses];
+    this.submittedBuses = [...submittedBuses];
+    this.activeEditingBusIndex = activeEditingBusIndex;
+    
+    return this;
+  },
+  
+  // 同步模塊數據到全局變量
+  syncToGlobal: function() {
+    allDetectedBuses = [...this.allDetectedBuses];
+    displayedBuses = [...this.displayedBuses];
+    editingBuses = [...this.editingBuses];
+    submittedBuses = [...this.submittedBuses];
+    activeEditingBusIndex = this.activeEditingBusIndex;
+    
+    return this;
+  },
+  
+  // 添加新車輛，確保唯一ID和不重複
+  addBus: function(bus) {
+    if (!bus) return false;
+    
+    // 確保有唯一ID
+    if (!bus.uniqueId) {
+      bus.uniqueId = uuid.v4();
+    }
+    
+    // 添加時間戳
+    bus.lastUpdated = Date.now();
+    
+    // 檢查是否已存在相同ID的車輛
+    const existInAll = this.allDetectedBuses.some(item => item.uniqueId === bus.uniqueId);
+    
+    if (!existInAll) {
+      this.allDetectedBuses.push(bus);
+    } else {
+      // 如果已存在，更新而不是添加
+      this.updateBus(bus.uniqueId, bus);
+    }
+    
+    // 檢查是否應該添加到顯示列表
+    const existInDisplay = this.displayedBuses.some(item => item.uniqueId === bus.uniqueId);
+    
+    if (!existInDisplay && !this.isRecentlySubmitted(bus.plateNumber)) {
+      this.displayedBuses.push(bus);
+    }
+    
+    // 同步到全局變量
+    this.syncToGlobal();
+    
+    return true;
+  },
+  
+  // 根據唯一ID更新車輛
+  updateBus: function(uniqueId, updateData) {
+    if (!uniqueId || !updateData) return false;
+    
+    let updated = false;
+    
+    // 更新全局列表
+    const globalIndex = this.allDetectedBuses.findIndex(item => item.uniqueId === uniqueId);
+    if (globalIndex !== -1) {
+      this.allDetectedBuses[globalIndex] = {
+        ...this.allDetectedBuses[globalIndex],
+        ...updateData,
+        lastUpdated: Date.now()
+      };
+      updated = true;
+    }
+    
+    // 更新顯示列表
+    const displayIndex = this.displayedBuses.findIndex(item => item.uniqueId === uniqueId);
+    if (displayIndex !== -1) {
+      this.displayedBuses[displayIndex] = {
+        ...this.displayedBuses[displayIndex],
+        ...updateData,
+        lastUpdated: Date.now()
+      };
+      updated = true;
+    }
+    
+    // 更新編輯列表
+    const editIndex = this.editingBuses.findIndex(item => item.uniqueId === uniqueId);
+    if (editIndex !== -1) {
+      this.editingBuses[editIndex] = {
+        ...this.editingBuses[editIndex],
+        ...updateData,
+        lastUpdated: Date.now()
+      };
+      
+      // 如果更新的是當前編輯中的車輛，可能需要更新UI
+      if (editIndex === this.activeEditingBusIndex) {
+        // 這裡僅標記需要更新，實際UI更新在調用處處理
+      }
+      
+      updated = true;
+    }
+    
+    if (updated) {
+      // 同步到全局變量
+      this.syncToGlobal();
+    }
+    
+    return updated;
+  },
+  
+  // 添加車輛到編輯列表
+  addToEditing: function(bus, originalIndex) {
+    if (!bus) return false;
+    
+    // 確保有唯一ID
+    if (!bus.uniqueId) {
+      bus.uniqueId = uuid.v4();
+    }
+    
+    // 檢查是否已在編輯列表中
+    const existingIndex = this.editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+    
+    if (existingIndex !== -1) {
+      // 已在編輯列表中，更新索引並設置為活躍
+      this.activeEditingBusIndex = existingIndex;
+    } else {
+      // 創建編輯副本
+      const editCopy = JSON.parse(JSON.stringify(bus));
+      editCopy.selectedOtherItems = editCopy.selectedOtherItems || [];
+      editCopy.originalPlateNumber = bus.plateNumber;
+      editCopy.originalIndex = originalIndex;
+      
+      // 添加到編輯列表
+      this.editingBuses.push(editCopy);
+      this.activeEditingBusIndex = this.editingBuses.length - 1;
+      
+      // 標記為編輯中
+      this.markAsEditing(bus.uniqueId);
+    }
+    
+    // 同步到全局變量
+    this.syncToGlobal();
+    
+    return true;
+  },
+  
+  // 標記車輛為編輯中
+  markAsEditing: function(uniqueId) {
+    // 更新全局列表和顯示列表中的編輯狀態
+    this.allDetectedBuses.forEach(bus => {
+      if (bus.uniqueId === uniqueId) {
+        bus.isInEditing = true;
+      }
+    });
+    
+    this.displayedBuses.forEach(bus => {
+      if (bus.uniqueId === uniqueId) {
+        bus.isInEditing = true;
+      }
+    });
+    
+    // 同步到全局變量
+    this.syncToGlobal();
+  },
+  
+  // 從編輯列表移除車輛
+  removeFromEditing: function(index) {
+    if (index < 0 || index >= this.editingBuses.length) return false;
+    
+    // 保存要移除的車輛信息
+    const removedBus = this.editingBuses[index];
+    
+    // 移除編輯標記
+    if (removedBus && removedBus.uniqueId) {
+      this.allDetectedBuses.forEach(bus => {
+        if (bus.uniqueId === removedBus.uniqueId) {
+          bus.isInEditing = false;
+        }
+      });
+      
+      this.displayedBuses.forEach(bus => {
+        if (bus.uniqueId === removedBus.uniqueId) {
+          bus.isInEditing = false;
+        }
+      });
+    }
+    
+    // 從編輯列表移除
+    this.editingBuses.splice(index, 1);
+    
+    // 調整活躍索引
+    if (this.editingBuses.length === 0) {
+      this.activeEditingBusIndex = -1;
+    } else if (this.activeEditingBusIndex >= this.editingBuses.length) {
+      this.activeEditingBusIndex = this.editingBuses.length - 1;
+    } else if (this.activeEditingBusIndex === index) {
+      this.activeEditingBusIndex = 0;
+    }
+    
+    // 同步到全局變量
+    this.syncToGlobal();
+    
+    return true;
+  },
+  
+  // 檢查車輛是否最近已提交
+  isRecentlySubmitted: function(plateNumber) {
+    const submissionTime = localStorage.getItem(`submitted_${plateNumber}`);
+    if (!submissionTime) return false;
+    
+    const SUBMISSION_EXPIRY_TIME_MS = 2 * 60 * 1000; // 2分鐘
+    return (Date.now() - parseInt(submissionTime)) < SUBMISSION_EXPIRY_TIME_MS;
+  },
+  
+  // 同步所有列表中的編輯狀態
+  syncEditingStatus: function() {
+    // 創建唯一ID集合
+    const editingIds = new Set(this.editingBuses.map(bus => bus.uniqueId));
+    
+    // 更新顯示列表
+    this.displayedBuses.forEach(bus => {
+      bus.isInEditing = editingIds.has(bus.uniqueId);
+    });
+    
+    // 更新全局列表
+    this.allDetectedBuses.forEach(bus => {
+      bus.isInEditing = editingIds.has(bus.uniqueId);
+    });
+    
+    // 同步到全局變量
+    this.syncToGlobal();
+  },
+  
+  // 檢測和處理車牌重複問題
+  detectAndResolveDuplicates: function() {
+    // 檢查顯示列表中是否有車牌重複
+    const plateMap = new Map();
+    const duplicatePlates = new Set();
+    
+    // 第一遍掃描，找出重複車牌
+    this.displayedBuses.forEach(bus => {
+      if (plateMap.has(bus.plateNumber)) {
+        duplicatePlates.add(bus.plateNumber);
+      } else {
+        plateMap.set(bus.plateNumber, bus);
+      }
+    });
+    
+    // 如果有重複車牌，進行處理
+    if (duplicatePlates.size > 0) {
+      console.log(`檢測到 ${duplicatePlates.size} 個重複車牌:`, Array.from(duplicatePlates));
+      
+      // 對每個重複車牌，保留最新更新的一個
+      duplicatePlates.forEach(plateNumber => {
+        // 收集所有該車牌的車輛
+        const buses = this.displayedBuses.filter(bus => bus.plateNumber === plateNumber);
+        
+        // 按最後更新時間排序，保留最新的一個
+        buses.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+        
+        // 保留最新更新的車輛
+        const keepBus = buses[0];
+        
+        // 從顯示列表和全局列表中移除其餘重複項
+        for (let i = 1; i < buses.length; i++) {
+          const removeBus = buses[i];
+          
+          this.displayedBuses = this.displayedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
+          this.allDetectedBuses = this.allDetectedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
+          
+          console.log(`移除重複車牌 ${plateNumber} 的車輛, ID: ${removeBus.uniqueId}`);
+        }
+      });
+      
+      // 同步到全局變量
+      this.syncToGlobal();
+      
+      return true;
+    }
+    
+    return false;
+  }
+};
+// 改進的位置獲取函數，提供更多的錯誤處理和位置源信息
+async function getCurrentPosition(silent = false) {
+  showLoading();
+  console.log("開始獲取高精度位置...");
+  
+  let retryCount = 0;
+  const maxRetries = 3;
+  let locationSource = "即時GPS"; // 標記位置來源
+
+  try {
+    while (retryCount < maxRetries && navigator.geolocation) {
+      try {
+        // 清除之前的位置監視
+        if (window.watchId) {
+          navigator.geolocation.clearWatch(window.watchId);
+          window.watchId = null;
+        }
+        
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+          });
+        });
+
+        console.log("高精度位置獲取成功");
+        currentLatitude = position.coords.latitude;
+        currentLongitude = position.coords.longitude;
+        savePosition(currentLatitude, currentLongitude);
+        
+        // 更新位置精度指示器
+        updateLocationAccuracyIndicator(position.coords.accuracy, locationSource);
+        
+        // 重新啟動位置監視
+        startHighAccuracyLocationWatching(true);
+        
+        hideLoading();
+        return {
+          success: true,
+          source: locationSource,
+          accuracy: position.coords.accuracy
+        };
+      } catch (geoError) {
+        console.error("位置API錯誤:", geoError.code, geoError.message);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`位置獲取失敗，進行第${retryCount}次重試`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } else {
+          console.log("達到最大重試次數");
+          break;
         }
       }
-      return true; // 保留其他車輛
-    });
-  }
-    // 更新UI
-  updateDetectedBusesList();
-}
-// 在模態框內顯示錯誤訊息
-function showManualInputError(message) {
-  const errorElement = document.getElementById("manualInputError");
-  errorElement.textContent = message;
-  errorElement.style.display = "block";
-  
-  // 3秒後自動隱藏錯誤訊息
-  setTimeout(() => {
-    errorElement.style.display = "none";
-  }, 3000);
-}
-// 轉換為大寫函數
-function convertToUpperCase(input) {
-  input.value = input.value.toUpperCase();
-    // 添加車號格式化邏輯
-  formatPlateNumber(input);
-}
+    }
 
-// 格式化車號，處理各種情況
-function formatPlateNumber(input) {
-  let value = input.value.replace(/-/g, ''); // 先移除所有 "-"
-  
-  // 如果車牌包含數字和英文，但格式複雜(如123U3)
-  // 我們找到第一個字母和數字交界的地方
-  let result = value;
-  let hasFormatted = false;
-  
-  // 尋找從數字到字母的轉換
-  for (let i = 0; i < value.length - 1; i++) {
-    let current = value[i];
-    let next = value[i + 1];
-    
-    // 如果當前字符是數字，下一個是字母
-    if (!isNaN(parseInt(current)) && isNaN(parseInt(next)) && /[A-Z]/.test(next)) {
-      result = value.substring(0, i + 1) + '-' + value.substring(i + 1);
-      hasFormatted = true;
-      break;
-    }
-    
-    // 如果當前字符是字母，下一個是數字
-    if (isNaN(parseInt(current)) && /[A-Z]/.test(current) && !isNaN(parseInt(next))) {
-      result = value.substring(0, i + 1) + '-' + value.substring(i + 1);
-      hasFormatted = true;
-      break;
-    }
-  }
-  
-  input.value = result;
-}
-
-
-// 在頁面載入時初始化
-window.onload = initializePage;
-// 清空顯示車輛列表的函數
-function clearDisplayedBuses() {
-  // 如果列表已為空，顯示提示
-  if (displayedBuses.length === 0) {
-    showStatusMessage("當前列表已為空", "info");
-    return;
-  }
-  
-  // 直接清空列表
-  displayedBuses = [];
-  updateDetectedBusesList();
-  showStatusMessage("已清空車輛列表", "info");
-
-}
-// 6. 修改cancelBusInput函數
-function cancelBusInput() {
-  if (activeEditingBusIndex >= 0) {
-    confirmCancelEditing(activeEditingBusIndex);
-  }
-}
-// 切換自動偵測功能
-function toggleAutoDetect() {
-  const statusElem = document.getElementById("autoDetectStatus");
-   const autoDetectButton = document.getElementById("autoDetectButton");
-  if (autoDetectInterval) {
-    stopAutoDetect();
-    statusElem.textContent = "自動偵測";
-    autoDetectButton.classList.remove("auto-detect-active");
-  } else {
-    startAutoDetect();
-    statusElem.textContent = "停止自動";
-    autoDetectButton.classList.add("auto-detect-active");
-  }
-}
-// 打開手動輸入模態框時暫停自動偵測
-function openManualInputModal() {
-  // 記錄當前自動偵測狀態
-   const wasAutoDetecting = !!autoDetectInterval;
-  
-//   // 如果正在自動偵測，暫時停止
-   if (wasAutoDetecting) {
-     stopAutoDetect();
-//     // 在window上保存狀態，以便後續恢復
-     window.tempAutoDetectState = true;
- }
-  
-  document.getElementById("manualInputModal").style.display = "block";
-   // 重置表單欄位到預設值
-  document.getElementById("manualPlateNumber").value = "";
-  document.getElementById("manualCompany").value = ""; // 預設選擇首都
-  document.getElementById("manualRoute").value = "";
-    // 初始化方向按鈕
-  initDirectionButtons();
-    // 隱藏任何之前的錯誤訊息
-  document.getElementById("manualInputError").style.display = "none";
-}
-
-// 關閉手動輸入模態框時恢復自動偵測
-function closeManualInputModal() {
-  document.getElementById("manualInputModal").style.display = "none";
-  
-//   // 如果之前是自動偵測狀態，恢復自動偵測
-  if (window.tempAutoDetectState) {
-    startAutoDetect();
-    window.tempAutoDetectState = false;
-  }
-}
-window.addEventListener('scroll', function() {
-  clearTimeout(window.scrollTimer);
-  window.scrollTimer = setTimeout(debouncedInitMarquees, 200);
-});
-// 加強健康檢查函數，確保計時器正常運行
-// 改進的自動偵測健康檢查函數，更清晰的命名和錯誤處理
-function setupAutoDetectHealthCheck() {
-  const HEALTH_CHECK_INTERVAL_MS = 10000; // 10秒
-  
-  // 設置健康檢查定時器
-  const healthCheckInterval = setInterval(() => {
-    try {
-      const statusElem = document.getElementById("autoDetectStatus");
-      
-      // 檢查是否應該在自動偵測狀態但計時器已經停止
-      if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
-        console.log("檢測到自動偵測異常停止，正在重新啟動...");
-        // 重新啟動自動偵測
-        startAutoDetect();
-      }
-      
-      // 檢查倒數計時是否正常運行
-      if (statusElem && statusElem.textContent === "停止自動" && !countdownInterval) {
-        console.log("檢測到倒數計時異常停止，正在重新啟動...");
-        // 重新啟動倒數計時
-        startCountdown();
-      }
-    } catch (error) {
-      console.error("自動偵測健康檢查錯誤:", error);
-      // 即使出錯也不中斷健康檢查
-    }
-  }, HEALTH_CHECK_INTERVAL_MS);
-  
-  // 頁面卸載時清理健康檢查
-  window.addEventListener("beforeunload", function() {
-    if (healthCheckInterval) {
-      clearInterval(healthCheckInterval);
-    }
-  });
-}
-// 添加完整的頁面初始化函數，包含錯誤處理和回調
-// 修改頁面初始化函數，使用URL參數而非LIFF登錄
-async function initializePage() {
-  if (navigator.permissions) {
-  navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
-    if (result.state === 'granted') {
-      console.log('已有位置權限');
-      startHighAccuracyLocationWatching();
-    } else if (result.state === 'prompt') {
-      console.log('需要顯式請求位置權限');
-      // 顯式請求位置以觸發權限請求
-      navigator.geolocation.getCurrentPosition(
-        () => { console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
-        (error) => { console.error('位置權限請求失敗:', error); },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else if (result.state === 'denied') {
-      showStatusMessage('請在瀏覽器設置中開啟位置權限以獲取準確位置', 'error');
-    }
-  });
-} else {
-  // 瀏覽器不支持permissions API，直接請求位置
-  startHighAccuracyLocationWatching();
-}
-  try {
-    showLoading();
-    console.log("初始化頁面...");
-    
-    // 檢查localStorage是否可用
-    if (!safeStorage.isAvailable()) {
-      showStatusMessage("本地存儲不可用，部分功能可能受限", "warning", true);
-    }
-    
-    // 清理過期新增記錄
-    cleanupExpiredSubmissions();
-    
-    // 從URL獲取userId
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    if (userId) {
-      document.getElementById("userId").value = userId;
-      console.log("從URL獲取到userId:", userId);
-      
-      // 檢查用戶是否存在
-      await checkUserExists(userId, channelId);
-      
-      // 獲取最後一次位置記錄
-      const lastLocation = await fetchLastLocation(userId);
-      if (lastLocation) {
-        document.getElementById("location").value = lastLocation;
-        console.log("已填入今日最後記錄位置:", lastLocation);
-      }
-      
-      // 獲取其他項目列表
-      await fetchOtherItems();
-      
-      // 立即啟動高精度位置監控
-      startHighAccuracyLocationWatching();
-      
-      // 設置自動偵測健康檢查
-      setupAutoDetectHealthCheck();
-      
-      // 添加網絡狀態監聽器
-      setupNetworkListeners();
-      
-      console.log("頁面初始化完成");
-    } else {
-      console.error("URL中缺少userId參數");
-      showStatusMessage("缺少必要的用戶信息，請從LINE中開啟應用", "error");
-    }
-    
-    hideLoading();
-  } catch (error) {
-    console.error("頁面載入時發生錯誤:", error);
-    showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
-    hideLoading();
-  }
-  document.addEventListener('click', function() {
-  requestWakeLock();
-}, { once: true });
-
-  // 添加在函數最後
-  setupBackButtonHandler();
-}
-
-
-// 請求Wake Lock避免手機休眠
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) {addEventListener
-      window.wakeLock = await navigator.wakeLock.request('screen');
-      console.log('Wake Lock已啟用');
-      
-      // 頁面可見性變化時重新請求
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
-      // 頁面變為可見時，重新初始化所有跑馬燈
-      setTimeout(() => {
-        debouncedInitMarquees();
-      }, 100);
-    }
-  });
-    }
-  } catch (err) {
-    console.error('Wake Lock請求失敗:', err);
-  }
-}
-// 高精度位置監視函數
-function startHighAccuracyLocationWatching(silent = false) {
-  // 先停止現有的監視
-  stopLocationWatching();
-  
-  if (!navigator.geolocation) {
-    console.log("瀏覽器不支持地理位置API");
-    if (!silent) {
-      showStatusMessage("您的設備不支持位置功能", "error");
-    }
-    return;
-  }
-  
-  // 添加位置精度指示器
-  if (!document.querySelector('.location-accuracy-container')) {
-    addLocationAccuracyIndicator();
-  }
-  
-  const geoOptions = {
-    enableHighAccuracy: true, // 使用高精度模式
-    timeout: 15000,           // 較長的超時時間
-    maximumAge: 0             // 不使用緩存的位置
-  };
-  
-  
-  window.watchId = navigator.geolocation.watchPosition(
-    (position) => {
-      console.log("位置已更新（高精度）");
-      currentLatitude = position.coords.latitude;
-      currentLongitude = position.coords.longitude;
-      
-      // 記錄位置精度
-      const accuracy = position.coords.accuracy;
-      console.log("位置精度:", accuracy, "公尺");
+    // 嘗試使用本地緩存位置
+    if (loadLastPosition()) {
+      console.log("使用本地緩存位置作為後備");
+      locationSource = "緩存位置";
       
       // 更新位置精度指示器
-      updateLocationAccuracyIndicator(accuracy);
+      updateLocationAccuracyIndicator(100, locationSource); // 假設緩存位置精度為100米
       
-      // 保存位置
-      savePosition(currentLatitude, currentLongitude);
-    },
-    (error) => {
-      console.log("位置監聽錯誤:", error);
-      if (!silent) {
-        showStatusMessage("暫時無法獲取位置，請至室外或開啟位置權限", "info");
-      }
-      
-      // 錯誤時也更新位置精度指示器
-      updateLocationAccuracyIndicator(999);
-    },
-    geoOptions
-  );
-  
-  console.log("已啟動高精度位置監視，watchId:", window.watchId);
-}
+      hideLoading();
+      return {
+        success: true,
+        source: locationSource,
+        accuracy: 100 // 估計精度
+      };
+    }
+    
+    // 使用默認位置作為最後後備
+    console.log("使用預設位置作為後備");
+    locationSource = "預設位置";
+    currentLatitude = 25.033; // 台北市中心位置
+    currentLongitude = 121.565;
+    savePosition(currentLatitude, currentLongitude);
+    
+    // 更新位置精度指示器為最低精度
+    updateLocationAccuracyIndicator(999, locationSource);
+    
+    hideLoading();
 
-// 添加位置精度指示器
-function addLocationAccuracyIndicator() {
-  const locationContainer = document.querySelector(".form-group");
-  
-  const accuracyContainer = document.createElement("div");
-  accuracyContainer.className = "location-accuracy-container";
-  accuracyContainer.style.fontSize = "12px";
-  accuracyContainer.style.marginTop = "5px";
-  accuracyContainer.style.color = "#666";
-  
-  const accuracyIndicator = document.createElement("div");
-  accuracyIndicator.className = "location-accuracy";
-  accuracyIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在獲取位置...';
-  
-  accuracyContainer.appendChild(accuracyIndicator);
-  locationContainer.appendChild(accuracyContainer);
+    if (!silent) {
+      showStatusMessage("無法準確獲取位置，使用預設位置", "warning", true);
+    }
+    return {
+      success: true,
+      source: locationSource,
+      accuracy: 999
+    };
+  } catch (error) {
+    console.error("位置獲取完全失敗:", error);
+    hideLoading();
+    
+    // 更新位置精度指示器為出錯狀態
+    updateLocationAccuracyIndicator(999, "錯誤");
+    
+    if (!silent) {
+      showStatusMessage("無法獲取位置，請開啟位置權限或至室外", "error", true);
+    }
+    return {
+      success: false,
+      source: "錯誤",
+      error: error.message
+    };
+  }
 }
-
-// 更新位置精度指示器
-function updateLocationAccuracyIndicator(accuracy) {
+// 改進的位置精度指示器，顯示位置來源信息
+function updateLocationAccuracyIndicator(accuracy, source = "GPS") {
   const accuracyElement = document.querySelector(".location-accuracy");
   if (!accuracyElement) return;
   
   if (accuracy === 999) {
-    accuracyElement.innerHTML = `<i class="fas fa-exclamation-triangle" style="color:red;"></i> 無法獲取精確位置`;
+    accuracyElement.innerHTML = `<i class="fas fa-exclamation-triangle" style="color:red;"></i> 無法獲取精確位置 (${source})`;
     return;
   }
   
+  let color, text;
   if (accuracy < 10) {
-    accuracyElement.innerHTML = `<i class="fas fa-crosshairs" style="color:green;"></i> 位置精確度高 (${Math.round(accuracy)}m)`;
+    color = "green";
+    text = "高";
   } else if (accuracy < 50) {
-    accuracyElement.innerHTML = `<i class="fas fa-crosshairs" style="color:orange;"></i> 位置精確度中 (${Math.round(accuracy)}m)`;
+    color = "orange";
+    text = "中";
   } else {
-    accuracyElement.innerHTML = `<i class="fas fa-crosshairs" style="color:red;"></i> 位置精確度低 (${Math.round(accuracy)}m)`;
+    color = "red";
+    text = "低";
   }
+  
+  // 顯示位置來源
+  const sourceText = source === "即時GPS" ? "" : ` - ${source}`;
+  accuracyElement.innerHTML = `<i class="fas fa-crosshairs" style="color:${color};"></i> 位置精確度${text} (${Math.round(accuracy)}m${sourceText})`;
 }
 
-// 頁面載入時刷新車輛列表
-window.addEventListener('load', function() {
-  setTimeout(() => {
-    // 獲取位置後自動執行一次車輛偵測
-    getCurrentPosition(true).then(success => {
-      if (success) {
-        detectBuses();
-      }
-    });
-  }, 2000); // 等待2秒讓頁面完全載入
-});
-// 網絡監聽器設置
-function setupNetworkListeners() {
-  // 網絡恢復連接
-  window.addEventListener('online', function() {
-    console.log("網絡連接恢復");
-    showStatusMessage("網絡連接已恢復", "info", true);
-    
-    // 如果頁面可見，更新位置
-    if (document.visibilityState === 'visible') {
-      getCurrentPosition(true);
-    }
-  });
-  
-  // 網絡斷開連接
-  window.addEventListener('offline', function() {
-    console.log("網絡連接已斷開");
-    showStatusMessage("網絡連接已斷開，部分功能可能不可用", "warning");
-  });
-}
-// 添加手動輸入的車輛
-// 添加手動輸入的車輛，確保有可靠的唯一ID
-function addManualBus() {
-  const plateNumber = document.getElementById("manualPlateNumber").value.trim();
-  const company = document.getElementById("manualCompany").value;
-  const route = document.getElementById("manualRoute").value.trim();
-  const direction = document.getElementById("manualDirection").value;
-  
-  // 車號驗證
-  if (!plateNumber) {
-    showManualInputError("請輸入車號");
-    return;
-  }
-  
-  // 公司驗證
-  if (!company) {
-    showManualInputError("請選擇公司");
-    return;
-  }
-  
-  // 檢查是否已新增過
-  if (isRecentlySubmitted(plateNumber)) {
-    showFloatingNotification("此車輛近期已新增記錄，請稍後再試", "error", 3000);
-    return;
-  }
-  
-  // 檢查是否已存在相同車牌號的車輛
-  const existingVehicleIndex = allDetectedBuses.findIndex(bus => 
-    bus.plateNumber === plateNumber);
-  
-  if (existingVehicleIndex !== -1) {
-    // 如果已存在，提示用戶並問是否編輯該車輛
-    if (confirm(`車號 ${plateNumber} 已在列表中存在，是否直接編輯？`)) {
-      const existingVehicle = allDetectedBuses[existingVehicleIndex];
-      
-      // 查找在顯示列表中的索引
-      const displayIndex = displayedBuses.findIndex(bus => 
-        bus.uniqueId === existingVehicle.uniqueId);
-      
-      if (displayIndex !== -1) {
-        // 直接選擇現有車輛進行編輯
-        selectBusForInput(existingVehicle, displayIndex, true);
-        closeManualInputModal();
-        return;
-      }
-    }else{
-      return;
-    }
-  }
-  
-  // 創建可靠的唯一ID
-  const timestamp = Date.now();
-  const uniqueId = uuid.v4(); // 生成一次，複用
-  // 創建新車輛對象
-  const newBus = {
-    plateNumber: plateNumber,
-    operatorName: company,
-    routeName: { chinese: route || "手動輸入" },
-    direction: direction, 
-    position: {
-      latitude: currentLatitude,
-      longitude: currentLongitude
-    },
-    isManualInput: true,
-    originalPlateNumber: plateNumber,
-    uniqueId: uniqueId, // 使用一致的唯一ID格式
-    createdAt: timestamp, // 添加創建時間戳，便於後續追蹤
-    lastUpdated: timestamp
-  };
-  
-  console.log(`添加手動車輛 - 車號: ${plateNumber}, ID: ${uniqueId}`);
-  
-  // 添加到顯示列表和全局列表
-  displayedBuses.push(newBus);
-  allDetectedBuses.push(newBus);
-  
-  // 更新UI
-  updateDetectedBusesList();
-  
-  // 關閉模態框
-  closeManualInputModal();
-  
-  // 選擇新添加的車輛進行輸入
-  selectBusForInput(newBus, displayedBuses.length - 1, true);
-}
-
-// 檢查是否近期新增過（3分鐘內）
-function isRecentlySubmitted(plateNumber) {
-  const submissionTime = localStorage.getItem(`submitted_${plateNumber}`);
-  if (!submissionTime) return false;
-  
-  return (Date.now() - parseInt(submissionTime)) < SUBMISSION_EXPIRY_TIME_MS;
-}
-
-// 2. 修改 selectBusForInput 函數，使其不再鎖定整個列表，而是添加到編輯列表
-function selectBusForInput(bus, index, scrollToView = false) {
- logVehicleState(`開始選擇車輛-${bus.plateNumber}`);
-  
-  // 確保有唯一ID，如果沒有則創建
-  if (!bus.uniqueId) {
-    bus.uniqueId =  uuid.v4();
-    // 檢查索引有效性
-  if (index !== undefined && index >= 0 && index < displayedBuses.length) {
-    displayedBuses[index].uniqueId = bus.uniqueId;
-  }  
-    // 同步到顯示列表和全局列表
-    // if (displayedBuses[index]) {
-    //   displayedBuses[index].uniqueId = bus.uniqueId;
-    // }
-    
-    // 嘗試在全局列表中找到對應車輛並同步ID
-    const globalIndex = allDetectedBuses.findIndex(item => 
-      item.plateNumber === bus.plateNumber && 
-      item.operatorName === bus.operatorName
-    );
-    
-    if (globalIndex !== -1) {
-      allDetectedBuses[globalIndex].uniqueId = bus.uniqueId;
-    }
-    
-    console.log(`創建新唯一ID: ${bus.uniqueId}`);
-  }
-  
-  // 明確記錄這台車輛在顯示列表中的索引
-  const originalIndex = index;
-  
-  // 查找是否已在編輯列表中 - 使用唯一ID精確匹配
-  let existingIndex = editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
-  
-  let busToEdit;
-  if (existingIndex !== -1) {
-    // 已存在於編輯列表，切換到該編輯視圖
-    activeEditingBusIndex = existingIndex;
-    busToEdit = editingBuses[existingIndex];
-    
-    // 確保記錄原始索引
-    busToEdit.originalIndex = originalIndex;
-    
-    console.log(`找到已編輯車輛，索引: ${existingIndex}, ID: ${busToEdit.uniqueId}`);
-  } else {
-    // 創建新的編輯項
-    busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝
-    busToEdit.selectedOtherItems = busToEdit.selectedOtherItems || [];
-    busToEdit.originalPlateNumber = bus.plateNumber;
-    
-    // 明確記錄原始顯示列表索引
-    busToEdit.originalIndex = originalIndex;
-    
-    console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
-    
-    // 標記基礎資料來源列表中的車輛為正在編輯
-    if (displayedBuses[originalIndex] && displayedBuses[originalIndex].uniqueId === bus.uniqueId) {
-      displayedBuses[originalIndex].isInEditing = true;
-    }
-    
-    // 查找並標記全局列表中的對應車輛
-    if (bus.uniqueId ) {
-       const globalBus = allDetectedBuses.find(item => item.uniqueId === bus.uniqueId);
-      if (globalBus) {
-        globalBus.isInEditing = true;
-      }
-    }
-    
-    editingBuses.push(busToEdit);
-    activeEditingBusIndex = editingBuses.length - 1;
-  }
-  
-  // 設置處理狀態
-  isProcessingBus = true;
-  
-  // 更新介面
-  updateBusEditingInterface();
-  document.getElementById("busInputContainer").classList.remove("hidden");
-  updateBusSelectionInList();
-  
-  if (scrollToView) {
-    scrollToEditingArea();
-  }
-  
-   // 在這裡添加同步函數調用
-  syncEditingStatus();
-}
-
-// 添加新函數，用於滾動到活動標籤
-function scrollToActiveTab() {
-  setTimeout(() => {
-    // 給DOM更新一點時間
-    const tabsContainer = document.querySelector(".editing-tabs-container");
-    if (!tabsContainer) return;
-    
-    const activeTab = tabsContainer.querySelector(".editing-tab.active");
-    if (!activeTab) return;
-    
-    // 計算滾動位置：標籤的左側位置減去容器的左側位置，再減去一些padding使其居中
-    const scrollLeft = activeTab.offsetLeft - tabsContainer.offsetLeft - (tabsContainer.clientWidth / 2) + (activeTab.offsetWidth / 2);
-    
-    // 平滑滾動到標籤位置
-    tabsContainer.scrollTo({
-      left: Math.max(0, scrollLeft),
-      behavior: 'smooth'
-    });
-  }, 50); // 短暫延遲，確保DOM已更新
-}
-// 添加輔助函數，用於在元素旁添加計數標記
-function addItemCountBadgeToElement(container, count) {
-  // 創建計數標記
-  const badge = document.createElement("span");
-  badge.id = "editingItemCountBadge";
-  badge.textContent = count;
-  badge.style.cssText = `
-    display: inline-block;
-    background-color: #06c755;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
-    line-height: 20px;
-    text-align: center;
-    font-weight: bold;
-    margin-left: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  `;
-  
-  // 添加到容器中
-  container.appendChild(badge);
-}
-window.isHandlingItemClick = false;
-// 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
-function updateBusEditingInterface() {
-  if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
-    // 沒有活躍的編輯車輛，隱藏編輯區域
-    document.getElementById("busInputContainer").classList.add("hidden");
-    return;
-  }
-  
-  // 獲取當前活躍的編輯車輛
-  const bus = editingBuses[activeEditingBusIndex];
-  
-    if (!bus) {
-    console.error("活躍索引無效，無法找到車輛:", activeEditingBusIndex);
-    return;
-  }
-  // 更新編輯標籤列
-  updateEditingTabs();
-  
-  // 更新編輯區域內容
-  const inputContainer = document.getElementById("busInputContainer");
-  
-  // 更新車輛信息
-  const routeInfo = bus.routeName?.chinese || "不明";
-  const directionInfo = bus.direction === "0" ? "去" : bus.direction === "1" ? "返" : "";
-  
-  // 更新路線顯示
-  const routeElement = document.getElementById("inputBusRoute");
-  routeElement.innerHTML = `
-  <div class="route-direction-container">
-    <div class="text-marquee">${routeInfo}</div>
-    <div class="direction-tag" style="background-color: ${bus.direction === "0" ? "#007bff" : bus.direction === "1" ? "#28a745" : "#666"}; color: white;">
-      ${directionInfo}
-    </div>
-  </div>`;
-  
-  // 檢查路線長度，如果過長則啟用跑馬燈效果
-  setTimeout(() => {
-    const textElement = routeElement.querySelector('.text-marquee');
-    if (textElement) {
-      const parentWidth = textElement.parentElement.offsetWidth;
-      const textWidth = textElement.scrollWidth;
-      
-      if (textWidth > parentWidth) {
-        textElement.classList.add('scrolling');
-      } else {
-        textElement.classList.remove('scrolling');
-      }
-    }
-  }, 20);
-
-  // 更新公司信息
-  document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
-    // 計算已選項目數量
-  let selectedItemsCount = 0;
-  if (bus.selectedMainItem) selectedItemsCount++;
-  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
-    selectedItemsCount += bus.selectedOtherItems.length;
-  }
-  // 修改這裡：將車號純文字改為輸入框
-  const inputBusNumberElement = document.getElementById("inputBusNumber");
-   
-  const numberContainer = inputBusNumberElement.parentNode;
-
-    // 移除舊的計數標記（如果存在）
-  const oldBadge = document.getElementById("editingItemCountBadge");
-  if (oldBadge) oldBadge.remove();
-
-  // 檢查是否已經是輸入框，如果不是則替換為輸入框
-  if (bus.isManualInput) {
-    // 如果是手動新增的車輛，且不是輸入框，替換為輸入框
-    if (inputBusNumberElement.tagName !== 'INPUT') {
-      const inputBox = document.createElement('input');
-      inputBox.type = 'text';
-      inputBox.id = 'inputBusNumber';
-      inputBox.value = bus.plateNumber || '';
-      inputBox.style.width = '100px';
-      inputBox.style.padding = '3px 6px';
-      inputBox.style.border = '1px solid #ddd';
-      inputBox.style.borderRadius = '4px';
-      inputBox.style.fontWeight = 'bold';
-      
-// 修改輸入事件處理
-inputBox.addEventListener('input', function() {
-   // 轉換為大寫
-      this.value = this.value.toUpperCase();
-       // 格式化車牌號碼
-      formatPlateNumber(this);
-  // 獲取當前編輯的車輛
-  const currentBus = editingBuses[activeEditingBusIndex];
-  
-  // 保存新車號
-  currentBus.plateNumber = this.value;
-  
-  // 記錄重要信息便於調試
-  console.log(`車號輸入變更: 索引=${activeEditingBusIndex}, 原始索引=${currentBus.originalIndex}, ID=${currentBus.uniqueId}, 新車號=${currentBus.plateNumber}`);
-  
-  // 只更新當前編輯的車輛
-  updateVehicleByUniqueId(currentBus);
-  
-});
-       // 添加失去焦點時的重複檢查
-    inputBox.addEventListener('blur', function() {
-      // 獲取當前編輯的車輛
-      const currentBus = editingBuses[activeEditingBusIndex];
-      const newPlateNumber = this.value;
-      
-      // 檢查是否與其他車輛重複 (排除當前車輛自身)
-      const duplicateVehicle = allDetectedBuses.find(bus => 
-        bus.plateNumber === newPlateNumber && bus.uniqueId !== currentBus.uniqueId
-      );
-      
-      if (duplicateVehicle) {
-        showFloatingNotification(`車號 ${newPlateNumber} 已存在，請使用其他車號`, "error");
-        // 可以選擇恢復原始車牌或讓用戶繼續編輯
-         this.value = currentBus.originalPlateNumber;
-         currentBus.plateNumber = currentBus.originalPlateNumber;
-         updateVehicleByUniqueId(currentBus);
-      }
-    });
-      // 替換原有元素
-      inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
-           // 現在輸入框已經設定好，保存引用
-      const newInputBox = document.getElementById('inputBusNumber');
-      
-      // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
-    } else {
-      // 如果已經是輸入框，只更新值
-      inputBusNumberElement.value = bus.plateNumber || '';
-            // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
-    }
-  } else {
-    // 如果不是手動新增的車輛，顯示為純文字
-    if (inputBusNumberElement.tagName === 'INPUT') {
-      const textSpan = document.createElement('strong');
-      textSpan.id = 'inputBusNumber';
-      textSpan.textContent = bus.plateNumber || '';
-      inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
-            // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
-    } else {
-      // 如果已經是文字元素，只更新內容
-      inputBusNumberElement.textContent = bus.plateNumber || '';
-       // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
-    }
-  }
-  
-  // 清除並重新生成主要項目選項
-  const mainItemsContainer = document.getElementById("mainItemsContainer");
-  mainItemsContainer.innerHTML = '';
-  mainItems.forEach(item => {
-    const itemButton = document.createElement("div");
-    itemButton.className = "quick-item";
-    itemButton.textContent = item;
-    itemButton.dataset.value = item;
-    
-    // 如果已經選過此項目，標記為已選
-    if (bus.selectedMainItem === item) {
-      itemButton.classList.add("selected");
-    }
-    
-    itemButton.onclick = function() {
-      mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
-        el.classList.remove("selected");
-      });
-      this.classList.add("selected");
-      
-      // 儲存選擇到當前編輯的車輛對象
-      bus.selectedMainItem = this.dataset.value;
-
-        // 更新編輯界面以反映項目計數變化
-  updateBusEditingInterface();
-  updateEditingTabs();
-    };
-    mainItemsContainer.appendChild(itemButton);
-  });
-
-  // 清除並重新生成其他項目選項
-  const otherItemsContainer = document.getElementById("otherItemsContainer");
-  otherItemsContainer.innerHTML = '';
-
-  // 確保 otherItems 存在且有數據
-  if (!otherItems || otherItems.length === 0) {
-    const noItemsMsg = document.createElement("div");
-    noItemsMsg.textContent = "無可用選項";
-    noItemsMsg.style.padding = "10px";
-    noItemsMsg.style.color = "#666";
-    otherItemsContainer.appendChild(noItemsMsg);
-    return;
-  }
-
-  // 獲取所有不重複的類別，過濾掉null和undefined值
-  let categories = [];
-try {
-  // 先收集每个分类和它的代表性itemType值
-  const categoryTypes = {};
-  
-  otherItems.forEach(item => {
-    if (item && item.catolog) {
-      const category = item.catolog;
-      // 如果该分类还没有itemType值，或者当前项的itemType小于已记录的值，则更新
-      if (!(category in categoryTypes) || 
-          (item.itemType !== undefined && 
-           (categoryTypes[category] === undefined || Number(item.itemType) < categoryTypes[category]))) {
-        categoryTypes[category] = Number(item.itemType);
-      }
-    }
-  });
-  
-  // 提取分类列表并按itemType从小到大排序
-  categories = Object.keys(categoryTypes).sort((a, b) => {
-    return categoryTypes[a] - categoryTypes[b];
-  });
-  
-  console.log("按itemType排序的分类清单:", categories);
-} catch (e) {
-  console.error("解析分类时出错:", e);
-  categories = ["未分类"]; // 默认分类
-}
-  // 創建分類導航標籤
-  const categoryNav = document.createElement("div");
-  categoryNav.className = "category-nav";
-  categoryNav.style.cssText = "display: flex; gap: 8px; overflow-x: auto; padding: 5px 0; margin-bottom: 8px;";
-
-  // 創建分類標籤
-  categories.forEach((category, idx) => {
-    const tab = document.createElement("div");
-    tab.className = "category-tab" + (idx === 0 ? " active" : "");
-    tab.style.cssText = "padding: 5px 12px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 20px; font-size: 14px; white-space: nowrap; cursor: pointer;";
-    tab.textContent = category || "未分類";
-    tab.dataset.index = idx;
-    categoryNav.appendChild(tab);
-  });
-
-  // 創建內容容器
-  const contentContainer = document.createElement("div");
-  contentContainer.style.cssText = "position: relative; width: 100%; overflow: hidden;";
-
-  // 創建滑動面板
-  const pagesContainer = document.createElement("div");
-  pagesContainer.className = "category-pages";
-  pagesContainer.style.cssText = "display: flex; width: 100%; transition: transform 0.3s ease;";
-
-  // 為每個分類創建一個面板
-  categories.forEach((category, idx) => {
-    // 創建分類面板
-    const pageDiv = document.createElement("div");
-    pageDiv.className = "category-page";
-    pageDiv.style.cssText = "flex: 0 0 100%; width: 100%; min-height: 120px; padding: 5px; box-sizing: border-box;";
-    
-    // 創建內容包裹容器
-    const contentWrapper = document.createElement("div");
-    contentWrapper.style.cssText = "display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 5px 0;";
-    contentWrapper.style.position = "relative";
-contentWrapper.style.zIndex = "5"; // 確保在滑動層上方
-    // 篩選該分類的項目
-    const categoryItems = category === "未分類" 
-      ? otherItems.filter(item => !item.catolog)
-      : otherItems.filter(item => item.catolog === category);
-    // 添加这段：按 itemType 从小到大排序
-categoryItems.sort((a, b) => {
-  // 确保有 itemType 值，如果没有则设为默认值 0
-  const typeA = a.itemType !== undefined ? Number(a.itemType) : 0;
-  const typeB = b.itemType !== undefined ? Number(b.itemType) : 0;
-  return typeA - typeB;  // 从小到大排序
-});
-    // 創建項目按鈕
-    categoryItems.forEach(item => {
-      if (!item || !item.itemName) return; // 跳過無效項目
-      
-      const itemBtn = document.createElement("div");
-      itemBtn.className = "quick-other-item";
-      itemBtn.style.cssText = "background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; margin: 0; flex: 0 0 auto; max-width: calc(50% - 8px); white-space: normal;";
-      
-      // 根據項目類型添加樣式
-      if (item.itemType === 1) {
-        itemBtn.classList.add("positive-item");
-      } else if (item.itemType === -1) {
-        itemBtn.classList.add("negative-item");
-      }
-      
-      itemBtn.textContent = item.itemName;
-      itemBtn.dataset.value = item.itemName;
-      itemBtn.dataset.type = item.itemType;
-      
-      // 如果此項目已選，標記為已選
-      if (bus.selectedOtherItems && bus.selectedOtherItems.includes(item.itemName)) {
-        itemBtn.classList.add("selected");
-      }
-      
-      // 添加點擊事件
-  // 使用更穩定的事件處理方式
-itemBtn.onclick = function() {
-  // 切換選中狀態
-  this.classList.toggle("selected");
-  
-  // 確保陣列已初始化
-  if (!bus.selectedOtherItems) bus.selectedOtherItems = [];
-  
-  const itemValue = this.dataset.value;
-  const isSelected = this.classList.contains("selected");
-  
-  if (isSelected) {
-    // 添加到選中項
-    if (!bus.selectedOtherItems.includes(itemValue)) {
-      bus.selectedOtherItems.push(itemValue);
-    }
-  } else {
-    // 從選中項移除
-    bus.selectedOtherItems = bus.selectedOtherItems.filter(item => item !== itemValue);
-  }
-  
-  console.log("選中的項目:", bus.selectedOtherItems);
-    // 更新編輯界面以反映項目計數變化
-   updateItemCountBadges(bus);
-  updateEditingTabs();
-};
-        // 專門為觸屏設備添加觸摸結束事件
-  itemBtn.addEventListener('touchend', function(e) {
-    // 停止事件傳播，避免觸發container的touchend
-    e.stopPropagation();
-  }, { passive: true });
-      contentWrapper.appendChild(itemBtn);
-    });
-    
-    // 如果沒有項目，顯示提示訊息
-    if (categoryItems.length === 0) {
-      const noItemsMsg = document.createElement("div");
-      noItemsMsg.textContent = "此分類無可用選項";
-      noItemsMsg.style.padding = "10px";
-      noItemsMsg.style.color = "#666";
-      contentWrapper.appendChild(noItemsMsg);
-    }
-    
-    pageDiv.appendChild(contentWrapper);
-    pagesContainer.appendChild(pageDiv);
-  });
-
-  contentContainer.appendChild(pagesContainer);
-
-  // 添加到主容器
-  otherItemsContainer.appendChild(categoryNav);
-  otherItemsContainer.appendChild(contentContainer);
-
-  // 設置滑動功能
-setupSimpleTabs(categoryNav, pagesContainer, categories.length);
-
-// 修改分類標籤點擊事件
-categoryNav.querySelectorAll('.category-tab').forEach(tab => {
-  tab.addEventListener('click', function() {
-    // 更新標籤狀態
-    categoryNav.querySelectorAll('.category-tab').forEach(t => {
-      t.classList.remove('active');
-      t.style.backgroundColor = '#f8f9fa';
-      t.style.color = '#333';
-    });
-    this.classList.add('active');
-    this.style.backgroundColor = '#06c755';
-    this.style.color = 'white';
-    
-    // 獲取索引並滑動到對應頁面
-    const index = Array.from(categoryNav.children).indexOf(this);
-    currentSwipePage = index;
-    swipeToPageImproved(index);
-  });
-});
-
-  // 預設選中第一個標籤
-  if (categoryNav.querySelector('.category-tab')) {
-    const firstTab = categoryNav.querySelector('.category-tab');
-    firstTab.classList.add('active');
-    firstTab.style.backgroundColor = '#06c755';
-    firstTab.style.color = 'white';
-  }
-   
-  // 確保新增按鈕可用
-  resetSubmitButtonState();
-
-  if (currentSwipePage >= 0) {
-  const categoryNav = document.querySelector('.category-nav');
-  if (categoryNav) {
-    ensureSingleActiveTab(categoryNav, currentSwipePage);
-  }
-}
-}
-
-// 只更新計數標記的函數
-function updateItemCountBadges(bus) {
-  // 計算已選項目數量
-  let selectedItemsCount = 0;
-  if (bus.selectedMainItem) selectedItemsCount++;
-  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
-    selectedItemsCount += bus.selectedOtherItems.length;
-  }
-  
-  // 更新編輯區域的計數標記
-  const numberContainer = document.getElementById("inputBusNumber").parentNode;
-  
-  // 移除舊的計數標記（如果存在）
-  const oldBadge = document.getElementById("editingItemCountBadge");
-  if (oldBadge) oldBadge.remove();
-  
-  // 如果有選項，添加計數標記
-  if (selectedItemsCount > 0) {
-    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-  }
-}
-// 全局變量
-let currentCategoryTabIndex = 0;
-function setupSimpleTabs(navBar, pagesContainer, totalPages) {
-  // 初始顯示第一頁
-  for (let i = 0; i < totalPages; i++) {
-    const page = pagesContainer.children[i];
-    if (page) {
-      page.style.display = i === 0 ? 'block' : 'none';
-    }
-  }
-  
-  // 為所有標籤添加點擊事件
-  const tabs = navBar.querySelectorAll('.category-tab');
-  tabs.forEach((tab, index) => {
-    tab.addEventListener('click', function() {
-      // 先清除所有標籤的活動狀態
-      tabs.forEach((t) => {
-        t.classList.remove('active');
-        t.style.backgroundColor = '#f8f9fa';
-        t.style.color = '#333';
-      });
-      
-      // 然後設置當前標籤為活動狀態
-      this.classList.add('active');
-      this.style.backgroundColor = '#06c755';
-      this.style.color = 'white';
-      
-      // 顯示對應頁面，隱藏其他頁面
-      for (let i = 0; i < totalPages; i++) {
-        const page = pagesContainer.children[i];
-        if (page) {
-          page.style.display = i === index ? 'block' : 'none';
-        }
-      }
-    });
-  });
-  
-  // 確保一開始只有一個標籤處於活動狀態
-  if (tabs.length > 0) {
-    tabs.forEach((tab, idx) => {
-      if (idx === 0) {
-        tab.classList.add('active');
-        tab.style.backgroundColor = '#06c755';
-        tab.style.color = 'white';
-      } else {
-        tab.classList.remove('active');
-        tab.style.backgroundColor = '#f8f9fa';
-        tab.style.color = '#333';
-      }
-    });
-  }
-}
-// 3. 新增專門針對單一車輛進行更新的函數
-function updateVehicleByUniqueId(bus) {
-  // 獲取關鍵信息
-  const plateNumber = bus.plateNumber;
-  const uniqueId = bus.uniqueId;
-  const originalIndex = bus.originalIndex;
-  
-  console.log(`嘗試更新車輛 - ID: ${uniqueId}, 原始索引: ${originalIndex}, 新車號: ${plateNumber}`);
-  
-  // 更新三個關鍵列表中的車輛
-  let updatedAny = false;
-  
-  // 優先使用原始索引更新 displayedBuses
-  if (originalIndex !== undefined && displayedBuses[originalIndex]) {
-    // 檢查唯一ID是否匹配，如果匹配則更新
-    if (displayedBuses[originalIndex].uniqueId === uniqueId) {
-      console.log(`通過原始索引 ${originalIndex} 更新顯示車輛`);
-      displayedBuses[originalIndex].plateNumber = plateNumber;
-      updatedAny = true;
-    }
-  }
-  
-  // 如果原始索引未能匹配，則使用唯一ID搜索
-  if (!updatedAny) {
-    // 在 displayedBuses 中查找
-    const displayIndex = displayedBuses.findIndex(item => item.uniqueId === uniqueId);
-    if (displayIndex !== -1) {
-      console.log(`通過唯一ID在顯示列表找到車輛，索引: ${displayIndex}`);
-      displayedBuses[displayIndex].plateNumber = plateNumber;
-      updatedAny = true;
-    }
-    
-    // 在 allDetectedBuses 中查找
-    const detectedIndex = allDetectedBuses.findIndex(item => item.uniqueId === uniqueId);
-    if (detectedIndex !== -1) {
-      console.log(`通過唯一ID在偵測列表找到車輛，索引: ${detectedIndex}`);
-      allDetectedBuses[detectedIndex].plateNumber = plateNumber;
-      updatedAny = true;
-    }
-  }
-  
-  if (!updatedAny) {
-    console.warn(`警告: 未找到匹配的車輛進行更新! ID: ${uniqueId}, 車牌: ${plateNumber}`);
-  }
-    // 在函數末尾添加：確保編輯標籤也更新
-  updateEditingTabs();
-  // 更新顯示
-  updateDetectedBusesList();
-    // 添加這行：確保編輯狀態同步
-  syncEditingStatus();
-    // 添加這部分邏輯，在更新一個列表後，確保其他列表用相同的 uniqueId 也更新
-  if (updatedAny) {
-    // 確保所有列表中相同 uniqueId 的車輛都更新
-    [displayedBuses, allDetectedBuses, editingBuses].forEach(list => {
-      list.forEach(item => {
-        if (item.uniqueId === uniqueId && item !== bus) {
-          item.plateNumber = plateNumber;
-        }
-      });
-    });
-  }
-}
-
-// 改進的頁面切換函數
-function swipeToPageImproved(pageIndex) {
-  if (pageIndex < 0 || pageIndex >= totalPages || !pagesContainer || !categoryNav) return;
-  
-  // 更新當前頁碼
-  currentSwipePage = pageIndex;
-  
-  // 更新分類標籤的選中狀態 - 確保先清除所有標籤的選中狀態
-  const tabs = categoryNav.querySelectorAll('.category-tab');
-  
-  // 先清除所有標籤的選中狀態
-  tabs.forEach(tab => {
-    tab.classList.remove('active');
-    tab.style.backgroundColor = '#f8f9fa';
-    tab.style.color = '#333';
-  });
-  
-  // 然後只設置目標標籤為選中狀態
-  if (tabs[pageIndex]) {
-    tabs[pageIndex].classList.add('active');
-    tabs[pageIndex].style.backgroundColor = '#06c755';
-    tabs[pageIndex].style.color = 'white';
-  }
-  
-  // 平滑滑動到對應頁面
-  pagesContainer.style.transition = 'transform 0.3s ease';
-  pagesContainer.style.transform = `translateX(-${pageIndex * 100}%)`;
-}
-
-// 新增：確保只有一個分類標籤處於活動狀態
-function ensureSingleActiveTab(categoryNav, activeIndex) {
-  if (!categoryNav) return;
-  
-  const tabs = categoryNav.querySelectorAll('.category-tab');
-  if (tabs.length === 0) return;
-  
-  // 確保 activeIndex 有效
-  if (activeIndex < 0 || activeIndex >= tabs.length) {
-    activeIndex = 0; // 默認選中第一個標籤
-  }
-  
-  // 清除所有標籤的活動狀態
-  tabs.forEach((tab, idx) => {
-    if (idx === activeIndex) {
-      tab.classList.add('active');
-      tab.style.backgroundColor = '#06c755';
-      tab.style.color = 'white';
-    } else {
-      tab.classList.remove('active');
-      tab.style.backgroundColor = '#f8f9fa';
-      tab.style.color = '#333';
-    }
-  });
-}
-
-// 強化版的車輛數據同步函數
-function updateAllBusReferences(bus) {
-  console.log(`全面同步車輛數據 - ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
-  
-  if (!bus.uniqueId) {
-    console.warn("警告: 嘗試更新沒有唯一ID的車輛");
-    return;
-  }
-  
-  // 創建一個含有關鍵數據的更新對象，只包含需要同步的字段
-  const updateData = {
-    uniqueId: bus.uniqueId, // 確保ID同步
-    plateNumber: bus.plateNumber,
-    operatorName: bus.operatorName,
-    routeName: bus.routeName,
-    direction: bus.direction,
-    selectedMainItem: bus.selectedMainItem,
-    selectedOtherItems: bus.selectedOtherItems || [],
-    isInEditing: bus.isInEditing,
-    lastUpdated: Date.now() // 添加更新時間戳
-  };
-  
-  // 更新計數器
-  let updatedCount = 0;
-  
-  // 1. 更新 displayedBuses
-  displayedBuses.forEach((item, index) => {
-    if (item.uniqueId === bus.uniqueId) {
-      displayedBuses[index] = { ...item, ...updateData };
-      updatedCount++;
-    }
-  });
-  
-  // 2. 更新 allDetectedBuses
-  allDetectedBuses.forEach((item, index) => {
-    if (item.uniqueId === bus.uniqueId) {
-      allDetectedBuses[index] = { ...item, ...updateData };
-      updatedCount++;
-    }
-  });
-  
-  // 3. 更新 editingBuses (跳過當前活躍的車輛)
-  editingBuses.forEach((item, index) => {
-    if (index !== activeEditingBusIndex && item.uniqueId === bus.uniqueId) {
-      editingBuses[index] = { ...item, ...updateData };
-      updatedCount++;
-    }
-  });
-  
-  console.log(`共同步更新了 ${updatedCount} 個車輛引用`);
-  
-  // 只有在確實有更新時才刷新UI
-  if (updatedCount > 0) {
-    // 更新UI
-    updateDetectedBusesList();
-    updateEditingTabs();
-    return true;
-  }
-  
-  return false;
-}
-
-function debounceClick(func, wait = 200) {
-  let timeout;
-  return function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, arguments), wait);
-  };
-}
-// 4. 創建編輯標籤列
-// 修改 updateEditingTabs 函數，恢復 countSpan.style.cssText 設置
-function updateEditingTabs() {
-  // 檢查標籤容器是否存在，如果不存在則創建
-  let tabsContainer = document.querySelector(".editing-tabs-container");
-  // 如果沒有編輯中的車輛，隱藏標籤容器
-  if (editingBuses.length === 0) {
-    if (tabsContainer) tabsContainer.style.display = "none";
-    return;
-  }
-  // 如果有編輯中的車輛，但沒有標籤容器，創建它
-  if (!tabsContainer) {
-    tabsContainer = document.createElement("div");
-    tabsContainer.className = "editing-tabs-container";
-    
-    // 插入到busInputContainer之前
-    const inputContainer = document.getElementById("busInputContainer");
-    inputContainer.parentNode.insertBefore(tabsContainer, inputContainer);
-  }
-  // 確保標籤容器可見
-  tabsContainer.style.display = "flex";
-  
-  // 清空現有標籤
-  tabsContainer.innerHTML = '';
-  
-  // 為每個編輯中的車輛創建標籤
-  editingBuses.forEach((bus, index) => {
-    const tab = document.createElement("div");
-    tab.className = "editing-tab";
-    if (index === activeEditingBusIndex) {
-      tab.classList.add("active");
-    }
-    
-    // 計算已選項目數量
-    let selectedItemsCount = 0;
-    if (bus.selectedMainItem) selectedItemsCount++;
-    if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
-      selectedItemsCount += bus.selectedOtherItems.length;
-    }
-    
-    // 設置標籤內容
-    tab.innerHTML = `
-      <span>${bus.plateNumber || ''}</span>
-      <span class="tab-close" data-index="${index}">×</span>
-    `;
-    
-    // 如果有選項，添加計數標記
-    if (selectedItemsCount > 0) {
-      const countSpan = document.createElement("span");
-      countSpan.className = "tab-item-count";
-      countSpan.textContent = selectedItemsCount;
-      countSpan.style.cssText = `
-        display: inline-block;
-        background-color: ${index === activeEditingBusIndex ? 'rgba(255,255,255,0.3)' : '#06c755'};
-        color: white;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        font-size: 11px;
-        line-height: 18px;
-        text-align: center;
-        margin-left: 5px;
-        font-weight: bold;
-      `;
-      
-      // 將計數標記插入到關閉按鈕之前
-      const closeBtn = tab.querySelector(".tab-close");
-      tab.insertBefore(countSpan, closeBtn);
-    }
-    
-    // 設置點擊事件，使用全局函數
-    tab.setAttribute("onclick", `switchToEditingTab(${index})`);
-    
-    // 為關閉按鈕添加獨立的點擊事件
-    const closeBtn = tab.querySelector(".tab-close");
-    closeBtn.setAttribute("onclick", `event.stopPropagation(); confirmCancelEditing(${index});`);
-    
-    tabsContainer.appendChild(tab);
-  });
-  
-  if (editingBuses.length > 0) {
-    setTimeout(() => {
-      scrollToActiveTab();
-    }, 10);
-  }
-}
-// 處理標籤點擊的函數
-function switchToEditingTab(index) {
-debouncedSwitchTab(index);
-}
-
-// 先定義一個全局的防抖函數
-const debouncedSwitchTab = debounce(function(index) {
-  console.log("標籤點擊，切換到索引:", index);
-  
-  // 設置活躍索引
-  activeEditingBusIndex = index;
-  
-  // 更新標籤樣式
-  const tabs = document.querySelectorAll('.editing-tab');
-  tabs.forEach((tab, i) => {
-    tab.classList.toggle('active', i === index);
-  });
-  
-  // 確保編輯區域可見
-  document.getElementById("busInputContainer").classList.remove("hidden");
-  
-  // 更新編輯界面
-  updateBusEditingInterface();
-  
-  // 滾動到編輯區域
-  scrollToEditingArea();
-  
-  // 同步編輯狀態
-  syncEditingStatus();
-}, 200);
-
-// 只更新計數標記的函數
-function updateItemCountBadges(bus) {
-  // 計算已選項目數量
-  let selectedItemsCount = 0;
-  if (bus.selectedMainItem) selectedItemsCount++;
-  if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
-    selectedItemsCount += bus.selectedOtherItems.length;
-  }
-  
-  // 更新編輯區域的計數標記
-  const numberContainer = document.getElementById("inputBusNumber").parentNode;
-  
-  // 移除舊的計數標記（如果存在）
-  const oldBadge = document.getElementById("editingItemCountBadge");
-  if (oldBadge) oldBadge.remove();
-  
-  // 如果有選項，添加計數標記
-  if (selectedItemsCount > 0) {
-    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-  }
-  
-  // 更新標籤上的計數標記
-  const tabsContainer = document.querySelector(".editing-tabs-container");
-  if (tabsContainer) {
-    const tabs = tabsContainer.querySelectorAll('.editing-tab');
-    
-    tabs.forEach((tab, index) => {
-      // 找到對應的車輛
-      const tabBus = editingBuses[index];
-      if (!tabBus) return;
-      
-      // 移除舊的計數標記
-      const oldTabBadge = tab.querySelector(".tab-item-count");
-      if (oldTabBadge) oldTabBadge.remove();
-      
-      // 計算此車輛的項目數量
-      let itemCount = 0;
-      if (tabBus.selectedMainItem) itemCount++;
-      if (tabBus.selectedOtherItems && Array.isArray(tabBus.selectedOtherItems)) {
-        itemCount += tabBus.selectedOtherItems.length;
-      }
-      
-      // 如果有選項，添加計數標記
-      if (itemCount > 0) {
-        const countSpan = document.createElement("span");
-        countSpan.className = "tab-item-count";
-        countSpan.textContent = itemCount;
-        countSpan.style.cssText = `
-          display: inline-block;
-          background-color: ${index === activeEditingBusIndex ? 'rgba(255,255,255,0.3)' : '#06c755'};
-          color: white;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
-          font-size: 11px;
-          line-height: 18px;
-          text-align: center;
-          margin-left: 5px;
-          font-weight: bold;
-        `;
-        
-        // 將計數標記插入到關閉按鈕之前
-        const closeBtn = tab.querySelector(".tab-close");
-        tab.insertBefore(countSpan, closeBtn);
-      }
-    });
-  }
-}
-// 替換
-function confirmCancelEditing(index) {
-  const confirmModal = document.getElementById("confirmModal");
-  const confirmMessage = document.getElementById("confirmMessage");
-  const confirmYes = document.getElementById("confirmYes");
-  const confirmNo = document.getElementById("confirmNo");
-  
-  confirmMessage.textContent = "是否取消對此車輛的編輯？";
-  confirmModal.style.display = "block";
-  
-  // 移除之前所有的事件監聽器
-  const newConfirmYes = confirmYes.cloneNode(true);
-  const newConfirmNo = confirmNo.cloneNode(true);
-  confirmYes.parentNode.replaceChild(newConfirmYes, confirmYes);
-  confirmNo.parentNode.replaceChild(newConfirmNo, confirmNo);
-  
-  // 為新按鈕添加明確的事件處理程序
-  newConfirmYes.addEventListener("click", function() {
-    console.log("確認取消編輯，索引:", index);
-    
-    // 明確調用 removeEditingBus 函數
-    removeEditingBus(index);
-    
-    // 隱藏確認對話框
-    confirmModal.style.display = "none";
-    
-    // 更新 UI
-    updateDetectedBusesList();
-    updateBusSelectionInList();
-  });
-  
-  newConfirmNo.addEventListener("click", function() {
-    console.log("取消操作");
-    confirmModal.style.display = "none";
-  });
-}
-
-// 修改 removeEditingBus 函數
-function removeEditingBus(index) {
-  console.log("開始移除編輯中車輛，索引:", index);
-  
-  // 檢查索引是否有效
-  if (index < 0 || index >= editingBuses.length) {
-    console.error("嘗試移除無效索引的車輛:", index);
-    return;
-  }
-  
-  // 保存刪除前的信息
-  const removedBus = editingBuses[index];
-  console.log("將要移除的車輛:", removedBus);
-  
-  // 在所有相關數據源中清除編輯標記
-  if (removedBus && removedBus.uniqueId) {
-    displayedBuses.forEach(bus => {
-      if (bus.uniqueId === removedBus.uniqueId) {
-        bus.isInEditing = false;
-      }
-    });
-    
-    allDetectedBuses.forEach(bus => {
-      if (bus.uniqueId === removedBus.uniqueId) {
-        bus.isInEditing = false;
-      }
-    });
-  }
-  
-  // 移除指定索引的編輯車輛
-  editingBuses.splice(index, 1);
-  console.log("移除後編輯車輛列表:", editingBuses);
-  
-  // 調整活躍編輯索引
-  if (editingBuses.length === 0) {
-    // 沒有編輯中的車輛了
-    activeEditingBusIndex = -1;
-    isProcessingBus = false; // 重置處理狀態
-    document.getElementById("busInputContainer").classList.add("hidden");
-    
-    // 隱藏標籤容器
-    const tabsContainer = document.querySelector(".editing-tabs-container");
-    if (tabsContainer) tabsContainer.style.display = "none";
-  } else {
-    // 保持活躍索引的有效性
-    if (activeEditingBusIndex >= editingBuses.length) {
-      activeEditingBusIndex = editingBuses.length - 1;
-    } else if (activeEditingBusIndex === index) {
-      // 如果刪除的是當前活躍車輛，選擇另一輛
-      activeEditingBusIndex = 0; // 默認選擇第一輛車
-    }
-  }
-  
-  // 更新標籤和編輯界面 - 這兩行是必要的！
-  updateEditingTabs();
-  updateBusEditingInterface();
-  
-  // 更新列表中的選中狀態
-  updateBusSelectionInList();
-  
-    // 在這裡添加同步函數調用
-  syncEditingStatus();
-}
-
-// 新增：更新列表中車輛的選中狀態
-// 修改：更新列表中車輛的選中狀態
-function updateBusSelectionInList() {
-  // 清除所有選中狀態
-  document.querySelectorAll('.simple-bus-item').forEach(item => {
-    item.classList.remove('selected-bus-item');
-  });
-  
-  // 為所有正在編輯的車輛添加標記
-  if (editingBuses.length > 0) {
-    // 收集所有編輯中車輛的唯一ID
-    const editingBusIds = editingBuses.map(bus => bus.uniqueId);
-    
-    // 找到對應的列表項並標記為正在編輯
-    document.querySelectorAll('.simple-bus-item').forEach((item, itemIndex) => {
-      if (itemIndex < displayedBuses.length) {
-        const bus = displayedBuses[itemIndex];
-        if (bus && bus.uniqueId && editingBusIds.includes(bus.uniqueId)) {
-          item.classList.add('selected-bus-item');
-        }
-      }
-    });
-  }
-    // 強制更新列表顯示
-  setTimeout(() => {
-    debouncedInitMarquees();
-  }, 50);
-}
-  // 添加視窗大小變化監聽，重新初始化跑馬燈
-  window.addEventListener('resize', function() {
-    debouncedInitMarquees();
-  });
-// 修改開始自動偵測函數，確保定時器正確設置
-function startAutoDetect() {
-  // 先清除任何現有的自動偵測計時器
-  if (autoDetectInterval) {
-    clearInterval(autoDetectInterval);
-    autoDetectInterval = null;
-  }
-  
-  // 立即執行一次偵測，標記為自動偵測
-  detectBuses(true);
-  
-  // 重新設置自動偵測間隔，每20秒執行一次
-  autoDetectInterval = setInterval(() => {
-    console.log("自動偵測觸發");
-    detectBuses(true); // 傳入true表示是自動偵測
-  }, 20000); // 每20秒
-  
-  // 開始倒數計時
-  startCountdown();
-  
-  // 視覺效果：添加自動偵測按鈕的活動樣式
-  const autoDetectButton = document.getElementById("autoDetectButton");
-  autoDetectButton.classList.add("auto-detect-active");
-  
-  // 顯示自動偵測已啟動的提示
-  showStatusMessage("自動偵測已啟動", "info", true);
-}
-// 3. 添加一個用於同步車輛編輯狀態的函數
-function syncEditingStatus() {
-  // 收集所有編輯中車輛的唯一ID
-  const editingIds = new Set(editingBuses.map(bus => bus.uniqueId));
-  
-  // 更新所有顯示列表和全局列表中的編輯狀態
-  displayedBuses.forEach(bus => {
-    bus.isInEditing = editingIds.has(bus.uniqueId);
-  });
-  
-  allDetectedBuses.forEach(bus => {
-    bus.isInEditing = editingIds.has(bus.uniqueId);
-  });
-  
-  // 更新UI
-  updateBusSelectionInList();
-}
-// 停止自動偵測
-function stopAutoDetect() {
-  if (autoDetectInterval) {
-    clearInterval(autoDetectInterval);
-    autoDetectInterval = null;
-  }
-  
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-    countdownInterval = null;
-  }
-  
-  // 重置倒數顯示
-  const countdownElement = document.getElementById("countdown");
-  if (countdownElement) {
-    countdownElement.textContent = "";
-  }
-  // 清除自動偵測狀態
-  const autoDetectButton = document.getElementById("autoDetectButton");
-  autoDetectButton.classList.remove("auto-detect-active");
-  document.getElementById("autoDetectStatus").textContent = "自動偵測";
-}
-
-// 開始倒數
-function startCountdown() {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-  }
-  
-  countdownSeconds = 20;
-  updateCountdownDisplay();
-  
-  countdownInterval = setInterval(() => {
-    countdownSeconds--;
-    
-    if (countdownSeconds <= 0) {
-      // 不清除計時器，而是重置倒數
-      // 注意：不要在這裡調用 clearInterval
-      countdownSeconds = 20; // 直接重置為20秒
-    }
-    
-    updateCountdownDisplay();
-  }, 1000);
-}
-// 更新倒數顯示
-function updateCountdownDisplay() {
-  const countdownElement = document.getElementById("countdown");
-  if (countdownElement) {
-    countdownElement.textContent = `${countdownSeconds}秒後重新偵測`;
-  }
-}
-// 獲取是否為集團公司
-function isGroupCompany(operatorName) {
-  if (!operatorName) return false;
-
-  // 檢查是否為集團公司
-  return companies.some(
-    (company) =>
-      operatorName.includes(company.name) ||
-      company.name.includes(operatorName)
-  );
-}
-
-// 停止位置監視
-function stopLocationWatching() {
-  if (window.watchId) {
-    navigator.geolocation.clearWatch(window.watchId);
-    window.watchId = null;
-    console.log("已停止位置監視");
-  }
-}
-
-// 使用改進的存儲函數保存位置
-function savePosition(latitude, longitude) {
-  safeStorage.set("lastKnownLatitude", latitude);
-  safeStorage.set("lastKnownLongitude", longitude);
-  safeStorage.set("lastPositionTimestamp", Date.now());
-
-  // 如果成功獲取位置，清除之前的"無法獲取位置"訊息
-  const statusElement = document.getElementById("statusMessage");
-  if (
-    statusElement.textContent.includes("無法獲取位置") ||
-    statusElement.textContent.includes("暫時無法獲取位置")
-  ) {
-    statusElement.textContent = "";
-    statusElement.className = "status-message";
-  }
-}
-
-
-// 檢查用戶是否已存在/註冊
-async function checkUserExists(userId, channelId) {
-  try {
-    const response = await fetch(base_url + "User/checkUser", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: userId, channelId: channelId }),
-    });
-
-    if (response.status === 200) {
-      // 用戶已存在，不做任何操作
-      return true;
-    } else if (response.status === 404) {
-      // 用戶不存在
-      showStatusMessage("用戶未註冊，請先從LINE中完成註冊", "error");
-      return false;
-    } else {
-      showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-      return false;
-    }
-  } catch (error) {
-    console.error("檢查用戶存在性失敗:", error);
-    showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
-    return false;
-  }
-}
-
-async function forceUpdatePosition(silent = false) {
-  console.log("強制更新位置...");
-  
-  try {
-    // 清除之前的位置監視，避免衝突
-    if (window.watchId) {
-      navigator.geolocation.clearWatch(window.watchId);
-      window.watchId = null;
-    }
-    
-    // 直接向瀏覽器請求高精度位置
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,  // 高精度模式
-        timeout: 15000,            // 15秒超時
-        maximumAge: 0              // 強制不使用緩存
-      });
-    });
-    
-    console.log("成功獲取新位置");
-    currentLatitude = position.coords.latitude;
-    currentLongitude = position.coords.longitude;
-    savePosition(currentLatitude, currentLongitude);
-    
-    // 更新位置精度指示器
-    updateLocationAccuracyIndicator(position.coords.accuracy);
-    
-    // 重新啟動位置監視
-    startHighAccuracyLocationWatching(true);
-    
-    return true;
-  } catch (error) {
-    console.error("強制更新位置失敗:", error);
-    
-    // 嘗試使用本地緩存作為後備
-    if (loadLastPosition()) {
-  // 可以考慮在這裡加入時間檢查，例如只使用最近10秒內的緩存位置
-        if (Date.now() - safeStorage.get("lastPositionTimestamp") < 10000) {
-          if (!silent) {
-            showStatusMessage("使用最近位置作為後備", "info", true);
-          }
-          return true;
-        }
-        return false;
-    }
-    
-    if (!silent) {
-      showStatusMessage("無法獲取位置，請確認位置權限並在室外使用", "error", true);
-    }
-    return false;
-  }
-}
-// 8. 修改detectBuses函數，保留編輯中的車輛
-// 完整的 detectBuses 函數
+// 改進的車輛偵測函數，更好的錯誤處理和用戶反饋
 async function detectBuses(isAutoDetection = false) {
   // 顯示偵測指示器
   const indicatorMsg = isAutoDetection ? "自動偵測中..." : "正在偵測車輛...";
@@ -3802,8 +2365,6 @@ async function detectBuses(isAutoDetection = false) {
     
     const data = await response.json();
     const newDetectedBuses = [];
-    const twoMinutes = 2 * 60 * 1000; // 2分鐘 (原本是3分鐘)
-    const currentTime = Date.now();
     
     // 用來追蹤已處理的車牌，避免重複
     const processedPlates = new Set();
@@ -3821,7 +2382,7 @@ async function detectBuses(isAutoDetection = false) {
           return; // 跳過重複車牌
         }
         
-        // 檢查此車牌是否在2分鐘內已經提交過
+        // 檢查此車牌是否在規定時間內已經提交過
         if (isRecentlySubmitted(bus.plateNumber)) {
           console.log(`跳過最近已提交的車輛: ${bus.plateNumber}`);
           return; // 跳過最近已提交的車輛
@@ -3870,7 +2431,7 @@ async function detectBuses(isAutoDetection = false) {
             bus.lastUpdated = Date.now(); // 添加最後更新時間戳
             allDetectedBuses.push(bus);
             
-            // 如果車輛不在2分鐘內已提交列表中，添加到顯示列表
+            // 如果車輛不在規定時間內已提交列表中，添加到顯示列表
             if (!isRecentlySubmitted(bus.plateNumber)) {
               // 檢查是否已存在於顯示列表(使用車牌號檢查)
               const existsInDisplay = displayedBuses.some(item => item.plateNumber === bus.plateNumber);
@@ -3887,13 +2448,13 @@ async function detectBuses(isAutoDetection = false) {
           } else {
             // 已存在，更新位置等信息
             const existingBus = allDetectedBuses[existingBusIndex];
-              allDetectedBuses[existingBusIndex] = {
-                ...existingBus,
-                position: bus.position,
-                lastUpdated: Date.now(),
-                // 確保保留原有的唯一ID
-                uniqueId: existingBus.uniqueId || bus.uniqueId
-              };
+            allDetectedBuses[existingBusIndex] = {
+              ...existingBus,
+              position: bus.position,
+              lastUpdated: Date.now(),
+              // 確保保留原有的唯一ID
+              uniqueId: existingBus.uniqueId || bus.uniqueId
+            };
             
             // 如果也在顯示列表中，更新顯示列表中的數據
             const displayIndex = displayedBuses.findIndex(item => item.plateNumber === bus.plateNumber);
@@ -3959,7 +2520,7 @@ async function detectBuses(isAutoDetection = false) {
     hideDetectionIndicator();
     
     if (!isAutoDetection) {
-      showStatusMessage("偵測車輛失敗，請稍後再試", "error", true);
+      showStatusMessage(`偵測車輛失敗: ${error.message || "未知錯誤"}，請稍後再試`, "error", true);
     }
   }
   
@@ -3970,148 +2531,100 @@ async function detectBuses(isAutoDetection = false) {
   // 同步編輯狀態
   syncEditingStatus();
 }
-
-// 檢測和處理車牌重複
-function detectAndResolvePlateDuplicates() {
-  // 檢查顯示列表中是否有車牌重複
-  const plateMap = new Map();
-  const duplicatePlates = new Set();
+// 強制更新位置函數，更好的錯誤處理和位置回退機制
+async function forceUpdatePosition(silent = false) {
+  console.log("強制更新位置...");
   
-  // 第一遍掃描，找出重複車牌
-  displayedBuses.forEach(bus => {
-    if (plateMap.has(bus.plateNumber)) {
-      duplicatePlates.add(bus.plateNumber);
-    } else {
-      plateMap.set(bus.plateNumber, bus);
+  try {
+    // 清除之前的位置監視，避免衝突
+    if (window.watchId) {
+      navigator.geolocation.clearWatch(window.watchId);
+      window.watchId = null;
     }
-  });
-  
-  // 如果有重複車牌，進行處理
-  if (duplicatePlates.size > 0) {
-    console.log(`檢測到 ${duplicatePlates.size} 個重複車牌:`, Array.from(duplicatePlates));
     
-    // 對每個重複車牌，保留最新更新的一個
-    duplicatePlates.forEach(plateNumber => {
-      // 收集所有該車牌的車輛
-      const buses = displayedBuses.filter(bus => bus.plateNumber === plateNumber);
+    // 直接向瀏覽器請求高精度位置
+    const position = await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error("獲取位置超時"));
+      }, 15000); // 15秒超時
       
-      // 按最後更新時間排序，保留最新的一個
-      buses.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
-      
-      // 保留最新更新的車輛
-      const keepBus = buses[0];
-      
-      // 從顯示列表和全局列表中移除其餘重複項
-      for (let i = 1; i < buses.length; i++) {
-        const removeBus = buses[i];
-        
-        displayedBuses = displayedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
-        allDetectedBuses = allDetectedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
-        
-        console.log(`移除重複車牌 ${plateNumber} 的車輛, ID: ${removeBus.uniqueId}`);
-      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timeoutId);
+          resolve(pos);
+        }, 
+        (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        }, 
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
     });
-  }
-}
-
-// 檢查車輛是否在最近2分鐘內提交過
-function isRecentlySubmitted(plateNumber) {
-  const submissionTime = localStorage.getItem(`submitted_${plateNumber}`);
-  if (!submissionTime) return false;
-  
-  const twoMinutes = 2 * 60 * 1000;
-  return (Date.now() - parseInt(submissionTime)) < twoMinutes;
-}
-
-const SUBMISSION_EXPIRY_TIME_MS = 2 * 60 * 1000; // 2分鐘時間常數
-// 過濾最近提交的車輛
-function filterRecentlySubmittedBuses() {
-  const currentTime = Date.now();
-  
- // 從顯示列表中過濾
-  displayedBuses = displayedBuses.filter(bus => {
-    // 如果正在編輯中，始終保留
-    if (bus.isInEditing) return true;
     
-    const submissionTime = localStorage.getItem(`submitted_${bus.plateNumber}`);
-    // 如果沒有提交記錄或提交時間超過常數定義的時間，則保留
-    return !submissionTime || (currentTime - parseInt(submissionTime)) >= SUBMISSION_EXPIRY_TIME_MS;
-  });
-  
-  // 更新UI
-  updateDetectedBusesList();
-}
-// 新增顯示無車輛的浮動通知函數
-function showZeroDetectionNotification() {
-  const notification = document.getElementById("realTimeDetection");
-  const countDisplay = document.getElementById("detectionCount");
-  const textElement = notification.querySelector("span:not(.detection-count)");
-  
-  countDisplay.textContent = "0";
-  textElement.textContent = "附近未偵測到車輛";
-  
-  notification.classList.add("show");
-  
-  // 5秒後自動隱藏
-  setTimeout(() => {
-    notification.classList.remove("show");
-  }, 5000);
-}
-
-// 獲取車輛距離的輔助函數
-function getVehicleDistance(bus) {
-  // 預設999米
-  let distanceInMeters = 999;
-  
-  // 嘗試從Distance字段獲取距離（如果存在）
-  if (bus.Distance !== undefined) {
-    distanceInMeters = bus.Distance * 1000; // 公里轉公尺
-  }
-  // 如果沒有Distance字段，嘗試從位置計算距離
-  else if (bus.position && bus.position.latitude && bus.position.longitude) {
-    distanceInMeters = calculateDistance(
-      currentLatitude, 
-      currentLongitude, 
-      bus.position.latitude, 
-      bus.position.longitude
-    );
-  }
-  // 如果是手動添加的車輛且沒有距離信息，默認設為10米（很近）
-  if (bus.isManualInput && distanceInMeters === 999) {
-    distanceInMeters = 10;
-  }
-  return distanceInMeters;
-}
-
-// 根據距離為元素添加CSS類
-function addDistanceClassToElement(element, distanceInMeters) {
-  // 先清除所有距離相關的類
-  element.classList.remove("distance-veryclose", "distance-close", "distance-medium", "distance-far");
-  
-  // 添加對應的距離類
-  if (distanceInMeters <= 80) {
-    element.classList.add("distance-veryclose"); // 0-80m 滿色
-  } else if (distanceInMeters <= 150) {
-    element.classList.add("distance-close"); // 81-150m 3/4滿色
-  } else if (distanceInMeters <= 220) {
-    element.classList.add("distance-medium"); // 151-220m 2/4滿色
-  } else {
-    element.classList.add("distance-far"); // 221m以上 1/4滿色
+    console.log("成功獲取新位置");
+    currentLatitude = position.coords.latitude;
+    currentLongitude = position.coords.longitude;
+    savePosition(currentLatitude, currentLongitude);
+    
+    // 更新位置精度指示器
+    updateLocationAccuracyIndicator(position.coords.accuracy, "即時GPS");
+    
+    // 重新啟動位置監視
+    startHighAccuracyLocationWatching(true);
+    
+    return true;
+  } catch (error) {
+    console.error("強制更新位置失敗:", error);
+    
+    // 嘗試使用本地緩存作為後備
+    if (loadLastPosition()) {
+      // 只使用最近10秒內的緩存位置
+      if (Date.now() - safeStorage.get("lastPositionTimestamp") < 10000) {
+        if (!silent) {
+          showStatusMessage("使用最近位置作為後備", "info", true);
+        }
+        
+        // 更新位置精度指示器，使用較低的精度值表示這是緩存位置
+        updateLocationAccuracyIndicator(100, "緩存位置");
+        
+        return true;
+      }
+    }
+    
+    if (!silent) {
+      showStatusMessage("無法獲取位置，請確認位置權限並在室外使用", "error", true);
+    }
+    
+    // 更新位置精度指示器為錯誤狀態
+    updateLocationAccuracyIndicator(999, "錯誤");
+    
+    return false;
   }
 }
-
-
 // 使用DocumentFragment優化更新車輛列表
 function updateDetectedBusesList() {
+  // 獲取容器元素
   const container = document.getElementById("detectedBusesList");
+  if (!container) return;
+  
+  // 記錄函數開始時間，用於性能測量
+  const startTime = performance.now();
   
   // 更新計數
-  document.getElementById("busCount").textContent = `${displayedBuses.length} 輛`;
+  const busCountElement = document.getElementById("busCount");
+  if (busCountElement) {
+    busCountElement.textContent = `${displayedBuses.length} 輛`;
+  }
   
-  // 使用DocumentFragment來減少DOM操作
+  // 使用 DocumentFragment 減少 DOM 操作次數
   const fragment = document.createDocumentFragment();
   
   if (displayedBuses.length === 0) {
+    // 沒有車輛時顯示提示信息
     const noDataMessage = document.createElement("div");
     noDataMessage.className = "no-buses-message";
     noDataMessage.innerHTML = `
@@ -4120,40 +2633,133 @@ function updateDetectedBusesList() {
     `;
     fragment.appendChild(noDataMessage);
   } else {
-    // 創建簡易車輛列表
+    // 創建新的車輛列表容器
     const busListContainer = document.createElement("div");
     busListContainer.className = "simple-bus-list";
     
-    displayedBuses.forEach((bus, index) => {
-      const busItem = createBusListItem(bus, index);
+    // 收集已在編輯中的車輛 ID，避免重複查詢
+    const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+    
+    // 使用虛擬列表技術處理顯示 - 首先只渲染可見的元素
+    const batchSize = 20;
+    const firstBatchEnd = Math.min(batchSize, displayedBuses.length);
+    
+    // 使用 WeakMap 緩存車輛距離計算結果，避免重複計算
+    const distanceCache = new WeakMap();
+    
+    // 先渲染第一批可見的車輛
+    for (let i = 0; i < firstBatchEnd; i++) {
+      const bus = displayedBuses[i];
+      
+      // 緩存車輛是否在編輯中的狀態
+      bus.isEditing = editingBusIds.has(bus.uniqueId);
+      
+      // 緩存車輛距離計算
+      if (!distanceCache.has(bus)) {
+        distanceCache.set(bus, getVehicleDistance(bus));
+      }
+      
+      const busItem = createBusListItem(bus, i, distanceCache.get(bus));
       busListContainer.appendChild(busItem);
-    });
+    }
+    
+    // 如果有更多車輛，使用 requestIdleCallback 或 setTimeout 延遲加載
+    if (displayedBuses.length > batchSize) {
+      const loadRemainingItems = () => {
+        // 分批次加載剩餘車輛，每次加載一小批
+        const startIdx = firstBatchEnd;
+        const endIdx = displayedBuses.length;
+        let currentIdx = startIdx;
+        
+        const loadNextBatch = () => {
+          if (currentIdx >= endIdx) {
+            // 所有批次加載完成，初始化跑馬燈
+            setTimeout(debouncedInitMarquees, 100);
+            return;
+          }
+          
+          // 加載下一批
+          const batchEndIdx = Math.min(currentIdx + batchSize, endIdx);
+          
+          // 使用 DocumentFragment 批量添加元素
+          const batchFragment = document.createDocumentFragment();
+          
+          for (let i = currentIdx; i < batchEndIdx; i++) {
+            const bus = displayedBuses[i];
+            bus.isEditing = editingBusIds.has(bus.uniqueId);
+            
+            // 使用緩存的距離
+            if (!distanceCache.has(bus)) {
+              distanceCache.set(bus, getVehicleDistance(bus));
+            }
+            
+            const busItem = createBusListItem(bus, i, distanceCache.get(bus));
+            batchFragment.appendChild(busItem);
+          }
+          
+          // 一次性添加到DOM
+          busListContainer.appendChild(batchFragment);
+          
+          // 更新索引
+          currentIdx = batchEndIdx;
+          
+          // 如果瀏覽器支持 requestIdleCallback，使用它來調度下一批加載
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(loadNextBatch);
+          } else {
+            setTimeout(loadNextBatch, 50);
+          }
+        };
+        
+        // 開始加載第一批
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(loadNextBatch);
+        } else {
+          setTimeout(loadNextBatch, 50);
+        }
+      };
+      
+      // 延遲加載剩餘項目
+      setTimeout(loadRemainingItems, 100);
+    } else {
+      // 如果車輛數量少，直接初始化跑馬燈
+      setTimeout(debouncedInitMarquees, 100);
+    }
     
     fragment.appendChild(busListContainer);
   }
   
-  // 清空容器並一次性添加所有新元素
-  container.innerHTML = "";
-  container.appendChild(fragment);
+  // 檢測是否真的需要更新 DOM
+  // 比較新舊內容的車輛數量，只有在不同時才更新
+  const oldBusCount = container.querySelectorAll('.simple-bus-item').length;
+  const newBusCount = displayedBuses.length;
   
-  setTimeout(() => {
-    debouncedInitMarquees();
-  }, 50);
-  // 在這裡添加同步函數調用
+  // 只有在車輛數量變化或強制更新時才替換整個內容
+  if (oldBusCount !== newBusCount || container.querySelector('.no-buses-message')) {
+    // 清空容器並一次性添加所有新元素
+    container.innerHTML = "";
+    container.appendChild(fragment);
+  }
+  
+  // 記錄函數執行時間
+  const endTime = performance.now();
+  console.log(`更新車輛列表耗時: ${(endTime - startTime).toFixed(2)}ms，共 ${displayedBuses.length} 輛車`);
+  
+  // 觸發事件，通知其他組件更新完成
+  const updateEvent = new CustomEvent('busListUpdated', { 
+    detail: { count: displayedBuses.length } 
+  });
+  document.dispatchEvent(updateEvent);
+  
+  // 同步編輯狀態
   syncEditingStatus();
 }
-
-function countChineseChars(str) {
-  // 使用正則表達式計算中文字符數量
-  const chineseCharsMatch = str.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g);
-  return chineseCharsMatch ? chineseCharsMatch.length : 0;
-}
-// 在 createBusListItem 函數中找到以下代碼片段並替換
-function createBusListItem(bus, index) {
-   // 確保車輛有唯一ID和索引信息
+// 改進的車輛列表項創建函數，支持緩存距離和優化性能
+function createBusListItem(bus, index, cachedDistance = null) {
+  // 確保車輛有唯一ID和索引信息
   if (!bus.uniqueId) {
-    bus.uniqueId =uuid.v4();
-        // 更新全局列表中的對應車輛ID
+    bus.uniqueId = uuid.v4();
+    // 更新全局列表中的對應車輛ID
     const globalBus = allDetectedBuses.find(b => 
       b.plateNumber === bus.plateNumber && 
       b.operatorName === bus.operatorName && 
@@ -4166,15 +2772,17 @@ function createBusListItem(bus, index) {
     
   // 存儲原始索引用於後續更新
   bus.originalIndex = index;
+  
   // 路線信息
   const routeInfo = bus.routeName?.chinese || "未知路線";
   
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
-   busItem.dataset.index = index; // 添加這行，設置索引
+  busItem.dataset.index = index;
+  busItem.dataset.id = bus.uniqueId;
 
   // 修改編輯狀態判斷，只使用唯一ID精確匹配
-  const isEditing = editingBuses.some(editingBus => 
+  const isEditing = bus.isEditing || editingBuses.some(editingBus => 
     editingBus.uniqueId === bus.uniqueId
   );
   
@@ -4193,15 +2801,17 @@ function createBusListItem(bus, index) {
   // 如果中文字符數量超過5個，或總長度超過12個字符，則啟用跑馬燈
   if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
     routeTextElement.classList.add("list-marquee", "scrolling");
-    // 重複文本以避免空白間隔
-    const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
+    // 重複文本以避免空白間隔，使用「　」（全角空格）作為分隔
+    const repeatedText = routeInfo + "　" + routeInfo;
     routeTextElement.textContent = repeatedText;
+    // 設置動畫持續時間
+    routeTextElement.style.setProperty('--scroll-duration', `${Math.min(20, Math.max(10, routeInfo.length * 0.7))}s`);
   } else {
     // 短路線名稱直接顯示，不使用跑馬燈
     routeTextElement.textContent = routeInfo;
   }
   
-  // 添加title屬性
+  // 添加title屬性，以便鼠標懸停時顯示完整路線
   routeElement.title = routeInfo;
   
   routeElement.appendChild(routeTextElement);
@@ -4211,7 +2821,9 @@ function createBusListItem(bus, index) {
   plateElement.className = "bus-plate";
   
   // 獲取距離並設置對應的CSS類
-  const distanceInMeters = getVehicleDistance(bus);
+  const distanceInMeters = cachedDistance !== null ? cachedDistance : getVehicleDistance(bus);
+  
+  // 使用函數添加對應的距離類
   addDistanceClassToElement(plateElement, distanceInMeters);
   
   // 添加方向樣式類
@@ -4227,410 +2839,387 @@ function createBusListItem(bus, index) {
   busItem.appendChild(routeElement);
   busItem.appendChild(plateElement);
   
-  // 修改事件綁定
-  busItem.onclick = function(event) {
-    // 防止連續點擊誤觸發
-    if (busItem._clickTimer) return;
-    
-    // 設置點擊計時器，用於區分單擊和雙擊
-    busItem._clickTimer = setTimeout(function() {
-      busItem._clickTimer = null;
-      // 單擊：僅添加到待編輯
-      selectBusForInput(bus, index, false); // 添加第三個參數，表示不滾動
-    }, 300); // 300毫秒延遲，在此時間內如有第二次點擊則判定為雙擊
-  };
+  // 使用事件委托而非直接綁定事件
+  busItem.dataset.plateNumber = bus.plateNumber;
   
-  busItem.ondblclick = function(event) {
-    // 清除單擊計時器，防止觸發單擊事件
-    if (busItem._clickTimer) {
-      clearTimeout(busItem._clickTimer);
-      busItem._clickTimer = null;
-    }
-    
-    // 雙擊：添加到待編輯並滾動到編輯區
-    selectBusForInput(bus, index, true); // 傳入true表示滾動到編輯區
-  };
+  // 添加數據屬性，便於事件委托時識別
+  busItem.dataset.busIndex = index;
   
   return busItem;
 }
-
-// 計算兩點間距離的函數
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  // 如果缺少座標，返回最大距離
-  if (!lat1 || !lon1 || !lat2 || !lon2) {
-    return 999;
-  }
-  
-  // 轉為數字類型
-  lat1 = parseFloat(lat1);
-  lon1 = parseFloat(lon1);
-  lat2 = parseFloat(lat2);
-  lon2 = parseFloat(lon2);
-  
-  // 使用Haversine公式計算地球表面兩點間的距離
-  const R = 6371000; // 地球半徑，單位為米
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
-  
-  return distance;
-}
-
-// 顯示新偵測通知
-function showNewDetectionNotification(count) {
-  const notification = document.getElementById("realTimeDetection");
-  const countDisplay = document.getElementById("detectionCount");
-
-  countDisplay.textContent = count;
-  
-  // 更新通知顯示的文字，增加更多上下文
-  const textElement = notification.querySelector("span:not(.detection-count)");
-  
-  // 是自動偵測的通知還是手動偵測的通知
-  const isAutoDetect = !!autoDetectInterval;
-  if (isAutoDetect) {
-    textElement.textContent = "個新偵測結果";
-  } else {
-    textElement.textContent = "輛車已偵測到";
-  }
-  
-  notification.classList.add("show");
-
-  // 5秒後自動隱藏
-  setTimeout(() => {
-    notification.classList.remove("show");
-  }, 5000);
-}
-
-// 顯示已偵測的車輛
-function showDetectedBuses() {
-  document.getElementById("realTimeDetection").classList.remove("show");
-
-  // 滾動到車輛列表
-  document.getElementById("detectedBusesContainer").scrollIntoView({
-    behavior: "smooth",
-  });
-}
-let isSubmitting = false;
-// 新增選中的車輛
-// 7. 修改submitSelectedBus函數
-// 完全重寫的 submitSelectedBus 函數
-function submitSelectedBus() {
-  if (isSubmitting) return;
-  isSubmitting = true;
-  logVehicleState("新增前");
-  
-  // 清除之前的錯誤訊息
-  const statusElement = document.getElementById("statusMessage");
-  statusElement.textContent = "";
-  statusElement.className = "status-message";
-
-  if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
-    showStatusMessage("請先選擇車輛", "error");
-    isSubmitting = false;
-    return;
-  }
-  
-  // 獲取當前活躍的編輯車輛
-  const bus = editingBuses[activeEditingBusIndex];
-  // 保存車牌號碼和唯一ID用於後續清理
-  const plateNumber = bus.plateNumber;
-  const uniqueId = bus.uniqueId;
-  const currentIndex = activeEditingBusIndex; // 保存當前索引
-  
-    // 添加：檢查是否與其他車輛重複 (排除當前車輛自身)
-  const duplicateVehicle = allDetectedBuses.find(vehicle => 
-    vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
-  );
-    if (duplicateVehicle) {
-    showFloatingNotification(`車號 ${plateNumber} 已存在於列表中，請修改車號`, "error");
-    isSubmitting = false; // 重置狀態
-    return;
-  }
-  // 深拷貝當前編輯中的所有車輛，用於可能的還原和狀態追蹤
-  const allBusesCopy = JSON.parse(JSON.stringify(editingBuses));
-  
-
-  // 確保選擇了主要項目
-  if (!bus.selectedMainItem) {
-    showFloatingNotification("請選擇重點查核結果", "error");
-     isSubmitting = false; // 重置狀態
-    return;
-  }
-  
-  // 確保選擇了位置
-  if (!document.getElementById("location").value) {
-    showFloatingNotification("請選擇查核位置", "error");
-     isSubmitting = false; // 重置狀態
-    return;
-  }
-  
-  // 防止重複點擊
-  const submitButton = document.querySelector(".action-button.submit-button");
-  submitButton.classList.add("disabled");
-  
-  // 記錄新增開始時間
-  const submitStartTime = Date.now();
-  
-  // 列出所有要保留的編輯中車輛的唯一ID（除了當前提交的）
-  const idsToKeep = editingBuses
-    .filter((_, idx) => idx !== currentIndex)
-    .map(editBus => editBus.uniqueId);
-  
-  console.log("提交前狀態 - 當前提交ID:", uniqueId);
-  console.log("需要保留的其他編輯車輛ID:", idsToKeep);
-  
-  // 新增記錄
-  submitBusRecord(bus, null, bus.selectedMainItem, bus.selectedOtherItems || [])
-    .then(() => {
-      logVehicleState("新增成功後");
-      
-      // 清除錯誤訊息
-      statusElement.textContent = "";
-      statusElement.className = "status-message";
-      
-      // 測量新增耗時
-      const submitDuration = Date.now() - submitStartTime;
-      console.log(`新增成功，處理耗時: ${submitDuration}ms`);
-      
-      // 添加到已新增列表
-      submittedBuses.push(plateNumber);
-      
-      // 設置新增時間，3分鐘內不再顯示
-      localStorage.setItem(`submitted_${plateNumber}`, Date.now().toString());
-      
-      // 關鍵修改: 從所有列表中只移除當前車輛，但保留其他編輯中的車輛
-      
-     
-      // 2. 從顯示列表中移除當前車輛，但保留其他編輯中的車輛
-      displayedBuses = displayedBuses.filter(item => {
-        // 如果唯一ID與當前提交的車輛匹配，則移除
-        if (item.uniqueId === uniqueId) return false;
-        // 如果是其他編輯中的車輛，則保留
-        if (idsToKeep.includes(item.uniqueId)) return true;
-        // 其他車輛正常處理
-        return true;
-      });
-      
-      // 3. 從全局列表中移除當前車輛，但保留其他編輯中的車輛
-      allDetectedBuses = allDetectedBuses.filter(item => {
-        // 如果唯一ID與當前提交的車輛匹配，則移除
-        if (item.uniqueId === uniqueId) return false;
-        // 如果是其他編輯中的車輛，則保留
-        if (idsToKeep.includes(item.uniqueId)) return true;
-        // 其他車輛正常處理
-        return true;
-      });
-      
-      // 4. 確保其他編輯中車輛的狀態標記正確
-      idsToKeep.forEach(id => {
-        // 更新顯示列表中的標記
-        const displayItem = displayedBuses.find(item => item.uniqueId === id);
-        if (displayItem) displayItem.isInEditing = true;
+// 改進的跑馬燈初始化函數，使用 IntersectionObserver 只處理可見元素
+function initializeMarquees() {
+  // 檢查是否已經初始化過 IntersectionObserver
+  if (!window.marqueeObserver) {
+    // 創建觀察器
+    window.marqueeObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const marquee = entry.target;
         
-        // 更新全局列表中的標記
-        const globalItem = allDetectedBuses.find(item => item.uniqueId === id);
-        if (globalItem) globalItem.isInEditing = true;
-      });
-      
-       // 1. 從編輯列表中移除當前車輛 - 重要修改！
-  // 使用 filter 替代 splice，基于唯一ID精確過濾
-  editingBuses = editingBuses.filter(item => item.uniqueId !== uniqueId);
-  console.log("過濾後剩餘編輯車輛:", editingBuses.map(b => ({id: b.uniqueId, plate: b.plateNumber})));
- 
-  // 調整活躍編輯索引
-        if (editingBuses.length === 0) {
-          // 沒有編輯中的車輛了
-          activeEditingBusIndex = -1;
-          isProcessingBus = false;
-          document.getElementById("busInputContainer").classList.add("hidden");
+        // 只處理可見的元素
+        if (entry.isIntersecting) {
+          processMarquee(marquee);
         } else {
-          // 如果還有其他車輛在編輯中，總是選擇第一輛車作為活躍車輛
-          activeEditingBusIndex = 0;
-          // 確保更新編輯界面
-          updateBusEditingInterface();
-          // 確保編輯區域可見
-          document.getElementById("busInputContainer").classList.remove("hidden");
+          // 不可見時暫停動畫
+          marquee.classList.remove('scrolling');
         }
-      
-      // 檢查並輸出剩餘編輯車輛的狀態
-      console.log("提交後剩餘編輯車輛:", editingBuses.map(b => ({id: b.uniqueId, plate: b.plateNumber})));
-      
-      // 更新標籤和車輛列表（非常重要的順序）
-      updateEditingTabs();
-      updateDetectedBusesList();
-      updateBusSelectionInList();
-      
-      // 顯示成功訊息
-      const routeName = bus.routeName?.chinese || "未知路線";
-      const companyName = bus.operatorName || "未知公司";
-      const successMessage = `成功新增：${plateNumber} (${companyName} ${routeName})`;
-      showFloatingNotification(successMessage, "success");
-    })
-    .catch(error => {
-      console.error("新增失敗:", error);
-      
-      // 新增失敗的恢復機制
-      console.log("新增失敗，嘗試恢復車輛列表...");
-      
-      // 重置為保存的拷貝
-      editingBuses = allBusesCopy;
-      activeEditingBusIndex = currentIndex;
-      isProcessingBus = true;
-      
-      // 更新UI
-      updateEditingTabs();
-      updateBusEditingInterface();
-      document.getElementById("busInputContainer").classList.remove("hidden");
-      updateBusSelectionInList();
-      
-      // 顯示錯誤訊息
-      showFloatingNotification(`新增失敗: ${error.message || "伺服器錯誤"}`, "error");
-    })
-    .finally(() => {
-      // 恢復按鈕狀態
-      setTimeout(() => {
-        isSubmitting = false;
-        if (submitButton) {
-          submitButton.classList.remove("disabled");
-        }
-      }, 2000);
+      });
+    }, {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1 // 只需要10%可見即可觸發
     });
+  }
+  
+  // 獲取所有需要處理的跑馬燈元素
+  const marquees = document.querySelectorAll('.text-marquee');
+  
+  // 如果沒有元素，直接返回
+  if (marquees.length === 0) return;
+  
+  // 添加所有元素到觀察器
+  marquees.forEach(marquee => {
+    // 先從觀察器中移除（避免重複添加）
+    window.marqueeObserver.unobserve(marquee);
+    
+    // 重新添加到觀察器
+    window.marqueeObserver.observe(marquee);
+  });
 }
 
-// 完整重寫的 updateBusSelectionInList 函數
-function updateBusSelectionInList() {
-  console.log("更新車輛選中狀態...");
+// 處理單個跑馬燈元素
+function processMarquee(marquee) {
+  // 檢查元素是否可見且已渲染
+  if (!isElementVisible(marquee)) return;
   
-  // 清除所有選中狀態
-  document.querySelectorAll('.simple-bus-item').forEach(item => {
-    item.classList.remove('selected-bus-item');
+  // 獲取父元素和文本寬度
+  const parentWidth = marquee.parentElement.offsetWidth;
+  const textWidth = marquee.scrollWidth;
+  
+  // 只有當文本超出容器寬度時才設置滾動
+  if (textWidth > parentWidth) {
+    // 移除現有動畫類以重置
+    marquee.classList.remove('scrolling');
+    
+    // 計算適當的動畫持續時間
+    const textLength = marquee.textContent.length;
+    const CHARACTER_SCROLL_SPEED = 0.7;
+    const MIN_DURATION = 8;
+    const MAX_DURATION = 20;
+    
+    let duration = textLength * CHARACTER_SCROLL_SPEED;
+    duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
+    
+    // 設置動畫持續時間變量
+    marquee.style.setProperty('--scroll-duration', `${duration}s`);
+    
+    // 強制重排
+    void marquee.offsetWidth;
+    
+    // 重新添加動畫類
+    marquee.classList.add('scrolling');
+    
+    // 特別處理列表跑馬燈
+    if (marquee.classList.contains('list-marquee')) {
+      // 優化列表項動畫速度
+      let listDuration = duration * 0.7;
+      marquee.style.setProperty('--scroll-duration', `${listDuration}s`);
+    }
+  } else {
+    // 內容未超出，不需要滾動
+    marquee.classList.remove('scrolling');
+  }
+}
+// 使用事件委派替代多個個別事件，提高性能
+function setupEventDelegation() {
+  // 車輛列表的事件委派
+  const busList = document.getElementById("detectedBusesList");
+  
+  // 移除現有事件監聽器（如果有）
+  EventManager.cleanElement(busList);
+  
+  // 添加新的事件監聽器
+  EventManager.add(busList, "click", function(e) {
+    // 找到最近的 bus-item 元素
+    const busItem = e.target.closest(".simple-bus-item");
+    if (!busItem) return;
+    
+    const index = parseInt(busItem.dataset.index, 10);
+    if (isNaN(index) || index < 0 || index >= displayedBuses.length) return;
+    
+    // 防止過快點擊
+    if (busItem.dataset.processing === "true") return;
+    busItem.dataset.processing = "true";
+    
+    // 使用防抖處理點擊
+    setTimeout(() => {
+      // 處理單擊事件
+      selectBusForInput(displayedBuses[index], index, false);
+      
+      // 重置處理狀態
+      setTimeout(() => {
+        busItem.dataset.processing = "false";
+      }, 300);
+    }, 10);
   });
   
-  // 為所有正在編輯的車輛添加標記
-  if (editingBuses.length > 0) {
-    // 收集所有編輯中車輛的唯一ID
-    const editingBusIds = editingBuses.map(bus => bus.uniqueId);
-    console.log("正在編輯的車輛ID:", editingBusIds);
+  // 為雙擊事件添加另一個監聽器
+  EventManager.add(busList, "dblclick", function(e) {
+    const busItem = e.target.closest(".simple-bus-item");
+    if (!busItem) return;
     
-    // 同步更新列表數據中的編輯狀態
-    displayedBuses.forEach(bus => {
-      bus.isInEditing = editingBusIds.includes(bus.uniqueId);
-    });
+    const index = parseInt(busItem.dataset.index, 10);
+    if (isNaN(index) || index < 0 || index >= displayedBuses.length) return;
     
-    // 找到對應的列表項並標記為正在編輯
-    document.querySelectorAll('.simple-bus-item').forEach((item, itemIndex) => {
-      if (itemIndex < displayedBuses.length) {
-        const bus = displayedBuses[itemIndex];
-        if (bus && bus.uniqueId && editingBusIds.includes(bus.uniqueId)) {
-          item.classList.add('selected-bus-item');
-          console.log(`標記項目 ${itemIndex} 為編輯狀態，ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
-        }
+    // 雙擊時清除單擊的延遲處理
+    clearTimeout(busItem._singleClickTimer);
+    
+    // 處理雙擊：添加到待編輯並滾動到編輯區
+    selectBusForInput(displayedBuses[index], index, true);
+  });
+  
+  // 主項目容器的事件委派
+  const mainItemsContainer = document.getElementById("mainItemsContainer");
+  if (mainItemsContainer) {
+    EventManager.cleanElement(mainItemsContainer);
+    EventManager.add(mainItemsContainer, "click", function(e) {
+      const item = e.target.closest(".quick-item");
+      if (!item) return;
+      
+      // 清除所有選中狀態
+      mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
+        el.classList.remove("selected");
+      });
+      
+      // 設置當前項為選中
+      item.classList.add("selected");
+      
+      // 儲存選擇到當前編輯的車輛對象
+      if (activeEditingBusIndex >= 0 && activeEditingBusIndex < editingBuses.length) {
+        editingBuses[activeEditingBusIndex].selectedMainItem = item.dataset.value;
+        
+        // 更新編輯界面以反映項目計數變化
+        updateBusEditingInterface();
+        updateEditingTabs();
       }
     });
   }
   
-  // 強制更新列表顯示
-  setTimeout(() => {
-    debouncedInitMarquees();
-  }, 50);
+  // 添加更多需要的事件委派
+  // ...
 }
-// 添加一個新函數來重置新增按鈕狀態
-function resetSubmitButtonState() {
-    const submitButton = document.querySelector(".action-button.submit-button");
-    if (submitButton && submitButton.classList.contains("disabled")) {
-        submitButton.classList.remove("disabled");
+// 改進的網絡請求函數，支持重試、超時和更好的錯誤處理
+async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+  // 添加請求超時功能
+  let timeoutController;
+  let timeoutId;
+  
+  // 如果瀏覽器支持 AbortController
+  if (typeof AbortController !== 'undefined') {
+    timeoutController = new AbortController();
+    const timeoutMs = options.timeout || 15000; // 默認15秒超時
+    
+    // 設置超時取消
+    timeoutId = setTimeout(() => {
+      timeoutController.abort();
+    }, timeoutMs);
+    
+    // 合併原有的 signal 和新建的 signal
+    if (options.signal) {
+      const originalSignal = options.signal;
+      const abort = () => timeoutController.abort();
+      originalSignal.addEventListener('abort', abort);
+      
+      // 清理函數
+      const cleanup = () => originalSignal.removeEventListener('abort', abort);
+      
+      timeoutController.signal.addEventListener('abort', cleanup);
     }
-}
-// 新增一個日誌記錄與診斷函數，用於調試
-function logVehicleState(action) {
-  const timestamp = new Date().toISOString();
-  console.log(`========== 車輛狀態報告 [${action}] ${timestamp} ==========`);
-  
-  // 摘要信息
-  console.log(`顯示車輛數量: ${displayedBuses.length}`);
-  console.log(`全局車輛數量: ${allDetectedBuses.length}`);
-  console.log(`編輯中車輛數量: ${editingBuses.length}`);
-  console.log(`當前編輯索引: ${activeEditingBusIndex}`);
-  
-  // 如果當前有活躍編輯的車輛，詳細記錄
-  if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
-    const activeBus = editingBuses[activeEditingBusIndex];
-    console.log("當前編輯車輛:", {
-      uniqueId: activeBus.uniqueId,
-      plateNumber: activeBus.plateNumber,
-      originalPlateNumber: activeBus.originalPlateNumber,
-      company: activeBus.operatorName,
-      route: activeBus.routeName?.chinese,
-      isManualInput: activeBus.isManualInput,
-      selectedMainItem: activeBus.selectedMainItem,
-      selectedOtherItems: activeBus.selectedOtherItems
-    });
     
-    // 檢查此車是否也在顯示列表中
-    const inDisplayed = displayedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
-    console.log(`此車在顯示列表中: ${inDisplayed}`);
-    
-    // 檢查此車是否在全局列表中
-    const inAll = allDetectedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
-    console.log(`此車在全局列表中: ${inAll}`);
+    // 將 signal 添加到 options
+    options = {
+      ...options,
+      signal: timeoutController.signal
+    };
   }
   
-  // 檢查唯一ID一致性
-  const uniqueIdsInDisplayed = new Set(displayedBuses.map(bus => bus.uniqueId));
-  const uniqueIdsInAll = new Set(allDetectedBuses.map(bus => bus.uniqueId));
-  const uniqueIdsInEditing = new Set(editingBuses.map(bus => bus.uniqueId));
+  try {
+    const response = await fetch(url, options);
+    
+    // 清除超時
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    // 如果響應成功直接返回
+    if (response.ok) return response;
+    
+    // 如果是401錯誤，可能是身份驗證問題
+    if (response.status === 401) {
+      showStatusMessage("身份驗證失敗，請重新登錄", "error", true);
+      throw new Error(`身份驗證錯誤: ${response.status}`);
+    }
+    
+    // 如果是5xx服務器錯誤且還有重試次數，則重試
+    if (response.status >= 500 && retries > 1) {
+      console.log(`服務器錯誤 ${response.status}，${retries-1}次重試剩餘，等待${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+    }
+    
+    // 其他錯誤，嘗試獲取詳細錯誤信息
+    let errorMessage;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || `HTTP錯誤 ${response.status}`;
+    } catch (e) {
+      errorMessage = `HTTP錯誤 ${response.status}`;
+    }
+    
+    throw new Error(errorMessage);
+  } catch (err) {
+    // 清除超時
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    // 處理中斷錯誤
+    if (err.name === 'AbortError') {
+      throw new Error('請求超時，請檢查網絡連接');
+    }
+    
+    // 處理網絡錯誤
+    if (err.message.includes('Network') && retries > 1) {
+      console.log(`網絡錯誤，${retries-1}次重試剩餘，等待${delay}ms...`, err);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+    }
+    
+    // 無法進一步重試
+    if (retries <= 1) {
+      // 提供更友好的錯誤信息
+      let userMessage;
+      if (err.message.includes('Network')) {
+        userMessage = '網絡連接錯誤，請檢查網絡後重試';
+      } else if (err.message.includes('timeout')) {
+        userMessage = '請求超時，服務器響應過慢';
+      } else {
+        userMessage = `請求錯誤: ${err.message}`;
+      }
+      
+      console.error(userMessage, err);
+      throw new Error(userMessage);
+    }
+    
+    // 繼續重試
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+  }
+}
+// 改進的選擇車輛函數，更好地處理狀態同步和索引管理
+function selectBusForInput(bus, index, scrollToView = false) {
+  logVehicleState(`開始選擇車輛-${bus.plateNumber}`);
   
-  console.log(`顯示列表中唯一ID數量: ${uniqueIdsInDisplayed.size}`);
-  console.log(`全局列表中唯一ID數量: ${uniqueIdsInAll.size}`);
-  console.log(`編輯列表中唯一ID數量: ${uniqueIdsInEditing.size}`);
-  
-  // 檢查車牌號重複情況
-  const plateCountsDisplay = {};
-  displayedBuses.forEach(bus => {
-    plateCountsDisplay[bus.plateNumber] = (plateCountsDisplay[bus.plateNumber] || 0) + 1;
-  });
-  
-  const duplicatePlates = Object.entries(plateCountsDisplay)
-    .filter(([_, count]) => count > 1)
-    .map(([plate, count]) => `${plate}(${count}次)`);
-  
-  if (duplicatePlates.length > 0) {
-    console.warn(`顯示列表中有重複車牌號: ${duplicatePlates.join(', ')}`);
+  // 防止重複選擇正在處理中的車輛
+  if (isProcessingBus && bus.uniqueId && editingBuses.some(editBus => editBus.uniqueId === bus.uniqueId)) {
+    console.log(`車輛 ${bus.plateNumber} 已在編輯中，直接滾動到編輯區域`);
+    
+    // 找到編輯中的索引
+    const editIndex = editingBuses.findIndex(editBus => editBus.uniqueId === bus.uniqueId);
+    if (editIndex !== -1) {
+      activeEditingBusIndex = editIndex;
+      // 更新編輯界面和標籤
+      updateEditingTabs();
+      updateBusEditingInterface();
+    }
+    
+    if (scrollToView) {
+      scrollToEditingArea();
+    }
+    return;
   }
   
-  console.log("========== 報告結束 ==========");
+  // 確保有唯一ID，如果沒有則創建
+  if (!bus.uniqueId) {
+    bus.uniqueId = uuid.v4();
+    
+    // 檢查索引有效性
+    if (index !== undefined && index >= 0 && index < displayedBuses.length) {
+      displayedBuses[index].uniqueId = bus.uniqueId;
+    }
+    
+    // 嘗試在全局列表中找到對應車輛並同步ID
+    const globalIndex = allDetectedBuses.findIndex(item => 
+      item.plateNumber === bus.plateNumber && 
+      item.operatorName === bus.operatorName
+    );
+    
+    if (globalIndex !== -1) {
+      allDetectedBuses[globalIndex].uniqueId = bus.uniqueId;
+    }
+    
+    console.log(`創建新唯一ID: ${bus.uniqueId}`);
+  }
+  
+  // 明確記錄這台車輛在顯示列表中的索引
+  const originalIndex = index;
+  
+  // 查找是否已在編輯列表中 - 使用唯一ID精確匹配
+  let existingIndex = editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
+  
+  let busToEdit;
+  if (existingIndex !== -1) {
+    // 已存在於編輯列表，切換到該編輯視圖
+    activeEditingBusIndex = existingIndex;
+    busToEdit = editingBuses[existingIndex];
+    
+    // 確保記錄原始索引
+    busToEdit.originalIndex = originalIndex;
+    
+    console.log(`找到已編輯車輛，索引: ${existingIndex}, ID: ${busToEdit.uniqueId}`);
+  } else {
+    // 創建新的編輯項
+    busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝
+    busToEdit.selectedOtherItems = busToEdit.selectedOtherItems || [];
+    busToEdit.originalPlateNumber = bus.plateNumber;
+    
+    // 明確記錄原始顯示列表索引
+    busToEdit.originalIndex = originalIndex;
+    
+    console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
+    
+    // 標記基礎資料來源列表中的車輛為正在編輯
+    if (displayedBuses[originalIndex] && displayedBuses[originalIndex].uniqueId === bus.uniqueId) {
+      displayedBuses[originalIndex].isInEditing = true;
+    }
+    
+    // 查找並標記全局列表中的對應車輛
+    if (bus.uniqueId) {
+      const globalBus = allDetectedBuses.find(item => item.uniqueId === bus.uniqueId);
+      if (globalBus) {
+        globalBus.isInEditing = true;
+      }
+    }
+    
+    editingBuses.push(busToEdit);
+    activeEditingBusIndex = editingBuses.length - 1;
+  }
+  
+  // 設置處理狀態
+  isProcessingBus = true;
+  
+  // 更新介面
+  updateBusEditingInterface();
+  document.getElementById("busInputContainer").classList.remove("hidden");
+  updateBusSelectionInList();
+  
+  if (scrollToView) {
+    scrollToEditingArea();
+  }
+  
+  // 同步編輯狀態
+  syncEditingStatus();
+  
+  // 重置提交按鈕狀態
+  resetSubmitButtonState();
 }
-// 在創建快速選項時添加這個功能
-function createQuickItems() {
-    const mainItemsContainer = document.getElementById("mainItemsContainer");
-    mainItemsContainer.innerHTML = '';
-    mainItems.forEach(item => {
-        const itemButton = document.createElement("div");
-        itemButton.className = "quick-item";
-        itemButton.textContent = item;
-        itemButton.dataset.value = item;
-        itemButton.onclick = function() {
-            mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
-                el.classList.remove("selected");
-            });
-            this.classList.add("selected");
-            
-            // 選擇項目後檢查並啟用新增按鈕
-            resetSubmitButtonState();
-        };
-        mainItemsContainer.appendChild(itemButton);
-    });
-}
-// 新增車輛記錄
-
-// 修改 submitBusRecord 函數，處理 otherItem 和 goodItem 欄位
-// 完全重寫新增記錄函數
+// 改進的記錄提交函數，更好地處理項目分類和錯誤處理
 async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
   showLoading();
   
@@ -4669,10 +3258,28 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     const negativeItems = [];
     const unclassifiedItems = [];
     
+    // 使用 Map 緩存項目類型，避免重複查詢
+    const itemTypeCache = new Map();
+    
     // 遍歷所有選中的項目，進行分類
     for (let i = 0; i < itemsArray.length; i++) {
       const itemName = itemsArray[i];
       if (!itemName) continue; // 跳過空白項目
+      
+      // 檢查緩存中是否已有此項目類型
+      if (itemTypeCache.has(itemName)) {
+        const cachedType = itemTypeCache.get(itemName);
+        
+        if (cachedType === "positive") {
+          positiveItems.push(itemName);
+        } else if (cachedType === "negative") {
+          negativeItems.push(itemName);
+        } else {
+          unclassifiedItems.push(itemName);
+        }
+        
+        continue;
+      }
       
       // 在 otherItems 中查找對應項目
       let foundItem = null;
@@ -4688,6 +3295,9 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
         // 使用輔助函數檢查項目類型
         const itemType = logItemClassification(itemName, foundItem);
         
+        // 緩存結果
+        itemTypeCache.set(itemName, itemType);
+        
         if (itemType === "positive") {
           console.log(`✅ 確認 "${itemName}" 為正向項目，加入 goodItem`);
           positiveItems.push(itemName);
@@ -4702,6 +3312,9 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
         // 找不到對應項目的情況
         console.log(`⚠️ 無法在 otherItems 中找到項目 "${itemName}"，加入 otherItem`);
         unclassifiedItems.push(itemName);
+        
+        // 緩存結果
+        itemTypeCache.set(itemName, null);
       }
     }
     
@@ -4715,7 +3328,7 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       plateNumbCompany: bus.operatorName || "不明",
       routeName: bus.routeName?.chinese || "不明",
       plateNumber: bus.plateNumber,
-      direction: bus.direction,
+      direction: bus.direction || "0",
       positionLat: `(${bus.position?.latitude || currentLatitude},${
         bus.position?.longitude || currentLongitude
       })`,
@@ -4730,11 +3343,16 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     console.log("負向項目(otherItem):", finalNegativeItems);
     
     // 發送請求
-    const response = await fetch(`${base_url}monitor/records`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(submissionData)
-    });
+    const response = await fetchWithRetry(
+      `${base_url}monitor/records`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submissionData),
+        timeout: 20000 // 20秒超時
+      },
+      3 // 3次重試
+    );
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -4757,1074 +3375,397 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     hideLoading();
   }
 }
-
-// 提取新增成功後的處理邏輯為單獨函數
-function handleSubmitSuccess(bus) {
-  // 先保存當前編輯車輛的索引和唯一ID
-  const currentEditingIndex = activeEditingBusIndex;
-  const uniqueId = bus.uniqueId;
+// 改進的同步編輯狀態函數，確保所有相關列表保持一致
+function syncEditingStatus() {
+  console.log("同步編輯狀態...");
   
-  // 清除頂部錯誤訊息
-  const statusElement = document.getElementById("statusMessage");
-  statusElement.textContent = "";
-  statusElement.className = "status-message";
-  
-  // 添加到已新增列表
-  submittedBuses.push(bus.plateNumber);
-  
-  // 設置新增時間，3分鐘內不再顯示
-  const submissionTime = Date.now();
-  localStorage.setItem(`submitted_${bus.plateNumber}`, submissionTime.toString());
-  
-  // 從顯示和全局列表中移除此車輛
-  if (uniqueId) {
-    displayedBuses = displayedBuses.filter(item => item.uniqueId !== uniqueId);
-    allDetectedBuses = allDetectedBuses.filter(item => item.uniqueId !== uniqueId);
-  } else {
-    displayedBuses = displayedBuses.filter(item => item.plateNumber !== bus.plateNumber);
-    allDetectedBuses = allDetectedBuses.filter(item => item.plateNumber !== bus.plateNumber);
-  }
-  
-  // 從編輯列表中移除此車輛，並調整當前活躍索引
-  let removedFromEditing = false;
-  
-  for (let i = 0; i < editingBuses.length; i++) {
-    if (editingBuses[i].uniqueId === uniqueId) {
-      // 移除找到的車輛
-      editingBuses.splice(i, 1);
-      removedFromEditing = true;
-      
-      // 調整當前活躍索引
-      if (i === activeEditingBusIndex) {
-        // 如果刪除的是當前正在編輯的車輛
-        if (editingBuses.length > 0) {
-          // 如果還有其他車輛，選擇第一台作為當前活躍車輛
-          activeEditingBusIndex = 0;
-        } else {
-          // 如果沒有其他車輛，設置為-1
-          activeEditingBusIndex = -1;
-          isProcessingBus = false;
-        }
-      } else if (i < activeEditingBusIndex) {
-        // 如果刪除的車輛在當前活躍車輛之前，當前索引需要減1
-        activeEditingBusIndex--;
-      }
-      
-      // 已找到並處理，可以跳出循環
-      break;
-    }
-  }
-  
-  // 更新UI
-  updateDetectedBusesList();
-  
-  // 更新編輯標籤和界面
-  updateEditingTabs();
-  
-  // 根據當前編輯狀態決定是否顯示編輯區域
-  if (editingBuses.length === 0) {
-    document.getElementById("busInputContainer").classList.add("hidden");
-    isProcessingBus = false;
-  } else {
-    // 確保更新編輯界面
-    updateBusEditingInterface();
-    document.getElementById("busInputContainer").classList.remove("hidden");
-  }
-  
-  // 更新列表中的選中狀態
-  updateBusSelectionInList();
-  
-  // 修改這行，添加詳細資訊到成功提示
-  const routeName = bus.routeName?.chinese || "未知路線";
-  const companyName = bus.operatorName || "未知公司";
-  const successMessage = `已成功送出記錄：${bus.plateNumber} (${companyName} ${routeName})`;
-  
-  // 使用浮動通知顯示詳細資訊
-  showFloatingNotification(successMessage, "success");
-}
-// 添加浮動通知函數
-function showFloatingNotification(message, type) {
-  // 先檢查是否已存在通知元素
-  let notification = document.getElementById("floatingNotification");
-  
-  // 如果不存在，則創建一個
-  if (!notification) {
-    notification = document.createElement("div");
-    notification.id = "floatingNotification";
-    notification.className = "floating-notification";
-    document.body.appendChild(notification);
-  }
-  
-  // 設置通知內容和樣式
-  notification.textContent = message;
-  notification.className = "floating-notification"; // 重置類
-  notification.classList.add(type);
-  
-  // 顯示通知
-  notification.classList.add("show");
-    // 錯誤提示顯示時間稍長一些，讓用戶有更多時間看到
-  const displayTime = type === "error" ? 5000 : 4000;
-  // 3秒後自動隱藏
-  setTimeout(() => {
-    notification.classList.remove("show");
-  }, displayTime);
-}
-// 修改定位函數，提高精度
-async function getCurrentPosition(silent = false) {
-  showLoading();
-  console.log("開始獲取高精度位置...");
-  
-  let retryCount = 0;
-  const maxRetries = 3;
-
   try {
-    while (retryCount < maxRetries && navigator.geolocation) {
-      try {
-        // 清除之前的位置監視，避免衝突
-        if (window.watchId) {
-          navigator.geolocation.clearWatch(window.watchId);
-          window.watchId = null;
-        }
-        
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, // 高精度模式
-            timeout: 20000,           // 更長的超時時間(20秒)
-            maximumAge: 0             // 不使用緩存位置
-          });
-        });
-
-        console.log("高精度位置獲取成功");
-        currentLatitude = position.coords.latitude;
-        currentLongitude = position.coords.longitude;
-        savePosition(currentLatitude, currentLongitude);
-        
-        // 更新位置精度指示器
-        updateLocationAccuracyIndicator(position.coords.accuracy);
-        
-        // 重新啟動位置監視
-        startHighAccuracyLocationWatching(true);
-        
-        hideLoading();
-        return true;
-      } catch (geoError) {
-        console.error("位置API錯誤:", geoError.code, geoError.message);
-        retryCount++;
-        
-        if (retryCount < maxRetries) {
-          console.log(`位置獲取失敗，進行第${retryCount}次重試`);
-          // 延遲3秒後重試，給予更多時間獲取GPS信號
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        } else {
-          console.log("達到最大重試次數");
-          break;
-        }
+    // 收集所有編輯中車輛的唯一ID
+    const editingIds = new Set(editingBuses.map(bus => bus.uniqueId));
+    
+    // 更新所有顯示列表和全局列表中的編輯狀態
+    displayedBuses.forEach(bus => {
+      // 檢查是否有有效的唯一ID
+      if (!bus.uniqueId) {
+        console.warn(`警告: 顯示列表中找到沒有唯一ID的車輛: ${bus.plateNumber}`);
+        return;
       }
-    }
-
- if (loadLastPosition()) {
-      console.log("使用本地緩存位置作為後備");
-      hideLoading();
-      return true;
-    }
-    // 3. 如果所有嘗試都失敗，使用默認位置作為後備
-    console.log("使用預設位置作為後備");
-    currentLatitude = 25.033; // 台北市中心位置
-    currentLongitude = 121.565;
-    savePosition(currentLatitude, currentLongitude);
+      
+      // 更新編輯狀態
+      const wasEditing = bus.isInEditing;
+      bus.isInEditing = editingIds.has(bus.uniqueId);
+      
+      // 如果狀態有變化，記錄變化
+      if (wasEditing !== bus.isInEditing) {
+        console.log(`車輛 ${bus.plateNumber} (ID: ${bus.uniqueId}) 編輯狀態變更: ${wasEditing} -> ${bus.isInEditing}`);
+      }
+    });
     
-    // 更新位置精度指示器為最低精度
-    updateLocationAccuracyIndicator(999);
+    allDetectedBuses.forEach(bus => {
+      if (!bus.uniqueId) {
+        console.warn(`警告: 全局列表中找到沒有唯一ID的車輛: ${bus.plateNumber}`);
+        return;
+      }
+      
+      bus.isInEditing = editingIds.has(bus.uniqueId);
+    });
     
-    hideLoading();
-
-    if (!silent) {
-      showStatusMessage("無法準確獲取位置，請確認位置服務已開啟", "warning", true);
-    }
+    // 更新UI，反映編輯狀態
+    updateBusSelectionInList();
+    
     return true;
   } catch (error) {
-    console.error("位置獲取完全失敗:", error);
-    hideLoading();
-    
-    // 更新位置精度指示器為出錯狀態
-    updateLocationAccuracyIndicator(999);
-    
-    if (!silent) {
-      showStatusMessage("無法獲取位置，請開啟位置權限或至室外", "error", true);
-    }
+    console.error("同步編輯狀態時發生錯誤:", error);
     return false;
   }
 }
-// 新增頁面焦點/可見性相關優化
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    console.log('頁面重新變為可見，更新位置...');
-
-    // 如果位置監視器不存在，重新啟動
-    if (!window.watchId) {
-      startHighAccuracyLocationWatching(true);
+// 改進的浮動通知系統，支持隊列和多種通知類型
+const NotificationSystem = {
+  queue: [],
+  isShowing: false,
+  notificationElement: null,
+  
+  // 初始化通知系統
+  init: function() {
+    // 檢查通知元素是否存在
+    this.notificationElement = document.getElementById("floatingNotification");
+    
+    // 如果不存在，創建一個
+    if (!this.notificationElement) {
+      this.notificationElement = document.createElement("div");
+      this.notificationElement.id = "floatingNotification";
+      this.notificationElement.className = "floating-notification";
+      document.body.appendChild(this.notificationElement);
     }
     
-    // 獲取最新位置，但使用靜默模式避免彈出訊息
-    getCurrentPosition(true).then(success => {
-      if (success) {
-        console.log('頁面重新可見時成功更新位置');
-      }
+    return this;
+  },
+  
+  // 顯示通知
+  show: function(message, type = "info", duration = 4000) {
+    // 確保初始化
+    this.init();
+    
+    // 添加到隊列
+    this.queue.push({
+      message,
+      type,
+      duration
     });
     
-    // 如果開啟了自動偵測但計時器不存在，重新啟動
-    const statusElem = document.getElementById("autoDetectStatus");
-    if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
-      console.log("檢測到自動偵測已停止，重新啟動");
-      startAutoDetect();
+    // 如果當前沒有顯示通知，開始顯示
+    if (!this.isShowing) {
+      this.processQueue();
     }
-  }
-});
-
-// 網絡狀態變化監聽器 - 放在全局初始化區域
-window.addEventListener('online', function() {
-  console.log("網絡連接恢復，重新獲取位置");
-  if (document.visibilityState === 'visible') {
-    getCurrentPosition(true);
-  }
-});
-
-// 嘗試從 localStorage 讀取位置，使用明確的超時時間常量
-function loadLastPosition() {
-  const POSITION_VALID_DURATION_MS = 20 * 1000; // 20秒
+    
+    return this;
+  },
   
-  try {
-    const lastLat = safeStorage.get("lastKnownLatitude");
-    const lastLng = safeStorage.get("lastKnownLongitude");
-    const timestamp = safeStorage.get("lastPositionTimestamp");
-
-    if (lastLat && lastLng && timestamp) {
-      if (Date.now() - timestamp < POSITION_VALID_DURATION_MS) {
-        currentLatitude = parseFloat(lastLat);
-        currentLongitude = parseFloat(lastLng);
-        return true;
-      }
+  // 處理通知隊列
+  processQueue: function() {
+    if (this.queue.length === 0) {
+      this.isShowing = false;
+      return;
     }
-  } catch (e) {
-    console.log("無法從本地儲存讀取位置:", e);
+    
+    // 取出下一個通知
+    const notification = this.queue.shift();
+    this.isShowing = true;
+    
+    // 設置通知內容和樣式
+    this.notificationElement.textContent = notification.message;
+    this.notificationElement.className = "floating-notification"; // 重置類
+    this.notificationElement.classList.add(notification.type);
+    
+    // 顯示通知
+    this.notificationElement.classList.add("show");
+    
+    // 設置自動隱藏
+    setTimeout(() => {
+      this.notificationElement.classList.remove("show");
+      
+      // 等待動畫完成後處理下一個通知
+      setTimeout(() => {
+        this.processQueue();
+      }, 300);
+    }, notification.duration);
+  },
+  
+  // 快捷方法
+  success: function(message, duration = 4000) {
+    return this.show(message, "success", duration);
+  },
+  
+  error: function(message, duration = 5000) {
+    return this.show(message, "error", duration);
+  },
+  
+  info: function(message, duration = 4000) {
+    return this.show(message, "info", duration);
+  },
+  
+  warning: function(message, duration = 4500) {
+    return this.show(message, "warning", duration);
   }
-  return false;
+};
+
+// 替代原有的 showFloatingNotification 函數
+function showFloatingNotification(message, type, duration) {
+  NotificationSystem.show(message, type, duration);
 }
-
-// 檢查位置權限
-function checkLocationPermission() {
-  if (!navigator.permissions) {
-    console.log("瀏覽器不支持權限檢查API");
-    return;
+// 性能監控和日誌系統，幫助診斷問題
+const PerformanceMonitor = {
+  metrics: {},
+  startTimes: {},
+  
+  // 開始測量
+  start: function(name) {
+    this.startTimes[name] = performance.now();
+    return this;
+  },
+  
+  // 結束測量
+  end: function(name) {
+    if (!this.startTimes[name]) {
+      console.warn(`未找到 ${name} 的開始時間`);
+      return this;
+    }
+    
+    const duration = performance.now() - this.startTimes[name];
+    
+    // 保存測量結果
+    if (!this.metrics[name]) {
+      this.metrics[name] = {
+        count: 0,
+        totalDuration: 0,
+        minDuration: duration,
+        maxDuration: duration
+      };
+    }
+    
+    const metric = this.metrics[name];
+    metric.count++;
+    metric.totalDuration += duration;
+    metric.minDuration = Math.min(metric.minDuration, duration);
+    metric.maxDuration = Math.max(metric.maxDuration, duration);
+    
+    // 輸出詳細日誌，只在開發環境
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log(`${name} 耗時: ${duration.toFixed(2)}ms`);
+    }
+    
+    delete this.startTimes[name];
+    return this;
+  },
+  
+  // 獲取指標報告
+  getReport: function() {
+    const report = {};
+    
+    Object.keys(this.metrics).forEach(name => {
+      const metric = this.metrics[name];
+      report[name] = {
+        count: metric.count,
+        avgDuration: metric.totalDuration / metric.count,
+        minDuration: metric.minDuration,
+        maxDuration: metric.maxDuration
+      };
+    });
+    
+    return report;
+  },
+  
+  // 輸出報告到控制台
+  printReport: function() {
+    console.group('性能監控報告');
+    
+    const report = this.getReport();
+    Object.keys(report).forEach(name => {
+      const { count, avgDuration, minDuration, maxDuration } = report[name];
+      console.log(`${name}: ${count}次調用, 平均${avgDuration.toFixed(2)}ms, 最小${minDuration.toFixed(2)}ms, 最大${maxDuration.toFixed(2)}ms`);
+    });
+    
+    console.groupEnd();
+    return this;
+  },
+  
+  // 重置指標
+  reset: function() {
+    this.metrics = {};
+    this.startTimes = {};
+    return this;
   }
+};
 
-  navigator.permissions.query({ name: "geolocation" }).then((result) => {
-    if (result.state === "denied") {
-      showStatusMessage(
-        "位置權限已被拒絕，請在瀏覽器或LINE設置中允許位置訪問",
-        "error"
+// 高級日誌系統
+const Logger = {
+  // 日誌級別
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3
+  },
+  
+  currentLevel: 1, // 默認INFO級別
+  
+  // 設置日誌級別
+  setLevel: function(level) {
+    this.currentLevel = level;
+    return this;
+  },
+  
+  // 不同級別的日誌方法
+  debug: function(...args) {
+    if (this.currentLevel <= this.LogLevel.DEBUG) {
+      console.debug('[DEBUG]', ...args);
+    }
+    return this;
+  },
+  
+  info: function(...args) {
+    if (this.currentLevel <= this.LogLevel.INFO) {
+      console.info('[INFO]', ...args);
+    }
+    return this;
+  },
+  
+  warn: function(...args) {
+    if (this.currentLevel <= this.LogLevel.WARN) {
+      console.warn('[WARN]', ...args);
+    }
+    return this;
+  },
+  
+  error: function(...args) {
+    if (this.currentLevel <= this.LogLevel.ERROR) {
+      console.error('[ERROR]', ...args);
+    }
+    return this;
+  },
+  
+  // 功能性日誌方法
+  api: function(method, url, status, duration) {
+    if (this.currentLevel <= this.LogLevel.INFO) {
+      const statusColor = status >= 200 && status < 300 ? 'green' : 'red';
+      console.log(
+        `%c[API] %c${method} %c${url} %c${status} %c${duration.toFixed(2)}ms`,
+        'color: gray',
+        'color: blue',
+        'color: black',
+        `color: ${statusColor}`,
+        'color: purple'
       );
-    } else if (result.state === "prompt") {
-      console.log("位置權限將在需要時提示用戶");
-    } else if (result.state === "granted") {
-      console.log("位置權限已授予");
     }
-  });
-}
-// 刷新位置列表
-function refreshLocationList() {
-  // 更新按鈕狀態，顯示正在加載
-  const detectButton = document.getElementById("detectLocationButton");
-  if (detectButton) {
-    const originalText = detectButton.innerHTML;
-    detectButton.disabled = true;
-    detectButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中..';
-
-    // 移除任何存在的錯誤或無數據消息
-    const errorMsg = document.getElementById("locationListError");
-    if (errorMsg) errorMsg.remove();
-
-    // 清空位置列表，添加載入中提示
-    const container = document.getElementById("locationList");
-    container.innerHTML = "";
-    const loadingMsg = document.createElement("p");
-    loadingMsg.id = "locationListLoading";
-    loadingMsg.className = "no-data-message";
-    loadingMsg.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近路口...';
-    container.appendChild(loadingMsg);
-
-    // 獲取位置並刷新路口列表
-    getCurrentPosition(false)
-      .then((success) => {
-        if (success) {
-          fetchIntersections().finally(() => {
-            // 無論成功與否，恢復按鈕狀態
-            detectButton.disabled = false;
-            detectButton.innerHTML = originalText;
-          });
-        } else {
-          // 位置獲取失敗
-          detectButton.disabled = false;
-          detectButton.innerHTML = originalText;
-
-          // 移除載入中提示
-          if (document.getElementById("locationListLoading")) {
-            document.getElementById("locationListLoading").remove();
-          }
-
-          showLocationListError("無法獲取位置，請稍後再試");
-        }
-      })
-      .catch((error) => {
-        // 出錯時也恢復按鈕狀態
-        detectButton.disabled = false;
-        detectButton.innerHTML = originalText;
-
-        // 移除載入中提示
-        if (document.getElementById("locationListLoading")) {
-          document.getElementById("locationListLoading").remove();
-        }
-
-        showLocationListError("獲取位置時發生錯誤，請稍後再試");
-      });
-  }
-}
-
-// 打開位置選擇框
-function openLocationModal() {
-  // 先顯示對話框，不等待位置
-  document.getElementById("locationModal").style.display = "block";
-
-  // 添加載入中提示
-  const container = document.getElementById("locationList");
-  container.innerHTML = "";
-  const loadingMsg = document.createElement("p");
-  loadingMsg.id = "locationListLoading";
-  loadingMsg.className = "no-data-message";
-  loadingMsg.innerHTML =
-    '<i class="fas fa-spinner fa-spin"></i> 正在搜尋附近位置...';
-  container.appendChild(loadingMsg);
-
-  // 獲取位置並獲取附近路口
-  getCurrentPosition(false)
-    .then((success) => {
-      if (success) {
-        fetchIntersections();
-      } else {
-        // 移除載入中提示
-        if (document.getElementById("locationListLoading")) {
-          document.getElementById("locationListLoading").remove();
-        }
-        showLocationListError("無法獲取位置，請點擊重新偵測");
-      }
-    })
-    .catch((error) => {
-      // 位置獲取失敗，但對話框已顯示
-      if (document.getElementById("locationListLoading")) {
-        document.getElementById("locationListLoading").remove();
-      }
-      showLocationListError("無法獲取位置，請點擊重新偵測");
-    });
-}
-
-// 關閉位置選擇彈窗
-function closeLocationModal() {
-  document.getElementById("locationModal").style.display = "none";
-}
-// 選擇隨車稽查
-function selectOnBoardInspection() {
-  document.getElementById("location").value = "隨車稽查";
-  closeLocationModal();
-}
-// 顯示位置列表錯誤訊息
-function showLocationListError(message) {
-  const container = document.getElementById("locationList");
-  // 先檢查是否已經有錯誤訊息
-  let errorMsg = document.getElementById("locationListError");
-
-  if (!errorMsg) {
-    errorMsg = document.createElement("p");
-    errorMsg.id = "locationListError";
-    errorMsg.className = "no-data-message";
-    container.appendChild(errorMsg);
-  }
-
-  errorMsg.textContent = message;
-}
-// 獲取附近交叉路口
-async function fetchIntersections() {
-  showLoading();
-  try {
-     // 先強制更新位置
-    await forceUpdatePosition(true);
-    // 始終使用最新的坐標
-    const response = await fetch(
-      `${base_url}monitor/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=300&limit=10`
-    );
-   // const response = await fetch(
-//      `${base_url}monitor/osm/intersections?latitude=${currentLatitude}&longitude=${currentLongitude}&radius=200&limit=10`
- //   );
-    if (!response.ok) {
-      throw new Error(`HTTP 錯誤 ${response.status}`);
+    return this;
+  },
+  
+  performance: function(operation, duration) {
+    if (this.currentLevel <= this.LogLevel.DEBUG) {
+      console.log(
+        `%c[PERF] %c${operation}: %c${duration.toFixed(2)}ms`,
+        'color: gray',
+        'color: black',
+        'color: blue'
+      );
     }
-
-    const data = await response.json();
-
-    if (data && data.length > 0) {
-      intersections = data;
-      console.log("找到附近位置:", intersections);
-    } else {
-      console.log("附近未找到位置");
-      intersections = [];
+    return this;
+  },
+  
+  // 車輛操作日誌
+  vehicle: function(operation, plateNumber, details = {}) {
+    if (this.currentLevel <= this.LogLevel.INFO) {
+      console.log(
+        `%c[車輛] %c${operation}: %c${plateNumber}`,
+        'color: gray',
+        'color: black',
+        'color: blue',
+        details
+      );
     }
-
-    // 更新位置選擇框中的路口列表
-    updateLocationList();
-    hideLoading();
-  } catch (error) {
-    console.error("獲取路口失敗:", error);
-    hideLoading();
-    showStatusMessage("無法獲取附近可能路口，請重新偵測", "error",true);
+    return this;
   }
-}
-// 更新位置列表
-function updateLocationList() {
-  const container = document.getElementById("locationList");
-
-  // 移除載入中提示
-  const loadingMsg = document.getElementById("locationListLoading");
-  if (loadingMsg) loadingMsg.remove();
-
-  // 檢查是否找到路口
-  if (intersections.length === 0) {
-    // 移除任何存在的錯誤訊息
-    const errorMsg = document.getElementById("locationListError");
-    if (errorMsg) errorMsg.remove();
-
-    // 顯示無數據訊息
-    const noDataElement = document.createElement("p");
-    noDataElement.id = "locationListNoData";
-    noDataElement.className = "no-data-message";
-    noDataElement.textContent = "附近未找到路口，請點擊重新偵測";
-    container.appendChild(noDataElement);
-    return;
-  }
-
-  // 清空容器，準備添加路口列表
-  container.innerHTML = "";
-
-  // 創建列表容器
-  const listContainer = document.createElement("div");
-  listContainer.id = "intersectionListContainer";
-  listContainer.className = "bus-list-container"; // 重用現有樣式
-
-  intersections.forEach((intersection) => {
-    const item = document.createElement("div");
-    item.className = "location-item";
-    item.textContent = intersection.name;
-    item.addEventListener("click", function () {
-      document.getElementById("location").value = intersection.name;
-      closeLocationModal();
-    });
-    listContainer.appendChild(item);
-  });
-
-  container.appendChild(listContainer);
-}
-
-// 獲取其他項目列表
-async function fetchOtherItems() {
-  try {
-    // 預設項目，包含明確的 Catolog 和 itemType 欄位
-    const defaultItems = [
-      { id: "1", itemName: "車身未清潔", catolog: "設備問題", itemType: -1 },
-      { id: "2", itemName: "車輛燈號故障", catolog: "設備問題", itemType: -1 },
-      { id: "3", itemName: "闖紅燈", catolog: "駕駛行為", itemType: -1 },
-      { id: "4", itemName: "LED故障", catolog: "設備問題", itemType: -1 },
-      { id: "5", itemName: "無動態", catolog: "設備問題", itemType: -1 },
-      { id: "6", itemName: "服務態度佳", catolog: "服務態度", itemType: 1 },
-      { id: "7", itemName: "禮讓行人", catolog: "駕駛行為", itemType: 1 },
-      { id: "8", itemName: "主動協助乘客", catolog: "服務態度", itemType: 1 }
-    ];
-
-    const response = await fetch(`${base_url}monitor/otherItem`);
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.data && data.data.length > 0) {
-        // 直接使用API返回的數據，不自動添加分類
-        otherItems = data.data;
-        console.log("獲取其他項目:", otherItems);
-      } else {
-        console.log("使用預設其他項目");
-        otherItems = defaultItems;
-      }
-    } else {
-      console.log("API回應錯誤，使用預設其他項目");
-      otherItems = defaultItems;
-    }
-  } catch (error) {
-    console.error("獲取其他項目失敗:", error);
-    // 使用預設項目
-    otherItems = defaultItems;
-  }
-}
-
-
-// 清理過期的新增記錄，使用清晰的常量命名
-function cleanupExpiredSubmissions() {
-  const currentTime = Date.now();
-  try {
-    // 遍歷 localStorage 查找所有新增記錄
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('submitted_')) {
-        const submissionTime = parseInt(localStorage.getItem(key));
-        if (currentTime - submissionTime >= SUBMISSION_EXPIRY_TIME_MS) {
-          // 超過常數定義的時間，刪除該記錄
-          localStorage.removeItem(key);
-        }
-      }
-    }
-  } catch (error) {
-    console.error("清理過期新增記錄失敗:", error);
-  }
-}
-
-// 關閉歷史記錄彈窗
-function closeHistoryModal() {
-  document.getElementById("historyModal").style.display = "none";
-}
-
-// 獲取用戶今日最後位置記錄
-async function fetchLastLocation(userId) {
-  try {
-    if (!userId) {
-      console.log("獲取最後位置失敗: 用戶ID為空");
-      return null;
-    }
-
-    const response = await fetch(
-      `${base_url}monitor/lastLocation/${userId}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP 錯誤 ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.success && data.location) {
-      console.log("成功獲取最後記錄位置:", data.location);
-      return data.location;
-    } else {
-      console.log("今天沒有位置記錄:", data.message);
-      return null;
-    }
-  } catch (error) {
-    console.error("獲取最後位置記錄失敗:", error);
-    return null;
-  }
-}
-// 顯示狀態訊息
-// 更新 showStatusMessage 函數（約在行 1230 左右）：
-function showStatusMessage(message, type, autoHide = false) {
-  const statusElement = document.getElementById("statusMessage");
-  statusElement.textContent = message;
-  statusElement.className = "status-message";
-  statusElement.classList.add(type);
-  
-  // 將頁面滾動至頂部，確保用戶可以看到錯誤訊息
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-  
-  // 如果是成功訊息或者設置了自動隱藏，5秒後自動隱藏
-  if (type === "success" || autoHide) {
-    setTimeout(() => {
-      statusElement.textContent = "";
-      statusElement.className = "status-message";
-    }, 5000);
-  }
-  
-  return statusElement; // 返回元素，以便呼叫者可以進一步操作
-}
-
-// 顯示載入中
-function showLoading(timeoutMs = 10000) {
-  const currentTime = Date.now();
-  const loadingElement = document.getElementById("loading-overlay");
-  
-  // 檢查是否距離上次loading時間太短
-  if (currentTime - lastLoadingTime < MIN_LOADING_INTERVAL) {
-    console.log("短時間內連續loading，使用快速模式");
-    // 不顯示loading但仍返回元素
-    return loadingElement;
-  }
-  
-  // 記錄本次loading時間
-  lastLoadingTime = currentTime;
-  loadingElement.classList.remove("hidden");
-  
-  // 添加自動超時
-  if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
-  globalLoadingTimeout = setTimeout(() => {
-    console.warn("Loading超時，自動關閉");
-    hideLoading();
-  }, timeoutMs);
-  
-  return loadingElement;
-}
-
-// 隱藏載入中
-function hideLoading() {
-  document.getElementById("loading-overlay").classList.add("hidden");
-  if (globalLoadingTimeout) {
-    clearTimeout(globalLoadingTimeout);
-    globalLoadingTimeout = null;
-  }
-}
-
-// 頁面關閉前清理和保存
-window.addEventListener("beforeunload", function () {
-  // 停止位置監視
-  stopLocationWatching();
-  
-  // 可以在這裡添加其他需要在頁面關閉前執行的清理代碼
-});
-
-// 添加網絡重試機制的輔助函數
-async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
-  try {
-    const response = await fetch(url, options);
-    if (response.ok) return response;
+};
+// 事件防抖與節流工具，用於優化頻繁觸發的事件
+const EventOptimizer = {
+  // 防抖函數：延遲執行函數，如果在延遲期間再次調用則重新計時
+  debounce: function(func, wait = 300, immediate = false) {
+    let timeout;
     
-    throw new Error(`HTTP error ${response.status}`);
-  } catch (err) {
-    if (retries <= 1) throw err;
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, retries - 1, delay * 1.5);
-  }
-}
-// 顯示偵測指示器
-function showDetectionIndicator(message = "正在偵測車輛...") {
-  const indicator = document.getElementById('detectionIndicator');
-  const messageElem = document.getElementById('detectionMessage');
-  messageElem.textContent = message;
-  indicator.classList.add('active');
-  
-  // 添加檢測按鈕的高亮效果
-  const detectButton = document.querySelector('.utility-button:nth-child(1)');
-  if (detectButton) {
-    detectButton.classList.add('detecting');
-  }
-  
-  return indicator;
-}
-
-// 隱藏偵測指示器
-function hideDetectionIndicator() {
-  const indicator = document.getElementById('detectionIndicator');
-  indicator.classList.remove('active');
-  
-  // 移除檢測按鈕的高亮效果
-  const detectButton = document.querySelector('.utility-button:nth-child(1)');
-  if (detectButton) {
-    detectButton.classList.remove('detecting');
-  }
-}
-// 在頁面加載或模態框打開時初始化方向按鈕
-function initDirectionButtons() {
-  const directionBtns = document.querySelectorAll('.direction-btn');
-  
-  // 設置默認選中去程
-  directionBtns[0].classList.add('selected');
-  document.getElementById('manualDirection').value = "0";
-  
-  directionBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      // 移除所有按鈕的選中狀態
-      directionBtns.forEach(b => b.classList.remove('selected'));
+    return function(...args) {
+      const context = this;
       
-      // 選中當前按鈕
-      this.classList.add('selected');
+      const later = function() {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      };
       
-      // 設置隱藏輸入的值
-      document.getElementById('manualDirection').value = this.dataset.value;
-    });
-  });
-}
-
-// 添加地址偵測功能
-function detectAddress() {
-  // 獲取按鈕並更新狀態
-  const addressButton = document.getElementById("detectAddressButton");
-  const originalText = addressButton.innerHTML;
-  addressButton.disabled = true;
-  addressButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 偵測中..';
-  
-  // 清空位置列表，添加載入中提示
-  const container = document.getElementById("locationList");
-  container.innerHTML = "";
-  const loadingMsg = document.createElement("p");
-  loadingMsg.id = "locationListLoading";
-  loadingMsg.className = "no-data-message";
-  loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在偵測目前地址...';
-  container.appendChild(loadingMsg);
-  
-  // 獲取位置並調用Google地址API
-  getCurrentPosition(false)
-    .then(async (success) => {
-      if (success) {
-        try {
-          // 調用Google地址API獲取地址
-          const response = await fetch(
-            `${base_url}monitor/address/google?latitude=${currentLatitude}&longitude=${currentLongitude}`
-          );
-          
-          if (!response.ok) {
-            throw new Error(`HTTP 錯誤 ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          // 移除載入中提示
-          if (document.getElementById("locationListLoading")) {
-            document.getElementById("locationListLoading").remove();
-          }
-          
-          if (data.success && data.address) {
-            // 直接設置地址並關閉模態框
-            document.getElementById("location").value = data.address;
-            closeLocationModal();
-            showFloatingNotification("成功獲取地址", "success");
-          } else {
-            showLocationListError("無法獲取地址信息，請嘗試其他方式");
-          }
-        } catch (error) {
-          console.error("獲取地址失敗:", error);
-          showLocationListError("獲取地址失敗，請稍後再試");
-        }
-      } else {
-        showLocationListError("無法獲取位置，請確認位置權限");
-      }
-    })
-    .catch((error) => {
-      console.error("位置獲取失敗:", error);
-      showLocationListError("獲取位置失敗，請稍後再試");
-    })
-    .finally(() => {
-      // 恢復按鈕狀態
-      addressButton.disabled = false;
-      addressButton.innerHTML = originalText;
-    });
-}
-
-// 改進跑馬燈功能，解決卡住問題
-function initializeMarquees() {
-  const CHARACTER_SCROLL_SPEED = 0.7;
-  const MIN_DURATION = 8;
-  const MAX_DURATION = 20;
-  
-  // 獲取所有需要處理的跑馬燈元素
-  const marquees = document.querySelectorAll('.text-marquee');
-  
-  // 如果沒有元素，直接返回
-  if (marquees.length === 0) return;
-  
-  // 使用 requestAnimationFrame 確保在瀏覽器渲染後進行處理
-  requestAnimationFrame(() => {
-    marquees.forEach(marquee => {
-      // 檢查元素是否可見且已渲染
-      if (!isElementVisible(marquee)) return;
+      const callNow = immediate && !timeout;
       
-      // 獲取父元素和文本寬度
-      const parentWidth = marquee.parentElement.offsetWidth;
-      const textWidth = marquee.scrollWidth;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
       
-      // 只有當文本超出容器寬度時才設置滾動
-      if (textWidth > parentWidth) {
-        // 移除現有動畫類以重置
-        marquee.classList.remove('scrolling');
-        
-        // 計算適當的動畫持續時間
-        const textLength = marquee.textContent.length;
-        let duration = textLength * CHARACTER_SCROLL_SPEED;
-        duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
-        
-        // 設置動畫持續時間變量
-        marquee.style.setProperty('--scroll-duration', `${duration}s`);
-        
-        // 強制重排
-        void marquee.offsetWidth;
-        
-        // 重新添加動畫類
-        marquee.classList.add('scrolling');
+      if (callNow) func.apply(context, args);
+    };
+  },
+  
+  // 節流函數：限制函數在一定時間內只能執行一次
+  throttle: function(func, limit = 300) {
+    let inThrottle;
+    let lastFunc;
+    let lastRan;
+    
+    return function(...args) {
+      const context = this;
+      
+      if (!inThrottle) {
+        func.apply(context, args);
+        lastRan = Date.now();
+        inThrottle = true;
       } else {
-        // 內容未超出，不需要滾動
-        marquee.classList.remove('scrolling');
+        clearTimeout(lastFunc);
+        
+        lastFunc = setTimeout(function() {
+          if (Date.now() - lastRan >= limit) {
+            func.apply(context, args);
+            lastRan = Date.now();
+          }
+        }, limit - (Date.now() - lastRan));
       }
-    });
-    
-    // 單獨處理列表跑馬燈以獲得更好的性能
-    handleListMarquees();
-  });
-}
-
-// 輔助函數：檢查元素是否可見
-function isElementVisible(element) {
-  // 檢查元素是否存在且已渲染
-  if (!element || element.offsetWidth === 0 || element.offsetHeight === 0) return false;
+    };
+  },
   
-  // 檢查元素是否在視口內（可選，視需求而定）
-  const rect = element.getBoundingClientRect();
-  return (
-    rect.top >= 0 &&
-    rect.left >= 0 &&
-    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-  );
-}
-
-// 專門處理列表跑馬燈的函數
-function handleListMarquees() {
-  const listMarquees = document.querySelectorAll('.list-marquee');
-  
-  listMarquees.forEach(marquee => {
-    if (!isElementVisible(marquee)) return;
+  // 防彈函數：結合防抖和節流，保證最小執行間隔同時也會延遲執行
+  bulletproof: function(func, wait = 300, limit = 1000) {
+    let timeout;
+    let lastRan = 0;
     
-    // 獲取原始文本（第一段）
-    const originalText = marquee.textContent.split('　')[0] || marquee.textContent;
-    const textLength = originalText.length;
-    
-    // 優化列表項動畫速度
-    let duration = textLength * CHARACTER_SCROLL_SPEED * 0.7;
-    duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
-    
-    // 更新動畫設置
-    marquee.style.setProperty('--scroll-duration', `${duration}s`);
-    
-    // 重置動畫
-    marquee.classList.remove('scrolling');
-    void marquee.offsetWidth;
-    marquee.classList.add('scrolling');
-  });
-}
-// 新增函數：滾動到編輯區域
-function scrollToEditingArea() {
-  setTimeout(() => {
-    const editingArea = document.getElementById("busInputContainer");
-    if (editingArea && !editingArea.classList.contains("hidden")) {
-      editingArea.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, 100); // 短暫延遲，確保DOM已更新
-}
-// 添加等下編輯功能
-function postponeEditing() {
-  // 隱藏編輯區域但不刪除編輯中的車輛
-  document.getElementById("busInputContainer").classList.add("hidden");
-  
-  // 滾動到頁面頂部
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-  
-  // 可選：顯示一個簡短的提示
-  // showFloatingNotification("已暫時隱藏編輯區，可從標籤重新開啟", "info");
-}
-
-// 滑動設置函數 - 重構為獨立函數，每次更新界面時調用
-function setupSwipeFeature(container, navBar, totalCategoryPages) {
-  pagesContainer = container;
-  categoryNav = navBar;
-  totalPages = totalCategoryPages;
-  currentSwipePage = 0; // 重置為第一頁
-  
-  if (!pagesContainer || !categoryNav) return;
-  
-  // 應用初始頁面設置
-  updateSwipePageDisplay(0);
-  
-  // 清除舊事件監聽器
-  let newContainer = pagesContainer.cloneNode(true);
-  pagesContainer.parentNode.replaceChild(newContainer, pagesContainer);
-  pagesContainer = newContainer;
-  
-  // 設置新的事件處理
-  let startX, startY;
-  let isScrollingVertical = false;
-  let initialTarget = null; // 記錄觸摸開始的元素
-  
-  pagesContainer.addEventListener('touchstart', function(e) {
-    // 記錄初始觸摸的目標元素
-    initialTarget = e.target;
-    
-    // 如果初始觸摸是在項目元素上，則不啟動滑動
-    if (initialTarget.closest('.quick-other-item')) {
-      startX = null;
-      return;
-    }
-    
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    isScrollingVertical = false;
-    
-    // 設置過渡為無，確保觸摸時響應迅速
-    pagesContainer.style.transition = 'none';
-  }, { passive: true });
-  
-  pagesContainer.addEventListener('touchmove', function(e) {
-    // 如果沒有啟動滑動或初始觸摸是在項目上，則不處理
-    if (!startX || initialTarget.closest('.quick-other-item')) return;
-    
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffX = startX - currentX;
-    const diffY = startY - currentY;
-    
-    // 設置滑動標記，供其他事件參考
-    if (Math.abs(diffX) > 5) {
-      window.isSwiping = true;
-    }
-    
-    // 判斷是否垂直滾動
-    if (!isScrollingVertical && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
-      isScrollingVertical = true;
-      return;
-    }
-    
-    // 如果是垂直滾動，不處理水平滑動
-    if (isScrollingVertical) return;
-    
-    // 防止事件冒泡，確保滑動時頁面不會跟著滾動
-    e.preventDefault();
-    
-    // 計算偏移量
-    const pageWidth = pagesContainer.offsetWidth;
-    const movePercent = (diffX / pageWidth) * 100;
-    const currentOffset = -currentSwipePage * 100;
-    const newOffset = currentOffset - movePercent;
-    
-    // 應用新的位置，添加阻尼效果
-    let finalOffset = newOffset;
-    if (newOffset > 0) {
-      finalOffset = newOffset * 0.3; // 左端阻尼
-    } else if (newOffset < -(totalPages - 1) * 100) {
-      const overScroll = newOffset + (totalPages - 1) * 100;
-      finalOffset = -(totalPages - 1) * 100 + overScroll * 0.3; // 右端阻尼
-    }
-    
-    pagesContainer.style.transform = `translateX(${finalOffset}%)`;
-  }, { passive: false });
-  
-  pagesContainer.addEventListener('touchend', function(e) {
-    // 如果沒有啟動滑動或是垂直滾動，不處理
-    if (!startX || isScrollingVertical || initialTarget.closest('.quick-other-item')) {
-      startX = null;
-      startY = null;
-      initialTarget = null;
-      return;
-    }
-    
-    const currentX = e.changedTouches[0].clientX;
-    const diffX = startX - currentX;
-    const pageWidth = pagesContainer.offsetWidth;
-    
-    // 重置起始點
-    startX = null;
-    startY = null;
-    initialTarget = null;
-    
-    // 恢復過渡效果
-    pagesContainer.style.transition = 'transform 0.3s ease';
-    
-    // 判斷是否需要翻頁
-    if (Math.abs(diffX) > pageWidth * 0.15) { // 只需15%的滑動距離
-      if (diffX > 0 && currentSwipePage < totalPages - 1) {
-        // 向左滑動 -> 下一頁
-        updateSwipePageDisplay(currentSwipePage + 1);
-      } else if (diffX < 0 && currentSwipePage > 0) {
-        // 向右滑動 -> 上一頁
-        updateSwipePageDisplay(currentSwipePage - 1);
+    return function(...args) {
+      const context = this;
+      
+      clearTimeout(timeout);
+      
+      const now = Date.now();
+      const timeSinceLastRun = now - lastRan;
+      
+      if (timeSinceLastRun > limit) {
+        // 如果超過限制時間，立即執行
+        lastRan = now;
+        func.apply(context, args);
       } else {
-        // 邊界情況：回到當前頁
-        updateSwipePageDisplay(currentSwipePage);
+        // 否則設置延遲執行
+        timeout = setTimeout(function() {
+          lastRan = Date.now();
+          func.apply(context, args);
+        }, wait);
       }
-    } else {
-      // 滑動不夠遠，回到當前頁
-      updateSwipePageDisplay(currentSwipePage);
-    }
-    
-    // 延遲重置滑動標記
-    setTimeout(() => {
-      window.isSwiping = false;
-    }, 100);
-  }, { passive: true });
-  
-  // 設置分類標籤點擊事件
-  const tabs = categoryNav.querySelectorAll('.category-tab');
-  tabs.forEach((tab, index) => {
-    // 移除舊事件處理程序
-    let newTab = tab.cloneNode(true);
-    tab.parentNode.replaceChild(newTab, tab);
-    
-    // 添加新的事件處理
-    newTab.addEventListener('click', function() {
-      updateSwipePageDisplay(index);
-    });
-  });
-}
-// 更新滑動頁面顯示
-function updateSwipePageDisplay(pageIndex) {
-  if (pageIndex < 0 || pageIndex >= totalPages || !pagesContainer || !categoryNav) return;
-  
-  // 更新當前頁碼
-  currentSwipePage = pageIndex;
-  
-  // 更新分類標籤選中狀態
-  const tabs = categoryNav.querySelectorAll('.category-tab');
-  tabs.forEach((tab, idx) => {
-    if (idx === pageIndex) {
-      tab.classList.add('active');
-      tab.style.backgroundColor = '#06c755';
-      tab.style.color = 'white';
-    } else {
-      tab.classList.remove('active');
-      tab.style.backgroundColor = '#f8f9fa';
-      tab.style.color = '#333';
-    }
-  });
-  
-  // 平滑滑動到對應頁面
-  pagesContainer.style.transition = 'transform 0.3s ease';
-  pagesContainer.style.transform = `translateX(-${pageIndex * 100}%)`;
-}
-
-// 首先，添加一個輔助函數用於檢查和記錄選項分類情況
-function logItemClassification(itemName, foundItem) {
-  if (!foundItem) {
-    console.log(`項目 "${itemName}" 在 otherItems 中未找到，無法確定類型`);
-    return null;
+    };
   }
-  
-  // 明確輸出itemType值，確保檢查值的問題
-  console.log(`項目: "${itemName}", itemType值: ${foundItem.itemType} (${typeof foundItem.itemType})`);
-  
-  // 嘗試強制轉換為數字，以防是字符串格式
-  const itemTypeAsNumber = Number(foundItem.itemType);
-  
-  if (itemTypeAsNumber === 1) {
-    return "positive";
-  } else if (itemTypeAsNumber === -1) {
-    return "negative";
-  } else {
-    console.log(`項目 "${itemName}" 的 itemType 值 ${foundItem.itemType} 不是 1 或 -1`);
-    return null;
-  }
-}
-    </script>
+};
+
+// 使用優化器重新定義關鍵函數
+const debouncedInitMarquees = EventOptimizer.debounce(initializeMarquees, 200);
+const throttledUpdateBusSelectionInList = EventOptimizer.throttle(updateBusSelectionInList, 300);
+const bulletproofDetectBuses = EventOptimizer.bulletproof(detectBuses, 300, 2000);
+</script>
 </html>
