@@ -1038,8 +1038,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 .simple-bus-item.selected-bus-item {
   border: 2px solid #c0c706; /* 保留原有的綠色邊框 */
-  box-shadow: 0 0 0 2px rgba(239, 232, 37, 0.5); /* 添加外發光效果 */
-  background-color: rgba(6, 199, 85, 0.08); /* 輕微調整背景色 */
+  box-shadow: 0 0 0 2px rgb(251, 251, 251); /* 添加外發光效果 */
+  background-color: rgb(251, 238, 4); /* 輕微調整背景色 */
   position: relative;
   transform: translateY(-2px); /* 輕微上浮效果 */
   transition: all 0.2s ease;
@@ -1050,11 +1050,11 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: #ece00c;
+  background-color: #9b9404;
   color: white;
   font-size: 11px;
   font-weight: bold;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 10px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 增加陰影效果 */
   border: 1px solid rgba(255,255,255,0.5); /* 添加白色邊框增加對比 */
@@ -1128,9 +1128,9 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
 .direction-tag {
   display: inline-block;
-  color: #004085;
-  border: 1px solid #b8daff;
-  border-left: none; /* 移除左側色塊邊框 */
+  color: #000000; /* 將顏色從藍色 #004085 修改為黑色 */
+  border: 1px solid #b8daff; /* 保留原有的藍色框線 */
+  border-left: none; /* 保持左側無邊框 */
   border-radius: 4px;
   padding: 2px 6px;
   padding-left: 6px; /* 補償移除左邊框後的內邊距 */
@@ -1192,13 +1192,13 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 
 .direction-tag.go-tag {
-  color: #004d99;
-  border-color: #66b0ff;
+  color: #000000; /* 修改為黑色文字 */
+  border-color: #66b0ff; /* 保留原有的藍色邊框 */
 }
 
 .direction-tag.back-tag {
-  color: #00734d;
-  border-color: #66ffb3;
+  color: #000000; /* 修改為黑色文字 */
+  border-color: #66ffb3; /* 保留原有的綠色邊框 */
 }
 .direction-btn[data-value="0"] {
   border-left: 5px solid #007bff;
@@ -1654,7 +1654,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
