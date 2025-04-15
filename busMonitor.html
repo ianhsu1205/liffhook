@@ -759,21 +759,33 @@ button, .utility-button, .quick-item, .simple-bus-item {
   position: relative;
 }
 .bus-plate {
-  flex-shrink: 0;
-  width: 65px !important; /* 固定統一寬度 */
+flex-shrink: 0;
+  width: 65px !important; /* 保持原有寬度 */
   min-width: 65px !important;
   max-width: 65px !important;
   text-align: center;
   background-color: #ffeb3b;
   padding: 3px 4px;
   border-radius: 4px;
-  font-weight: bold;
-  font-size: 14px;
+  font-weight: 700; /* 加粗 */
+  font-size: 15px; /* 適當放大字體 */
   margin-left: 4px;
   white-space: nowrap;
-  overflow: hidden; /* 過長時隱藏 */
+  overflow: hidden;
+  font-family: 'Arial', sans-serif; /* 使用清晰的無襯線字體 */
+  position: relative; /* 確保可以正確定位子元素 */
+}
+/* 數字和字母分開顯示 */
+.plate-letter {
+  font-size: 14px;
+  font-weight: 500;
 }
 
+.plate-number {
+  font-size: 16px;
+  font-weight: 900; /* 超粗體強調數字部分 */
+  letter-spacing: 0.5px; /* 增加字間距 */
+}
 .bus-info-header {
   background-color: #f8f9fa;
   padding: 15px;
@@ -1106,19 +1118,46 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
-  border-left: 8px solid #007bff !important;
+  background: linear-gradient(to bottom, #e6f2ff 0%, #b3d9ff 100%);
+  color: #004d99;
+  border: 1px solid #66b0ff;
+  border-left: 5px solid #007bff;
 }
 
 /* 返程 - 綠色系 */
 .bus-plate.direction-back {
-  border-left: 8px solid #28a745 !important;
+  background: linear-gradient(to bottom, #e6fff2 0%, #b3ffd9 100%);
+  color: #00734d;
+  border: 1px solid #66ffb3;
+  border-left: 5px solid #28a745;
+}
+/* 方向標誌 */
+.bus-plate::after {
+  content: "去";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #007bff;
+  color: white;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .direction-buttons {
   display: flex;
   gap: 10px;
   margin-top: 5px;
 }
-
+.bus-plate.direction-back::after {
+  content: "返";
+  background-color: #28a745;
+}
 .direction-btn {
   background-color: #f8f9fa;
   color: #333;
@@ -1601,7 +1640,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.5.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.5.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4256,8 +4295,17 @@ function createBusListItem(bus, index) {
   } else if (bus.direction === "1") {
     plateElement.classList.add("direction-back");
   }
+// 格式化車牌號碼，分離字母和數字部分
+const plateNumber = bus.plateNumber;
+// 嘗試分隔字母和數字部分
+const letterMatch = plateNumber.match(/[A-Z]+/);
+const numberMatch = plateNumber.match(/\d+/);
 
-  plateElement.textContent = bus.plateNumber;
+if (letterMatch && numberMatch) {
+  plateElement.innerHTML = `<span class="plate-letter">${letterMatch[0]}</span><span class="plate-number">${numberMatch[0]}</span>`;
+} else {
+  plateElement.textContent = plateNumber;
+}
   
   // 將元素添加到車輛項目中
   busItem.appendChild(routeElement);
