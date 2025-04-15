@@ -1055,11 +1055,11 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 
 .simple-bus-item.selected-bus-item::after {
-  content: "編輯中";
+  content: "編輯";
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: #06c755;
+  background-color: #ece00c;
   color: white;
   font-size: 11px;
   font-weight: bold;
@@ -1663,7 +1663,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.3(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3984,7 +3984,7 @@ async function detectBuses(isAutoDetection = false) {
   }
   
   if (!isAutoDetection) {
-    logVehicleState("偵測車輛完成");
+   // logVehicleState("偵測車輛完成");
   }
   
   // 同步編輯狀態
@@ -4426,7 +4426,7 @@ function submitSelectedBus() {
   // 使用 RequestAnimationFrame 減少主線程阻塞
   requestAnimationFrame(() => {
     try {
-      logVehicleState("新增前");
+     // logVehicleState("新增前");
       
       // 清除之前的錯誤訊息
       const statusElement = document.getElementById("statusMessage");
