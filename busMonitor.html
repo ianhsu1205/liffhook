@@ -792,9 +792,9 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 .bus-plate {
 flex-shrink: 0;
-  width: 65px !important; /* 保持原有寬度 */
-  min-width: 65px !important;
-  max-width: 65px !important;
+  width: 70px !important; /* 保持原有寬度 */
+  min-width: 70px !important;
+  max-width: 70px !important;
   text-align: center;
   background-color: #ffeb3b;
   padding: 3px 4px;
@@ -1151,16 +1151,17 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
   color: #004d99;  /* 藍色系文字 */
-  border: 1px solid #66b0ff;  /* 藍色系邊框 */
-  border-left: 5px solid #007bff;  /* 藍色系左邊框 */
+  border: 1px solid #66b0ff;  /* 四周邊框 */
+  border-left: none; /* 移除左側色塊邊框 */
+  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
 }
 
 /* 返程 - 綠色系 */
 .bus-plate.direction-back {
-  background-image: none; /* 移除原有漸層 */
   color: #00734d;
   border: 1px solid #66ffb3;
-  border-left: 5px solid #28a745;
+  border-left: none; /* 移除左側色塊邊框 */
+  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
 }
 /* 方向標誌 */
 .bus-plate::after {
@@ -1193,7 +1194,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
 .direction-tag.go-tag {
   background-color: #007bff;
-  color: white;
+  color: #004d99;
 }
 
 .direction-tag.back-tag {
@@ -1654,7 +1655,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.0(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
