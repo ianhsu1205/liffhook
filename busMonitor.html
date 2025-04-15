@@ -41,26 +41,6 @@
      border-bottom: none; /* 移除底部分隔線 */
         padding-bottom: 15px;
       }
-/* 車輛距離黃白漸層底色樣式 */
-/* .bus-plate.distance-veryclose { 
-  background: linear-gradient(to right, #ffeb3b 100%, #ffffff 100%);
-  border: 1px solid #ffc107;
-}
-
-.bus-plate.distance-close { 
-  background: linear-gradient(to right, #ffeb3b 75%, #ffffff 75%);
-  border: 1px solid #ffd54f;
-}
-
-.bus-plate.distance-medium { 
-  background: linear-gradient(to right, #ffeb3b 50%, #ffffff 50%);
-  border: 1px solid #ffe082;
-}
-
-.bus-plate.distance-far { 
-  background: linear-gradient(to right, #ffeb3b 25%, #ffffff 25%);
-  border: 1px solid #ffecb3;
-} */
 /* 距離漸層 - 去程（藍色） */
 .bus-plate.direction-go.distance-veryclose {
   background: linear-gradient(to right, #e6f2ff 100%, #e6f2ff 100%);
@@ -791,32 +771,38 @@ button, .utility-button, .quick-item, .simple-bus-item {
   position: relative;
 }
 .bus-plate {
-flex-shrink: 0;
-  width: 70px !important; /* 保持原有寬度 */
+  flex-shrink: 0;
+  width: 70px !important;
   min-width: 70px !important;
   max-width: 70px !important;
   text-align: center;
-  background-color: #ffeb3b;
-  padding: 3px 4px;
   border-radius: 4px;
-  font-weight: 700; /* 加粗 */
-  font-size: 15px; /* 適當放大字體 */
+  font-weight: 700;
+  font-size: 15px; /* 增加字體大小 */
   margin-left: 4px;
   white-space: nowrap;
   overflow: hidden;
-  font-family: 'Arial', sans-serif; /* 使用清晰的無襯線字體 */
-  position: relative; /* 確保可以正確定位子元素 */
+  font-family: 'Arial', sans-serif;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 添加陰影提高可見度 */
+  padding: 3px 4px; /* 稍微增加內邊距 */
 }
 /* 數字和字母分開顯示 */
 .plate-letter {
   font-size: 14px;
   font-weight: 500;
 }
-
+/* 分隔符號樣式 */
+.plate-separator {
+  margin: 0 1px;
+  opacity: 0.7;
+}
 .plate-number {
   font-size: 16px;
   font-weight: 900; /* 超粗體強調數字部分 */
+    color: inherit; /* 確保顏色繼承 */
   letter-spacing: 0.5px; /* 增加字間距 */
+    text-shadow: 0 0.5px 0 rgba(0,0,0,0.2); /* 添加文字陰影增強可讀性 */
 }
 .bus-info-header {
   background-color: #f8f9fa;
@@ -1046,10 +1032,26 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     pointer-events: none;
     cursor: not-allowed;
 }
+/* 選中編輯時保持去程車輛的樣式 */
+.simple-bus-item.selected-bus-item .bus-plate.direction-go {
+  color: #004d99;
+  border: 1px solid #66b0ff;
+  background-color: #e6f2ff; /* 加深背景色更易識別 */
+}
+
+/* 選中編輯時保持返程車輛的樣式 */
+.simple-bus-item.selected-bus-item .bus-plate.direction-back {
+  color: #00734d;
+  border: 1px solid #66ffb3;
+  background-color: #e6fff2; /* 加深背景色更易識別 */
+}
 .simple-bus-item.selected-bus-item {
-  border: 2px solid #06c755;
-  background-color: rgba(6, 199, 85, 0.1);
+  border: 2px solid #c0c706; /* 保留原有的綠色邊框 */
+  box-shadow: 0 0 0 2px rgba(239, 232, 37, 0.5); /* 添加外發光效果 */
+  background-color: rgba(6, 199, 85, 0.08); /* 輕微調整背景色 */
   position: relative;
+  transform: translateY(-2px); /* 輕微上浮效果 */
+  transition: all 0.2s ease;
 }
 
 .simple-bus-item.selected-bus-item::after {
@@ -1059,9 +1061,12 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   right: -8px;
   background-color: #06c755;
   color: white;
-  font-size: 10px;
-  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
   border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 增加陰影效果 */
+  border: 1px solid rgba(255,255,255,0.5); /* 添加白色邊框增加對比 */
 }
  /* 位置精度指示器樣式 */
   .location-accuracy-container {
@@ -1153,18 +1158,18 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
 /* 去程 - 藍色系 */
 .bus-plate.direction-go {
-  color: #00734d;
-  border: 1px solid #66ffb3;
-  padding-left: 6px; /* 保留內邊距 */
-  background-color: #f8f9fa; /* 淺色背景 */
+  color: #004d99;
+  border: 1px solid #66b0ff;
+  padding-left: 6px;
+  background-color: #f8f9fa;
 }
 
 /* 返程 - 綠色系 */
 .bus-plate.direction-back {
   color: #00734d;
   border: 1px solid #66ffb3;
-  border-left: none; /* 移除左側色塊邊框 */
-  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
+  padding-left: 6px;
+  background-color: #f8f9fa;
 }
 /* 方向標誌 */
 .bus-plate::after {
@@ -1658,7 +1663,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.2(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
