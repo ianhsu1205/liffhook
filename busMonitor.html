@@ -726,9 +726,11 @@ button, .utility-button, .quick-item, .simple-bus-item {
   color: #06c755;
   font-weight: 500;
   font-size: 15px; /* 比路線稍大一點 */
-  white-space: nowrap; /* 防止斷行 */
-  overflow: hidden;
-  text-overflow: ellipsis; /* 如果太長則顯示... */
+  white-space: normal; /* 允許文字換行 */
+  overflow: visible; /* 允許內容溢出 */
+  text-overflow: clip; /* 不使用省略號 */
+  max-width: none; /* 移除最大寬度限制 */
+  display: inline-block; /* 確保保持在一行 */
 }
 /* 然後在媒體查詢中處理響應式 */
 @media (min-width: 481px) {
@@ -821,24 +823,28 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 /* 突顯車號樣式 */
 .highlighted-plate-number {
-  font-size: 24px; /* 增大字體 */
+  font-size: 20px; /* 增大字體 */
   font-weight: 700; /* 加粗 */
   color: #06c755; /* 使用LINE綠色 */
 }
 /* 公司和路線容器 */
 .company-route-container {
   display: flex;
+  flex-wrap: wrap; /* 允許元素換行 */
   align-items: center;
   gap: 8px; /* 增加間距 */
   width: 100%;
-  overflow: hidden;
-  margin-top: 2px; /* 增加與上方車牌的距離 */
+  overflow: visible; /* 允許內容溢出 */
+  margin-top: 4px; /* 增加與上方車牌的距離 */
 }
 /* 縮小的路線信息樣式 */
 .route-info-smaller {
-  font-size: 15px; /* 縮小字體 */
+  font-size: 15px; /* 從原來的15px增大到16px */
   color: #555; 
-  font-weight: 500; /* 增加字體粗細，讓它更明顯 */*/
+  font-weight: 500; /* 增加字體粗細，讓它更明顯 */
+  max-width: 70%; /* 限制最大寬度，確保不占用太多空間 */
+  text-overflow: ellipsis; /* 內容過長時使用省略號 */
+  overflow: hidden;
 }
 .input-section {
   padding: 15px;
@@ -1696,7 +1702,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.3(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
