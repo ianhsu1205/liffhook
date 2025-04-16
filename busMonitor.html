@@ -723,9 +723,9 @@ button, .utility-button, .quick-item, .simple-bus-item {
   font-display: swap; /* 改善字體載入 */
 }
 .company-label {
- color: #06c755;
+  color: #06c755;
   font-weight: 500;
-  font-size: 15px; /* 減小公司名稱字體 */
+  font-size: 16px; /* 比路線稍大一點 */
 }
 /* 然後在媒體查詢中處理響應式 */
 @media (min-width: 481px) {
@@ -808,8 +808,31 @@ button, .utility-button, .quick-item, .simple-bus-item {
   background-color: #f8f9fa;
   padding: 15px;
   border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-
+/* 車號容器樣式 */
+.vehicle-number-container {
+  margin-bottom: 5px;
+}
+/* 突顯車號樣式 */
+.highlighted-plate-number {
+  font-size: 24px; /* 增大字體 */
+  font-weight: 700; /* 加粗 */
+  color: #06c755; /* 使用LINE綠色 */
+}
+/* 公司和路線容器 */
+.company-route-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+/* 縮小的路線信息樣式 */
+.route-info-smaller {
+  font-size: 15px; /* 縮小字體 */
+  color: #555; /* 稍微淺一點的顏色 */
+}
 .input-section {
   padding: 15px;
     overflow-x: hidden; /* 防止水平溢出 */
@@ -1582,8 +1605,15 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 <div id="busInputContainer" class="bus-input-container hidden">
   <div class="bus-info-header">
     <!-- 將路線移到頂部 -->
-     <div><strong id="inputBusNumber"></strong></div>
-    <div><span id="inputBusCompany" class="company-label"></span><span id="inputBusRoute" class="route-info"></span></div>
+      <!-- 車號放在第一行，並突顯 -->
+  <div class="vehicle-number-container">
+    <strong id="inputBusNumber" class="highlighted-plate-number"></strong>
+  </div>
+  <!-- 公司與路線在同一行 -->
+  <div class="company-route-container">
+    <span id="inputBusCompany" class="company-label"></span>
+    <span id="inputBusRoute" class="route-info-smaller"></span>
+  </div>
   </div>
   
   <div class="input-section">
@@ -1659,7 +1689,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.1(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
