@@ -1747,7 +1747,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.9(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3987,7 +3987,7 @@ async function detectBuses(isAutoDetection = false) {
     );
      // 在這裡設定您要查詢的縣市列表
     // const selectedCities = ["Taipei", "NewTaipei", "Taichung", "Taoyuan", "InterCity"]; // 預設全選
-    const selectedCities = ["Taipei", "NewTaipei"]; // 預設全選
+    const selectedCities = ["Taipei", "NewTaipei","InterCity"]; // 預設全選
     displayedBuses = displayedBuses.filter(bus => 
       editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
     );
