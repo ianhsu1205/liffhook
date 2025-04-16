@@ -826,7 +826,7 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 /* 突顯車號樣式 */
 .highlighted-plate-number {
-  display: inline-flex; /* 改為 inline-flex 不占用全寬 */
+  display: inline-flex; /* 保持不占用全寬 */
   align-items: center;
   width: auto !important;
   max-width: none !important;
@@ -845,14 +845,14 @@ button, .utility-button, .quick-item, .simple-bus-item {
 .highlighted-plate-number.direction-go {
   color: #004d99;
   border: 1px solid #66b0ff;
-  background-color: #f8f9fa; /* 與列表中相同的底色 */
+  background-color: #e6f2ff; /* 與去程distance-veryclose相同的底色 */
 }
 
 /* 返程樣式 - 綠色系 */
 .highlighted-plate-number.direction-back {
   color: #00734d;
   border: 1px solid #66ffb3;
-  background-color: #f8f9fa; /* 與列表中相同的底色 */
+  background-color: #e6fff2; /* 與返程distance-veryclose相同的底色 */
 }
 /* 公司和路線容器 */
 .company-route-container {
@@ -1728,7 +1728,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.6(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2730,9 +2730,6 @@ function updateBusEditingInterface() {
   routeElement.innerHTML = `
   <div class="route-direction-container">
     <div class="text-marquee">${routeInfo}</div>
-    <div class="direction-tag" style="background-color: ${bus.direction === "0" ? "#007bff" : bus.direction === "1" ? "#28a745" : "#666"}; color: white;">
-      ${directionInfo}
-    </div>
   </div>`;
   
   // 檢查路線長度，如果過長則啟用跑馬燈效果
