@@ -823,9 +823,33 @@ button, .utility-button, .quick-item, .simple-bus-item {
 }
 /* 突顯車號樣式 */
 .highlighted-plate-number {
-  font-size: 20px; /* 增大字體 */
-  font-weight: 700; /* 加粗 */
-  color: #06c755; /* 使用LINE綠色 */
+  display: flex;
+  align-items: center;
+  width: auto !important;
+  max-width: none !important;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: 'Arial', sans-serif;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+/* 去程樣式 - 藍色系 */
+.highlighted-plate-number.direction-go {
+  color: #004d99;
+  border: 1px solid #66b0ff;
+  background-color: #e6f2ff;
+}
+
+/* 返程樣式 - 綠色系 */
+.highlighted-plate-number.direction-back {
+  color: #00734d;
+  border: 1px solid #66ffb3;
+  background-color: #e6fff2;
 }
 /* 公司和路線容器 */
 .company-route-container {
@@ -1165,11 +1189,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 .direction-tag {
   display: inline-block;
   color: #000000; /* 將顏色從藍色 #004085 修改為黑色 */
-  border: 1px solid #b8daff; /* 保留原有的藍色框線 */
-  border-left: none; /* 保持左側無邊框 */
   border-radius: 4px;
   padding: 2px 6px;
-  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
   font-size: 14px;
   flex-shrink: 0; /* 防止被壓縮 */
   margin-left: 10px;
@@ -1702,7 +1723,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2673,6 +2694,7 @@ function addItemCountBadgeToElement(container, count) {
 }
 window.isHandlingItemClick = false;
 // 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
+// 3. 新增函數來更新編輯介面，包括車輛編輯區域和標籤列
 function updateBusEditingInterface() {
   if (activeEditingBusIndex < 0 || editingBuses.length === 0) {
     // 沒有活躍的編輯車輛，隱藏編輯區域
@@ -2683,10 +2705,11 @@ function updateBusEditingInterface() {
   // 獲取當前活躍的編輯車輛
   const bus = editingBuses[activeEditingBusIndex];
   
-    if (!bus) {
+  if (!bus) {
     console.error("活躍索引無效，無法找到車輛:", activeEditingBusIndex);
     return;
   }
+  
   // 更新編輯標籤列
   updateEditingTabs();
   
@@ -2724,24 +2747,26 @@ function updateBusEditingInterface() {
 
   // 更新公司信息
   document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
-    // 計算已選項目數量
+  
+  // 計算已選項目數量
   let selectedItemsCount = 0;
   if (bus.selectedMainItem) selectedItemsCount++;
   if (bus.selectedOtherItems && Array.isArray(bus.selectedOtherItems)) {
     selectedItemsCount += bus.selectedOtherItems.length;
   }
-  // 修改這裡：將車號純文字改為輸入框
+  
+  // 修改這裡：將車號純文字改為輸入框或帶樣式的元素
   const inputBusNumberElement = document.getElementById("inputBusNumber");
    
   const numberContainer = inputBusNumberElement.parentNode;
 
-    // 移除舊的計數標記（如果存在）
+  // 移除舊的計數標記（如果存在）
   const oldBadge = document.getElementById("editingItemCountBadge");
   if (oldBadge) oldBadge.remove();
 
   // 檢查是否已經是輸入框，如果不是則替換為輸入框
   if (bus.isManualInput) {
-    // 如果是手動新增的車輛，且不是輸入框，替換為輸入框
+    // 手動新增的車輛，使用輸入框
     if (inputBusNumberElement.tagName !== 'INPUT') {
       const inputBox = document.createElement('input');
       inputBox.type = 'text';
@@ -2753,47 +2778,49 @@ function updateBusEditingInterface() {
       inputBox.style.borderRadius = '4px';
       inputBox.style.fontWeight = 'bold';
       
-// 修改輸入事件處理
-inputBox.addEventListener('input', function() {
-   // 轉換為大寫
-      this.value = this.value.toUpperCase();
-       // 格式化車牌號碼
-      formatPlateNumber(this);
-  // 獲取當前編輯的車輛
-  const currentBus = editingBuses[activeEditingBusIndex];
-  
-  // 保存新車號
-  currentBus.plateNumber = this.value;
-  
-  // 記錄重要信息便於調試
-  console.log(`車號輸入變更: 索引=${activeEditingBusIndex}, 原始索引=${currentBus.originalIndex}, ID=${currentBus.uniqueId}, 新車號=${currentBus.plateNumber}`);
-  
-  // 只更新當前編輯的車輛
-  updateVehicleByUniqueId(currentBus);
-  
-});
-       // 添加失去焦點時的重複檢查
-    inputBox.addEventListener('blur', function() {
-      // 獲取當前編輯的車輛
-      const currentBus = editingBuses[activeEditingBusIndex];
-      const newPlateNumber = this.value;
+      // 修改輸入事件處理
+      inputBox.addEventListener('input', function() {
+        // 轉換為大寫
+        this.value = this.value.toUpperCase();
+        // 格式化車牌號碼
+        formatPlateNumber(this);
+        // 獲取當前編輯的車輛
+        const currentBus = editingBuses[activeEditingBusIndex];
+        
+        // 保存新車號
+        currentBus.plateNumber = this.value;
+        
+        // 記錄重要信息便於調試
+        console.log(`車號輸入變更: 索引=${activeEditingBusIndex}, 原始索引=${currentBus.originalIndex}, ID=${currentBus.uniqueId}, 新車號=${currentBus.plateNumber}`);
+        
+        // 只更新當前編輯的車輛
+        updateVehicleByUniqueId(currentBus);
+      });
       
-      // 檢查是否與其他車輛重複 (排除當前車輛自身)
-      const duplicateVehicle = allDetectedBuses.find(bus => 
-        bus.plateNumber === newPlateNumber && bus.uniqueId !== currentBus.uniqueId
-      );
+      // 添加失去焦點時的重複檢查
+      inputBox.addEventListener('blur', function() {
+        // 獲取當前編輯的車輛
+        const currentBus = editingBuses[activeEditingBusIndex];
+        const newPlateNumber = this.value;
+        
+        // 檢查是否與其他車輛重複 (排除當前車輛自身)
+        const duplicateVehicle = allDetectedBuses.find(bus => 
+          bus.plateNumber === newPlateNumber && bus.uniqueId !== currentBus.uniqueId
+        );
+        
+        if (duplicateVehicle) {
+          showFloatingNotification(`車號 ${newPlateNumber} 已存在，請使用其他車號`, "error");
+          // 可以選擇恢復原始車牌或讓用戶繼續編輯
+          this.value = currentBus.originalPlateNumber;
+          currentBus.plateNumber = currentBus.originalPlateNumber;
+          updateVehicleByUniqueId(currentBus);
+        }
+      });
       
-      if (duplicateVehicle) {
-        showFloatingNotification(`車號 ${newPlateNumber} 已存在，請使用其他車號`, "error");
-        // 可以選擇恢復原始車牌或讓用戶繼續編輯
-         this.value = currentBus.originalPlateNumber;
-         currentBus.plateNumber = currentBus.originalPlateNumber;
-         updateVehicleByUniqueId(currentBus);
-      }
-    });
       // 替換原有元素
       inputBusNumberElement.parentNode.replaceChild(inputBox, inputBusNumberElement);
-           // 現在輸入框已經設定好，保存引用
+      
+      // 現在輸入框已經設定好，保存引用
       const newInputBox = document.getElementById('inputBusNumber');
       
       // 如果有選項，添加計數標記
@@ -2803,29 +2830,37 @@ inputBox.addEventListener('input', function() {
     } else {
       // 如果已經是輸入框，只更新值
       inputBusNumberElement.value = bus.plateNumber || '';
-            // 如果有選項，添加計數標記
+      
+      // 如果有選項，添加計數標記
       if (selectedItemsCount > 0) {
         addItemCountBadgeToElement(numberContainer, selectedItemsCount);
       }
     }
   } else {
-    // 如果不是手動新增的車輛，顯示為純文字
-    if (inputBusNumberElement.tagName === 'INPUT') {
-      const textSpan = document.createElement('strong');
-      textSpan.id = 'inputBusNumber';
-      textSpan.textContent = bus.plateNumber || '';
-      inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
-            // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
-    } else {
-      // 如果已經是文字元素，只更新內容
-      inputBusNumberElement.textContent = bus.plateNumber || '';
-       // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
+    // 非手動新增的車輛，使用與列表區相同的樣式
+    // 首先創建與列表區相同的樣式元素
+    const plateElement = document.createElement('div');
+    plateElement.id = 'inputBusNumber';
+    plateElement.className = 'highlighted-plate-number bus-plate';
+    
+    // 添加方向樣式類
+    if (bus.direction === "0") {
+      plateElement.classList.add("direction-go");
+    } else if (bus.direction === "1") {
+      plateElement.classList.add("direction-back");
+    }
+    
+    // 格式化車牌號碼，分離字母和數字部分
+    plateElement.innerHTML = formatPlateDisplay(bus.plateNumber || '');
+    
+    // 替換元素
+    if (inputBusNumberElement) {
+      inputBusNumberElement.parentNode.replaceChild(plateElement, inputBusNumberElement);
+    }
+    
+    // 如果有選項，添加計數標記
+    if (selectedItemsCount > 0) {
+      addItemCountBadgeToElement(numberContainer, selectedItemsCount);
     }
   }
   
@@ -2852,9 +2887,9 @@ inputBox.addEventListener('input', function() {
       // 儲存選擇到當前編輯的車輛對象
       bus.selectedMainItem = this.dataset.value;
 
-        // 更新編輯界面以反映項目計數變化
-  updateBusEditingInterface();
-  updateEditingTabs();
+      // 更新編輯界面以反映項目計數變化
+      updateBusEditingInterface();
+      updateEditingTabs();
     };
     mainItemsContainer.appendChild(itemButton);
   });
@@ -3061,11 +3096,11 @@ categoryNav.querySelectorAll('.category-tab').forEach(tab => {
   resetSubmitButtonState();
 
   if (currentSwipePage >= 0) {
-  const categoryNav = document.querySelector('.category-nav');
-  if (categoryNav) {
-    ensureSingleActiveTab(categoryNav, currentSwipePage);
+    const categoryNav = document.querySelector('.category-nav');
+    if (categoryNav) {
+      ensureSingleActiveTab(categoryNav, currentSwipePage);
+    }
   }
-}
 }
 
 // 只更新計數標記的函數
