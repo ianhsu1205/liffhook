@@ -1747,7 +1747,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.0(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1894,7 +1894,7 @@ function setupBackButtonHandler() {
   const isAndroid = /android/i.test(navigator.userAgent);
   
   if (isAndroid) {
-    console.log("檢測到Android環境，設置返回按鈕處理");
+    //console.log("檢測到Android環境，設置返回按鈕處理");
     
     // 添加返回按鈕事件監聽
     window.addEventListener('popstate', function(event) {
@@ -2010,7 +2010,7 @@ const safeStorage = {
     try {
       // 檢查存儲是否可用
       if (!this.isAvailable()) {
-        console.warn("localStorage不可用");
+        //console.warn("localStorage不可用");
         return false;
       }
       
@@ -2020,7 +2020,7 @@ const safeStorage = {
       localStorage.setItem(key, value);
       return true;
     } catch (error) {
-      console.error("保存到localStorage失敗:", error);
+      //console.error("保存到localStorage失敗:", error);
       return false;
     }
   },
@@ -2038,7 +2038,7 @@ const safeStorage = {
         return value;
       }
     } catch (error) {
-      console.error("從localStorage讀取失敗:", error);
+      //console.error("從localStorage讀取失敗:", error);
       return defaultValue;
     }
   },
@@ -2048,7 +2048,7 @@ const safeStorage = {
       localStorage.removeItem(key);
       return true;
     } catch (error) {
-      console.error("從localStorage刪除失敗:", error);
+      //console.error("從localStorage刪除失敗:", error);
       return false;
     }
   },
@@ -2070,7 +2070,7 @@ const safeStorage = {
 // 切換是否包含已記錄車輛的開關
 function toggleIncludeRecorded() {
   includeRecordedVehicles = document.getElementById('includeRecordedToggle').checked;
-  console.log("包含已記錄車輛設置更改為:", includeRecordedVehicles);
+  //console.log("包含已記錄車輛設置更改為:", includeRecordedVehicles);
   
   // 立即重新篩選顯示的車輛
   refreshDisplayedBuses();
@@ -2235,19 +2235,19 @@ function setupAutoDetectHealthCheck() {
       
       // 檢查是否應該在自動偵測狀態但計時器已經停止
       if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
-        console.log("檢測到自動偵測異常停止，正在重新啟動...");
+        //console.log("檢測到自動偵測異常停止，正在重新啟動...");
         // 重新啟動自動偵測
         startAutoDetect();
       }
       
       // 檢查倒數計時是否正常運行
       if (statusElem && statusElem.textContent === "停止自動" && !countdownInterval) {
-        console.log("檢測到倒數計時異常停止，正在重新啟動...");
+        //console.log("檢測到倒數計時異常停止，正在重新啟動...");
         // 重新啟動倒數計時
         startCountdown();
       }
     } catch (error) {
-      console.error("自動偵測健康檢查錯誤:", error);
+      //console.error("自動偵測健康檢查錯誤:", error);
       // 即使出錯也不中斷健康檢查
     }
   }, HEALTH_CHECK_INTERVAL_MS);
@@ -2265,14 +2265,14 @@ async function initializePage() {
   if (navigator.permissions) {
   navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
     if (result.state === 'granted') {
-      console.log('已有位置權限');
+      //console.log('已有位置權限');
       startHighAccuracyLocationWatching();
     } else if (result.state === 'prompt') {
-      console.log('需要顯式請求位置權限');
+      //console.log('需要顯式請求位置權限');
       // 顯式請求位置以觸發權限請求
       navigator.geolocation.getCurrentPosition(
-        () => { console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
-        (error) => { console.error('位置權限請求失敗:', error); },
+        () => { //console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
+        (error) => { //console.error('位置權限請求失敗:', error); },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else if (result.state === 'denied') {
@@ -2285,7 +2285,7 @@ async function initializePage() {
 }
   try {
     showLoading();
-    console.log("初始化頁面...");
+    //console.log("初始化頁面...");
     
     // 檢查localStorage是否可用
     if (!safeStorage.isAvailable()) {
@@ -2300,7 +2300,7 @@ async function initializePage() {
     const userId = urlParams.get('userId');
     if (userId) {
       document.getElementById("userId").value = userId;
-      console.log("從URL獲取到userId:", userId);
+      //console.log("從URL獲取到userId:", userId);
       
       // 檢查用戶是否存在
       await checkUserExists(userId, channelId);
@@ -2309,7 +2309,7 @@ async function initializePage() {
       const lastLocation = await fetchLastLocation(userId);
       if (lastLocation) {
         document.getElementById("location").value = lastLocation;
-        console.log("已填入今日最後記錄位置:", lastLocation);
+        //console.log("已填入今日最後記錄位置:", lastLocation);
       }
       
       // 獲取其他項目列表
@@ -2324,15 +2324,15 @@ async function initializePage() {
       // 添加網絡狀態監聽器
       setupNetworkListeners();
       
-      console.log("頁面初始化完成");
+      //console.log("頁面初始化完成");
     } else {
-      console.error("URL中缺少userId參數");
+      //console.error("URL中缺少userId參數");
       showStatusMessage("缺少必要的用戶信息，請從LINE中開啟應用", "error");
     }
     
     hideLoading();
   } catch (error) {
-    console.error("頁面載入時發生錯誤:", error);
+    //console.error("頁面載入時發生錯誤:", error);
     showStatusMessage("載入頁面時發生錯誤，請重新整理", "error");
     hideLoading();
   }
@@ -2350,7 +2350,7 @@ async function requestWakeLock() {
   try {
     if ('wakeLock' in navigator) {addEventListener
       window.wakeLock = await navigator.wakeLock.request('screen');
-      console.log('Wake Lock已啟用');
+      //console.log('Wake Lock已啟用');
       
       // 頁面可見性變化時重新請求
   document.addEventListener('visibilitychange', function() {
@@ -2363,7 +2363,7 @@ async function requestWakeLock() {
   });
     }
   } catch (err) {
-    console.error('Wake Lock請求失敗:', err);
+    //console.error('Wake Lock請求失敗:', err);
   }
 }
 // 高精度位置監視函數
@@ -2372,7 +2372,7 @@ function startHighAccuracyLocationWatching(silent = false) {
   stopLocationWatching();
   
   if (!navigator.geolocation) {
-    console.log("瀏覽器不支持地理位置API");
+    //console.log("瀏覽器不支持地理位置API");
     if (!silent) {
       showStatusMessage("您的設備不支持位置功能", "error");
     }
@@ -2393,13 +2393,13 @@ function startHighAccuracyLocationWatching(silent = false) {
   
   window.watchId = navigator.geolocation.watchPosition(
     (position) => {
-      console.log("位置已更新（高精度）");
+      //console.log("位置已更新（高精度）");
       currentLatitude = position.coords.latitude;
       currentLongitude = position.coords.longitude;
       
       // 記錄位置精度
       const accuracy = position.coords.accuracy;
-      console.log("位置精度:", accuracy, "公尺");
+      //console.log("位置精度:", accuracy, "公尺");
       
       // 更新位置精度指示器
       updateLocationAccuracyIndicator(accuracy);
@@ -2408,7 +2408,7 @@ function startHighAccuracyLocationWatching(silent = false) {
       savePosition(currentLatitude, currentLongitude);
     },
     (error) => {
-      console.log("位置監聽錯誤:", error);
+      //console.log("位置監聽錯誤:", error);
       if (!silent) {
         showStatusMessage("暫時無法獲取位置，請至室外或開啟位置權限", "info");
       }
@@ -2419,7 +2419,7 @@ function startHighAccuracyLocationWatching(silent = false) {
     geoOptions
   );
   
-  console.log("已啟動高精度位置監視，watchId:", window.watchId);
+  //console.log("已啟動高精度位置監視，watchId:", window.watchId);
 }
 
 // 添加位置精度指示器
@@ -2474,7 +2474,7 @@ window.addEventListener('load', function() {
 function setupNetworkListeners() {
   // 網絡恢復連接
   window.addEventListener('online', function() {
-    console.log("網絡連接恢復");
+    //console.log("網絡連接恢復");
     showStatusMessage("網絡連接已恢復", "info", true);
     
     // 如果頁面可見，更新位置
@@ -2485,7 +2485,7 @@ function setupNetworkListeners() {
   
   // 網絡斷開連接
   window.addEventListener('offline', function() {
-    console.log("網絡連接已斷開");
+    //console.log("網絡連接已斷開");
     showStatusMessage("網絡連接已斷開，部分功能可能不可用", "warning");
   });
 }
@@ -2559,7 +2559,7 @@ function addManualBus() {
     lastUpdated: timestamp
   };
   
-  console.log(`添加手動車輛 - 車號: ${plateNumber}, ID: ${uniqueId}`);
+  //console.log(`添加手動車輛 - 車號: ${plateNumber}, ID: ${uniqueId}`);
   
   // 添加到顯示列表和全局列表
   displayedBuses.push(newBus);
@@ -2609,7 +2609,7 @@ function selectBusForInput(bus, index, scrollToView = false) {
       allDetectedBuses[globalIndex].uniqueId = bus.uniqueId;
     }
     
-    console.log(`創建新唯一ID: ${bus.uniqueId}`);
+    //console.log(`創建新唯一ID: ${bus.uniqueId}`);
   }
   
   // 明確記錄這台車輛在顯示列表中的索引
@@ -2627,7 +2627,7 @@ function selectBusForInput(bus, index, scrollToView = false) {
     // 確保記錄原始索引
     busToEdit.originalIndex = originalIndex;
     
-    console.log(`找到已編輯車輛，索引: ${existingIndex}, ID: ${busToEdit.uniqueId}`);
+    //console.log(`找到已編輯車輛，索引: ${existingIndex}, ID: ${busToEdit.uniqueId}`);
   } else {
     // 創建新的編輯項
     busToEdit = JSON.parse(JSON.stringify(bus)); // 深拷貝
@@ -2637,7 +2637,7 @@ function selectBusForInput(bus, index, scrollToView = false) {
     // 明確記錄原始顯示列表索引
     busToEdit.originalIndex = originalIndex;
     
-    console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
+    //console.log(`創建新編輯車輛，原始索引: ${originalIndex}, ID: ${busToEdit.uniqueId}`);
     
     // 標記基礎資料來源列表中的車輛為正在編輯
     if (displayedBuses[originalIndex] && displayedBuses[originalIndex].uniqueId === bus.uniqueId) {
@@ -2730,7 +2730,7 @@ function updateBusEditingInterface() {
   const bus = editingBuses[activeEditingBusIndex];
   
   if (!bus) {
-    console.error("活躍索引無效，無法找到車輛:", activeEditingBusIndex);
+    //console.error("活躍索引無效，無法找到車輛:", activeEditingBusIndex);
     return;
   }
   
@@ -2812,7 +2812,7 @@ function updateBusEditingInterface() {
         currentBus.plateNumber = this.value;
         
         // 記錄重要信息便於調試
-        console.log(`車號輸入變更: 索引=${activeEditingBusIndex}, 原始索引=${currentBus.originalIndex}, ID=${currentBus.uniqueId}, 新車號=${currentBus.plateNumber}`);
+        //console.log(`車號輸入變更: 索引=${activeEditingBusIndex}, 原始索引=${currentBus.originalIndex}, ID=${currentBus.uniqueId}, 新車號=${currentBus.plateNumber}`);
         
         // 只更新當前編輯的車輛
         updateVehicleByUniqueId(currentBus);
@@ -2952,9 +2952,9 @@ try {
     return categoryTypes[a] - categoryTypes[b];
   });
   
-  console.log("按itemType排序的分类清单:", categories);
+  //console.log("按itemType排序的分类清单:", categories);
 } catch (e) {
-  console.error("解析分类时出错:", e);
+  //console.error("解析分类时出错:", e);
   categories = ["未分类"]; // 默认分类
 }
   // 創建分類導航標籤
@@ -3050,7 +3050,7 @@ itemBtn.onclick = function() {
     bus.selectedOtherItems = bus.selectedOtherItems.filter(item => item !== itemValue);
   }
   
-  console.log("選中的項目:", bus.selectedOtherItems);
+  //console.log("選中的項目:", bus.selectedOtherItems);
     // 更新編輯界面以反映項目計數變化
    updateItemCountBadges(bus);
   updateEditingTabs();
@@ -3204,7 +3204,7 @@ function updateVehicleByUniqueId(bus) {
   const uniqueId = bus.uniqueId;
   const originalIndex = bus.originalIndex;
   
-  console.log(`嘗試更新車輛 - ID: ${uniqueId}, 原始索引: ${originalIndex}, 新車號: ${plateNumber}`);
+  //console.log(`嘗試更新車輛 - ID: ${uniqueId}, 原始索引: ${originalIndex}, 新車號: ${plateNumber}`);
   
   // 更新三個關鍵列表中的車輛
   let updatedAny = false;
@@ -3213,7 +3213,7 @@ function updateVehicleByUniqueId(bus) {
   if (originalIndex !== undefined && displayedBuses[originalIndex]) {
     // 檢查唯一ID是否匹配，如果匹配則更新
     if (displayedBuses[originalIndex].uniqueId === uniqueId) {
-      console.log(`通過原始索引 ${originalIndex} 更新顯示車輛`);
+      //console.log(`通過原始索引 ${originalIndex} 更新顯示車輛`);
       displayedBuses[originalIndex].plateNumber = plateNumber;
       updatedAny = true;
     }
@@ -3224,7 +3224,7 @@ function updateVehicleByUniqueId(bus) {
     // 在 displayedBuses 中查找
     const displayIndex = displayedBuses.findIndex(item => item.uniqueId === uniqueId);
     if (displayIndex !== -1) {
-      console.log(`通過唯一ID在顯示列表找到車輛，索引: ${displayIndex}`);
+      //console.log(`通過唯一ID在顯示列表找到車輛，索引: ${displayIndex}`);
       displayedBuses[displayIndex].plateNumber = plateNumber;
       updatedAny = true;
     }
@@ -3232,14 +3232,14 @@ function updateVehicleByUniqueId(bus) {
     // 在 allDetectedBuses 中查找
     const detectedIndex = allDetectedBuses.findIndex(item => item.uniqueId === uniqueId);
     if (detectedIndex !== -1) {
-      console.log(`通過唯一ID在偵測列表找到車輛，索引: ${detectedIndex}`);
+      //console.log(`通過唯一ID在偵測列表找到車輛，索引: ${detectedIndex}`);
       allDetectedBuses[detectedIndex].plateNumber = plateNumber;
       updatedAny = true;
     }
   }
   
   if (!updatedAny) {
-    console.warn(`警告: 未找到匹配的車輛進行更新! ID: ${uniqueId}, 車牌: ${plateNumber}`);
+    //console.warn(`警告: 未找到匹配的車輛進行更新! ID: ${uniqueId}, 車牌: ${plateNumber}`);
   }
     // 在函數末尾添加：確保編輯標籤也更新
   updateEditingTabs();
@@ -3317,10 +3317,10 @@ function ensureSingleActiveTab(categoryNav, activeIndex) {
 
 // 強化版的車輛數據同步函數
 function updateAllBusReferences(bus) {
-  console.log(`全面同步車輛數據 - ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
+  //console.log(`全面同步車輛數據 - ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
   
   if (!bus.uniqueId) {
-    console.warn("警告: 嘗試更新沒有唯一ID的車輛");
+    //console.warn("警告: 嘗試更新沒有唯一ID的車輛");
     return;
   }
   
@@ -3364,7 +3364,7 @@ function updateAllBusReferences(bus) {
     }
   });
   
-  console.log(`共同步更新了 ${updatedCount} 個車輛引用`);
+  //console.log(`共同步更新了 ${updatedCount} 個車輛引用`);
   
   // 只有在確實有更新時才刷新UI
   if (updatedCount > 0) {
@@ -3477,7 +3477,7 @@ debouncedSwitchTab(index);
 
 // 先定義一個全局的防抖函數
 const debouncedSwitchTab = debounce(function(index) {
-  console.log("標籤點擊，切換到索引:", index);
+  //console.log("標籤點擊，切換到索引:", index);
   
   // 設置活躍索引
   activeEditingBusIndex = index;
@@ -3587,7 +3587,7 @@ function updateItemCountBadges(bus) {
   
 //   // 為新按鈕添加明確的事件處理程序
 //   newConfirmYes.addEventListener("click", function() {
-//     console.log("確認取消編輯，索引:", index);
+//     //console.log("確認取消編輯，索引:", index);
     
 //     // 明確調用 removeEditingBus 函數
 //     removeEditingBus(index);
@@ -3601,7 +3601,7 @@ function updateItemCountBadges(bus) {
 //   });
   
 //   newConfirmNo.addEventListener("click", function() {
-//     console.log("取消操作");
+//     //console.log("取消操作");
 //     confirmModal.style.display = "none";
 //   });
 // }
@@ -3614,7 +3614,7 @@ function confirmCancelEditing(index) {
   
   // 檢查索引是否有效
   if (index < 0 || index >= editingBuses.length) {
-    console.error("嘗試取消無效索引的車輛:", index);
+    //console.error("嘗試取消無效索引的車輛:", index);
     return;
   }
   
@@ -3692,7 +3692,7 @@ function confirmCancelEditing(index) {
   
   // 為新按鈕添加明確的事件處理程序
   newConfirmYes.addEventListener("click", function() {
-    console.log("確認取消編輯，索引:", index);
+    //console.log("確認取消編輯，索引:", index);
     
     // 明確調用 removeEditingBus 函數
     removeEditingBus(index);
@@ -3706,23 +3706,23 @@ function confirmCancelEditing(index) {
   });
   
   newConfirmNo.addEventListener("click", function() {
-    console.log("取消操作");
+    //console.log("取消操作");
     confirmModal.style.display = "none";
   });
 }
 // 修改 removeEditingBus 函數
 function removeEditingBus(index) {
-  console.log("開始移除編輯中車輛，索引:", index);
+  //console.log("開始移除編輯中車輛，索引:", index);
   
   // 檢查索引是否有效
   if (index < 0 || index >= editingBuses.length) {
-    console.error("嘗試移除無效索引的車輛:", index);
+    //console.error("嘗試移除無效索引的車輛:", index);
     return;
   }
   
   // 保存刪除前的信息
   const removedBus = editingBuses[index];
-  console.log("將要移除的車輛:", removedBus);
+  //console.log("將要移除的車輛:", removedBus);
   
   // 在所有相關數據源中清除編輯標記
   if (removedBus && removedBus.uniqueId) {
@@ -3741,7 +3741,7 @@ function removeEditingBus(index) {
   
   // 移除指定索引的編輯車輛
   editingBuses.splice(index, 1);
-  console.log("移除後編輯車輛列表:", editingBuses);
+  //console.log("移除後編輯車輛列表:", editingBuses);
   
   // 調整活躍編輯索引
   if (editingBuses.length === 0) {
@@ -3858,7 +3858,7 @@ function stopLocationWatching() {
   if (window.watchId) {
     navigator.geolocation.clearWatch(window.watchId);
     window.watchId = null;
-    console.log("已停止位置監視");
+    //console.log("已停止位置監視");
   }
 }
 
@@ -3901,14 +3901,14 @@ async function checkUserExists(userId, channelId) {
       return false;
     }
   } catch (error) {
-    console.error("檢查用戶存在性失敗:", error);
+    //console.error("檢查用戶存在性失敗:", error);
     showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error");
     return false;
   }
 }
 
 async function forceUpdatePosition(silent = false) {
-  console.log("強制更新位置...");
+  //console.log("強制更新位置...");
   
   try {
     // 清除之前的位置監視，避免衝突
@@ -3926,7 +3926,7 @@ async function forceUpdatePosition(silent = false) {
       });
     });
     
-    console.log("成功獲取新位置");
+    //console.log("成功獲取新位置");
     currentLatitude = position.coords.latitude;
     currentLongitude = position.coords.longitude;
     savePosition(currentLatitude, currentLongitude);
@@ -3939,7 +3939,7 @@ async function forceUpdatePosition(silent = false) {
     
     return true;
   } catch (error) {
-    console.error("強制更新位置失敗:", error);
+    //console.error("強制更新位置失敗:", error);
     
     // 嘗試使用本地緩存作為後備
     if (loadLastPosition()) {
@@ -4021,20 +4021,20 @@ async function detectBuses(isAutoDetection = false) {
           
           // 新增檢查：車牌是否已經在本次處理中
           if (processedPlates.has(bus.plateNumber)) {
-            console.log(`跳過本次偵測中重複的車牌: ${bus.plateNumber}`);
+            //console.log(`跳過本次偵測中重複的車牌: ${bus.plateNumber}`);
             return; // 跳過重複車牌
           }
           
           // 檢查此車牌是否在2分鐘內已經提交過
           if (isRecentlySubmitted(bus.plateNumber)) {
-            console.log(`跳過最近已提交的車輛: ${bus.plateNumber}`);
+            //console.log(`跳過最近已提交的車輛: ${bus.plateNumber}`);
             return; // 跳過最近已提交的車輛
           }
           
           // 檢查是否在編輯列表中已存在相同車牌
           const existingInEditing = editingBuses.find(item => item.plateNumber === bus.plateNumber);
           if (existingInEditing) {
-            console.log(`車牌 ${bus.plateNumber} 已在編輯列表中，保持唯一性`);
+            //console.log(`車牌 ${bus.plateNumber} 已在編輯列表中，保持唯一性`);
             // 更新已有的車輛信息而非添加新條目
             bus.uniqueId = existingInEditing.uniqueId; // 保持 ID 一致
             bus.isInEditing = true;
@@ -4044,7 +4044,7 @@ async function detectBuses(isAutoDetection = false) {
           // 檢查全局列表中是否存在相同車牌
           const existingInAll = allDetectedBuses.find(item => item.plateNumber === bus.plateNumber);
           if (existingInAll) {
-            console.log(`車牌 ${bus.plateNumber} 已在全局列表中，更新而非添加`);
+            //console.log(`車牌 ${bus.plateNumber} 已在全局列表中，更新而非添加`);
             // 更新現有條目的位置等信息
             existingInAll.position = bus.position;
             existingInAll.lastUpdated = Date.now();
@@ -4177,7 +4177,7 @@ async function detectBuses(isAutoDetection = false) {
       }
 
     } catch (networkError) {
-      console.error("獲取車輛數據失敗:", networkError);
+      //console.error("獲取車輛數據失敗:", networkError);
       
       // 對於網絡錯誤，在自動偵測模式下不顯示錯誤訊息
       if (!isAutoDetection) {
@@ -4187,7 +4187,7 @@ async function detectBuses(isAutoDetection = false) {
     
     hideDetectionIndicator();
   } catch (error) {
-    console.error("偵測車輛失敗:", error);
+    //console.error("偵測車輛失敗:", error);
     hideDetectionIndicator();
     
     // 根據錯誤類型提供不同的錯誤訊息
@@ -4227,7 +4227,7 @@ function detectAndResolvePlateDuplicates() {
   
   // 如果有重複車牌，進行處理
   if (duplicatePlates.size > 0) {
-    console.log(`檢測到 ${duplicatePlates.size} 個重複車牌:`, Array.from(duplicatePlates));
+    //console.log(`檢測到 ${duplicatePlates.size} 個重複車牌:`, Array.from(duplicatePlates));
     
     // 對每個重複車牌，保留最新更新的一個
     duplicatePlates.forEach(plateNumber => {
@@ -4247,7 +4247,7 @@ function detectAndResolvePlateDuplicates() {
         displayedBuses = displayedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
         allDetectedBuses = allDetectedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
         
-        console.log(`移除重複車牌 ${plateNumber} 的車輛, ID: ${removeBus.uniqueId}`);
+        //console.log(`移除重複車牌 ${plateNumber} 的車輛, ID: ${removeBus.uniqueId}`);
       }
     });
   }
@@ -4275,11 +4275,11 @@ function scheduledDuplicateCheck() {
       
       // 處理找到的重複車輛
       if (duplicates.length > 0) {
-        console.log(`發現編輯列表中有 ${duplicates.length} 個重複車牌，進行清理`);
+        //console.log(`發現編輯列表中有 ${duplicates.length} 個重複車牌，進行清理`);
         
         // 從最高索引開始移除，避免索引變化影響
         duplicates.sort((a, b) => b.index - a.index).forEach(dup => {
-          console.log(`移除重複編輯中的車輛: ${dup.plateNumber}, 索引: ${dup.index}`);
+          //console.log(`移除重複編輯中的車輛: ${dup.plateNumber}, 索引: ${dup.index}`);
           removeEditingBus(dup.index);
         });
         
@@ -4289,7 +4289,7 @@ function scheduledDuplicateCheck() {
         memoizedUpdateBusSelectionInList();
       }
     } catch (error) {
-      console.error("定期重複檢查失敗:", error);
+      //console.error("定期重複檢查失敗:", error);
     }
   }, 60000); // 每60秒執行一次
 }
@@ -4493,7 +4493,7 @@ function updateDetectedBusesList() {
   
   // 記錄函數執行時間
   const endTime = performance.now();
-  console.log(`更新車輛列表耗時: ${(endTime - startTime).toFixed(2)}ms，共 ${displayedBuses.length} 輛車`);
+  //console.log(`更新車輛列表耗時: ${(endTime - startTime).toFixed(2)}ms，共 ${displayedBuses.length} 輛車`);
   
   // 觸發事件，通知其他組件更新完成
   const updateEvent = new CustomEvent('busListUpdated', { 
@@ -4805,12 +4805,12 @@ function submitSelectedBus() {
                 });
               });
             } catch (error) {
-              console.error("處理新增後的 UI 更新時出錯:", error);
+              //console.error("處理新增後的 UI 更新時出錯:", error);
             }
           }, 0);
         })
         .catch(error => {
-          console.error("新增失敗:", error);
+          //console.error("新增失敗:", error);
           showFloatingNotification(`新增失敗: ${error.message || "伺服器錯誤"}`, "error");
         })
         .finally(() => {
@@ -4823,7 +4823,7 @@ function submitSelectedBus() {
           }, 500);
         });
     } catch (e) {
-      console.error("提交處理中發生錯誤:", e);
+      //console.error("提交處理中發生錯誤:", e);
       isSubmitting = false;
     }
   });
@@ -4840,7 +4840,7 @@ const memoizedUpdateBusSelectionInList = (() => {
     
     // 如果編輯列表和顯示列表都沒有變化，跳過更新
     if (lastEditingIds === currentEditingIds && lastDisplayedIds === currentDisplayedIds) {
-      console.log("車輛選中狀態無變化，跳過更新");
+      //console.log("車輛選中狀態無變化，跳過更新");
       return;
     }
     
@@ -4848,7 +4848,7 @@ const memoizedUpdateBusSelectionInList = (() => {
     lastEditingIds = currentEditingIds;
     lastDisplayedIds = currentDisplayedIds;
     
-    console.log("更新車輛選中狀態...");
+    //console.log("更新車輛選中狀態...");
     
     // 清除所有選中狀態
     document.querySelectorAll('.simple-bus-item').forEach(item => {
@@ -4859,7 +4859,7 @@ const memoizedUpdateBusSelectionInList = (() => {
     if (editingBuses.length > 0) {
       // 收集所有編輯中車輛的唯一ID
       const editingBusIds = editingBuses.map(bus => bus.uniqueId);
-      console.log("正在編輯的車輛ID:", editingBusIds);
+      //console.log("正在編輯的車輛ID:", editingBusIds);
       
       // 同步更新列表數據中的編輯狀態
       displayedBuses.forEach(bus => {
@@ -4872,7 +4872,7 @@ const memoizedUpdateBusSelectionInList = (() => {
           const bus = displayedBuses[itemIndex];
           if (bus && bus.uniqueId && editingBusIds.includes(bus.uniqueId)) {
             item.classList.add('selected-bus-item');
-            console.log(`標記項目 ${itemIndex} 為編輯狀態，ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
+            //console.log(`標記項目 ${itemIndex} 為編輯狀態，ID: ${bus.uniqueId}, 車號: ${bus.plateNumber}`);
           }
         }
       });
@@ -4928,18 +4928,18 @@ function resetSubmitButtonState() {
 // 新增一個日誌記錄與診斷函數，用於調試
 function logVehicleState(action) {
   const timestamp = new Date().toISOString();
-  console.log(`========== 車輛狀態報告 [${action}] ${timestamp} ==========`);
+  //console.log(`========== 車輛狀態報告 [${action}] ${timestamp} ==========`);
   
   // 摘要信息
-  console.log(`顯示車輛數量: ${displayedBuses.length}`);
-  console.log(`全局車輛數量: ${allDetectedBuses.length}`);
-  console.log(`編輯中車輛數量: ${editingBuses.length}`);
-  console.log(`當前編輯索引: ${activeEditingBusIndex}`);
+  //console.log(`顯示車輛數量: ${displayedBuses.length}`);
+  //console.log(`全局車輛數量: ${allDetectedBuses.length}`);
+  //console.log(`編輯中車輛數量: ${editingBuses.length}`);
+  //console.log(`當前編輯索引: ${activeEditingBusIndex}`);
   
   // 如果當前有活躍編輯的車輛，詳細記錄
   if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
     const activeBus = editingBuses[activeEditingBusIndex];
-    console.log("當前編輯車輛:", {
+    //console.log("當前編輯車輛:", {
       uniqueId: activeBus.uniqueId,
       plateNumber: activeBus.plateNumber,
       originalPlateNumber: activeBus.originalPlateNumber,
@@ -4952,11 +4952,11 @@ function logVehicleState(action) {
     
     // 檢查此車是否也在顯示列表中
     const inDisplayed = displayedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
-    console.log(`此車在顯示列表中: ${inDisplayed}`);
+    //console.log(`此車在顯示列表中: ${inDisplayed}`);
     
     // 檢查此車是否在全局列表中
     const inAll = allDetectedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
-    console.log(`此車在全局列表中: ${inAll}`);
+    //console.log(`此車在全局列表中: ${inAll}`);
   }
   
   // 檢查唯一ID一致性
@@ -4964,9 +4964,9 @@ function logVehicleState(action) {
   const uniqueIdsInAll = new Set(allDetectedBuses.map(bus => bus.uniqueId));
   const uniqueIdsInEditing = new Set(editingBuses.map(bus => bus.uniqueId));
   
-  console.log(`顯示列表中唯一ID數量: ${uniqueIdsInDisplayed.size}`);
-  console.log(`全局列表中唯一ID數量: ${uniqueIdsInAll.size}`);
-  console.log(`編輯列表中唯一ID數量: ${uniqueIdsInEditing.size}`);
+  //console.log(`顯示列表中唯一ID數量: ${uniqueIdsInDisplayed.size}`);
+  //console.log(`全局列表中唯一ID數量: ${uniqueIdsInAll.size}`);
+  //console.log(`編輯列表中唯一ID數量: ${uniqueIdsInEditing.size}`);
   
   // 檢查車牌號重複情況
   const plateCountsDisplay = {};
@@ -4979,10 +4979,10 @@ function logVehicleState(action) {
     .map(([plate, count]) => `${plate}(${count}次)`);
   
   if (duplicatePlates.length > 0) {
-    console.warn(`顯示列表中有重複車牌號: ${duplicatePlates.join(', ')}`);
+    //console.warn(`顯示列表中有重複車牌號: ${duplicatePlates.join(', ')}`);
   }
   
-  console.log("========== 報告結束 ==========");
+  //console.log("========== 報告結束 ==========");
 }
 // 在創建快速選項時添加這個功能
 function createQuickItems() {
@@ -5035,12 +5035,12 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       try {
         itemsArray = Object.values(selectedOtherItems).filter(item => item);
       } catch (e) {
-        console.error("解析selectedOtherItems對象失敗:", e);
+        //console.error("解析selectedOtherItems對象失敗:", e);
         itemsArray = [];
       }
     }
     
-    console.log("處理後的選中項目數組:", itemsArray);
+    //console.log("處理後的選中項目數組:", itemsArray);
     
     // 定義正向和負向項目數組
     const positiveItems = [];
@@ -5067,18 +5067,18 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
         const itemType = logItemClassification(itemName, foundItem);
         
         if (itemType === "positive") {
-          console.log(`✅ 確認 "${itemName}" 為正向項目，加入 goodItem`);
+          //console.log(`✅ 確認 "${itemName}" 為正向項目，加入 goodItem`);
           positiveItems.push(itemName);
         } else if (itemType === "negative") {
-          console.log(`❌ 確認 "${itemName}" 為負向項目，加入 otherItem`);
+          //console.log(`❌ 確認 "${itemName}" 為負向項目，加入 otherItem`);
           negativeItems.push(itemName);
         } else {
-          console.log(`⚠️ 項目 "${itemName}" 類型無法確定，加入 otherItem`);
+          //console.log(`⚠️ 項目 "${itemName}" 類型無法確定，加入 otherItem`);
           unclassifiedItems.push(itemName);
         }
       } else {
         // 找不到對應項目的情況
-        console.log(`⚠️ 無法在 otherItems 中找到項目 "${itemName}"，加入 otherItem`);
+        //console.log(`⚠️ 無法在 otherItems 中找到項目 "${itemName}"，加入 otherItem`);
         unclassifiedItems.push(itemName);
       }
     }
@@ -5094,18 +5094,18 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
       routeName: bus.routeName?.chinese || "不明",
       plateNumber: bus.plateNumber,
       direction: bus.direction,
-      positionLat: `(${bus.position?.latitude || currentLatitude},${
+      positionLat: `${bus.position?.latitude || currentLatitude},${
         bus.position?.longitude || currentLongitude
-      })`,
+      }`,
       mainItem: mainItem,
       otherItem: finalNegativeItems.join(", "), // 負向項目和未分類項目
       goodItem: positiveItems.join(", ")        // 正向項目
     };
     
     // 詳細記錄最終新增的數據
-    console.log("最終新增數據:", JSON.stringify(submissionData, null, 2));
-    console.log("正向項目(goodItem):", positiveItems);
-    console.log("負向項目(otherItem):", finalNegativeItems);
+    //console.log("最終新增數據:", JSON.stringify(submissionData, null, 2));
+    //console.log("正向項目(goodItem):", positiveItems);
+    //console.log("負向項目(otherItem):", finalNegativeItems);
     
     // 發送請求
     const response = await fetch(`${base_url}monitor/records`, {
@@ -5121,14 +5121,14 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     
     // 處理成功響應
     const data = await response.json();
-    console.log("新增成功，服務器響應:", data);
+    //console.log("新增成功，服務器響應:", data);
     
     // 更新UI和本地存儲
     handleSubmitSuccess(bus);
     
     return Promise.resolve(data);
   } catch (error) {
-    console.error("新增失敗:", error);
+    //console.error("新增失敗:", error);
     showFloatingNotification(`新增失敗: ${error.message}`, "error");
     return Promise.reject(error);
   } finally {
@@ -5250,7 +5250,7 @@ function showFloatingNotification(message, type) {
 // 修改定位函數，提高精度
 async function getCurrentPosition(silent = false) {
   showLoading();
-  console.log("開始獲取高精度位置...");
+  //console.log("開始獲取高精度位置...");
   
   let retryCount = 0;
   const maxRetries = 3;
@@ -5272,7 +5272,7 @@ async function getCurrentPosition(silent = false) {
           });
         });
 
-        console.log("高精度位置獲取成功");
+        //console.log("高精度位置獲取成功");
         currentLatitude = position.coords.latitude;
         currentLongitude = position.coords.longitude;
         savePosition(currentLatitude, currentLongitude);
@@ -5286,27 +5286,27 @@ async function getCurrentPosition(silent = false) {
         hideLoading();
         return true;
       } catch (geoError) {
-        console.error("位置API錯誤:", geoError.code, geoError.message);
+        //console.error("位置API錯誤:", geoError.code, geoError.message);
         retryCount++;
         
         if (retryCount < maxRetries) {
-          console.log(`位置獲取失敗，進行第${retryCount}次重試`);
+          //console.log(`位置獲取失敗，進行第${retryCount}次重試`);
           // 延遲3秒後重試，給予更多時間獲取GPS信號
           await new Promise(resolve => setTimeout(resolve, 3000));
         } else {
-          console.log("達到最大重試次數");
+          //console.log("達到最大重試次數");
           break;
         }
       }
     }
 
  if (loadLastPosition()) {
-      console.log("使用本地緩存位置作為後備");
+      //console.log("使用本地緩存位置作為後備");
       hideLoading();
       return true;
     }
     // 3. 如果所有嘗試都失敗，使用默認位置作為後備
-    console.log("使用預設位置作為後備");
+    //console.log("使用預設位置作為後備");
     currentLatitude = 25.033; // 台北市中心位置
     currentLongitude = 121.565;
     savePosition(currentLatitude, currentLongitude);
@@ -5321,7 +5321,7 @@ async function getCurrentPosition(silent = false) {
     }
     return true;
   } catch (error) {
-    console.error("位置獲取完全失敗:", error);
+    //console.error("位置獲取完全失敗:", error);
     hideLoading();
     
     // 更新位置精度指示器為出錯狀態
@@ -5336,7 +5336,7 @@ async function getCurrentPosition(silent = false) {
 // 新增頁面焦點/可見性相關優化
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
-    console.log('頁面重新變為可見，更新位置...');
+    //console.log('頁面重新變為可見，更新位置...');
 
     // 如果位置監視器不存在，重新啟動
     if (!window.watchId) {
@@ -5346,14 +5346,14 @@ document.addEventListener('visibilitychange', function() {
     // 獲取最新位置，但使用靜默模式避免彈出訊息
     getCurrentPosition(true).then(success => {
       if (success) {
-        console.log('頁面重新可見時成功更新位置');
+        //console.log('頁面重新可見時成功更新位置');
       }
     });
     
     // 如果開啟了自動偵測但計時器不存在，重新啟動
     const statusElem = document.getElementById("autoDetectStatus");
     if (statusElem && statusElem.textContent === "停止自動" && !autoDetectInterval) {
-      console.log("檢測到自動偵測已停止，重新啟動");
+      //console.log("檢測到自動偵測已停止，重新啟動");
       startAutoDetect();
     }
   }
@@ -5361,7 +5361,7 @@ document.addEventListener('visibilitychange', function() {
 
 // 網絡狀態變化監聽器 - 放在全局初始化區域
 window.addEventListener('online', function() {
-  console.log("網絡連接恢復，重新獲取位置");
+  //console.log("網絡連接恢復，重新獲取位置");
   if (document.visibilityState === 'visible') {
     getCurrentPosition(true);
   }
@@ -5384,7 +5384,7 @@ function loadLastPosition() {
       }
     }
   } catch (e) {
-    console.log("無法從本地儲存讀取位置:", e);
+    //console.log("無法從本地儲存讀取位置:", e);
   }
   return false;
 }
@@ -5392,7 +5392,7 @@ function loadLastPosition() {
 // 檢查位置權限
 function checkLocationPermission() {
   if (!navigator.permissions) {
-    console.log("瀏覽器不支持權限檢查API");
+    //console.log("瀏覽器不支持權限檢查API");
     return;
   }
 
@@ -5403,9 +5403,9 @@ function checkLocationPermission() {
         "error"
       );
     } else if (result.state === "prompt") {
-      console.log("位置權限將在需要時提示用戶");
+      //console.log("位置權限將在需要時提示用戶");
     } else if (result.state === "granted") {
-      console.log("位置權限已授予");
+      //console.log("位置權限已授予");
     }
   });
 }
@@ -5551,9 +5551,9 @@ async function fetchIntersections() {
 
     if (data && data.length > 0) {
       intersections = data;
-      console.log("找到附近位置:", intersections);
+      //console.log("找到附近位置:", intersections);
     } else {
-      console.log("附近未找到位置");
+      //console.log("附近未找到位置");
       intersections = [];
     }
 
@@ -5561,7 +5561,7 @@ async function fetchIntersections() {
     updateLocationList();
     hideLoading();
   } catch (error) {
-    console.error("獲取路口失敗:", error);
+    //console.error("獲取路口失敗:", error);
     hideLoading();
     showStatusMessage("無法獲取附近可能路口，請重新偵測", "error",true);
   }
@@ -5633,17 +5633,17 @@ async function fetchOtherItems() {
       if (data && data.data && data.data.length > 0) {
         // 直接使用API返回的數據，不自動添加分類
         otherItems = data.data;
-        console.log("獲取其他項目:", otherItems);
+        //console.log("獲取其他項目:", otherItems);
       } else {
-        console.log("使用預設其他項目");
+        //console.log("使用預設其他項目");
         otherItems = defaultItems;
       }
     } else {
-      console.log("API回應錯誤，使用預設其他項目");
+      //console.log("API回應錯誤，使用預設其他項目");
       otherItems = defaultItems;
     }
   } catch (error) {
-    console.error("獲取其他項目失敗:", error);
+    //console.error("獲取其他項目失敗:", error);
     // 使用預設項目
     otherItems = defaultItems;
   }
@@ -5666,7 +5666,7 @@ function cleanupExpiredSubmissions() {
       }
     }
   } catch (error) {
-    console.error("清理過期新增記錄失敗:", error);
+    //console.error("清理過期新增記錄失敗:", error);
   }
 }
 
@@ -5679,7 +5679,7 @@ function closeHistoryModal() {
 async function fetchLastLocation(userId) {
   try {
     if (!userId) {
-      console.log("獲取最後位置失敗: 用戶ID為空");
+      //console.log("獲取最後位置失敗: 用戶ID為空");
       return null;
     }
 
@@ -5694,14 +5694,14 @@ async function fetchLastLocation(userId) {
     const data = await response.json();
 
     if (data.success && data.location) {
-      console.log("成功獲取最後記錄位置:", data.location);
+      //console.log("成功獲取最後記錄位置:", data.location);
       return data.location;
     } else {
-      console.log("今天沒有位置記錄:", data.message);
+      //console.log("今天沒有位置記錄:", data.message);
       return null;
     }
   } catch (error) {
-    console.error("獲取最後位置記錄失敗:", error);
+    //console.error("獲取最後位置記錄失敗:", error);
     return null;
   }
 }
@@ -5737,7 +5737,7 @@ function showLoading(timeoutMs = 10000) {
   
   // 檢查是否距離上次loading時間太短
   if (currentTime - lastLoadingTime < MIN_LOADING_INTERVAL) {
-    console.log("短時間內連續loading，使用快速模式");
+    //console.log("短時間內連續loading，使用快速模式");
     // 不顯示loading但仍返回元素
     return loadingElement;
   }
@@ -5749,7 +5749,7 @@ function showLoading(timeoutMs = 10000) {
   // 添加自動超時
   if (globalLoadingTimeout) clearTimeout(globalLoadingTimeout);
   globalLoadingTimeout = setTimeout(() => {
-    console.warn("Loading超時，自動關閉");
+    //console.warn("Loading超時，自動關閉");
     hideLoading();
   }, timeoutMs);
   
@@ -5883,7 +5883,7 @@ function detectAddress() {
             showLocationListError("無法獲取地址信息，請嘗試其他方式");
           }
         } catch (error) {
-          console.error("獲取地址失敗:", error);
+          //console.error("獲取地址失敗:", error);
           showLocationListError("獲取地址失敗，請稍後再試");
         }
       } else {
@@ -5891,7 +5891,7 @@ function detectAddress() {
       }
     })
     .catch((error) => {
-      console.error("位置獲取失敗:", error);
+      //console.error("位置獲取失敗:", error);
       showLocationListError("獲取位置失敗，請稍後再試");
     })
     .finally(() => {
@@ -6185,12 +6185,12 @@ function updateSwipePageDisplay(pageIndex) {
 // 首先，添加一個輔助函數用於檢查和記錄選項分類情況
 function logItemClassification(itemName, foundItem) {
   if (!foundItem) {
-    console.log(`項目 "${itemName}" 在 otherItems 中未找到，無法確定類型`);
+    //console.log(`項目 "${itemName}" 在 otherItems 中未找到，無法確定類型`);
     return null;
   }
   
   // 明確輸出itemType值，確保檢查值的問題
-  console.log(`項目: "${itemName}", itemType值: ${foundItem.itemType} (${typeof foundItem.itemType})`);
+  //console.log(`項目: "${itemName}", itemType值: ${foundItem.itemType} (${typeof foundItem.itemType})`);
   
   // 嘗試強制轉換為數字，以防是字符串格式
   const itemTypeAsNumber = Number(foundItem.itemType);
@@ -6200,7 +6200,7 @@ function logItemClassification(itemName, foundItem) {
   } else if (itemTypeAsNumber === -1) {
     return "negative";
   } else {
-    console.log(`項目 "${itemName}" 的 itemType 值 ${foundItem.itemType} 不是 1 或 -1`);
+    //console.log(`項目 "${itemName}" 的 itemType 值 ${foundItem.itemType} 不是 1 或 -1`);
     return null;
   }
 }
@@ -6231,7 +6231,7 @@ function startAutoDetect() {
   autoDetectButton.classList.add("auto-detect-active");
   document.getElementById("autoDetectStatus").textContent = "停止自動";
   
-  console.log("自動偵測已啟動");
+  //console.log("自動偵測已啟動");
   
   // 立即執行一次偵測
   runDetection();
