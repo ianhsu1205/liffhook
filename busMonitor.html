@@ -1747,7 +1747,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.1(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2271,8 +2271,8 @@ async function initializePage() {
       //console.log('需要顯式請求位置權限');
       // 顯式請求位置以觸發權限請求
       navigator.geolocation.getCurrentPosition(
-        () => { //console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
-        (error) => { //console.error('位置權限請求失敗:', error); },
+        () => { console.log('已獲得位置權限'); startHighAccuracyLocationWatching(); },
+        (error) => { console.error('位置權限請求失敗:', error); },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else if (result.state === 'denied') {
@@ -4939,16 +4939,16 @@ function logVehicleState(action) {
   // 如果當前有活躍編輯的車輛，詳細記錄
   if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
     const activeBus = editingBuses[activeEditingBusIndex];
-    //console.log("當前編輯車輛:", {
-      uniqueId: activeBus.uniqueId,
-      plateNumber: activeBus.plateNumber,
-      originalPlateNumber: activeBus.originalPlateNumber,
-      company: activeBus.operatorName,
-      route: activeBus.routeName?.chinese,
-      isManualInput: activeBus.isManualInput,
-      selectedMainItem: activeBus.selectedMainItem,
-      selectedOtherItems: activeBus.selectedOtherItems
-    });
+    // console.log("當前編輯車輛:", {
+    //   uniqueId: activeBus.uniqueId,
+    //   plateNumber: activeBus.plateNumber,
+    //   originalPlateNumber: activeBus.originalPlateNumber,
+    //   company: activeBus.operatorName,
+    //   route: activeBus.routeName?.chinese,
+    //   isManualInput: activeBus.isManualInput,
+    //   selectedMainItem: activeBus.selectedMainItem,
+    //   selectedOtherItems: activeBus.selectedOtherItems
+    // });
     
     // 檢查此車是否也在顯示列表中
     const inDisplayed = displayedBuses.some(bus => bus.uniqueId === activeBus.uniqueId);
