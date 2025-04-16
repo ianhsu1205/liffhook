@@ -1659,7 +1659,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3471,13 +3471,118 @@ function updateItemCountBadges(bus) {
   }
 }
 // 替換
+// function confirmCancelEditing(index) {
+//   const confirmModal = document.getElementById("confirmModal");
+//   const confirmMessage = document.getElementById("confirmMessage");
+//   const confirmYes = document.getElementById("confirmYes");
+//   const confirmNo = document.getElementById("confirmNo");
+  
+//   confirmMessage.textContent = "是否取消對此車輛的編輯？";
+//   confirmModal.style.display = "block";
+  
+//   // 移除之前所有的事件監聽器
+//   const newConfirmYes = confirmYes.cloneNode(true);
+//   const newConfirmNo = confirmNo.cloneNode(true);
+//   confirmYes.parentNode.replaceChild(newConfirmYes, confirmYes);
+//   confirmNo.parentNode.replaceChild(newConfirmNo, confirmNo);
+  
+//   // 為新按鈕添加明確的事件處理程序
+//   newConfirmYes.addEventListener("click", function() {
+//     console.log("確認取消編輯，索引:", index);
+    
+//     // 明確調用 removeEditingBus 函數
+//     removeEditingBus(index);
+    
+//     // 隱藏確認對話框
+//     confirmModal.style.display = "none";
+    
+//     // 更新 UI
+//     updateDetectedBusesList();
+//     memoizedUpdateBusSelectionInList();
+//   });
+  
+//   newConfirmNo.addEventListener("click", function() {
+//     console.log("取消操作");
+//     confirmModal.style.display = "none";
+//   });
+// }
+// 修改 confirmCancelEditing 函數，展示更多車輛明細
 function confirmCancelEditing(index) {
   const confirmModal = document.getElementById("confirmModal");
   const confirmMessage = document.getElementById("confirmMessage");
   const confirmYes = document.getElementById("confirmYes");
   const confirmNo = document.getElementById("confirmNo");
   
-  confirmMessage.textContent = "是否取消對此車輛的編輯？";
+  // 檢查索引是否有效
+  if (index < 0 || index >= editingBuses.length) {
+    console.error("嘗試取消無效索引的車輛:", index);
+    return;
+  }
+  
+  // 獲取要取消編輯的車輛信息
+  const bus = editingBuses[index];
+  const plateNumber = bus.plateNumber || "無車號";
+  const company = bus.operatorName || "無公司";
+  const route = bus.routeName?.chinese || "無路線";
+  
+  // 創建已選項目的文本列表
+  let selectedItemsText = "";
+  
+  // 如果有選擇主項目，加入列表
+  if (bus.selectedMainItem) {
+    selectedItemsText += `<div class="detail-item">重點查核：<span class="detail-value">${bus.selectedMainItem}</span></div>`;
+  }
+  
+  // 如果有選擇其他項目，加入列表
+  if (bus.selectedOtherItems && bus.selectedOtherItems.length > 0) {
+    selectedItemsText += `<div class="detail-item">其它項目：<span class="detail-value">${bus.selectedOtherItems.join(', ')}</span></div>`;
+  }
+  
+  // 構建確認訊息，包含車輛詳細信息
+  const detailHTML = `
+    <div class="bus-details">
+      <div class="detail-item">車號：<span class="detail-value">${plateNumber}</span></div>
+      <div class="detail-item">公司：<span class="detail-value">${company}</span></div>
+      <div class="detail-item">路線：<span class="detail-value">${route}</span></div>
+      ${selectedItemsText}
+    </div>
+    <p class="confirm-question">是否取消對此車輛的編輯？</p>
+  `;
+  
+  // 添加樣式到確認對話框
+  const style = document.createElement("style");
+  style.id = "confirm-modal-style";
+  style.textContent = `
+    .bus-details {
+      background-color: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #e9ecef;
+    }
+    .detail-item {
+      margin-bottom: 6px;
+    }
+    .detail-value {
+      font-weight: bold;
+      color: #06c755;
+    }
+    .confirm-question {
+      font-weight: bold;
+      text-align: center;
+      color: #dc3545;
+    }
+  `;
+  
+  // 如果已存在樣式，先移除
+  const oldStyle = document.getElementById("confirm-modal-style");
+  if (oldStyle) oldStyle.remove();
+  
+  // 添加新樣式到頭部
+  document.head.appendChild(style);
+  
+  // 設置HTML內容
+  confirmMessage.innerHTML = detailHTML;
   confirmModal.style.display = "block";
   
   // 移除之前所有的事件監聽器
@@ -3506,7 +3611,6 @@ function confirmCancelEditing(index) {
     confirmModal.style.display = "none";
   });
 }
-
 // 修改 removeEditingBus 函數
 function removeEditingBus(index) {
   console.log("開始移除編輯中車輛，索引:", index);
