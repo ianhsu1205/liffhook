@@ -1659,7 +1659,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.9(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2767,23 +2767,95 @@ inputBox.addEventListener('input', function() {
     }
   } else {
     // 如果不是手動新增的車輛，顯示為純文字
-    if (inputBusNumberElement.tagName === 'INPUT') {
-      const textSpan = document.createElement('strong');
-      textSpan.id = 'inputBusNumber';
-      textSpan.textContent = bus.plateNumber || '';
-      inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
-            // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+   if (inputBusNumberElement.tagName === 'INPUT') {
+  const textSpan = document.createElement('strong');
+  textSpan.id = 'inputBusNumber';
+  
+  // 將車牌拆分為文字和數字部分
+  const plateNumber = bus.plateNumber || '';
+  // 嘗試分隔字母和數字部分
+  if (plateNumber.includes('-')) {
+    const parts = plateNumber.split('-');
+    if (parts.length === 2) {
+      // 檢查哪部分是數字，哪部分是字母
+      if (/^\d+$/.test(parts[0])) {
+        // 數字-字母 格式
+        textSpan.innerHTML = `<span style="color:#333">${parts[0]}-</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${parts[1]}</span>`;
+      } else if (/^\d+$/.test(parts[1])) {
+        // 字母-數字 格式
+        textSpan.innerHTML = `<span style="color:#333">${parts[0]}-</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${parts[1]}</span>`;
+      } else {
+        // 兩部分都不是純數字，直接顯示
+        textSpan.textContent = plateNumber;
       }
     } else {
-      // 如果已經是文字元素，只更新內容
-      inputBusNumberElement.textContent = bus.plateNumber || '';
-       // 如果有選項，添加計數標記
-      if (selectedItemsCount > 0) {
-        addItemCountBadgeToElement(numberContainer, selectedItemsCount);
-      }
+      textSpan.textContent = plateNumber;
     }
+  } else {
+    // 使用數字與字母的交界來分隔
+    const match = plateNumber.match(/^([A-Za-z\u4e00-\u9fa5-]+)([0-9]+)$/) || 
+                  plateNumber.match(/^([0-9]+)([A-Za-z\u4e00-\u9fa5-]+)$/);
+    if (match) {
+      const part1 = match[1];
+      const part2 = match[2];
+      // 判斷哪部分是數字
+      if (/^\d+$/.test(part1)) {
+        // 如果第一部分是數字
+        textSpan.innerHTML = `<span style="color:#06c755;font-weight:bold;font-size:1.1em">${part1}</span><span style="color:#333">${part2}</span>`;
+      } else {
+        // 如果第二部分是數字
+        textSpan.innerHTML = `<span style="color:#333">${part1}</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${part2}</span>`;
+      }
+    } else {
+      // 如果沒有明確的分隔點，直接顯示
+      textSpan.textContent = plateNumber;
+    }
+  }
+  
+  inputBusNumberElement.parentNode.replaceChild(textSpan, inputBusNumberElement);
+  
+  // 如果有選項，添加計數標記
+  if (selectedItemsCount > 0) {
+    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+  }
+} else {
+  // 如果已經是文字元素，只更新內容
+  const plateNumber = bus.plateNumber || '';
+  // 與上面相同的格式化邏輯
+  if (plateNumber.includes('-')) {
+    const parts = plateNumber.split('-');
+    if (parts.length === 2) {
+      if (/^\d+$/.test(parts[0])) {
+        inputBusNumberElement.innerHTML = `<span style="color:#333">${parts[0]}-</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${parts[1]}</span>`;
+      } else if (/^\d+$/.test(parts[1])) {
+        inputBusNumberElement.innerHTML = `<span style="color:#333">${parts[0]}-</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${parts[1]}</span>`;
+      } else {
+        inputBusNumberElement.textContent = plateNumber;
+      }
+    } else {
+      inputBusNumberElement.textContent = plateNumber;
+    }
+  } else {
+    const match = plateNumber.match(/^([A-Za-z\u4e00-\u9fa5-]+)([0-9]+)$/) || 
+                  plateNumber.match(/^([0-9]+)([A-Za-z\u4e00-\u9fa5-]+)$/);
+    if (match) {
+      const part1 = match[1];
+      const part2 = match[2];
+      if (/^\d+$/.test(part1)) {
+        inputBusNumberElement.innerHTML = `<span style="color:#06c755;font-weight:bold;font-size:1.1em">${part1}</span><span style="color:#333">${part2}</span>`;
+      } else {
+        inputBusNumberElement.innerHTML = `<span style="color:#333">${part1}</span><span style="color:#06c755;font-weight:bold;font-size:1.1em">${part2}</span>`;
+      }
+    } else {
+      inputBusNumberElement.textContent = plateNumber;
+    }
+  }
+  
+  // 如果有選項，添加計數標記
+  if (selectedItemsCount > 0) {
+    addItemCountBadgeToElement(numberContainer, selectedItemsCount);
+  }
+}
   }
   
   // 清除並重新生成主要項目選項
