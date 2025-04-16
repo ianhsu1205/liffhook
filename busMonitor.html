@@ -1659,7 +1659,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3827,7 +3827,26 @@ async function detectBuses(isAutoDetection = false) {
             return; // 跳過最近已提交的車輛
           }
           
-          // 標記此車牌已處理
+          // 檢查是否在編輯列表中已存在相同車牌
+          const existingInEditing = editingBuses.find(item => item.plateNumber === bus.plateNumber);
+          if (existingInEditing) {
+            console.log(`車牌 ${bus.plateNumber} 已在編輯列表中，保持唯一性`);
+            // 更新已有的車輛信息而非添加新條目
+            bus.uniqueId = existingInEditing.uniqueId; // 保持 ID 一致
+            bus.isInEditing = true;
+            return;
+          }
+          
+          // 檢查全局列表中是否存在相同車牌
+          const existingInAll = allDetectedBuses.find(item => item.plateNumber === bus.plateNumber);
+          if (existingInAll) {
+            console.log(`車牌 ${bus.plateNumber} 已在全局列表中，更新而非添加`);
+            // 更新現有條目的位置等信息
+            existingInAll.position = bus.position;
+            existingInAll.lastUpdated = Date.now();
+            return;
+          }
+          
           processedPlates.add(bus.plateNumber);
           
           // 檢查這輛車是否已在編輯列表中(根據車牌號和唯一ID)
@@ -4029,6 +4048,51 @@ function detectAndResolvePlateDuplicates() {
     });
   }
 }
+
+// 新增清理重複車牌的函數，添加在 detectAndResolvePlateDuplicates 函數之後
+function scheduledDuplicateCheck() {
+  // 每分鐘執行一次重複檢查和清理
+  setInterval(() => {
+    try {
+      detectAndResolvePlateDuplicates();
+      
+      // 額外檢查編輯列表中的重複車牌
+      const plateMap = new Map();
+      const duplicates = [];
+      
+      // 檢查編輯列表中的重複
+      editingBuses.forEach((bus, index) => {
+        if (plateMap.has(bus.plateNumber)) {
+          duplicates.push({ index, plateNumber: bus.plateNumber });
+        } else {
+          plateMap.set(bus.plateNumber, index);
+        }
+      });
+      
+      // 處理找到的重複車輛
+      if (duplicates.length > 0) {
+        console.log(`發現編輯列表中有 ${duplicates.length} 個重複車牌，進行清理`);
+        
+        // 從最高索引開始移除，避免索引變化影響
+        duplicates.sort((a, b) => b.index - a.index).forEach(dup => {
+          console.log(`移除重複編輯中的車輛: ${dup.plateNumber}, 索引: ${dup.index}`);
+          removeEditingBus(dup.index);
+        });
+        
+        // 更新UI
+        updateEditingTabs();
+        updateBusEditingInterface();
+        memoizedUpdateBusSelectionInList();
+      }
+    } catch (error) {
+      console.error("定期重複檢查失敗:", error);
+    }
+  }, 60000); // 每60秒執行一次
+}
+
+// 在 initializePage 函數中添加對該函數的調用
+// 大約在 initializePage 函數結尾處添加:
+scheduledDuplicateCheck();
 
 // 檢查車輛是否在最近2分鐘內提交過
 function isRecentlySubmitted(plateNumber) {
@@ -4443,11 +4507,21 @@ function submitSelectedBus() {
       const currentIndex = activeEditingBusIndex; // 保存當前索引
       
       // 檢查是否與其他車輛重複 (排除當前車輛自身)
-      const duplicateVehicle = allDetectedBuses.find(vehicle => 
-        vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
-      );
+        // 修改為更全面的檢查：
+        // 1. 檢查是否與列表中其他車輛重複
+        const duplicateInDetected = allDetectedBuses.find(vehicle => 
+          vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
+        );
+
+        // 2. 檢查是否與其他正在編輯的車輛重複
+        const duplicateInEditing = editingBuses.find(vehicle => 
+          vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
+        );
+
+        // 3. 合併檢查結果
+        const hasDuplicate = duplicateInDetected || duplicateInEditing;
       
-      if (duplicateVehicle) {
+      if (hasDuplicate) {
         showFloatingNotification(`車號 ${plateNumber} 已存在於列表中，請修改車號`, "error");
         isSubmitting = false; // 重置狀態
         return;
@@ -5925,6 +5999,31 @@ function logItemClassification(itemName, foundItem) {
     console.log(`項目 "${itemName}" 的 itemType 值 ${foundItem.itemType} 不是 1 或 -1`);
     return null;
   }
+}
+// 添加 startAutoDetect 函數實現
+function startAutoDetect() {
+  // 如果已經有計時器運行，先清除
+  if (autoDetectInterval) {
+    clearInterval(autoDetectInterval);
+  }
+  
+  // 設置自動偵測計時器，每20秒執行一次偵測
+  autoDetectInterval = setInterval(() => {
+    detectBuses(true); // true 表示是自動偵測模式
+  }, 20000); // 20秒
+  
+  // 啟動倒數計時
+  startCountdown();
+  
+  // 更新按鈕狀態
+  const autoDetectButton = document.getElementById("autoDetectButton");
+  autoDetectButton.classList.add("auto-detect-active");
+  document.getElementById("autoDetectStatus").textContent = "停止自動";
+  
+  console.log("自動偵測已啟動");
+  
+  // 立即執行一次偵測
+  detectBuses(true);
 }
     </script>
 </html>
