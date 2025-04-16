@@ -1659,7 +1659,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.6.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.6.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3624,9 +3624,8 @@ function startCountdown() {
     countdownSeconds--;
     
     if (countdownSeconds <= 0) {
-      // 不清除計時器，而是重置倒數
-      // 注意：不要在這裡調用 clearInterval
-      countdownSeconds = 20; // 直接重置為20秒
+      // 當倒數到零時，不自動重設，因為這將由偵測完成後處理
+      countdownSeconds = 0; // 保持為0，等待偵測完成後重設
     }
     
     updateCountdownDisplay();
@@ -6000,20 +5999,27 @@ function logItemClassification(itemName, foundItem) {
     return null;
   }
 }
-// 添加 startAutoDetect 函數實現
+
 function startAutoDetect() {
   // 如果已經有計時器運行，先清除
   if (autoDetectInterval) {
     clearInterval(autoDetectInterval);
   }
   
-  // 設置自動偵測計時器，每20秒執行一次偵測
-  autoDetectInterval = setInterval(() => {
-    detectBuses(true); // true 表示是自動偵測模式
-  }, 20000); // 20秒
+  // 實際偵測函數，包含重設倒數
+  const runDetection = async () => {
+    // 執行偵測
+    await detectBuses(true); // true 表示是自動偵測模式
+    
+    // 偵測結束後重設倒數計時，確保倒數從偵測完成後開始
+    countdownSeconds = 20;
+  };
   
   // 啟動倒數計時
   startCountdown();
+  
+  // 設置自動偵測計時器，每20秒執行一次偵測
+  autoDetectInterval = setInterval(runDetection, 20000); // 20秒
   
   // 更新按鈕狀態
   const autoDetectButton = document.getElementById("autoDetectButton");
@@ -6023,7 +6029,7 @@ function startAutoDetect() {
   console.log("自動偵測已啟動");
   
   // 立即執行一次偵測
-  detectBuses(true);
+  runDetection();
 }
     </script>
 </html>
