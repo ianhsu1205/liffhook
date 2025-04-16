@@ -831,9 +831,9 @@ button, .utility-button, .quick-item, .simple-bus-item {
   width: auto !important;
   max-width: none !important;
   border-radius: 4px;
-  padding: 3px 6px;
+  padding: 4px 8px; /* 增加內邊距，讓整體更大 */
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px; /* 從原來的16px增大到18px */
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -853,6 +853,25 @@ button, .utility-button, .quick-item, .simple-bus-item {
   color: #00734d;
   border: 1px solid #66ffb3;
   background-color: #e6fff2; /* 與返程distance-veryclose相同的底色 */
+}
+/* 加強車號內部字母和數字的樣式 */
+.highlighted-plate-number .plate-letter {
+  font-size: 15px; /* 稍微增加字母部分的字體大小 */
+  font-weight: 500;
+}
+
+.highlighted-plate-number .plate-number {
+  font-size: 19px; /* 顯著增加數字部分的字體大小 */
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0.5px 0 rgba(0,0,0,0.2);
+}
+
+/* 優化字母與數字之間的分隔符 */
+.highlighted-plate-number .plate-separator {
+  margin: 0 2px;
+  opacity: 0.7;
+  font-weight: 400;
 }
 /* 公司和路線容器 */
 .company-route-container {
@@ -1728,7 +1747,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
