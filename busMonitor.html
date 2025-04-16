@@ -820,10 +820,13 @@ button, .utility-button, .quick-item, .simple-bus-item {
 /* 車號容器樣式 */
 .vehicle-number-container {
   margin-bottom: 5px;
+  display: flex; /* 改為彈性布局 */
+  align-items: center;
+  width: auto; /* 自動寬度 */
 }
 /* 突顯車號樣式 */
 .highlighted-plate-number {
-  display: flex;
+  display: inline-flex; /* 改為 inline-flex 不占用全寬 */
   align-items: center;
   width: auto !important;
   max-width: none !important;
@@ -842,14 +845,14 @@ button, .utility-button, .quick-item, .simple-bus-item {
 .highlighted-plate-number.direction-go {
   color: #004d99;
   border: 1px solid #66b0ff;
-  background-color: #e6f2ff;
+  background-color: #f8f9fa; /* 與列表中相同的底色 */
 }
 
 /* 返程樣式 - 綠色系 */
 .highlighted-plate-number.direction-back {
   color: #00734d;
   border: 1px solid #66ffb3;
-  background-color: #e6fff2;
+  background-color: #f8f9fa; /* 與列表中相同的底色 */
 }
 /* 公司和路線容器 */
 .company-route-container {
@@ -1189,8 +1192,10 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 .direction-tag {
   display: inline-block;
   color: #000000; /* 將顏色從藍色 #004085 修改為黑色 */
+  border: 1px solid #b8daff; /* 保留原有的藍色框線 */
   border-radius: 4px;
   padding: 2px 6px;
+  padding-left: 6px; /* 補償移除左邊框後的內邊距 */
   font-size: 14px;
   flex-shrink: 0; /* 防止被壓縮 */
   margin-left: 10px;
@@ -1723,7 +1728,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.7.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.7.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
