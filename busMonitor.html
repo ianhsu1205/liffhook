@@ -1747,7 +1747,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.2(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.3(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2552,6 +2552,7 @@ function addManualBus() {
       latitude: currentLatitude,
       longitude: currentLongitude
     },
+    BusStatus: "0",//預設值為 "0"
     isManualInput: true,
     originalPlateNumber: plateNumber,
     uniqueId: uniqueId, // 使用一致的唯一ID格式
@@ -2740,8 +2741,8 @@ function updateBusEditingInterface() {
   // 更新編輯區域內容
   const inputContainer = document.getElementById("busInputContainer");
   
-  // 更新車輛信息
-  const routeInfo = bus.routeName?.chinese || "不明";
+ // 更新路線顯示 - 檢查 BusStatus
+  const routeInfo = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "不明");
   const directionInfo = bus.direction === "0" ? "去" : bus.direction === "1" ? "返" : "";
   
   // 更新路線顯示
@@ -3331,6 +3332,7 @@ function updateAllBusReferences(bus) {
     operatorName: bus.operatorName,
     routeName: bus.routeName,
     direction: bus.direction,
+    busStatus: bus.busStatus,
     selectedMainItem: bus.selectedMainItem,
     selectedOtherItems: bus.selectedOtherItems || [],
     isInEditing: bus.isInEditing,
@@ -3622,7 +3624,7 @@ function confirmCancelEditing(index) {
   const bus = editingBuses[index];
   const plateNumber = bus.plateNumber || "無車號";
   const company = bus.operatorName || "無公司";
-  const route = bus.routeName?.chinese || "無路線";
+const route = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "無路線");
   
   // 創建已選項目的文本列表
   let selectedItemsText = "";
@@ -3778,7 +3780,7 @@ function removeEditingBus(index) {
 function syncEditingStatus() {
   // 收集所有編輯中車輛的唯一ID
   const editingIds = new Set(editingBuses.map(bus => bus.uniqueId));
-  
+
   // 更新所有顯示列表和全局列表中的編輯狀態
   displayedBuses.forEach(bus => {
     bus.isInEditing = editingIds.has(bus.uniqueId);
@@ -4047,6 +4049,8 @@ async function detectBuses(isAutoDetection = false) {
             //console.log(`車牌 ${bus.plateNumber} 已在全局列表中，更新而非添加`);
             // 更新現有條目的位置等信息
             existingInAll.position = bus.position;
+            existingInAll.busStatus = bus.BusStatus;
+            existingInAll.routeName = bus.routeName;
             existingInAll.lastUpdated = Date.now();
             return;
           }
@@ -4529,7 +4533,12 @@ function createBusListItem(bus, index) {
   // 存儲原始索引用於後續更新
   bus.originalIndex = index;
   // 路線信息
-  const routeInfo = bus.routeName?.chinese || "未知路線";
+  let routeInfo;
+  if (bus.BusStatus === "99") {
+    routeInfo = "非營運";
+  } else {
+    routeInfo = bus.routeName?.chinese || "未知路線";
+  }
   
   const busItem = document.createElement("div");
   busItem.className = "simple-bus-item";
@@ -4798,7 +4807,7 @@ function submitSelectedBus() {
                   memoizedUpdateBusSelectionInList();
                   
                   // 顯示成功訊息
-                  const routeName = bus.routeName?.chinese || "未知路線";
+                  const routeName = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "未知路線");
                   const companyName = bus.operatorName || "未知公司";
                   const successMessage = `成功新增：${plateNumber} (${companyName} ${routeName})`;
                   showFloatingNotification(successMessage, "success");
@@ -4945,6 +4954,7 @@ function logVehicleState(action) {
     //   originalPlateNumber: activeBus.originalPlateNumber,
     //   company: activeBus.operatorName,
     //   route: activeBus.routeName?.chinese,
+    //   BusStatus: activeBus.BusStatus,
     //   isManualInput: activeBus.isManualInput,
     //   selectedMainItem: activeBus.selectedMainItem,
     //   selectedOtherItems: activeBus.selectedOtherItems
@@ -5085,13 +5095,14 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     
     // 將未分類項目加入負向項目列表
     const finalNegativeItems = [...negativeItems, ...unclassifiedItems];
-    
+     // 處理路線名稱，檢查 BusStatus 是否為 "99"
+    const routeName = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "不明");
     // 構建最終新增數據
     const submissionData = {
       userId: document.getElementById("userId").value,
       location: document.getElementById("location").value,
       plateNumbCompany: bus.operatorName || "不明",
-      routeName: bus.routeName?.chinese || "不明",
+      routeName: routeName,
       plateNumber: bus.plateNumber,
       direction: bus.direction,
       positionLat: `${bus.position?.latitude || currentLatitude},${
@@ -5213,7 +5224,7 @@ function handleSubmitSuccess(bus) {
   memoizedUpdateBusSelectionInList();
   
   // 修改這行，添加詳細資訊到成功提示
-  const routeName = bus.routeName?.chinese || "未知路線";
+  const routeName = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "未知路線");
   const companyName = bus.operatorName || "未知公司";
   const successMessage = `已成功送出記錄：${bus.plateNumber} (${companyName} ${routeName})`;
   
