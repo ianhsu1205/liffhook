@@ -113,7 +113,10 @@
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
-
+      .input-group-append {
+        display: flex;
+        align-items: center;
+      }
       .input-group .icon-button {
         width: 46px;
         height: 46px;
@@ -1571,6 +1574,36 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   margin-left: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+/* 添加公司篩選按鈕樣式 */
+.company-filter-container {
+  display: flex;
+  margin-left: 10px;
+  gap: 5px;
+}
+
+.company-filter-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: rgba(150, 150, 150, 0.3);
+  color: rgba(80, 80, 80, 0.7);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(200, 200, 200, 0.5);
+}
+
+.company-filter-btn.active {
+  background-color: #06c755;
+  color: white;
+  border-color: #049a40;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1595,15 +1628,24 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       </div>
 
       <!-- 位置選擇 -->
-      <div class="form-group">
-        <label for="location" class="required">我的位置</label>
-        <div class="input-group">
-          <input type="text" id="location" placeholder="選擇所在位置" />
-          <div class="icon-button" onclick="openLocationModal()">
-            <i class="fas fa-map-marker-alt"></i>
-          </div>
-        </div>
+<div class="form-group">
+  <label for="location" class="required">我的位置</label>
+  <div class="input-group">
+    <input type="text" id="location" placeholder="選擇所在位置" />
+    <div class="input-group-append">
+      <div class="company-filter-container">
+        <div class="company-filter-btn active" data-company="首都客運" title="首都客運">首</div>
+        <div class="company-filter-btn active" data-company="臺北客運" title="臺北客運">北</div>
+        <div class="company-filter-btn active" data-company="大都會客運" title="大都會客運">大</div>
+        <div class="company-filter-btn active" data-company="三重客運" title="三重客運">三</div>
+        <div class="company-filter-btn active" data-company="台中客運" title="台中客運">中</div>
       </div>
+      <div class="icon-button" onclick="openLocationModal()">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="utility-buttons">
   <div class="utility-button" onclick="detectBuses()">
@@ -1747,7 +1789,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.3(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1857,9 +1899,106 @@ const companies = [
   { id: "4", name: "三重客運" },
   { id: "5", name: "台中客運" },
 ];
-
+// 初始化所有選定的公司名稱
+let selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
+// 初始化公司篩選按鈕
+// 初始化公司篩選按鈕
+function initCompanyFilters() {
+  document.querySelectorAll('.company-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const company = this.dataset.company;
+      
+      // 切換選中狀態
+      this.classList.toggle('active');
+      
+      // 更新選擇的公司列表
+      if (this.classList.contains('active')) {
+        // 添加公司到選中列表
+        if (!selectedCompanies.includes(company)) {
+          selectedCompanies.push(company);
+        }
+      } else {
+        // 從選中列表中移除公司
+        selectedCompanies = selectedCompanies.filter(c => c !== company);
+      }
+      
+      // 保存選擇狀態到localStorage
+      saveCompanyFilterState();
+      
+      // 先應用篩選，清理不符合條件的車輛
+      applyCompanyFilter();
+      
+      // 重新偵測車輛，以獲取最新數據
+      detectBuses(false);
+    });
+  });
+  
+  // 從localStorage加載之前的篩選狀態
+  loadCompanyFilterState();
+}
+
+// 保存公司篩選狀態到localStorage
+function saveCompanyFilterState() {
+  try {
+    localStorage.setItem("selectedCompanies", JSON.stringify(selectedCompanies));
+  } catch (error) {
+    console.error("無法保存公司篩選狀態:", error);
+  }
+}
+
+// 從localStorage載入公司篩選狀態
+function loadCompanyFilterState() {
+  try {
+    const savedCompanies = localStorage.getItem("selectedCompanies");
+    if (savedCompanies) {
+      selectedCompanies = JSON.parse(savedCompanies);
+      
+      // 更新按鈕UI
+      document.querySelectorAll('.company-filter-btn').forEach(btn => {
+        const company = btn.dataset.company;
+        btn.classList.toggle('active', selectedCompanies.includes(company));
+      });
+    }
+  } catch (error) {
+    console.error("無法載入公司篩選狀態:", error);
+  }
+}
+
+// 應用公司篩選
+// 應用公司篩選
+function applyCompanyFilter() {
+  // 如果沒有選擇任何公司，選擇所有公司
+  if (selectedCompanies.length === 0) {
+    selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
+    document.querySelectorAll('.company-filter-btn').forEach(btn => {
+      btn.classList.add('active');
+    });
+    saveCompanyFilterState();
+  }
+  
+  // 保存當前編輯中的車輛的唯一ID和車牌號
+  const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+  const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
+  
+  // 完全清理全局列表和顯示列表，只保留編輯中的車輛
+  allDetectedBuses = allDetectedBuses.filter(bus => 
+    editingBusIds.has(bus.uniqueId) || 
+    editingPlateNumbers.has(bus.plateNumber) ||
+    selectedCompanies.includes(bus.operatorName)
+  );
+  
+  displayedBuses = displayedBuses.filter(bus => 
+    editingBusIds.has(bus.uniqueId) || 
+    editingPlateNumbers.has(bus.plateNumber) ||
+    selectedCompanies.includes(bus.operatorName)
+  );
+  
+  // 更新UI
+  updateDetectedBusesList();
+  return;
+}
 
 // 添加防抖函數 - 放在全局變數聲明後面
 function debounce(func, wait) {
@@ -2187,25 +2326,31 @@ function toggleAutoDetect() {
   }
 }
 // 打開手動輸入模態框時暫停自動偵測
+// 打開手動輸入模態框時暫停自動偵測並更新公司選項
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
-   const wasAutoDetecting = !!autoDetectInterval;
+  const wasAutoDetecting = !!autoDetectInterval;
   
-//   // 如果正在自動偵測，暫時停止
-   if (wasAutoDetecting) {
-     stopAutoDetect();
-//     // 在window上保存狀態，以便後續恢復
-     window.tempAutoDetectState = true;
- }
+  // 如果正在自動偵測，暫時停止
+  if (wasAutoDetecting) {
+    stopAutoDetect();
+    // 在window上保存狀態，以便後續恢復
+    window.tempAutoDetectState = true;
+  }
   
   document.getElementById("manualInputModal").style.display = "block";
-   // 重置表單欄位到預設值
+  
+  // 更新公司選項，僅顯示目前選中的公司
+  updateManualCompanyOptions();
+  
+  // 重置表單欄位到預設值
   document.getElementById("manualPlateNumber").value = "";
-  document.getElementById("manualCompany").value = ""; // 預設選擇首都
   document.getElementById("manualRoute").value = "";
-    // 初始化方向按鈕
+  
+  // 初始化方向按鈕
   initDirectionButtons();
-    // 隱藏任何之前的錯誤訊息
+  
+  // 隱藏任何之前的錯誤訊息
   document.getElementById("manualInputError").style.display = "none";
 }
 
@@ -2324,6 +2469,8 @@ async function initializePage() {
       // 添加網絡狀態監聽器
       setupNetworkListeners();
       
+          // 初始化公司篩選按鈕 (添加這行)
+    initCompanyFilters();
       //console.log("頁面初始化完成");
     } else {
       //console.error("URL中缺少userId參數");
@@ -3962,7 +4109,7 @@ async function forceUpdatePosition(silent = false) {
   }
 }
 
-// 完整的 detectBuses 函數，改進了錯誤處理
+// 完整的 detectBuses 函數，包含公司篩選功能
 async function detectBuses(isAutoDetection = false) {
   // 顯示偵測指示器
   const indicatorMsg = isAutoDetection ? "自動偵測中..." : "正在偵測車輛...";
@@ -3983,21 +4130,22 @@ async function detectBuses(isAutoDetection = false) {
     const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
     const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
 
-    // 清空全局列表，但保留編輯中的車輛
+    // 完全清空全局列表和顯示列表，只保留編輯中的車輛
     allDetectedBuses = allDetectedBuses.filter(bus => 
       editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
     );
-     // 在這裡設定您要查詢的縣市列表
-    // const selectedCities = ["Taipei", "NewTaipei", "Taichung", "Taoyuan", "InterCity"]; // 預設全選
-    const selectedCities = ["Taipei", "NewTaipei","InterCity"]; // 預設全選
+    
     displayedBuses = displayedBuses.filter(bus => 
       editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
     );
 
-    // 獲取附近車輛
+    // 設定要查詢的縣市列表
+    const selectedCities = ["Taipei", "NewTaipei", "Taichung", "Taoyuan", "InterCity"];
+
     try {
+      // 獲取附近車輛
       const response = await fetchWithRetry(
-           `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=300&cities=${selectedCities.join(',')}`,
+        `${base_url}monitor/buses?latitude=${currentLatitude}&longitude=${currentLongitude}&distance=300&cities=${selectedCities.join(',')}`,
         {},
         3  // 重試3次
       );
@@ -4008,14 +4156,20 @@ async function detectBuses(isAutoDetection = false) {
       
       const data = await response.json();
       const newDetectedBuses = [];
-      const twoMinutes = 2 * 60 * 1000; // 2分鐘 (原本是3分鐘)
-      const currentTime = Date.now();
-      
-      // 用來追蹤已處理的車牌，避免重複
-      const processedPlates = new Set();
+      const processedPlates = new Set(); // 追蹤已處理的車牌
       
       if (data && data.buses && data.buses.length > 0) {
-        data.buses.forEach((bus) => {
+        // 先篩選符合公司別的車輛和編輯中的車輛
+        const filteredBuses = data.buses.filter(bus => {
+          // 如果是編輯中的車牌，保留
+          const isPlateInEditing = editingPlateNumbers.has(bus.plateNumber);
+          
+          // 如果符合選定的公司別或在編輯中，保留
+          return isPlateInEditing || selectedCompanies.includes(bus.operatorName);
+        });
+        
+        // 然後只處理過濾後的車輛
+        filteredBuses.forEach((bus) => {
           // 如果車輛沒有唯一ID，生成一個
           if (!bus.uniqueId) {
             bus.uniqueId = uuid.v4();
@@ -4023,155 +4177,69 @@ async function detectBuses(isAutoDetection = false) {
           
           // 新增檢查：車牌是否已經在本次處理中
           if (processedPlates.has(bus.plateNumber)) {
-            //console.log(`跳過本次偵測中重複的車牌: ${bus.plateNumber}`);
             return; // 跳過重複車牌
           }
           
           // 檢查此車牌是否在2分鐘內已經提交過
           if (isRecentlySubmitted(bus.plateNumber)) {
-            //console.log(`跳過最近已提交的車輛: ${bus.plateNumber}`);
             return; // 跳過最近已提交的車輛
           }
           
           // 檢查是否在編輯列表中已存在相同車牌
           const existingInEditing = editingBuses.find(item => item.plateNumber === bus.plateNumber);
           if (existingInEditing) {
-            //console.log(`車牌 ${bus.plateNumber} 已在編輯列表中，保持唯一性`);
             // 更新已有的車輛信息而非添加新條目
             bus.uniqueId = existingInEditing.uniqueId; // 保持 ID 一致
             bus.isInEditing = true;
+            
+            // 更新編輯中車輛的位置和其他信息
+            const editingIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
+            if (editingIndex !== -1) {
+              // 只更新位置和路線信息，保留選擇的項目
+              editingBuses[editingIndex].position = bus.position;
+              editingBuses[editingIndex].BusStatus = bus.BusStatus;
+              editingBuses[editingIndex].routeName = bus.routeName;
+            }
             return;
           }
           
           // 檢查全局列表中是否存在相同車牌
           const existingInAll = allDetectedBuses.find(item => item.plateNumber === bus.plateNumber);
           if (existingInAll) {
-            //console.log(`車牌 ${bus.plateNumber} 已在全局列表中，更新而非添加`);
             // 更新現有條目的位置等信息
             existingInAll.position = bus.position;
-            existingInAll.busStatus = bus.BusStatus;
+            existingInAll.BusStatus = bus.BusStatus;
             existingInAll.routeName = bus.routeName;
             existingInAll.lastUpdated = Date.now();
             return;
           }
           
+          // 記錄已處理的車牌
           processedPlates.add(bus.plateNumber);
           
           // 檢查這輛車是否已在編輯列表中(根據車牌號和唯一ID)
           const isInEditing = editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber);
           
-          // 如果在編輯列表中，僅更新位置數據
-          if (isInEditing) {
-            // 找到對應的編輯中車輛
-            let editingBusIndex = -1;
-            
-            // 先嘗試通過唯一ID找到
-            editingBusIndex = editingBuses.findIndex(item => item.uniqueId === bus.uniqueId);
-            
-            // 如果通過ID沒找到，嘗試通過車牌號找到
-            if (editingBusIndex === -1) {
-              editingBusIndex = editingBuses.findIndex(item => item.plateNumber === bus.plateNumber);
-            }
-            
-            if (editingBusIndex !== -1) {
-              // 更新編輯中車輛的位置信息
-              editingBuses[editingBusIndex].position = bus.position;
-              // 確保唯一ID一致（如果通過車牌找到的）
-              if (editingBuses[editingBusIndex].uniqueId !== bus.uniqueId) {
-                bus.uniqueId = editingBuses[editingBusIndex].uniqueId;
-              }
-            }
-            
-            // 標記為已在編輯中
-            bus.isInEditing = true;
-          }
+          // 標記編輯狀態
+          bus.isInEditing = isInEditing;
           
-          // 檢查是否是集團公司
-          if (isGroupCompany(bus.operatorName)) {
-            // 檢查是否已存在相同車牌號的車輛（在全局列表中）
-            const existingBusIndex = allDetectedBuses.findIndex(item => 
-              item.plateNumber === bus.plateNumber);
-            
-            if (existingBusIndex === -1) {
-              // 不存在，添加到全局列表
-              bus.lastUpdated = Date.now(); // 添加最後更新時間戳
-              allDetectedBuses.push(bus);
-              
-              // 如果車輛不在2分鐘內已提交列表中，添加到顯示列表
-              if (!isRecentlySubmitted(bus.plateNumber)) {
-                // 檢查是否已存在於顯示列表(使用車牌號檢查)
-                const existsInDisplay = displayedBuses.some(item => item.plateNumber === bus.plateNumber);
-                
-                if (!existsInDisplay) {
-                  displayedBuses.push(bus);
-                  
-                  // 只有不在編輯列表中的車輛才算作新偵測結果
-                  if (!isInEditing) {
-                    newDetectedBuses.push(bus);
-                  }
-                }
-              }
-            } else {
-              // 已存在，更新位置等信息
-              const existingBus = allDetectedBuses[existingBusIndex];
-                allDetectedBuses[existingBusIndex] = {
-                  ...existingBus,
-                  position: bus.position,
-                  lastUpdated: Date.now(),
-                  // 確保保留原有的唯一ID
-                  uniqueId: existingBus.uniqueId || bus.uniqueId
-                };
-              
-              // 如果也在顯示列表中，更新顯示列表中的數據
-              const displayIndex = displayedBuses.findIndex(item => item.plateNumber === bus.plateNumber);
-              if (displayIndex !== -1) {
-                displayedBuses[displayIndex] = {
-                  ...displayedBuses[displayIndex],
-                  position: bus.position,
-                  lastUpdated: Date.now()
-                };
-              }
-            }
+          // 添加到全局列表和顯示列表
+          bus.lastUpdated = Date.now();
+          allDetectedBuses.push(bus);
+          displayedBuses.push(bus);
+          
+          // 如果不在編輯列表中，添加到新偵測結果
+          if (!isInEditing) {
+            newDetectedBuses.push(bus);
           }
         });
       }
-      
-      // 確保所有編輯中的車輛都在顯示列表中
-      editingBuses.forEach(editingBus => {
-        // 檢查這輛車是否已經在顯示列表中(使用車牌和唯一ID檢查)
-        const displayIndex = displayedBuses.findIndex(item => 
-          item.uniqueId === editingBus.uniqueId || item.plateNumber === editingBus.plateNumber
-        );
-        
-        // 如果不在顯示列表中，添加進去
-        if (displayIndex === -1) {
-          // 標記為已在編輯中
-          editingBus.isInEditing = true;
-          
-          // 添加到顯示列表
-          displayedBuses.push(editingBus);
-          
-          // 如果也不在全局列表中，添加進去
-          const globalIndex = allDetectedBuses.findIndex(item => 
-            item.uniqueId === editingBus.uniqueId || item.plateNumber === editingBus.plateNumber
-          );
-          if (globalIndex === -1) {
-            allDetectedBuses.push(editingBus);
-          }
-        } else {
-          // 確保顯示列表中的車輛標記為編輯中
-          displayedBuses[displayIndex].isInEditing = true;
-        }
-      });
       
       // 檢測和處理車牌重複問題
       detectAndResolvePlateDuplicates();
       
       // 再次過濾最近提交的車輛
       filterRecentlySubmittedBuses();
-      
-      // 更新UI
-      updateDetectedBusesList();
       
       // 顯示通知
       if (newDetectedBuses.length > 0) {
@@ -4180,8 +4248,11 @@ async function detectBuses(isAutoDetection = false) {
         showZeroDetectionNotification();
       }
 
+      // 更新 UI
+      updateDetectedBusesList();
+
     } catch (networkError) {
-      //console.error("獲取車輛數據失敗:", networkError);
+      console.error("獲取車輛數據失敗:", networkError);
       
       // 對於網絡錯誤，在自動偵測模式下不顯示錯誤訊息
       if (!isAutoDetection) {
@@ -4191,7 +4262,7 @@ async function detectBuses(isAutoDetection = false) {
     
     hideDetectionIndicator();
   } catch (error) {
-    //console.error("偵測車輛失敗:", error);
+    console.error("偵測車輛失敗:", error);
     hideDetectionIndicator();
     
     // 根據錯誤類型提供不同的錯誤訊息
@@ -4200,20 +4271,50 @@ async function detectBuses(isAutoDetection = false) {
       if (error.message && error.message.includes("網絡")) {
         showFloatingNotification("網絡連接問題，請確認網絡狀態", "error");
       } else {
-        // 使用浮動通知而非頂部的狀態訊息，更不引人注目
         showFloatingNotification("偵測車輛失敗，請稍後再試", "error");
       }
     }
   }
   
-  if (!isAutoDetection) {
-   // logVehicleState("偵測車輛完成");
-  }
-  
   // 同步編輯狀態
   syncEditingStatus();
 }
-
+// 更新手動輸入模態框中的公司選項，根據目前選中的公司過濾
+function updateManualCompanyOptions() {
+  const companySelect = document.getElementById("manualCompany");
+  
+  if (!companySelect) return;
+  
+  // 保存當前選中的值
+  const currentValue = companySelect.value;
+  
+  // 清空現有選項
+  companySelect.innerHTML = '';
+  
+  // 添加空白選項
+  const emptyOption = document.createElement("option");
+  emptyOption.value = "";
+  emptyOption.textContent = "請選擇公司";
+  companySelect.appendChild(emptyOption);
+  
+  // 只添加目前選中的公司選項
+  selectedCompanies.forEach(company => {
+    const option = document.createElement("option");
+    option.value = company;
+    // 截取簡稱 (例如: "首都客運" -> "首都")
+    const shortName = company.length > 2 ? company.substring(0, 2) : company;
+    option.textContent = shortName;
+    companySelect.appendChild(option);
+  });
+  
+  // 如果之前選中的值仍在新的選項中，則保持選中
+  if (currentValue && selectedCompanies.includes(currentValue)) {
+    companySelect.value = currentValue;
+  } else {
+    // 否則設為第一個有效選項
+    companySelect.selectedIndex = selectedCompanies.length > 0 ? 1 : 0;
+  }
+}
 // 檢測和處理車牌重複
 function detectAndResolvePlateDuplicates() {
   // 檢查顯示列表中是否有車牌重複
@@ -4505,6 +4606,31 @@ function updateDetectedBusesList() {
   });
   document.dispatchEvent(updateEvent);
   
+    // 確保所有編輯中的車輛都在顯示列表中
+  editingBuses.forEach(editingBus => {
+    // 檢查此車輛是否在顯示列表中
+    const inDisplay = displayedBuses.some(bus => 
+      bus.uniqueId === editingBus.uniqueId || 
+      bus.plateNumber === editingBus.plateNumber
+    );
+    
+    // 如果不在顯示列表中，添加進去
+    if (!inDisplay) {
+      // 標記為已在編輯中
+      editingBus.isInEditing = true;
+      displayedBuses.push(editingBus);
+    }
+    
+    // 確保也在全局列表中
+    const inAll = allDetectedBuses.some(bus => 
+      bus.uniqueId === editingBus.uniqueId || 
+      bus.plateNumber === editingBus.plateNumber
+    );
+    
+    if (!inAll) {
+      allDetectedBuses.push(editingBus);
+    }
+  });
   // 同步編輯狀態
   syncEditingStatus();
 }
