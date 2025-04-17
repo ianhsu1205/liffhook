@@ -1146,8 +1146,12 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 }
  /* 位置精度指示器樣式 */
   .location-accuracy-container {
-    margin-top: 5px;
-    font-size: 12px;
+  display: flex;
+  justify-content: space-between; /* 將精度顯示和公司按鈕分別放在左右兩側 */
+  align-items: center;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #666;
   }
   
   .location-accuracy {
@@ -1577,13 +1581,13 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 /* 添加公司篩選按鈕樣式 */
 .company-filter-container {
   display: flex;
-  margin-left: 10px;
+  margin-left: auto;
   gap: 5px;
 }
 
 .company-filter-btn {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1633,17 +1637,23 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   <div class="input-group">
     <input type="text" id="location" placeholder="選擇所在位置" />
     <div class="input-group-append">
-      <div class="company-filter-container">
-        <div class="company-filter-btn active" data-company="首都客運" title="首都客運">首</div>
-        <div class="company-filter-btn active" data-company="臺北客運" title="臺北客運">北</div>
-        <div class="company-filter-btn active" data-company="大都會客運" title="大都會客運">大</div>
-        <div class="company-filter-btn active" data-company="三重客運" title="三重客運">三</div>
-        <div class="company-filter-btn active" data-company="台中客運" title="台中客運">中</div>
-      </div>
       <div class="icon-button" onclick="openLocationModal()">
         <i class="fas fa-map-marker-alt"></i>
       </div>
     </div>
+  </div>
+  <!-- 新增公司篩選按鈕到位置精確度容器內 -->
+<div class="location-accuracy-container">
+  <div class="location-accuracy">
+    <i class="fas fa-crosshairs" style="color:green;"></i> 位置精確度高 (10m)
+  </div>
+  <!-- 新增公司篩選容器 -->
+  <div class="company-filter-container">
+    <div class="company-filter-btn active" data-company="首都客運" title="首都客運">首</div>
+    <div class="company-filter-btn active" data-company="臺北客運" title="臺北客運">北</div>
+    <div class="company-filter-btn active" data-company="大都會客運" title="大都會客運">大</div>
+    <div class="company-filter-btn active" data-company="三重客運" title="三重客運">三</div>
+    <div class="company-filter-btn active" data-company="台中客運" title="台中客運">中</div>
   </div>
 </div>
 
@@ -1789,7 +1799,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1905,6 +1915,7 @@ let selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"];
 // 初始化公司篩選按鈕
 // 初始化公司篩選按鈕
+// 初始化公司篩選按鈕
 function initCompanyFilters() {
   document.querySelectorAll('.company-filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -1967,22 +1978,34 @@ function loadCompanyFilterState() {
 }
 
 // 應用公司篩選
-// 應用公司篩選
+// 修改 applyCompanyFilter 函數
 function applyCompanyFilter() {
-  // 如果沒有選擇任何公司，選擇所有公司
+  // 如果沒有選擇任何公司，讓列表為空，但保留按鈕狀態
   if (selectedCompanies.length === 0) {
-    selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
-    document.querySelectorAll('.company-filter-btn').forEach(btn => {
-      btn.classList.add('active');
-    });
-    saveCompanyFilterState();
+    // 允許全部都不選的情況，不重置選擇
+    // 清空列表，只保留編輯中的項目
+    const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+    const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
+    
+    // 僅保留編輯中的車輛
+    allDetectedBuses = allDetectedBuses.filter(bus => 
+      editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
+    );
+    
+    displayedBuses = displayedBuses.filter(bus => 
+      editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
+    );
+    
+    // 更新UI
+    updateDetectedBusesList();
+    return;
   }
   
   // 保存當前編輯中的車輛的唯一ID和車牌號
   const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
   const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
   
-  // 完全清理全局列表和顯示列表，只保留編輯中的車輛
+  // 完全清理全局列表和顯示列表，只保留編輯中的車輛和選中公司的車輛
   allDetectedBuses = allDetectedBuses.filter(bus => 
     editingBusIds.has(bus.uniqueId) || 
     editingPlateNumbers.has(bus.plateNumber) ||
@@ -2570,21 +2593,44 @@ function startHighAccuracyLocationWatching(silent = false) {
 }
 
 // 添加位置精度指示器
+// 添加位置精度指示器
 function addLocationAccuracyIndicator() {
   const locationContainer = document.querySelector(".form-group");
   
   const accuracyContainer = document.createElement("div");
   accuracyContainer.className = "location-accuracy-container";
-  accuracyContainer.style.fontSize = "12px";
-  accuracyContainer.style.marginTop = "5px";
-  accuracyContainer.style.color = "#666";
   
+  // 創建精度指示器
   const accuracyIndicator = document.createElement("div");
   accuracyIndicator.className = "location-accuracy";
   accuracyIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在獲取位置...';
   
+  // 創建公司篩選容器
+  const filterContainer = document.createElement("div");
+  filterContainer.className = "company-filter-container";
+  
+  // 添加公司篩選按鈕
+  const companies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
+  const shortNames = ["首", "北", "大", "三", "中"];
+  
+  companies.forEach((company, index) => {
+    const btn = document.createElement("div");
+    btn.className = "company-filter-btn active";
+    btn.dataset.company = company;
+    btn.title = company;
+    btn.textContent = shortNames[index];
+    filterContainer.appendChild(btn);
+  });
+  
+  // 將兩個元素添加到容器中
   accuracyContainer.appendChild(accuracyIndicator);
+  accuracyContainer.appendChild(filterContainer);
+  
+  // 添加到位置容器後面
   locationContainer.appendChild(accuracyContainer);
+  
+  // 初始化公司篩選按鈕的事件處理
+  initCompanyFilters();
 }
 
 // 更新位置精度指示器
