@@ -1799,7 +1799,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2828,19 +2828,13 @@ function selectBusForInput(bus, index, scrollToView = false) {
   // 確保有唯一ID，如果沒有則創建
   if (!bus.uniqueId) {
     bus.uniqueId =  uuid.v4();
-    // 檢查索引有效性
-  if (index !== undefined && index >= 0 && index < displayedBuses.length) {
-    displayedBuses[index].uniqueId = bus.uniqueId;
-  }  
-    // 同步到顯示列表和全局列表
-    // if (displayedBuses[index]) {
-    //   displayedBuses[index].uniqueId = bus.uniqueId;
-    // }
-    
-    // 嘗試在全局列表中找到對應車輛並同步ID
+  // 同步到顯示列表
+    if (index !== undefined && index >= 0 && index < displayedBuses.length) {
+      displayedBuses[index].uniqueId = bus.uniqueId;
+    }
+   // 同步到全局列表
     const globalIndex = allDetectedBuses.findIndex(item => 
-      item.plateNumber === bus.plateNumber && 
-      item.operatorName === bus.operatorName
+      item.plateNumber === bus.plateNumber
     );
     
     if (globalIndex !== -1) {
@@ -3479,13 +3473,7 @@ function updateVehicleByUniqueId(bus) {
   if (!updatedAny) {
     //console.warn(`警告: 未找到匹配的車輛進行更新! ID: ${uniqueId}, 車牌: ${plateNumber}`);
   }
-    // 在函數末尾添加：確保編輯標籤也更新
-  updateEditingTabs();
-  // 更新顯示
-  updateDetectedBusesList();
-    // 添加這行：確保編輯狀態同步
-  syncEditingStatus();
-    // 添加這部分邏輯，在更新一個列表後，確保其他列表用相同的 uniqueId 也更新
+      // 添加這部分邏輯，在更新一個列表後，確保其他列表用相同的 uniqueId 也更新
   if (updatedAny) {
     // 確保所有列表中相同 uniqueId 的車輛都更新
     [displayedBuses, allDetectedBuses, editingBuses].forEach(list => {
@@ -3496,6 +3484,13 @@ function updateVehicleByUniqueId(bus) {
       });
     });
   }
+    // 在函數末尾添加：確保編輯標籤也更新
+  updateEditingTabs();
+  // 更新顯示
+  updateDetectedBusesList();
+    // 添加這行：確保編輯狀態同步
+  syncEditingStatus();
+
 }
 
 // 改進的頁面切換函數
@@ -3709,36 +3704,50 @@ function updateEditingTabs() {
     }, 10);
   }
 }
-// 處理標籤點擊的函數
+// 處理標籤點擊的函數 - 優化版本
 function switchToEditingTab(index) {
-debouncedSwitchTab(index);
+  // 防止重複處理或快速點擊
+  if (window.isHandlingTabSwitch) return;
+  window.isHandlingTabSwitch = true;
+  
+  try {
+    // 確保索引有效
+    if (index < 0 || index >= editingBuses.length) {
+      console.warn("嘗試切換到無效的標籤索引:", index);
+      return;
+    }
+    
+    // 設置活躍索引
+    activeEditingBusIndex = index;
+    
+    // 更新標籤樣式 - 直接處理，不使用防抖
+    const tabs = document.querySelectorAll('.editing-tab');
+    tabs.forEach((tab, i) => {
+      tab.classList.toggle('active', i === index);
+    });
+    
+    // 確保編輯區域可見
+    document.getElementById("busInputContainer").classList.remove("hidden");
+    
+    // 立即更新編輯界面，不使用防抖
+    updateBusEditingInterface();
+    
+    // 滾動到編輯區域
+    scrollToEditingArea();
+    
+    // 同步編輯狀態
+    syncEditingStatus();
+    
+    // 滾動到已選中的標籤
+    scrollToActiveTab();
+  } 
+  finally {
+    // 確保總是重置處理狀態
+    setTimeout(() => {
+      window.isHandlingTabSwitch = false;
+    }, 300);
+  }
 }
-
-// 先定義一個全局的防抖函數
-const debouncedSwitchTab = debounce(function(index) {
-  //console.log("標籤點擊，切換到索引:", index);
-  
-  // 設置活躍索引
-  activeEditingBusIndex = index;
-  
-  // 更新標籤樣式
-  const tabs = document.querySelectorAll('.editing-tab');
-  tabs.forEach((tab, i) => {
-    tab.classList.toggle('active', i === index);
-  });
-  
-  // 確保編輯區域可見
-  document.getElementById("busInputContainer").classList.remove("hidden");
-  
-  // 更新編輯界面
-  updateBusEditingInterface();
-  
-  // 滾動到編輯區域
-  scrollToEditingArea();
-  
-  // 同步編輯狀態
-  syncEditingStatus();
-}, 200);
 
 // 只更新計數標記的函數
 function updateItemCountBadges(bus) {
