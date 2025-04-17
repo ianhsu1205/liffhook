@@ -1799,7 +1799,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -1980,47 +1980,82 @@ function loadCompanyFilterState() {
 // 應用公司篩選
 // 修改 applyCompanyFilter 函數
 function applyCompanyFilter() {
-  // 如果沒有選擇任何公司，讓列表為空，但保留按鈕狀態
-  if (selectedCompanies.length === 0) {
-    // 允許全部都不選的情況，不重置選擇
-    // 清空列表，只保留編輯中的項目
-    const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
-    const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
-    
-    // 僅保留編輯中的車輛
-    allDetectedBuses = allDetectedBuses.filter(bus => 
-      editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
-    );
-    
-    displayedBuses = displayedBuses.filter(bus => 
-      editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
-    );
-    
-    // 更新UI
-    updateDetectedBusesList();
-    return;
-  }
+  // 儲存篩選前數量
+  const beforeFilterCount = displayedBuses.length;
+  
+  // 儲存目前顯示車輛的唯一ID
+  const beforeFilterIds = new Set(displayedBuses.map(bus => bus.uniqueId));
   
   // 保存當前編輯中的車輛的唯一ID和車牌號
   const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
   const editingPlateNumbers = new Set(editingBuses.map(bus => bus.plateNumber));
   
+  // 如果沒有選擇任何公司，讓列表為空，但保留按鈕狀態
+  if (selectedCompanies.length === 0) {
+    // 允許全部都不選的情況，不重置選擇
+    // 清空列表，只保留編輯中的項目
+    const filteredBuses = allDetectedBuses.filter(bus => 
+      editingBusIds.has(bus.uniqueId) || editingPlateNumbers.has(bus.plateNumber)
+    );
+    
+    // 檢查是否有實質變化
+    if (filteredBuses.length !== displayedBuses.length) {
+      displayedBuses = filteredBuses;
+      // 更新UI之前先排序並限制數量
+      sortAndLimitBusesByDistance();
+    }
+    return;
+  }
+  
   // 完全清理全局列表和顯示列表，只保留編輯中的車輛和選中公司的車輛
-  allDetectedBuses = allDetectedBuses.filter(bus => 
+  const filteredGlobalBuses = allDetectedBuses.filter(bus => 
     editingBusIds.has(bus.uniqueId) || 
     editingPlateNumbers.has(bus.plateNumber) ||
     selectedCompanies.includes(bus.operatorName)
   );
   
-  displayedBuses = displayedBuses.filter(bus => 
+  const filteredDisplayBuses = displayedBuses.filter(bus => 
     editingBusIds.has(bus.uniqueId) || 
     editingPlateNumbers.has(bus.plateNumber) ||
     selectedCompanies.includes(bus.operatorName)
   );
   
-  // 更新UI
-  updateDetectedBusesList();
-  return;
+  // 檢查是否有實質變化
+  let hasChanges = false;
+  
+  // 數量變化
+  if (filteredGlobalBuses.length !== allDetectedBuses.length) {
+    allDetectedBuses = filteredGlobalBuses;
+    hasChanges = true;
+  }
+  
+  if (filteredDisplayBuses.length !== displayedBuses.length) {
+    displayedBuses = filteredDisplayBuses;
+    hasChanges = true;
+  } else {
+    // 檢查內容變化 - 比較篩選後的車輛ID集合
+    const afterFilterIds = new Set(filteredDisplayBuses.map(bus => bus.uniqueId));
+    // 如果兩個集合大小相同但內容不同，也應該更新
+    if (beforeFilterIds.size === afterFilterIds.size) {
+      for (const id of beforeFilterIds) {
+        if (!afterFilterIds.has(id)) {
+          hasChanges = true;
+          break;
+        }
+      }
+    }
+    
+    if (hasChanges) {
+      displayedBuses = filteredDisplayBuses;
+    }
+  }
+  
+  // 只有在有變化時才更新UI
+  if (hasChanges) {
+    // 更新UI
+    sortAndLimitBusesByDistance();
+    updateDetectedBusesList();
+  }
 }
 
 // 添加防抖函數 - 放在全局變數聲明後面
@@ -2258,8 +2293,7 @@ function refreshDisplayedBuses() {
       return true; // 保留其他車輛
     });
   }
-    // 更新UI
-  updateDetectedBusesList();
+  sortAndLimitBusesByDistance();
 }
 // 在模態框內顯示錯誤訊息
 function showManualInputError(message) {
@@ -2710,7 +2744,7 @@ function addManualBus() {
   
   // 檢查是否已存在相同車牌號的車輛
   const existingVehicleIndex = allDetectedBuses.findIndex(bus => 
-    bus.plateNumber === plateNumber);
+    bus.plateNumber === plateNumber && !bus.isInEditing);
   
   if (existingVehicleIndex !== -1) {
     // 如果已存在，提示用戶並問是否編輯該車輛
@@ -2759,8 +2793,8 @@ function addManualBus() {
   displayedBuses.push(newBus);
   allDetectedBuses.push(newBus);
   
-  // 更新UI
-  updateDetectedBusesList();
+  // 排序並限制數量
+  sortAndLimitBusesByDistance();
   
   // 關閉模態框
   closeManualInputModal();
@@ -4220,7 +4254,7 @@ async function detectBuses(isAutoDetection = false) {
           if (!bus.uniqueId) {
             bus.uniqueId = uuid.v4();
           }
-          
+          bus.distanceInMeters = getVehicleDistance(bus);
           // 新增檢查：車牌是否已經在本次處理中
           if (processedPlates.has(bus.plateNumber)) {
             return; // 跳過重複車牌
@@ -4282,7 +4316,9 @@ async function detectBuses(isAutoDetection = false) {
       }
       
       // 檢測和處理車牌重複問題
-      detectAndResolvePlateDuplicates();
+        if (detectAndResolvePlateDuplicates()) {
+          sortAndLimitBusesByDistance();
+        }
       
       // 再次過濾最近提交的車輛
       filterRecentlySubmittedBuses();
@@ -4321,7 +4357,7 @@ async function detectBuses(isAutoDetection = false) {
       }
     }
   }
-  
+  sortAndLimitBusesByDistance();
   // 同步編輯狀態
   syncEditingStatus();
 }
@@ -4380,28 +4416,49 @@ function detectAndResolvePlateDuplicates() {
   if (duplicatePlates.size > 0) {
     //console.log(`檢測到 ${duplicatePlates.size} 個重複車牌:`, Array.from(duplicatePlates));
     
-    // 對每個重複車牌，保留最新更新的一個
+    // 對每個重複車牌，進行智能處理
     duplicatePlates.forEach(plateNumber => {
-      // 收集所有該車牌的車輛
+      // 收集所有該車牌的車輛（顯示列表）
       const buses = displayedBuses.filter(bus => bus.plateNumber === plateNumber);
       
-      // 按最後更新時間排序，保留最新的一個
-      buses.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+      // 檢查是否有編輯中的車輛
+      const editingBuses = buses.filter(bus => bus.isInEditing);
       
-      // 保留最新更新的車輛
-      const keepBus = buses[0];
-      
-      // 從顯示列表和全局列表中移除其餘重複項
-      for (let i = 1; i < buses.length; i++) {
-        const removeBus = buses[i];
+      if (editingBuses.length > 0) {
+        // 如果有編輯中的車輛，保留所有編輯中的車輛，移除其他重複車輛
+        const editingIds = new Set(editingBuses.map(bus => bus.uniqueId));
         
-        displayedBuses = displayedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
-        allDetectedBuses = allDetectedBuses.filter(bus => bus.uniqueId !== removeBus.uniqueId);
+        displayedBuses = displayedBuses.filter(bus => 
+          bus.plateNumber !== plateNumber || editingIds.has(bus.uniqueId)
+        );
         
-        //console.log(`移除重複車牌 ${plateNumber} 的車輛, ID: ${removeBus.uniqueId}`);
+        // 同時更新全局列表
+        allDetectedBuses = allDetectedBuses.filter(bus => 
+          bus.plateNumber !== plateNumber || editingIds.has(bus.uniqueId)
+        );
+      } else {
+        // 如果沒有編輯中的車輛，保留距離最近的一個
+        buses.sort((a, b) => {
+          const distA = a.distanceInMeters || getVehicleDistance(a);
+          const distB = b.distanceInMeters || getVehicleDistance(b);
+          return distA - distB;
+        });
+        
+        // 保留距離最近的車輛
+        const keepBus = buses[0];
+        
+        // 從顯示列表和全局列表中移除其餘重複項
+        displayedBuses = displayedBuses.filter(bus => 
+          bus.plateNumber !== plateNumber || bus.uniqueId === keepBus.uniqueId
+        );
+        
+        allDetectedBuses = allDetectedBuses.filter(bus => 
+          bus.plateNumber !== plateNumber || bus.uniqueId === keepBus.uniqueId
+        );
       }
     });
   }
+  return duplicatePlates.size > 0; // 返回是否進行了更改
 }
 
 // 新增清理重複車牌的函數，添加在 detectAndResolvePlateDuplicates 函數之後
@@ -4409,7 +4466,9 @@ function scheduledDuplicateCheck() {
   // 每分鐘執行一次重複檢查和清理
   setInterval(() => {
     try {
-      detectAndResolvePlateDuplicates();
+    if (detectAndResolvePlateDuplicates()) {
+          sortAndLimitBusesByDistance();
+        }
       
       // 額外檢查編輯列表中的重複車牌
       const plateMap = new Map();
@@ -4472,9 +4531,7 @@ function filterRecentlySubmittedBuses() {
     // 如果沒有提交記錄或提交時間超過常數定義的時間，則保留
     return !submissionTime || (currentTime - parseInt(submissionTime)) >= SUBMISSION_EXPIRY_TIME_MS;
   });
-  
-  // 更新UI
-  updateDetectedBusesList();
+  sortAndLimitBusesByDistance();
 }
 // 新增顯示無車輛的浮動通知函數
 function showZeroDetectionNotification() {
@@ -4535,6 +4592,66 @@ function addDistanceClassToElement(element, distanceInMeters) {
   }
 }
 
+// 需要新增這個輔助函數，用來更新現有的車輛元素信息
+function updateBusItemInfo(element, bus, index) {
+  // 先檢查元素是否需要更新選中狀態
+  const isEditing = editingBuses.some(editingBus => editingBus.uniqueId === bus.uniqueId);
+  if (isEditing) {
+    element.classList.add("selected-bus-item");
+  } else {
+    element.classList.remove("selected-bus-item");
+  }
+  
+  // 更新車牌元素
+  const plateElement = element.querySelector('.bus-plate');
+  if (plateElement) {
+    // 清除所有現有的方向和距離類別
+    plateElement.classList.remove("direction-go", "direction-back", 
+      "distance-veryclose", "distance-close", "distance-medium", "distance-far");
+    
+    // 重新添加方向類別
+    if (bus.direction === "0") {
+      plateElement.classList.add("direction-go");
+    } else if (bus.direction === "1") {
+      plateElement.classList.add("direction-back");
+    }
+    
+    // 重新計算距離並添加距離類別
+    const distanceInMeters = getVehicleDistance(bus);
+    addDistanceClassToElement(plateElement, distanceInMeters);
+    
+    // 更新車牌號顯示
+    plateElement.innerHTML = formatPlateDisplay(bus.plateNumber);
+  }
+  
+  // 更新路線元素
+  const routeElement = element.querySelector('.text-marquee');
+  if (routeElement) {
+    let routeInfo = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "未知路線");
+    
+    // 檢查是否需要更新
+    if (routeElement.textContent.indexOf(routeInfo) === -1) {
+      // 更新為新的路線信息
+      if (countChineseChars(routeInfo) > 5 || routeInfo.length > 12) {
+        routeElement.className = "text-marquee list-marquee scrolling";
+        const repeatedText = routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo + "　" + routeInfo;
+        routeElement.textContent = repeatedText;
+      } else {
+        routeElement.className = "text-marquee";
+        routeElement.textContent = routeInfo;
+      }
+      
+      // 更新title屬性
+      const routeContainer = element.querySelector('.bus-route-container');
+      if (routeContainer) {
+        routeContainer.title = routeInfo;
+      }
+    }
+  }
+  
+  // 更新元素的數據索引
+  element.dataset.index = index;
+}
 
 // 完整優化版的 updateDetectedBusesList 函數
 function updateDetectedBusesList() {
@@ -4545,102 +4662,75 @@ function updateDetectedBusesList() {
   // 記錄函數開始時間，用於性能測量
   const startTime = performance.now();
   
-    // 定義批次大小 - 添加這一行
-  const batchSize = 50;
-
   // 更新計數
   const busCountElement = document.getElementById("busCount");
   if (busCountElement) {
     busCountElement.textContent = `${displayedBuses.length} 輛`;
   }
   
-  // 使用 DocumentFragment 減少 DOM 操作次數
-  const fragment = document.createDocumentFragment();
-  
   if (displayedBuses.length === 0) {
     // 沒有車輛時顯示提示信息
+    container.innerHTML = '';
     const noDataMessage = document.createElement("div");
     noDataMessage.className = "no-buses-message";
     noDataMessage.innerHTML = `
       <i class="fas fa-bus" style="font-size: 24px; color: #adb5bd; margin-bottom: 10px;"></i>
       <p>尚未檢測到車輛，請點擊「偵測車輛」按鈕</p>
     `;
-    fragment.appendChild(noDataMessage);
-  } else {
+    container.appendChild(noDataMessage);
+    return;
+  }
+  
+  // 檢查是否已有車輛列表容器
+  let busListContainer = container.querySelector('.simple-bus-list');
+  if (!busListContainer) {
     // 創建新的車輛列表容器
-    const busListContainer = document.createElement("div");
+    container.innerHTML = '';
+    busListContainer = document.createElement("div");
     busListContainer.className = "simple-bus-list";
-    
-    // 收集已在編輯中的車輛 ID，避免重複查詢
-    const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
-    
-    // 批次處理，每批最多50個元素以避免阻塞主線程過長時間
-    const batchSize = 50;
-    const totalBatches = Math.ceil(displayedBuses.length / batchSize);
-    
-    // 先處理第一批，確保快速顯示首批車輛
-    const firstBatchEnd = Math.min(batchSize, displayedBuses.length);
-    
-    for (let i = 0; i < firstBatchEnd; i++) {
-      const bus = displayedBuses[i];
-      // 使用緩存減少函數調用開銷
-      bus.isEditing = editingBusIds.has(bus.uniqueId);
-      const busItem = createBusListItem(bus, i);
-      busListContainer.appendChild(busItem);
-    }
-    
-    // 如果有多批，異步處理剩餘批次
-    if (totalBatches > 1) {
-      setTimeout(() => {
-        let batchIndex = 1;
-        
-        function processBatch() {
-          const startIdx = batchIndex * batchSize;
-          const endIdx = Math.min(startIdx + batchSize, displayedBuses.length);
-          
-          // 處理當前批次
-          for (let i = startIdx; i < endIdx; i++) {
-            const bus = displayedBuses[i];
-            bus.isEditing = editingBusIds.has(bus.uniqueId);
-            const busItem = createBusListItem(bus, i);
-            busListContainer.appendChild(busItem);
-          }
-          
-          batchIndex++;
-          
-          // 如果還有更多批次，安排下一批處理
-          if (batchIndex < totalBatches) {
-            requestAnimationFrame(processBatch);
-          } else {
-            // 所有批次處理完成後初始化跑馬燈
-            requestAnimationFrame(debouncedInitMarquees);
-          }
-        }
-        
-        // 開始批處理
-        requestAnimationFrame(processBatch);
-      }, 0);
-    }
-    
-    fragment.appendChild(busListContainer);
+    container.appendChild(busListContainer);
   }
   
-  // 檢測是否真的需要更新 DOM
-  // 比較新舊內容的車輛數量，只有在不同時才更新
-  const oldBusCount = container.querySelectorAll('.simple-bus-item').length;
-  const newBusCount = displayedBuses.length;
-  
-  // 只有在車輛數量變化或強制更新時才替換整個內容
-  if (oldBusCount !== newBusCount || container.querySelector('.no-buses-message') || true) {
-    // 清空容器並一次性添加所有新元素
-    container.innerHTML = "";
-    container.appendChild(fragment);
-    
-    // 只有在有車輛且是第一批時才初始化跑馬燈
-    if (displayedBuses.length > 0 && displayedBuses.length <= batchSize) {
-      requestAnimationFrame(debouncedInitMarquees);
+  // 創建映射以快速查找現有元素
+  const existingItems = {};
+  const existingElements = busListContainer.querySelectorAll('.simple-bus-item');
+  existingElements.forEach(item => {
+    const index = item.dataset.index;
+    if (index !== undefined) {
+      existingItems[index] = item;
     }
-  }
+  });
+  
+  // 收集已在編輯中的車輛 ID，避免重複查詢
+  const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+  
+  // 使用 DocumentFragment 減少 DOM 操作次數
+  const fragment = document.createDocumentFragment();
+  
+  // 差異更新: 先處理現有車輛的更新
+  displayedBuses.forEach((bus, index) => {
+    bus.isEditing = editingBusIds.has(bus.uniqueId);
+    bus.originalIndex = index; // 確保索引正確
+    
+    if (existingItems[index]) {
+      // 更新現有元素
+      updateBusItemInfo(existingItems[index], bus, index);
+      // 從映射中刪除這個已處理的索引
+      delete existingItems[index];
+    } else {
+      // 創建新元素
+      const busItem = createBusListItem(bus, index);
+      fragment.appendChild(busItem);
+    }
+  });
+  
+  // 添加所有新元素
+  busListContainer.appendChild(fragment);
+  
+  // 移除多餘元素 (existingItems 中剩餘的未匹配項)
+  Object.values(existingItems).forEach(element => {
+    element.remove();
+  });
   
   // 記錄函數執行時間
   const endTime = performance.now();
@@ -4652,7 +4742,7 @@ function updateDetectedBusesList() {
   });
   document.dispatchEvent(updateEvent);
   
-    // 確保所有編輯中的車輛都在顯示列表中
+  // 確保所有編輯中的車輛都在顯示列表中
   editingBuses.forEach(editingBus => {
     // 檢查此車輛是否在顯示列表中
     const inDisplay = displayedBuses.some(bus => 
@@ -4677,8 +4767,14 @@ function updateDetectedBusesList() {
       allDetectedBuses.push(editingBus);
     }
   });
+  
   // 同步編輯狀態
   syncEditingStatus();
+  
+  // 初始化跑馬燈
+  setTimeout(() => {
+    debouncedInitMarquees();
+  }, 100);
 }
 
 function countChineseChars(str) {
@@ -4892,20 +4988,11 @@ function submitSelectedBus() {
       const currentIndex = activeEditingBusIndex; // 保存當前索引
       
       // 檢查是否與其他車輛重複 (排除當前車輛自身)
-        // 修改為更全面的檢查：
-        // 1. 檢查是否與列表中其他車輛重複
-        const duplicateInDetected = allDetectedBuses.find(vehicle => 
-          vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
+       const hasDuplicate = allDetectedBuses.some(vehicle => 
+          vehicle.plateNumber === plateNumber && 
+          vehicle.uniqueId !== uniqueId &&
+          !vehicle.isInEditing!==true  // 排除正在編輯的車輛
         );
-
-        // 2. 檢查是否與其他正在編輯的車輛重複
-        const duplicateInEditing = editingBuses.find(vehicle => 
-          vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
-        );
-
-        // 3. 合併檢查結果
-        const hasDuplicate = duplicateInDetected || duplicateInEditing;
-      
       if (hasDuplicate) {
         showFloatingNotification(`車號 ${plateNumber} 已存在於列表中，請修改車號`, "error");
         isSubmitting = false; // 重置狀態
@@ -5377,7 +5464,7 @@ function handleSubmitSuccess(bus) {
   }
   
   // 更新UI
-  updateDetectedBusesList();
+sortAndLimitBusesByDistance()
   
   // 更新編輯標籤和界面
   updateEditingTabs();
@@ -6090,20 +6177,29 @@ function initializeMarquees() {
   const MIN_DURATION = 8;
   const MAX_DURATION = 20;
   
-  // 獲取所有需要處理的跑馬燈元素
-  const marquees = document.querySelectorAll('.text-marquee');
+  // 只獲取可見區域內的跑馬燈元素
+  const visibleMarquees = Array.from(document.querySelectorAll('.text-marquee')).filter(
+    el => {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && 
+             rect.bottom > 0 &&
+             rect.width > 0 &&
+             rect.height > 0;
+    }
+  );
   
-  // 如果沒有元素，直接返回
-  if (marquees.length === 0) return;
+  // 如果沒有可見元素，直接返回
+  if (visibleMarquees.length === 0) return;
   
   // 使用 requestAnimationFrame 確保在瀏覽器渲染後進行處理
   requestAnimationFrame(() => {
-    marquees.forEach(marquee => {
-      // 檢查元素是否可見且已渲染
-      if (!isElementVisible(marquee)) return;
-      
+    visibleMarquees.forEach(marquee => {
       // 獲取父元素和文本寬度
       const parentWidth = marquee.parentElement.offsetWidth;
+      
+      // 檢查父元素是否已經渲染完成且有寬度
+      if (!parentWidth) return;
+      
       const textWidth = marquee.scrollWidth;
       
       // 只有當文本超出容器寬度時才設置滾動
@@ -6130,8 +6226,34 @@ function initializeMarquees() {
       }
     });
     
-    // 單獨處理列表跑馬燈以獲得更好的性能
-    handleListMarquees();
+    // 單獨處理可見範圍內的列表跑馬燈
+    const visibleListMarquees = Array.from(document.querySelectorAll('.list-marquee')).filter(
+      el => {
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight && 
+               rect.bottom > 0 &&
+               rect.width > 0 &&
+               rect.height > 0;
+      }
+    );
+    
+    visibleListMarquees.forEach(marquee => {
+      // 獲取原始文本（第一段）
+      const originalText = marquee.textContent.split('　')[0] || marquee.textContent;
+      const textLength = originalText.length;
+      
+      // 優化列表項動畫速度
+      let duration = textLength * CHARACTER_SCROLL_SPEED * 0.7;
+      duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
+      
+      // 更新動畫設置
+      marquee.style.setProperty('--scroll-duration', `${duration}s`);
+      
+      // 重置動畫
+      marquee.classList.remove('scrolling');
+      void marquee.offsetWidth;
+      marquee.classList.add('scrolling');
+    });
   });
 }
 
@@ -6416,8 +6538,45 @@ function startAutoDetect() {
   
   //console.log("自動偵測已啟動");
   
+
   // 立即執行一次偵測
   runDetection();
+}
+  // 按距離排序並限制數量
+function sortAndLimitBusesByDistance() {
+ // 您可以進一步考慮車輛屬性(如位置)變化的情況
+  const locationSignature = displayedBuses.map(bus => 
+    `${bus.uniqueId}:${bus.position?.latitude},${bus.position?.longitude}`
+  ).join(',');
+  
+  if (sortAndLimitBusesByDistance.lastLocationSignature === locationSignature) {
+    return; // 如果車輛列表和位置都沒變化，跳過排序
+  }
+  // 確保編輯中的車輛不會因限制而被移除
+  const editingBusIds = new Set(editingBuses.map(bus => bus.uniqueId));
+  
+  // 將車輛分為兩組：編輯中的和非編輯中的
+  const editingBusesList = displayedBuses.filter(bus => editingBusIds.has(bus.uniqueId));
+  const nonEditingBusesList = displayedBuses.filter(bus => !editingBusIds.has(bus.uniqueId));
+  
+  // 為非編輯車輛計算距離
+  nonEditingBusesList.forEach(bus => {
+    bus.distanceInMeters = getVehicleDistance(bus);
+  });
+  
+  // 按距離排序
+  nonEditingBusesList.sort((a, b) => a.distanceInMeters - b.distanceInMeters);
+  
+  // 限制非編輯車輛數量（保留最近的）
+  const maxNonEditingBuses = 40 - editingBusesList.length;
+  const limitedNonEditingBuses = nonEditingBusesList.slice(0, maxNonEditingBuses > 0 ? maxNonEditingBuses : 0);
+  
+  // 合併兩個列表
+  displayedBuses = [...editingBusesList, ...limitedNonEditingBuses];
+  
+  // 更新 UI
+  updateDetectedBusesList();
+sortAndLimitBusesByDistance.lastLocationSignature = locationSignature;
 }
     </script>
 </html>
