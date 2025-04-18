@@ -1799,7 +1799,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4476,8 +4476,8 @@ function getVehicleDistance(bus) {
   let distanceInMeters = 999;
   
   // 嘗試從Distance字段獲取距離（如果存在）
-  if (bus.Distance !== undefined) {
-    distanceInMeters = bus.Distance * 1000; // 公里轉公尺
+  if (bus.distance !== undefined) {
+    distanceInMeters = bus.distance; // 公尺
   }
   // 如果沒有Distance字段，嘗試從位置計算距離
   else if (bus.position && bus.position.latitude && bus.position.longitude) {
