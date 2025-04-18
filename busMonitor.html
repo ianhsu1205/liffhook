@@ -47,15 +47,27 @@
 }
 
 .bus-plate.direction-go.distance-close {
-  background: linear-gradient(to right, #e6f2ff 75%, #ffffff 75%);
+  background: linear-gradient(to right, #e6f2ff 85%, #ffffff 85%);
 }
 
 .bus-plate.direction-go.distance-medium {
-  background: linear-gradient(to right, #e6f2ff 50%, #ffffff 50%);
+  background: linear-gradient(to right, #e6f2ff 70%, #ffffff 70%);
 }
 
 .bus-plate.direction-go.distance-far {
+  background: linear-gradient(to right, #e6f2ff 55%, #ffffff 55%);
+}
+
+.bus-plate.direction-go.distance-veryfar {
+  background: linear-gradient(to right, #e6f2ff 40%, #ffffff 40%);
+}
+
+.bus-plate.direction-go.distance-remote {
   background: linear-gradient(to right, #e6f2ff 25%, #ffffff 25%);
+}
+
+.bus-plate.direction-go.distance-extreme {
+  background: linear-gradient(to right, #e6f2ff 10%, #ffffff 10%);
 }
 
 /* 距離漸層 - 返程（綠色） */
@@ -64,15 +76,27 @@
 }
 
 .bus-plate.direction-back.distance-close {
-  background: linear-gradient(to right, #e6fff2 75%, #ffffff 75%);
+  background: linear-gradient(to right, #e6fff2 85%, #ffffff 85%);
 }
 
 .bus-plate.direction-back.distance-medium {
-  background: linear-gradient(to right, #e6fff2 50%, #ffffff 50%);
+  background: linear-gradient(to right, #e6fff2 70%, #ffffff 70%);
 }
 
 .bus-plate.direction-back.distance-far {
+  background: linear-gradient(to right, #e6fff2 55%, #ffffff 55%);
+}
+
+.bus-plate.direction-back.distance-veryfar {
+  background: linear-gradient(to right, #e6fff2 40%, #ffffff 40%);
+}
+
+.bus-plate.direction-back.distance-remote {
   background: linear-gradient(to right, #e6fff2 25%, #ffffff 25%);
+}
+
+.bus-plate.direction-back.distance-extreme {
+  background: linear-gradient(to right, #e6fff2 10%, #ffffff 10%);
 }
 /* 自動偵測按鈕啟動樣式 */
 .utility-button.auto-detect-active {
@@ -1799,7 +1823,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4498,18 +4522,35 @@ function getVehicleDistance(bus) {
 // 根據距離為元素添加CSS類
 function addDistanceClassToElement(element, distanceInMeters) {
   // 先清除所有距離相關的類
-  element.classList.remove("distance-veryclose", "distance-close", "distance-medium", "distance-far");
+  element.classList.remove(
+    "distance-veryclose", 
+    "distance-close", 
+    "distance-medium", 
+    "distance-far",
+    "distance-veryfar",
+    "distance-remote",
+    "distance-extreme"
+  );
   
-  // 添加對應的距離類
-  if (distanceInMeters <= 80) {
-    element.classList.add("distance-veryclose"); // 0-80m 滿色
+  // 添加對應的距離類 - 更細緻的距離區分
+  if (distanceInMeters <= 50) {
+    element.classList.add("distance-veryclose"); // 0-50m 100%滿色
+  } else if (distanceInMeters <= 100) {
+    element.classList.add("distance-close");     // 51-100m 85%滿色
   } else if (distanceInMeters <= 150) {
-    element.classList.add("distance-close"); // 81-150m 3/4滿色
-  } else if (distanceInMeters <= 220) {
-    element.classList.add("distance-medium"); // 151-220m 2/4滿色
+    element.classList.add("distance-medium");    // 101-150m 70%滿色
+  } else if (distanceInMeters <= 200) {
+    element.classList.add("distance-far");       // 151-200m 55%滿色
+  } else if (distanceInMeters <= 250) {
+    element.classList.add("distance-veryfar");   // 201-250m 40%滿色
+  } else if (distanceInMeters <= 300) {
+    element.classList.add("distance-remote");    // 251-300m 25%滿色
   } else {
-    element.classList.add("distance-far"); // 221m以上 1/4滿色
+    element.classList.add("distance-extreme");   // 300m+ 10%滿色
   }
+  
+  // 直接將距離資訊添加到元素的 data 屬性中，方便工具提示或其他用途
+  element.dataset.distance = Math.round(distanceInMeters);
 }
 
 
