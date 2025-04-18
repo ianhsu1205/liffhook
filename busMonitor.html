@@ -1744,7 +1744,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
         <div class="action-button postpone-button" onclick="postponeEditing()">
     <i class="fas fa-clock"></i> 等下編輯
    </div>
-      <div class="action-button cancel-button" onclick="cancelBusInput()">
+      <div class="action-button cancel-button" onclick="cancelBusInput(true)">
         <i class="fas fa-times"></i> 取消
       </div>
     </div>
@@ -1799,7 +1799,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.8.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.8.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2123,7 +2123,7 @@ function handleBackButton() {
       editingBuses.length > 0 && 
       activeEditingBusIndex >= 0 &&
       !document.getElementById("busInputContainer").classList.contains("hidden")) {
-    cancelBusInput();
+    cancelBusInput(true);
     return;
   }
   
@@ -2329,9 +2329,15 @@ function clearDisplayedBuses() {
 
 }
 // 6. 修改cancelBusInput函數
-function cancelBusInput() {
+function cancelBusInput(skipConfirm = false) {
   if (activeEditingBusIndex >= 0) {
-    confirmCancelEditing(activeEditingBusIndex);
+    if (skipConfirm) {
+      // 直接移除編輯中的車輛，不顯示確認視窗
+      removeEditingBus(activeEditingBusIndex);
+    } else {
+      // 顯示確認對話視窗
+      confirmCancelEditing(activeEditingBusIndex);
+    }
   }
 }
 // 切換自動偵測功能
@@ -2795,8 +2801,7 @@ function selectBusForInput(bus, index, scrollToView = false) {
     
     // 嘗試在全局列表中找到對應車輛並同步ID
     const globalIndex = allDetectedBuses.findIndex(item => 
-      item.plateNumber === bus.plateNumber && 
-      item.operatorName === bus.operatorName
+      item.plateNumber === bus.plateNumber
     );
     
     if (globalIndex !== -1) {
@@ -4546,7 +4551,7 @@ function updateDetectedBusesList() {
   const startTime = performance.now();
   
     // 定義批次大小 - 添加這一行
-  const batchSize = 50;
+  const batchSize = 100;
 
   // 更新計數
   const busCountElement = document.getElementById("busCount");
@@ -4693,8 +4698,7 @@ function createBusListItem(bus, index) {
     bus.uniqueId =uuid.v4();
         // 更新全局列表中的對應車輛ID
     const globalBus = allDetectedBuses.find(b => 
-      b.plateNumber === bus.plateNumber && 
-      b.operatorName === bus.operatorName && 
+      b.plateNumber === bus.plateNumber &&
       !b.uniqueId
     );
     if (globalBus) {
@@ -4898,9 +4902,9 @@ function submitSelectedBus() {
           vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
         );
 
-        // 2. 檢查是否與其他正在編輯的車輛重複
-        const duplicateInEditing = editingBuses.find(vehicle => 
-          vehicle.plateNumber === plateNumber && vehicle.uniqueId !== uniqueId
+        // 2. 檢查是否與其他正在編輯的車輛重複（排除當前編輯的車輛）
+        const duplicateInEditing = editingBuses.find((vehicle, idx) => 
+          vehicle.plateNumber === plateNumber && idx !== currentIndex
         );
 
         // 3. 合併檢查結果
@@ -5269,6 +5273,7 @@ async function submitBusRecord(bus, index, mainItem, selectedOtherItems) {
     const finalNegativeItems = [...negativeItems, ...unclassifiedItems];
      // 處理路線名稱，檢查 BusStatus 是否為 "99"
     const routeName = bus.BusStatus === "99" ? "非營運" : (bus.routeName?.chinese || "不明");
+
     // 構建最終新增數據
     const submissionData = {
       userId: document.getElementById("userId").value,
