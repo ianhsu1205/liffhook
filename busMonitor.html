@@ -1823,7 +1823,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.0(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2974,21 +2974,6 @@ function updateBusEditingInterface() {
     <div class="text-marquee">${routeInfo}</div>
   </div>`;
   
-  // 檢查路線長度，如果過長則啟用跑馬燈效果
-  setTimeout(() => {
-    const textElement = routeElement.querySelector('.text-marquee');
-    if (textElement) {
-      const parentWidth = textElement.parentElement.offsetWidth;
-      const textWidth = textElement.scrollWidth;
-      
-      if (textWidth > parentWidth) {
-        textElement.classList.add('scrolling');
-      } else {
-        textElement.classList.remove('scrolling');
-      }
-    }
-  }, 20);
-
   // 更新公司信息
   document.getElementById("inputBusCompany").textContent = bus.operatorName || "未知公司";
   
@@ -6107,7 +6092,7 @@ function initializeMarquees() {
   const MAX_DURATION = 20;
   
   // 獲取所有需要處理的跑馬燈元素
-  const marquees = document.querySelectorAll('.text-marquee');
+  const marquees = document.querySelectorAll('.list-marquee.scrolling');
   
   // 如果沒有元素，直接返回
   if (marquees.length === 0) return;
@@ -6118,36 +6103,17 @@ function initializeMarquees() {
       // 檢查元素是否可見且已渲染
       if (!isElementVisible(marquee)) return;
       
-      // 獲取父元素和文本寬度
-      const parentWidth = marquee.parentElement.offsetWidth;
-      const textWidth = marquee.scrollWidth;
+      // 計算適當的動畫持續時間
+      const textLength = marquee.textContent.length;
+      let duration = textLength * CHARACTER_SCROLL_SPEED;
+      duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
       
-      // 只有當文本超出容器寬度時才設置滾動
-      if (textWidth > parentWidth) {
-        // 移除現有動畫類以重置
-        marquee.classList.remove('scrolling');
-        
-        // 計算適當的動畫持續時間
-        const textLength = marquee.textContent.length;
-        let duration = textLength * CHARACTER_SCROLL_SPEED;
-        duration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
-        
-        // 設置動畫持續時間變量
-        marquee.style.setProperty('--scroll-duration', `${duration}s`);
-        
-        // 強制重排
-        void marquee.offsetWidth;
-        
-        // 重新添加動畫類
-        marquee.classList.add('scrolling');
-      } else {
-        // 內容未超出，不需要滾動
-        marquee.classList.remove('scrolling');
-      }
+      // 設置動畫持續時間變量
+      marquee.style.setProperty('--scroll-duration', `${duration}s`);
+      
+      // 強制重排
+      void marquee.offsetWidth;
     });
-    
-    // 單獨處理列表跑馬燈以獲得更好的性能
-    handleListMarquees();
   });
 }
 
