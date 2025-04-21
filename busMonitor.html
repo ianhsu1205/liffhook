@@ -1823,7 +1823,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.1(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4332,9 +4332,7 @@ function updateManualCompanyOptions() {
   selectedCompanies.forEach(company => {
     const option = document.createElement("option");
     option.value = company;
-    // 截取簡稱 (例如: "首都客運" -> "首都")
-    const shortName = company.length > 2 ? company.substring(0, 2) : company;
-    option.textContent = shortName;
+    option.textContent = company;
     companySelect.appendChild(option);
   });
   
