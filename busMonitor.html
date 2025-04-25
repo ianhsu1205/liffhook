@@ -1910,7 +1910,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.6(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3174,7 +3174,7 @@ function addManualBus() {
     return;
   }
   
-  // 檢查是否已存在相同車牌號的車輛 - 修正：添加變數定義
+  // 檢查是否已存在相同車牌號的車輛
   const existingVehicleIndex = allDetectedBuses.findIndex(bus => 
     bus.plateNumber === selectedVehicleData.plateNumber);
   
@@ -3202,7 +3202,9 @@ function addManualBus() {
   const newBus = {
     plateNumber: selectedVehicleData.plateNumber,
     operatorName: selectedVehicleData.operatorName,
-    routeName: route || "", // 直接使用路線名稱，不再使用 chinese 屬性
+    routeName: {
+      chinese: route || "未知路線" // 使用中文路線名稱，如果未輸入則顯示"未知路線"
+    }, 
     direction: direction, 
     position: {
       latitude: currentLatitude,
