@@ -1861,12 +1861,14 @@ content: "　"; /* 使用單個全角空格作為間隔 */
         <option value="台中客運">台中</option>
       </select>
       <button type="button" id="btnNextToPlateInput" class="secondary-button" style="margin-top: 10px;">下一步</button>
+      <button type="button" class="secondary-button" onclick="closeManualInputModal()">取消</button>
     </div>
     
     <!-- 步驟2: 輸入車號和選擇匹配車輛 -->
     <div class="form-group" id="plateInputSection" style="display: none;">
       <label for="manualPlateNumber" class="required">車號</label>
-      <input type="text" id="manualPlateNumber" placeholder="輸入車號中的數字" oninput="searchMatchingVehicles()">
+     <input type="text" id="manualPlateNumber" placeholder="輸入車號中的數字" 
+       oninput="searchMatchingVehicles()" inputmode="numeric" pattern="[0-9A-Z-]*">
       
       <!-- 匹配車輛結果列表 -->
       <div id="matchingVehiclesList" class="matching-vehicles-container">
@@ -1874,7 +1876,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       </div>
       
       <div class="button-group" style="margin-top: 10px;">
-        <button type="button" id="btnBackToCompany" class="secondary-button">返回</button>
+        <button type="button" id="btnBackToCompany" class="secondary-button">上一步</button>
+        <button type="button" class="secondary-button" onclick="closeManualInputModal()">取消</button>
       </div>
     </div>
     
@@ -1901,13 +1904,13 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       
       <div class="button-group">
         <button type="button" id="btnConfirmVehicle" onclick="addManualBus()">確認新增</button>
-        <button type="button" id="btnBackToPlateInput" class="secondary-button">返回</button>
+        <button type="button" id="btnBackToPlateInput" class="secondary-button">上一步</button>
         <button type="button" class="secondary-button" onclick="closeManualInputModal()">取消</button>
       </div>
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2007,6 +2010,9 @@ let currentSwipePage = 0;
 let pagesContainer = null;
 let categoryNav = null;
 let totalPages = 0;
+// 全局變量儲存各公司的車輛資料
+let companyVehicles = {};
+let currentCompanyVehicles = [];
 // 添加一個全局變數，用於防止連續處理
 let backButtonHandlingDelay = false;
 // 公司列表數據
@@ -2021,8 +2027,28 @@ const companies = [
 let selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
 // 主要項目預設值
 const mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "左轉無缺失","右轉無缺失"];
-// 初始化公司篩選按鈕
-// 初始化公司篩選按鈕
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+  .matching-vehicles-container {
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    -webkit-overflow-scrolling: touch; /* 為iOS提供平滑滾動 */
+    overscroll-behavior: contain; /* 防止滾動影響外部元素 */
+  }
+  
+  /* 確保滾動操作不被誤觸的元素阻擋 */
+  .matching-vehicle-item {
+    position: relative;
+    z-index: 1;
+    touch-action: pan-y; /* 允許垂直滑動 */
+  }
+`;
+document.head.appendChild(styleElement);
+
+
 // 初始化公司篩選按鈕
 function initCompanyFilters() {
   document.querySelectorAll('.company-filter-btn').forEach(btn => {
@@ -2848,6 +2874,7 @@ function resetManualInputForm() {
   selectedVehicleData = null;
 }
 
+
 // 轉到車號輸入步驟
 function goToPlateInputStep() {
   // 檢查是否選了公司
@@ -2857,20 +2884,89 @@ function goToPlateInputStep() {
     return;
   }
   
+  // 顯示載入中提示
+  document.getElementById("matchingVehiclesList").innerHTML = `
+    <div class="no-matching-vehicles">
+      <i class="fas fa-spinner fa-spin"></i> 載入車輛資料中...
+    </div>
+  `;
+  
   // 隱藏公司選擇，顯示車號輸入
   document.getElementById("companySelectionSection").style.display = "none";
   document.getElementById("plateInputSection").style.display = "block";
   
-  // 清空之前的輸入和結果
-  document.getElementById("manualPlateNumber").value = "";
-  document.getElementById("matchingVehiclesList").innerHTML = "";
+  const companyValue = companySelect.value;
   
-  // 設置焦點到車號輸入框
+  // 檢查是否已有此公司的車輛資料緩存
+  if (!companyVehicles[companyValue]) {
+    // 第一次獲取此公司的資料
+    fetch(`${base_url}/BusVehicle?operatorName=${encodeURIComponent(companyValue)}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`API請求失敗: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // 儲存到緩存中
+        if (data.success && data.data && data.data.length > 0) {
+          companyVehicles[companyValue] = data.data;
+        } else {
+          companyVehicles[companyValue] = [];
+        }
+        
+        // 設置當前操作的車輛數據
+        currentCompanyVehicles = companyVehicles[companyValue];
+        
+        // 清空匹配結果
+        document.getElementById("matchingVehiclesList").innerHTML = "";
+        
+        // 如果沒有車輛數據，顯示提示
+        if (currentCompanyVehicles.length === 0) {
+          document.getElementById("matchingVehiclesList").innerHTML = `
+            <div class="no-matching-vehicles">
+              該公司沒有車輛資料
+            </div>
+          `;
+        }
+      })
+      .catch(error => {
+        console.error("獲取車輛資料失敗:", error);
+        
+        // 顯示錯誤訊息
+        document.getElementById("matchingVehiclesList").innerHTML = `
+          <div class="no-matching-vehicles">
+            獲取車輛資料失敗，請稍後再試
+          </div>
+        `;
+        
+        // 設置為空數組避免undefined錯誤
+        currentCompanyVehicles = [];
+      });
+  } else {
+    // 使用已有的緩存數據
+    currentCompanyVehicles = companyVehicles[companyValue];
+    
+    // 清空匹配結果
+    document.getElementById("matchingVehiclesList").innerHTML = "";
+    
+    // 如果沒有車輛數據，顯示提示
+    if (currentCompanyVehicles.length === 0) {
+      document.getElementById("matchingVehiclesList").innerHTML = `
+        <div class="no-matching-vehicles">
+          該公司沒有車輛資料
+        </div>
+      `;
+    }
+  }
+  
+  // 清空車號輸入框並獲取焦點
+  const plateInput = document.getElementById("manualPlateNumber");
+  plateInput.value = "";
   setTimeout(() => {
-    document.getElementById("manualPlateNumber").focus();
+    plateInput.focus();
   }, 100);
 }
-
 // 返回公司選擇步驟
 function goBackToCompanyStep() {
   document.getElementById("companySelectionSection").style.display = "block";
@@ -2878,61 +2974,62 @@ function goBackToCompanyStep() {
 }
 
 // 根據輸入的車號查詢匹配車輛
-async function searchMatchingVehicles() {
-  try {
-    const plateInput = document.getElementById("manualPlateNumber").value.trim();
-    const companyValue = document.getElementById("manualCompany").value;
-    
-    // 如果輸入太短或沒有選擇公司，清空結果
-    if (plateInput.length < 2 || !companyValue) {
-      document.getElementById("matchingVehiclesList").innerHTML = "";
-      return;
-    }
-    
-    // 顯示載入中提示
-    document.getElementById("matchingVehiclesList").innerHTML = `
-      <div class="no-matching-vehicles">
-        <i class="fas fa-spinner fa-spin"></i> 搜尋中...
-      </div>
-    `;
-    
-    // 調用API獲取車輛列表
-    const response = await fetch(`${base_url}/BusVehicle?operatorName=${encodeURIComponent(companyValue)}`);
-    
-    if (!response.ok) {
-      throw new Error(`API請求失敗: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // 如果沒有數據或資料為空
-    if (!data.success || !data.data || data.data.length === 0) {
-      document.getElementById("matchingVehiclesList").innerHTML = `
-        <div class="no-matching-vehicles">
-          該公司沒有車輛資料
-        </div>
-      `;
-      return;
-    }
-    
-    // 篩選匹配的車輛 - 使用模糊比對
-    const plateNumber = plateInput.toUpperCase();
-    matchedVehicles = data.data.filter(vehicle => {
-      // 只比對數字部分
-      const numericPart = extractNumericPart(vehicle.plateNumber);
-      return numericPart.includes(plateNumber);
-    });
-    
-    // 顯示篩選結果
-    updateMatchingVehiclesList();
-  } catch (error) {
-    console.error("搜尋車輛失敗:", error);
-    document.getElementById("matchingVehiclesList").innerHTML = `
-      <div class="no-matching-vehicles">
-        搜尋時發生錯誤，請稍後再試
-      </div>
-    `;
+function searchMatchingVehicles() {
+  const plateInput = document.getElementById("manualPlateNumber").value.trim().toUpperCase();
+  
+  // 如果輸入太短，清空結果
+  if (plateInput.length < 2) {
+    document.getElementById("matchingVehiclesList").innerHTML = "";
+    return;
   }
+  
+  // 如果沒有數據，顯示提示
+  if (!currentCompanyVehicles || currentCompanyVehicles.length === 0) {
+    document.getElementById("matchingVehiclesList").innerHTML = `
+      <div class="no-matching-vehicles">
+        該公司沒有車輛資料
+      </div>
+    `;
+    return;
+  }
+  
+  // 篩選匹配的車輛
+  // 先做精確匹配
+  matchedVehicles = currentCompanyVehicles.filter(vehicle => {
+    const plateNumbers = extractNumericPart(vehicle.plateNumber);
+    return plateNumbers === plateInput;
+  });
+  
+  // 如果沒有精確匹配，再做包含匹配
+  if (matchedVehicles.length === 0) {
+    matchedVehicles = currentCompanyVehicles.filter(vehicle => {
+      const plateNumbers = extractNumericPart(vehicle.plateNumber);
+      return plateNumbers.includes(plateInput);
+    });
+  }
+  
+  // 如果數字部分相同，優先顯示非字母後綴的車號
+  matchedVehicles.sort((a, b) => {
+    // 先按數字部分精確度排序
+    const aMatch = extractNumericPart(a.plateNumber) === plateInput;
+    const bMatch = extractNumericPart(b.plateNumber) === plateInput;
+    
+    if (aMatch && !bMatch) return -1;
+    if (!aMatch && bMatch) return 1;
+    
+    // 數字部分匹配度相同時，無字母後綴的優先
+    const aHasSuffix = /\d+[A-Z]/.test(a.plateNumber);
+    const bHasSuffix = /\d+[A-Z]/.test(b.plateNumber);
+    
+    if (!aHasSuffix && bHasSuffix) return -1;
+    if (aHasSuffix && !bHasSuffix) return 1;
+    
+    // 其他情況按車號排序
+    return a.plateNumber.localeCompare(b.plateNumber);
+  });
+  
+  // 更新顯示結果
+  updateMatchingVehiclesList();
 }
 
 // 提取車牌號碼中的數字部分
@@ -2974,8 +3071,35 @@ function updateMatchingVehiclesList() {
   });
   
   listContainer.innerHTML = html;
+  // 添加滾動事件處理，確保滾動正常
+  setTimeout(() => {
+    const container = document.querySelector('.matching-vehicles-container');
+    if (container) {
+      // 移除舊事件監聽器，避免重複
+      container.removeEventListener('touchmove', handleTouchMove);
+      
+      // 添加新的事件監聽器
+      container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    }
+  }, 0);
 }
-
+// 處理觸摸滑動事件
+function handleTouchMove(e) {
+  // 檢查是否已滾動到頂部或底部
+  const container = e.currentTarget;
+  const isAtTop = container.scrollTop === 0;
+  const isAtBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
+  
+  // 如果滾動到頂部或底部，可以考慮阻止默認行為，防止頁面滾動
+  // 但這可能影響用戶體驗，所以通常不建議這麼做
+  // 如果需要，可以添加以下代碼：
+  /*
+  if ((isAtTop && e.touches[0].clientY > e.touches[0].clientY) || 
+      (isAtBottom && e.touches[0].clientY < e.touches[0].clientY)) {
+    e.preventDefault();
+  }
+  */
+}
 // 選擇車輛
 function selectVehicle(index) {
   // 檢查索引是否有效
