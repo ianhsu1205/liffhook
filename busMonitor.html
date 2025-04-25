@@ -1910,7 +1910,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.6(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2994,25 +2994,30 @@ function searchMatchingVehicles() {
   }
   
   // 篩選匹配的車輛
-  // 先做精確匹配
+  // 精確匹配：檢查車號中是否有數字部分完全等於輸入
   matchedVehicles = currentCompanyVehicles.filter(vehicle => {
-    const plateNumbers = extractNumericPart(vehicle.plateNumber);
-    return plateNumbers === plateInput;
+    const plateNumbers = vehicle.plateNumber.match(/\d+/g);
+    if (!plateNumbers) return false;
+    return plateNumbers.some(num => num === plateInput);
   });
   
   // 如果沒有精確匹配，再做包含匹配
   if (matchedVehicles.length === 0) {
     matchedVehicles = currentCompanyVehicles.filter(vehicle => {
-      const plateNumbers = extractNumericPart(vehicle.plateNumber);
-      return plateNumbers.includes(plateInput);
+      const plateNumbers = vehicle.plateNumber.match(/\d+/g);
+      if (!plateNumbers) return false;
+      return plateNumbers.some(num => num.includes(plateInput));
     });
   }
   
   // 如果數字部分相同，優先顯示非字母後綴的車號
   matchedVehicles.sort((a, b) => {
     // 先按數字部分精確度排序
-    const aMatch = extractNumericPart(a.plateNumber) === plateInput;
-    const bMatch = extractNumericPart(b.plateNumber) === plateInput;
+    const aPlateNumbers = a.plateNumber.match(/\d+/g) || [];
+    const bPlateNumbers = b.plateNumber.match(/\d+/g) || [];
+    
+    const aMatch = aPlateNumbers.some(num => num === plateInput);
+    const bMatch = bPlateNumbers.some(num => num === plateInput);
     
     if (aMatch && !bMatch) return -1;
     if (!aMatch && bMatch) return 1;
@@ -3038,7 +3043,10 @@ function extractNumericPart(plateNumber) {
   
   // 從車牌中提取數字部分
   const matches = plateNumber.match(/\d+/g);
-  return matches ? matches.join("") : "";
+  if (!matches) return "";
+  
+  // 只返回數字部分，不拼接
+  return matches.join(" "); // 用空格分隔不同數字段，便於後續匹配
 }
 
 // 更新匹配車輛列表
@@ -3165,7 +3173,12 @@ function addManualBus() {
     showFloatingNotification("此車輛近期已新增記錄，請稍後再試", "error", 3000);
     return;
   }
-    if (existingVehicleIndex !== -1) {
+  
+  // 檢查是否已存在相同車牌號的車輛 - 修正：添加變數定義
+  const existingVehicleIndex = allDetectedBuses.findIndex(bus => 
+    bus.plateNumber === selectedVehicleData.plateNumber);
+  
+  if (existingVehicleIndex !== -1) {
     // 如果已存在，提示用戶並問是否編輯該車輛
     if (confirm(`車號 ${selectedVehicleData.plateNumber} 已在列表中存在，是否直接編輯？`)) {
       const existingVehicle = allDetectedBuses[existingVehicleIndex];
@@ -3184,11 +3197,12 @@ function addManualBus() {
       return; // 用戶選擇不編輯，直接返回
     }
   }
+  
   // 創建新車輛對象，使用選中車輛的數據
   const newBus = {
     plateNumber: selectedVehicleData.plateNumber,
     operatorName: selectedVehicleData.operatorName,
-    routeName: { chinese: route || "手動輸入" },
+    routeName: route || "", // 直接使用路線名稱，不再使用 chinese 屬性
     direction: direction, 
     position: {
       latitude: currentLatitude,
