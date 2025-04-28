@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.3(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2509,7 +2509,6 @@ function toggleAutoDetect() {
     autoDetectButton.classList.add("auto-detect-active");
   }
 }
-// 打開手動輸入模態框時暫停自動偵測
 // 打開手動輸入模態框
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
@@ -4790,8 +4789,7 @@ async function detectBuses(isAutoDetection = false) {
   // 同步編輯狀態
   syncEditingStatus();
 }
-// 更新手動輸入模態框中的公司選項，根據目前選中的公司過濾
-// 更新手動輸入模態框中的公司選項，根據目前選中的公司過濾
+// 更新手動輸入模態框中的公司選項，根據目前已選擇的公司過濾
 function updateManualCompanyOptions() {
   const companySelect = document.getElementById("manualCompany");
   
