@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.0(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.1(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2510,7 +2510,6 @@ function toggleAutoDetect() {
   }
 }
 // 打開手動輸入模態框時暫停自動偵測
-// 打開手動輸入模態框時暫停自動偵測並更新公司選項
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
   const wasAutoDetecting = !!autoDetectInterval;
@@ -2521,7 +2520,7 @@ function openManualInputModal() {
     window.tempAutoDetectState = true;
   }
   
-  // 重置表單為步驟1
+  // 先重置表單為步驟1
   resetManualInputForm();
   
   // 檢查選定的公司數量
@@ -2534,8 +2533,10 @@ function openManualInputModal() {
   // 顯示模態框
   document.getElementById("manualInputModal").style.display = "block";
   
-  // 更新公司下拉選項，會處理單一公司的自動選擇
-  updateManualCompanyOptions();
+  // 確保在模態框顯示後，更新公司下拉選項
+  setTimeout(() => {
+    updateManualCompanyOptions();
+  }, 0);
   
   // 隱藏可能的錯誤訊息
   document.getElementById("manualInputError").style.display = "none";
@@ -4807,7 +4808,7 @@ function updateManualCompanyOptions() {
     return;
   }
   
-  // 如果只有一間公司被選中，則不需要顯示「請選擇公司」選項
+  // 如果只有一間公司被選中，直接選擇該公司並進入下一步
   if (selectedCompanies.length === 1) {
     const onlyOption = document.createElement("option");
     onlyOption.value = selectedCompanies[0];
@@ -4815,14 +4816,14 @@ function updateManualCompanyOptions() {
     companySelect.appendChild(onlyOption);
     companySelect.value = selectedCompanies[0];
     
-    // 直接載入該公司的車輛資料
+    // 確保我們在模態框顯示後才自動進入下一步
     setTimeout(() => {
       goToPlateInputStep();
     }, 100);
     return;
   }
   
-  // 如果有多間公司，才顯示「請選擇公司」
+  // 如果有多間公司，先添加請選擇選項
   const emptyOption = document.createElement("option");
   emptyOption.value = "";
   emptyOption.textContent = "請選擇公司";
