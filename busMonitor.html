@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.9(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2082,6 +2082,11 @@ function initCompanyFilters() {
       
       // 先應用篩選，清理不符合條件的車輛
       applyCompanyFilter();
+      
+      // 如果手動輸入模態框開啟，更新公司選項
+      if (document.getElementById("manualInputModal").style.display === "block") {
+        updateManualCompanyOptions();
+      }
       
       // 重新偵測車輛，以獲取最新數據
       detectBuses(false);
