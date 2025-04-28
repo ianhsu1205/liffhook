@@ -1910,7 +1910,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -6422,14 +6422,11 @@ function enhanceMatchingVehiclesScrolling() {
     const container = document.querySelector('.matching-vehicles-container');
     if (!container) return;
     
-    // 移除可能干擾的事件監聽器
-    container.removeEventListener('touchmove', handleTouchMove, { passive: true });
-    container.removeEventListener('touchmove', handleTouchMove, { passive: false });
-    
-    // 重設容器的觸控行為
+    // 確保容器高度固定且具有適當的滾動屬性
     container.style.cssText = `
       max-height: 250px;
-      overflow-y: auto;
+      height: 250px;
+      overflow-y: scroll;
       margin-top: 15px;
       border: 1px solid #ddd;
       border-radius: 6px;
@@ -6438,36 +6435,74 @@ function enhanceMatchingVehiclesScrolling() {
       overscroll-behavior: contain;
       position: relative;
       z-index: 10;
+      scroll-behavior: smooth;
     `;
     
-    // 禁止所有子項目的事件干擾
+    // 確保子元素不阻擋滾動事件
     const items = container.querySelectorAll('.matching-vehicle-item');
     items.forEach(item => {
       item.style.cssText = `
         position: relative;
         z-index: 1;
-        touch-action: pan-y;
+        touch-action: none;
         -webkit-tap-highlight-color: transparent;
+        pointer-events: auto;
+        user-select: none;
       `;
       
-      // 移除可能攔截觸控事件的監聽器
-      const newItem = item.cloneNode(true);
+      // 重新綁定點擊事件，避免觸摸事件拖累
+      const index = item.dataset.index;
       const originalOnClick = item.onclick;
-      if (originalOnClick) {
-        newItem.onclick = originalOnClick;
+      
+      // 移除原有的事件監聽器並用新的替換
+      item.onclick = null;
+      item.ontouchstart = null;
+      item.ontouchmove = null;
+      item.ontouchend = null;
+      
+      // 使用新的元素取代舊元素，完全清除所有事件
+      const newItem = item.cloneNode(true);
+      if (originalOnClick && index !== undefined) {
+        newItem.onclick = function(e) {
+          e.stopPropagation();
+          selectVehicle(parseInt(index));
+        };
       }
-      item.parentNode.replaceChild(newItem, item);
+      
+      // 替換元素
+      if (item.parentNode) {
+        item.parentNode.replaceChild(newItem, item);
+      }
     });
     
-    // 添加邊界防彈跳效果
-    container.addEventListener('scroll', function() {
-      if (this.scrollTop <= 0) {
-        this.style.overscrollBehaviorY = 'none';
-      } else {
-        this.style.overscrollBehaviorY = 'contain';
-      }
-    }, { passive: true });
-  }, 50);
+    // 添加特殊的滾動處理
+    container.addEventListener('touchstart', handleMatchingContainerTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleMatchingContainerTouchMove, { passive: false });
+    container.addEventListener('touchend', handleMatchingContainerTouchEnd, { passive: true });
+    
+    // 防止外層容器干擾滑動
+    const parentModal = container.closest('.modal-content');
+    if (parentModal) {
+      parentModal.addEventListener('touchmove', function(e) {
+        if (container.contains(e.target)) {
+          e.stopPropagation();
+        }
+      }, { passive: false });
+    }
+    
+    // 為列表添加額外空間，確保可以完全滑動
+    const extraSpace = document.createElement('div');
+    extraSpace.style.cssText = 'height: 50px; width: 100%;';
+    container.appendChild(extraSpace);
+  }, 100);
+}
+
+// 處理列表容器的觸摸開始事件
+function handleMatchingContainerTouchStart(e) {
+  this._touchStartY = e.touches[0].clientY;
+  this._touchStartScrollTop = this.scrollTop;
+  this._touchStartTime = Date.now();
+  this._isScrolling = false;
 }
 // 隱藏偵測指示器
 function hideDetectionIndicator() {
@@ -6501,7 +6536,63 @@ function initDirectionButtons() {
     });
   });
 }
-
+// 處理列表容器的觸摸移動事件
+function handleMatchingContainerTouchMove(e) {
+  if (!this._touchStartY) return;
+  
+  const currentY = e.touches[0].clientY;
+  const deltaY = this._touchStartY - currentY;
+  
+  // 標記為正在滾動
+  this._isScrolling = true;
+  
+  // 檢查是否在容器邊界
+  const isAtTop = this.scrollTop <= 0;
+  const isAtBottom = this.scrollTop + this.clientHeight >= this.scrollHeight;
+  
+  // 如果在頂部且嘗試向下滾動，或在底部且嘗試向上滾動，則阻止默認行為
+  if ((isAtTop && deltaY < 0) || (isAtBottom && deltaY > 0)) {
+    // 允許容器的父元素滾動
+    return true;
+  }
+  
+  // 自定義滾動處理以確保流暢性
+  this.scrollTop = this._touchStartScrollTop + deltaY;
+  
+  // 阻止頁面滾動
+  e.preventDefault();
+  e.stopPropagation();
+}
+// 處理列表容器的觸摸結束事件
+function handleMatchingContainerTouchEnd(e) {
+  // 如果是短時間輕觸且沒有明顯滾動，視為點擊
+  const touchDuration = Date.now() - this._touchStartTime;
+  const wasTap = touchDuration < 200 && !this._isScrolling;
+  
+  // 清除臨時屬性
+  this._touchStartY = null;
+  this._touchStartScrollTop = null;
+  this._touchStartTime = null;
+  this._isScrolling = false;
+  
+  // 為滾動添加慣性效果
+  if (!wasTap) {
+    const endY = e.changedTouches[0].clientY;
+    const deltaY = this._touchStartY - endY;
+    const speed = deltaY / touchDuration;
+    
+    if (Math.abs(speed) > 0.5) {
+      const momentum = speed * 15;
+      const targetScrollTop = this.scrollTop + momentum;
+      
+      // 使用動畫滾動到目標位置
+      this.scrollTo({
+        top: targetScrollTop,
+        behavior: 'smooth'
+      });
+    }
+  }
+}
 // 添加地址偵測功能
 function detectAddress() {
   // 獲取按鈕並更新狀態
