@@ -597,7 +597,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.0.7</div>
+      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.0.8</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -668,7 +668,14 @@
       let globalLoadingTimeout = null
       let userId = ""
       // 全局變數
-      let mainItems = ["左轉未停", "右轉未停", "未指差", "未停未指差", "無缺失"]
+      const mainItems = [
+        "左轉未停",
+        "右轉未停",
+        "未指差",
+        "未停未指差",
+        "左轉無缺失",
+        "右轉無缺失",
+      ]
       let otherItems = []
       let currentEditRecordId = null
       // 在頁面載入時初始化
