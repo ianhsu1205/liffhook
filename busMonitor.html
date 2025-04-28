@@ -1861,12 +1861,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     <div class="form-group" id="companySelectionSection">
       <label for="manualCompany" class="required">公司</label>
       <select id="manualCompany">
-        <option value="">請選擇公司</option>
-        <option value="首都客運">首都</option>
-        <option value="臺北客運">臺北</option>
-        <option value="大都會客運">大都會</option>
-        <option value="三重客運">三重</option>
-        <option value="台中客運">台中</option>
+
       </select>
       <button type="button" id="btnNextToPlateInput" class="secondary-button" style="margin-top: 10px;">下一步</button>
       <button type="button" class="secondary-button" onclick="closeManualInputModal()">取消</button>
@@ -1918,7 +1913,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2510,7 +2505,6 @@ function toggleAutoDetect() {
   }
 }
 // 打開手動輸入模態框
-// 打開手動輸入模態框
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
   const wasAutoDetecting = !!autoDetectInterval;
@@ -2522,7 +2516,7 @@ function openManualInputModal() {
   }
   
   // 檢查選定的公司數量
-  const selectedCompanyCount = document.querySelectorAll('.company-filter-btn.active').length;
+  const selectedCompanyCount = document.querySelectorAll('.company-filter-btn active').length;
   if (selectedCompanyCount === 0) {
     // 如果沒有選中的公司，顯示提示並返回
     showFloatingNotification("請先在主頁面選擇至少一間公司", "error");
