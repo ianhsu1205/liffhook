@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2509,6 +2509,7 @@ function toggleAutoDetect() {
     autoDetectButton.classList.add("auto-detect-active");
   }
 }
+// 打開手動輸入模態框
 // 打開手動輸入模態框
 function openManualInputModal() {
   // 記錄當前自動偵測狀態
@@ -4790,6 +4791,7 @@ async function detectBuses(isAutoDetection = false) {
   syncEditingStatus();
 }
 // 更新手動輸入模態框中的公司選項，根據目前已選擇的公司過濾
+// 更新手動輸入模態框中的公司選項，根據目前已選擇的公司過濾
 function updateManualCompanyOptions() {
   const companySelect = document.getElementById("manualCompany");
   
@@ -4799,13 +4801,13 @@ function updateManualCompanyOptions() {
   companySelect.innerHTML = '';
   
   // 從公司篩選按鈕中獲取已選擇的公司
-  const selectedCompanies = [];
+  const activeCompanies = [];
   document.querySelectorAll('.company-filter-btn.active').forEach(btn => {
-    selectedCompanies.push(btn.dataset.company);
+    activeCompanies.push(btn.dataset.company);
   });
   
   // 如果沒有選中的公司，顯示提示
-  if (selectedCompanies.length === 0) {
+  if (activeCompanies.length === 0) {
     const emptyOption = document.createElement("option");
     emptyOption.value = "";
     emptyOption.textContent = "請先在主頁面選擇公司";
@@ -4814,12 +4816,12 @@ function updateManualCompanyOptions() {
   }
   
   // 如果只有一間公司被選中，直接選擇該公司並進入下一步
-  if (selectedCompanies.length === 1) {
+  if (activeCompanies.length === 1) {
     const onlyOption = document.createElement("option");
-    onlyOption.value = selectedCompanies[0];
-    onlyOption.textContent = selectedCompanies[0];
+    onlyOption.value = activeCompanies[0];
+    onlyOption.textContent = activeCompanies[0];
     companySelect.appendChild(onlyOption);
-    companySelect.value = selectedCompanies[0];
+    companySelect.value = activeCompanies[0];
     
     // 確保模態框已經顯示，然後再自動進入下一步
     setTimeout(() => {
@@ -4835,13 +4837,14 @@ function updateManualCompanyOptions() {
   companySelect.appendChild(emptyOption);
   
   // 只添加目前選中的公司選項
-  selectedCompanies.forEach(company => {
+  activeCompanies.forEach(company => {
     const option = document.createElement("option");
     option.value = company;
     option.textContent = company;
     companySelect.appendChild(option);
   });
 }
+
 // 檢測和處理車牌重複
 function detectAndResolvePlateDuplicates() {
   // 檢查顯示列表中是否有車牌重複
