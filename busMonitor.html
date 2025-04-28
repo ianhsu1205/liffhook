@@ -1913,7 +1913,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2515,9 +2515,8 @@ function openManualInputModal() {
     window.tempAutoDetectState = true;
   }
   
-  // 檢查選定的公司數量
-  const selectedCompanyCount = document.querySelectorAll('.company-filter-btn active').length;
-  if (selectedCompanyCount === 0) {
+ // 檢查選定的公司數量
+  if (selectedCompanies.length === 0) {
     // 如果沒有選中的公司，顯示提示並返回
     showFloatingNotification("請先在主頁面選擇至少一間公司", "error");
     return;
@@ -2855,26 +2854,6 @@ function setupNetworkListeners() {
 let matchedVehicles = []; // 存儲匹配的車輛
 let selectedVehicleData = null; // 選中的車輛數據
 
-// 打開手動輸入模態框
-function openManualInputModal() {
-  // 記錄當前自動偵測狀態
-  const wasAutoDetecting = !!autoDetectInterval;
-  
-  // 如果正在自動偵測，暫時停止
-  if (wasAutoDetecting) {
-    stopAutoDetect();
-    window.tempAutoDetectState = true;
-  }
-  
-  // 重置表單為步驟1
-  resetManualInputForm();
-  
-  // 顯示模態框
-  document.getElementById("manualInputModal").style.display = "block";
-  
-  // 隱藏可能的錯誤訊息
-  document.getElementById("manualInputError").style.display = "none";
-}
 
 // 重置模態框到初始狀態
 function resetManualInputForm() {
