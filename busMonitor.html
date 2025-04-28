@@ -1640,6 +1640,8 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   margin-top: 15px;
   border: 1px solid #ddd;
   border-radius: 6px;
+  -webkit-overflow-scrolling: touch; /* 增強iOS滑動體驗 */
+  touch-action: pan-y; /* 允許垂直滑動 */
 }
 
 .matching-vehicle-item {
@@ -1649,8 +1651,14 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  touch-action: pan-y; /* 確保項目也允許垂直滑動 */
+  position: relative;
+  z-index: 1;
 }
-
+/* 確保模態框內的滾動區域正確處理觸控事件 */
+.modal-content {
+  overscroll-behavior: contain; /* 防止滾動溢出 */
+}
 .matching-vehicle-item:hover {
   background-color: #f0f7ff;
 }
@@ -1910,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.7(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.8(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2299,10 +2307,14 @@ document.addEventListener('DOMContentLoaded', function() {
      setTimeout(() => {
       debouncedInitMarquees();
     }, 500);
+
   // 綁定手動輸入模態框的導航按鈕
   document.getElementById("btnNextToPlateInput").addEventListener("click", goToPlateInputStep);
   document.getElementById("btnBackToCompany").addEventListener("click", goBackToCompanyStep);
   document.getElementById("btnBackToPlateInput").addEventListener("click", goBackToPlateStep);
+
+        // 添加滑動修復
+  setTimeout(enhanceModalScrolling, 1000);
 });
 
 const safeStorage = {
@@ -2519,6 +2531,17 @@ function openManualInputModal() {
   
   // 隱藏任何之前的錯誤訊息
   document.getElementById("manualInputError").style.display = "none";
+
+    // 短暫延遲後增強滾動體驗
+  setTimeout(() => {
+    const container = document.querySelector('.matching-vehicles-container');
+    if (container) {
+      // 確保滾動條在頂部
+      container.scrollTop = 0;
+      // 應用滾動修復
+      fixMatchingVehiclesScroll();
+    }
+  }, 300);
 }
 
 // 關閉手動輸入模態框時恢復自動偵測
@@ -3035,6 +3058,19 @@ function searchMatchingVehicles() {
   
   // 更新顯示結果
   updateMatchingVehiclesList();
+  // 修改原有的 searchMatchingVehicles 函數，在更新列表後調用修復函數
+const originalSearchMatchingVehicles = searchMatchingVehicles;
+searchMatchingVehicles = function() {
+  originalSearchMatchingVehicles.apply(this, arguments);
+  enhanceModalScrolling();
+};
+
+// 修改原有的 goToPlateInputStep 函數，在進入車號輸入步驟時增強滾動
+const originalGoToPlateInputStep = goToPlateInputStep;
+goToPlateInputStep = function() {
+  originalGoToPlateInputStep.apply(this, arguments);
+  enhanceModalScrolling();
+};
 }
 
 // 提取車牌號碼中的數字部分
@@ -6755,6 +6791,50 @@ function setupSwipeFeature(container, navBar, totalCategoryPages) {
       updateSwipePageDisplay(index);
     });
   });
+}
+
+// 修正匹配車輛列表的滑動問題
+function fixMatchingVehiclesScroll() {
+  // 獲取匹配車輛容器
+  const container = document.querySelector('.matching-vehicles-container');
+  if (!container) return;
+  
+  // 移除現有的事件監聽器並更新 touch-action
+  container.style.touchAction = 'pan-y';
+  
+  // 阻止觸摸事件在列表項上的預設行為，允許容器滑動
+  const items = container.querySelectorAll('.matching-vehicle-item');
+  items.forEach(item => {
+    item.addEventListener('touchmove', function(e) {
+      e.stopPropagation(); // 防止事件冒泡
+    }, { passive: true });
+  });
+  
+  // 添加專門處理滑動的事件
+  container.addEventListener('touchstart', function(e) {
+    container._touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  
+  container.addEventListener('touchmove', function(e) {
+    const touchY = e.touches[0].clientY;
+    const diff = container._touchStartY - touchY;
+    
+    // 判斷是否已到達容器底部但仍嘗試向下滑動
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 1;
+    const isScrollingDown = diff < 0;
+    
+    // 如果已到底部且嘗試向下滑動，允許事件繼續傳播
+    if (isAtBottom && isScrollingDown) {
+      return;
+    }
+    
+    // 其他情況下，阻止事件冒泡防止頁面一起滑動
+    e.stopPropagation();
+  }, { passive: true });
+}
+// 在模態框打開時或匹配車輛時調用此函數
+function enhanceModalScrolling() {
+  setTimeout(fixMatchingVehiclesScroll, 300);
 }
 // 更新滑動頁面顯示
 function updateSwipePageDisplay(pageIndex) {
