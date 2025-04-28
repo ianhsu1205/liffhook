@@ -1635,16 +1635,20 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
 /* 匹配車輛列表樣式 */
 .matching-vehicles-container {
-    max-height: 250px;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: auto !important;
+  max-height: 250px;
+  overflow-y: auto;
+  margin-top: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
 
 .matching-vehicle-item {
-    touch-action: auto !important;
-    pointer-events: auto !important;
-    user-select: none;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .matching-vehicle-item:hover {
@@ -1906,7 +1910,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.0(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2962,7 +2966,6 @@ function goToPlateInputStep() {
   setTimeout(() => {
     plateInput.focus();
   }, 100);
-
 }
 // 返回公司選擇步驟
 function goBackToCompanyStep() {
@@ -3062,7 +3065,7 @@ function updateMatchingVehiclesList() {
   // 生成車輛列表
   let html = "";
   matchedVehicles.forEach((vehicle, index) => {
-    const routeInfo = vehicle.routeName || "";
+   const routeInfo = vehicle.routeName || "";
       
     html += `
       <div class="matching-vehicle-item" data-index="${index}" onclick="selectVehicle(${index})">
@@ -3076,8 +3079,17 @@ function updateMatchingVehiclesList() {
   });
   
   listContainer.innerHTML = html;
-  
-
+  // 添加滾動事件處理，確保滾動正常
+  setTimeout(() => {
+    const container = document.querySelector('.matching-vehicles-container');
+    if (container) {
+      // 移除舊事件監聽器，避免重複
+      container.removeEventListener('touchmove', handleTouchMove);
+      
+      // 添加新的事件監聽器
+      container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    }
+  }, 0);
 }
 // 處理觸摸滑動事件
 function handleTouchMove(e) {
@@ -6408,6 +6420,39 @@ function showDetectionIndicator(message = "正在偵測車輛...") {
   }
   
   return indicator;
+}
+
+// 隱藏偵測指示器
+function hideDetectionIndicator() {
+  const indicator = document.getElementById('detectionIndicator');
+  indicator.classList.remove('active');
+  
+  // 移除檢測按鈕的高亮效果
+  const detectButton = document.querySelector('.utility-button:nth-child(1)');
+  if (detectButton) {
+    detectButton.classList.remove('detecting');
+  }
+}
+// 在頁面加載或模態框打開時初始化方向按鈕
+function initDirectionButtons() {
+  const directionBtns = document.querySelectorAll('.direction-btn');
+  
+  // 設置默認選中去程
+  directionBtns[0].classList.add('selected');
+  document.getElementById('manualDirection').value = "0";
+  
+  directionBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // 移除所有按鈕的選中狀態
+      directionBtns.forEach(b => b.classList.remove('selected'));
+      
+      // 選中當前按鈕
+      this.classList.add('selected');
+      
+      // 設置隱藏輸入的值
+      document.getElementById('manualDirection').value = this.dataset.value;
+    });
+  });
 }
 
 // 添加地址偵測功能
