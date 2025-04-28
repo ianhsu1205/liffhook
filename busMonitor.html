@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.1.9.8(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.1.9.9(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2513,32 +2513,33 @@ function openManualInputModal() {
   // 如果正在自動偵測，暫時停止
   if (wasAutoDetecting) {
     stopAutoDetect();
-    // 在window上保存狀態，以便後續恢復
     window.tempAutoDetectState = true;
   }
   
+  // 重置表單為步驟1
+  resetManualInputForm();
+  
+  // 檢查選定的公司數量
+  if (selectedCompanies.length === 0) {
+    // 如果沒有選中的公司，顯示提示並返回
+    showFloatingNotification("請先在主頁面選擇至少一間公司", "error");
+    return;
+  }
+  
+  // 顯示模態框
   document.getElementById("manualInputModal").style.display = "block";
   
-  // 更新公司選項，僅顯示目前選中的公司
+  // 更新公司下拉選項，會處理單一公司的自動選擇
   updateManualCompanyOptions();
   
-  // 重置表單欄位到預設值
-  document.getElementById("manualPlateNumber").value = "";
-  document.getElementById("manualRoute").value = "";
-  
-  // 初始化方向按鈕
-  initDirectionButtons();
-  
-  // 隱藏任何之前的錯誤訊息
+  // 隱藏可能的錯誤訊息
   document.getElementById("manualInputError").style.display = "none";
-
-    // 短暫延遲後增強滾動體驗
+  
+  // 短暫延遲後增強滾動體驗
   setTimeout(() => {
     const container = document.querySelector('.matching-vehicles-container');
     if (container) {
-      // 確保滾動條在頂部
       container.scrollTop = 0;
-      // 應用滾動修復
       fixMatchingVehiclesScroll();
     }
   }, 300);
@@ -4789,13 +4790,34 @@ function updateManualCompanyOptions() {
   
   if (!companySelect) return;
   
-  // 保存當前選中的值
-  const currentValue = companySelect.value;
-  
   // 清空現有選項
   companySelect.innerHTML = '';
   
-  // 添加空白選項
+  // 如果沒有選中的公司，顯示提示
+  if (selectedCompanies.length === 0) {
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "請先在主頁面選擇公司";
+    companySelect.appendChild(emptyOption);
+    return;
+  }
+  
+  // 如果只有一間公司被選中，則不需要顯示「請選擇公司」選項
+  if (selectedCompanies.length === 1) {
+    const onlyOption = document.createElement("option");
+    onlyOption.value = selectedCompanies[0];
+    onlyOption.textContent = selectedCompanies[0];
+    companySelect.appendChild(onlyOption);
+    companySelect.value = selectedCompanies[0];
+    
+    // 直接載入該公司的車輛資料
+    setTimeout(() => {
+      goToPlateInputStep();
+    }, 100);
+    return;
+  }
+  
+  // 如果有多間公司，才顯示「請選擇公司」
   const emptyOption = document.createElement("option");
   emptyOption.value = "";
   emptyOption.textContent = "請選擇公司";
@@ -4808,14 +4830,6 @@ function updateManualCompanyOptions() {
     option.textContent = company;
     companySelect.appendChild(option);
   });
-  
-  // 如果之前選中的值仍在新的選項中，則保持選中
-  if (currentValue && selectedCompanies.includes(currentValue)) {
-    companySelect.value = currentValue;
-  } else {
-    // 否則設為第一個有效選項
-    companySelect.selectedIndex = selectedCompanies.length > 0 ? 1 : 0;
-  }
 }
 // 檢測和處理車牌重複
 function detectAndResolvePlateDuplicates() {
