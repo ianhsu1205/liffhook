@@ -1918,7 +1918,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.0.5(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.0.7(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -4791,7 +4791,6 @@ async function detectBuses(isAutoDetection = false) {
   syncEditingStatus();
 }
 // 更新手動輸入模態框中的公司選項，根據目前已選擇的公司過濾
-// 更新手動輸入模態框中的公司選項，根據目前已選擇的公司過濾
 function updateManualCompanyOptions() {
   const companySelect = document.getElementById("manualCompany");
   
@@ -4800,11 +4799,16 @@ function updateManualCompanyOptions() {
   // 清空現有選項
   companySelect.innerHTML = '';
   
-  // 從公司篩選按鈕中獲取已選擇的公司
-  const activeCompanies = [];
-  document.querySelectorAll('.company-filter-btn.active').forEach(btn => {
-    activeCompanies.push(btn.dataset.company);
-  });
+  // 直接從 localStorage 獲取已選擇的公司
+  let activeCompanies = [];
+  try {
+    const savedCompanies = localStorage.getItem("selectedCompanies");
+    if (savedCompanies) {
+      activeCompanies = JSON.parse(savedCompanies);
+    }
+  } catch (error) {
+    console.error("無法從 localStorage 載入公司篩選狀態:", error);
+  }
   
   // 如果沒有選中的公司，顯示提示
   if (activeCompanies.length === 0) {
