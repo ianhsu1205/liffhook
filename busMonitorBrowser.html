@@ -578,6 +578,8 @@
               <th>車號</th>
               <th>查核結果</th>
               <th>其它</th>
+              <th>備註</th>
+              <!-- 新增備註欄位 -->
               <th>時間</th>
               <th>操作</th>
             </tr>
@@ -597,7 +599,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.0.8</div>
+      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.0.9</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -643,7 +645,21 @@
             <!-- 其他項目將在這裡生成 -->
           </div>
         </div>
-
+        <!-- 新增備註欄位 -->
+        <div class="form-group">
+          <label for="editMemo">備註</label>
+          <textarea
+            id="editMemo"
+            class="form-control"
+            rows="3"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+            "
+          ></textarea>
+        </div>
         <div class="modal-actions" style="justify-content: space-between">
           <button class="modal-button cancel-button" onclick="closeEditModal()">
             取消
@@ -669,12 +685,13 @@
       let userId = ""
       // 全局變數
       const mainItems = [
-        "左轉未停",
-        "右轉未停",
-        "未指差",
-        "未停未指差",
-        "左轉無缺失",
-        "右轉無缺失",
+        "左轉-未停",
+        "左轉-無缺失",
+        "右轉-未停",
+        "右轉-未指差",
+        "右轉-未停未指差",
+        "右轉-無缺失",
+        "直行",
       ]
       let otherItems = []
       let currentEditRecordId = null
@@ -910,7 +927,6 @@
         }
       }
 
-      // 修改 updateRecordsDisplay 函數部分
       // 修改 updateRecordsDisplay 函數，合併顯示 otherItem 和 goodItem
       function updateRecordsDisplay(data) {
         const records = data.data || []
@@ -980,6 +996,7 @@
                 <td>${record.plateNumber || "-"}</td>
                 <td>${record.mainItem || "-"}</td>
                 <td>${combinedItemsDisplay}</td>
+                <td>${record.memo || "-"}</td> <!-- 新增備註欄位 -->
                 <td>${timeFormatted}  ${directionTag}</td>
                 <td>
                     <button class="edit-button" onclick="showEditModal('${
@@ -1020,6 +1037,10 @@
                         <div class="data-card-label"><strong>其它:</strong></div>
                         <div class="data-card-value">${combinedItemsDisplay}</div>
                     </div>
+                    <div class="data-card-item">
+                        <div class="data-card-label"><strong>備註:</strong></div>
+                        <div class="data-card-value">${record.memo || "-"}</div>
+                    </div>
                 </div>
                 <div class="data-card-footer">
                    <button class="edit-button" onclick="showEditModal('${
@@ -1054,7 +1075,8 @@
 
         // 清除錯誤訊息
         document.getElementById("editModalError").style.display = "none"
-
+        // 設置備註欄位的值
+        document.getElementById("editMemo").value = record.memo || ""
         // 填充主要項目選項 (保持不變)
         const mainItemsContainer = document.getElementById(
           "editMainItemsContainer"
@@ -1349,13 +1371,15 @@
               }
             })
           })
-
+          // 獲取備註欄位的值
+          const memoValue = document.getElementById("editMemo").value || ""
           // 構建更新數據，分別填入 otherItem 和 goodItem
           // 即使為空陣列，也要確保傳遞空字串，而不是undefined
           const updateData = {
             mainItem: selectedMainItem.dataset.value,
             otherItem: negativeItems.length > 0 ? negativeItems.join(", ") : "", // 負向項目和未分類項目
             goodItem: positiveItems.length > 0 ? positiveItems.join(", ") : "", // 正向項目
+            memo: memoValue, // 加入備註欄位
           }
 
           // 顯示載入中
