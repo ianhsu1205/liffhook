@@ -539,6 +539,20 @@
       .quick-other-item {
         position: relative;
       }
+      /* 針對行動裝置的優化 */
+      @media (max-width: 480px) {
+        .memo-container {
+          padding-bottom: 50px !important; /* 為鍵盤留出空間 */
+        }
+
+        #editMemo {
+          height: 60px; /* 在手機上使用較小高度 */
+        }
+
+        .edit-content-wrapper {
+          padding-bottom: 20px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -599,7 +613,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.1.0</div>
+      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.1.1</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -623,8 +637,18 @@
       </div>
     </div>
     <!-- 修改記錄模態框 -->
+    <!-- 修改編輯記錄模態框的結構 -->
     <div id="editModal" class="modal">
-      <div class="modal-content" style="max-width: 500px">
+      <div
+        class="modal-content"
+        style="
+          max-width: 500px;
+          display: flex;
+          flex-direction: column;
+          max-height: 80vh;
+          margin: 5% auto;
+        "
+      >
         <div class="modal-title">修改記錄</div>
         <div
           id="editModalError"
@@ -632,35 +656,59 @@
           style="display: none; margin-bottom: 15px"
         ></div>
 
-        <div class="form-group">
-          <label for="editMainItem">查核結果</label>
-          <div id="editMainItemsContainer" class="quick-items">
-            <!-- 主要項目將在這裡生成 -->
+        <div
+          class="edit-content-wrapper"
+          style="
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+          "
+        >
+          <div class="form-group">
+            <label for="editMainItem">查核結果</label>
+            <div id="editMainItemsContainer" class="quick-items">
+              <!-- 主要項目將在這裡生成 -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editOtherItem">其它</label>
+            <div id="editOtherItemsContainer" class="quick-other-items">
+              <!-- 其他項目將在這裡生成 -->
+            </div>
+          </div>
+
+          <!-- 備註欄位移動到視窗下方 -->
+          <div
+            class="form-group memo-container"
+            style="margin-top: auto; padding-top: 15px"
+          >
+            <label for="editMemo">備註</label>
+            <textarea
+              id="editMemo"
+              class="form-control"
+              rows="3"
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                margin-bottom: 10px;
+              "
+            ></textarea>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="editOtherItem">其它</label>
-          <div id="editOtherItemsContainer" class="quick-other-items">
-            <!-- 其他項目將在這裡生成 -->
-          </div>
-        </div>
-        <!-- 新增備註欄位 -->
-        <div class="form-group">
-          <label for="editMemo">備註</label>
-          <textarea
-            id="editMemo"
-            class="form-control"
-            rows="3"
-            style="
-              width: 100%;
-              padding: 8px;
-              border: 1px solid #ddd;
-              border-radius: 6px;
-            "
-          ></textarea>
-        </div>
-        <div class="modal-actions" style="justify-content: space-between">
+        <div
+          class="modal-actions"
+          style="
+            justify-content: space-between;
+            margin-top: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+          "
+        >
           <button class="modal-button cancel-button" onclick="closeEditModal()">
             取消
           </button>
@@ -1075,8 +1123,10 @@
 
         // 清除錯誤訊息
         document.getElementById("editModalError").style.display = "none"
+
         // 設置備註欄位的值
         document.getElementById("editMemo").value = record.memo || ""
+
         // 填充主要項目選項 (保持不變)
         const mainItemsContainer = document.getElementById(
           "editMainItemsContainer"
@@ -1272,6 +1322,61 @@
 
         // 顯示模態框
         document.getElementById("editModal").style.display = "block"
+
+        // ===== 新增：調整模態框位置和設置備註欄位聚焦處理 =====
+
+        // 根據裝置高度調整模態框位置
+        const modalContent = document.querySelector("#editModal .modal-content")
+        const windowHeight = window.innerHeight
+
+        if (windowHeight < 600) {
+          modalContent.style.margin = "0 auto"
+          modalContent.style.borderRadius = "0"
+          modalContent.style.height = "100vh"
+          modalContent.style.maxHeight = "100vh"
+          modalContent.style.width = "100%"
+          modalContent.style.maxWidth = "100%"
+        }
+
+        // 設置備註欄位焦點事件處理
+        const editMemo = document.getElementById("editMemo")
+
+        // 焦點處理函數 - 處理鍵盤彈出時的視圖調整
+        const handleMemoFocus = function () {
+          // 短暫延遲，等待鍵盤彈出
+          setTimeout(() => {
+            // 獲取備註元素的位置
+            const memoContainer = document.querySelector(".memo-container")
+
+            // 將備註容器滾動到可見區域
+            memoContainer.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            })
+
+            // 特殊處理 iOS 裝置
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              setTimeout(() => {
+                // iOS需要額外確保滾動完成
+                window.scrollBy(0, 100)
+
+                // 確保編輯區域也滾動到底部
+                const editContent = document.querySelector(
+                  ".edit-content-wrapper"
+                )
+                if (editContent) {
+                  editContent.scrollTop = editContent.scrollHeight
+                }
+              }, 300)
+            }
+          }, 350)
+        }
+
+        // 添加焦點事件監聽器
+        editMemo.addEventListener("focus", handleMemoFocus)
+
+        // 儲存事件處理函數引用，以便在關閉模態框時移除
+        editMemo.handleMemoFocus = handleMemoFocus
       }
       // 設置標籤切換功能
       function setupEditModalTabs(navBar, pagesContainer, totalPages) {
@@ -1307,6 +1412,12 @@
 
       // 關閉修改模態框
       function closeEditModal() {
+        // 移除備註欄位的焦點事件監聽器
+        const editMemo = document.getElementById("editMemo")
+        if (editMemo && editMemo.handleMemoFocus) {
+          editMemo.removeEventListener("focus", editMemo.handleMemoFocus)
+          delete editMemo.handleMemoFocus
+        }
         document.getElementById("editModal").style.display = "none"
         currentEditRecordId = null
       }
@@ -1466,37 +1577,6 @@
           showStatusMessage("刪除記錄失敗: " + error.message, "error")
           hideLoading()
         }
-      }
-      // 修正鍵盤遮蓋問題的函數
-      function setupEditMemoScrollFix() {
-        // 獲取備註輸入框元素
-        const editMemoField = document.getElementById("editMemo")
-
-        // 當輸入框獲得焦點時，滾動到可見區域
-        editMemoField.addEventListener("focus", function () {
-          // 設置短暫延遲等待鍵盤彈出
-          setTimeout(() => {
-            // 滾動到元素位置
-            this.scrollIntoView({ behavior: "smooth", block: "center" })
-
-            // 如果在iOS上，可能需要額外處理
-            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-              // iOS設備上可能需要額外處理來確保滾動完成
-              window.scrollBy(0, 100)
-            }
-          }, 300)
-        })
-      }
-
-      // 修改 showEditModal 函數，在顯示模態框後設置備註欄位的滾動修正
-      const originalShowEditModal = showEditModal
-      showEditModal = function (recordId) {
-        originalShowEditModal(recordId)
-
-        // 在模態框顯示後設置輸入框的滾動修正
-        setTimeout(() => {
-          setupEditMemoScrollFix()
-        }, 100)
       }
     </script>
   </body>
