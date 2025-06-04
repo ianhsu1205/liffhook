@@ -599,7 +599,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.0.9</div>
+      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.1.0</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -1466,6 +1466,37 @@
           showStatusMessage("刪除記錄失敗: " + error.message, "error")
           hideLoading()
         }
+      }
+      // 修正鍵盤遮蓋問題的函數
+      function setupEditMemoScrollFix() {
+        // 獲取備註輸入框元素
+        const editMemoField = document.getElementById("editMemo")
+
+        // 當輸入框獲得焦點時，滾動到可見區域
+        editMemoField.addEventListener("focus", function () {
+          // 設置短暫延遲等待鍵盤彈出
+          setTimeout(() => {
+            // 滾動到元素位置
+            this.scrollIntoView({ behavior: "smooth", block: "center" })
+
+            // 如果在iOS上，可能需要額外處理
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              // iOS設備上可能需要額外處理來確保滾動完成
+              window.scrollBy(0, 100)
+            }
+          }, 300)
+        })
+      }
+
+      // 修改 showEditModal 函數，在顯示模態框後設置備註欄位的滾動修正
+      const originalShowEditModal = showEditModal
+      showEditModal = function (recordId) {
+        originalShowEditModal(recordId)
+
+        // 在模態框顯示後設置輸入框的滾動修正
+        setTimeout(() => {
+          setupEditMemoScrollFix()
+        }, 100)
       }
     </script>
   </body>
