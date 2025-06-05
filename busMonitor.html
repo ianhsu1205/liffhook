@@ -1744,6 +1744,62 @@ content: "　"; /* 使用單個全角空格作為間隔 */
       gap: 10px;
     }
   }
+
+  /* 左轉錯誤項目 - 紅色系背景 */
+.quick-item.left-turn-error {
+  background-color: #ffcccc; /* 淺紅色 */
+  border: 1px solid #ffaaaa;
+}
+.quick-item.left-turn-error.selected {
+  background-color: #ff9999;
+  color: #800000;
+  border-color: #ff6666;
+}
+
+/* 左轉無缺失項目 - 綠色系背景 */
+.quick-item.left-turn-ok {
+  background-color: #ccffcc; /* 淺綠色 */
+  border: 1px solid #aaffaa;
+}
+.quick-item.left-turn-ok.selected {
+  background-color: #99ff99;
+  color: #008000;
+  border-color: #66ff66;
+}
+
+/* 右轉錯誤項目 - 橙色系背景 */
+.quick-item.right-turn-error {
+  background-color: #ffe6cc; /* 淺橙色 */
+  border: 1px solid #ffd699;
+}
+.quick-item.right-turn-error.selected {
+  background-color: #ffc266;
+  color: #804000;
+  border-color: #ffaa33;
+}
+
+/* 右轉無缺失項目 - 青色系背景 */
+.quick-item.right-turn-ok {
+  background-color: #ccffee; /* 淺青色 */
+  border: 1px solid #99ffdd;
+}
+.quick-item.right-turn-ok.selected {
+  background-color: #66ffcc;
+  color: #006644;
+  border-color: #33ffbb;
+}
+
+/* 直行項目 - 藍色系背景 */
+.quick-item.straight {
+  background-color: #e6f2ff; /* 淺藍色 */
+  border: 1px solid #cce6ff;
+}
+.quick-item.straight.selected {
+  background-color: #99ccff;
+  color: #004080;
+  border-color: #66aaff;
+}
+ 
     </style>
   </head>
 <body style="overscroll-behavior-y: contain;">
@@ -1996,7 +2052,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.1.3(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.1.4(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2762,6 +2818,8 @@ async function initializePage() {
 
   // 添加在函數最後
   setupBackButtonHandler();
+  // 初始化主要項目樣式
+generateMainItems();
 }
 
 
@@ -3632,32 +3690,10 @@ function updateBusEditingInterface() {
   // 清除並重新生成主要項目選項
   const mainItemsContainer = document.getElementById("mainItemsContainer");
   mainItemsContainer.innerHTML = '';
-  mainItems.forEach(item => {
-    const itemButton = document.createElement("div");
-    itemButton.className = "quick-item";
-    itemButton.textContent = item;
-    itemButton.dataset.value = item;
-    
-    // 如果已經選過此項目，標記為已選
-    if (bus.selectedMainItem === item) {
-      itemButton.classList.add("selected");
-    }
-    
-    itemButton.onclick = function() {
-      mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
-        el.classList.remove("selected");
-      });
-      this.classList.add("selected");
-      
-      // 儲存選擇到當前編輯的車輛對象
-      bus.selectedMainItem = this.dataset.value;
 
-      // 更新編輯界面以反映項目計數變化
-      updateBusEditingInterface();
-      updateEditingTabs();
-    };
-    mainItemsContainer.appendChild(itemButton);
-  });
+    
+  // 调用生成主要项目函数，替代原有代码
+generateMainItems(bus.selectedMainItem);
 
   // 清除並重新生成其他項目選項
   const otherItemsContainer = document.getElementById("otherItemsContainer");
@@ -7239,6 +7275,57 @@ function startAutoDetect() {
   
   // 立即執行一次偵測
   runDetection();
+}
+// 在生成主要項目時添加以下代碼
+// 生成带有不同背景颜色的主要项目
+function generateMainItems(selectedItem = null) {
+    const container = document.getElementById("mainItemsContainer");
+    container.innerHTML = "";
+    
+    mainItems.forEach(item => {
+        const itemButton = document.createElement("div");
+        itemButton.className = "quick-item";
+        itemButton.textContent = item;
+        itemButton.dataset.value = item;
+        
+        // 根据项目内容添加特定的CSS类别
+        if (item.includes("左轉-未停")) {
+            itemButton.classList.add("left-turn-error");
+        } else if (item.includes("左轉-無缺失")) {
+            itemButton.classList.add("left-turn-ok");
+        } else if (item.includes("右轉-未停") || item.includes("右轉-未指差") || item.includes("右轉-未停未指差")) {
+            itemButton.classList.add("right-turn-error");
+        } else if (item.includes("右轉-無缺失")) {
+            itemButton.classList.add("right-turn-ok");
+        } else if (item === "直行") {
+            itemButton.classList.add("straight");
+        }
+        
+        // 如果是当前选中项目，添加选中样式
+        if (item === selectedItem) {
+            itemButton.classList.add("selected");
+        }
+        
+        // 添加点击事件
+        itemButton.onclick = function() {
+            const mainItemsContainer = document.getElementById("mainItemsContainer");
+            mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
+                el.classList.remove("selected");
+            });
+            this.classList.add("selected");
+            
+            // 储存选择到当前编辑的车辆对象
+            if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
+                editingBuses[activeEditingBusIndex].selectedMainItem = this.dataset.value;
+            }
+
+            // 更新编辑界面以反映项目计数变化
+            updateBusEditingInterface();
+            updateEditingTabs();
+        };
+        
+        container.appendChild(itemButton);
+    });
 }
     </script>
 </html>
