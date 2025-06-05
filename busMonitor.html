@@ -2052,7 +2052,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.1.4(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.1.5(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -7276,7 +7276,7 @@ function startAutoDetect() {
   // 立即執行一次偵測
   runDetection();
 }
-// 在生成主要項目時添加以下代碼
+
 // 生成带有不同背景颜色的主要项目
 function generateMainItems(selectedItem = null) {
     const container = document.getElementById("mainItemsContainer");
@@ -7288,25 +7288,22 @@ function generateMainItems(selectedItem = null) {
         itemButton.textContent = item;
         itemButton.dataset.value = item;
         
-        // 根据项目内容添加特定的CSS类别
-        if (item.includes("左轉-未停")) {
-            itemButton.classList.add("left-turn-error");
-        } else if (item.includes("左轉-無缺失")) {
-            itemButton.classList.add("left-turn-ok");
-        } else if (item.includes("右轉-未停") || item.includes("右轉-未指差") || item.includes("右轉-未停未指差")) {
+        // 只為右轉相關和直行選項添加特定的CSS類別
+        if (item.includes("右轉-未停") || item.includes("右轉-未指差") || item.includes("右轉-未停未指差")) {
             itemButton.classList.add("right-turn-error");
         } else if (item.includes("右轉-無缺失")) {
             itemButton.classList.add("right-turn-ok");
         } else if (item === "直行") {
             itemButton.classList.add("straight");
         }
+        // 左轉相關選項不添加特殊類別，保持默認樣式
         
-        // 如果是当前选中项目，添加选中样式
+        // 如果是當前選中項目，添加選中樣式
         if (item === selectedItem) {
             itemButton.classList.add("selected");
         }
         
-        // 添加点击事件
+        // 添加點擊事件
         itemButton.onclick = function() {
             const mainItemsContainer = document.getElementById("mainItemsContainer");
             mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
@@ -7314,12 +7311,12 @@ function generateMainItems(selectedItem = null) {
             });
             this.classList.add("selected");
             
-            // 储存选择到当前编辑的车辆对象
+            // 儲存選擇到當前編輯的車輛對象
             if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
                 editingBuses[activeEditingBusIndex].selectedMainItem = this.dataset.value;
             }
 
-            // 更新编辑界面以反映项目计数变化
+            // 更新編輯界面以反映項目計數變化
             updateBusEditingInterface();
             updateEditingTabs();
         };
