@@ -213,11 +213,14 @@
         margin-bottom: 20px;
       }
       .tab {
-        padding: 10px 20px;
+        padding: 8px 12px;
         cursor: pointer;
         border-bottom: 3px solid transparent;
         font-weight: 500;
         transition: all 0.3s;
+        font-size: 14px;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
       .tab:hover {
         background-color: #f9f9f9;
@@ -270,20 +273,22 @@
       .record-title {
         font-weight: 600;
         color: #333;
-        font-size: 18px;
+        font-size: 16px;
         flex: 1;
         min-width: 0;
+        line-height: 1.3;
       }
       .record-date {
         color: #777;
-        font-size: 14px;
+        font-size: 12px;
         white-space: nowrap;
-        margin-left: 10px;
+        margin-left: 8px;
         flex-shrink: 0;
       }
       .record-details {
         margin-bottom: 10px;
-        font-size: 16px;
+        font-size: 14px;
+        line-height: 1.4;
       }
       .record-actions {
         display: flex;
@@ -292,11 +297,12 @@
       }
       .record-status {
         display: inline-block;
-        padding: 4px 8px;
+        padding: 3px 6px;
         border-radius: 4px;
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 500;
-        margin-right: 10px;
+        margin-left: 8px;
+        white-space: nowrap;
       }
       .status-pending {
         background-color: #ffeeba;
@@ -428,10 +434,38 @@
         .record-header {
           flex-direction: column;
           gap: 5px;
+          align-items: flex-start;
+        }
+        .record-title {
+          font-size: 15px;
+          margin-bottom: 3px;
+        }
+        .record-date {
+          font-size: 11px;
+          margin-left: 0;
+          margin-top: 2px;
+        }
+        .record-details {
+          font-size: 13px;
         }
         .record-actions {
           margin-top: 10px;
           justify-content: flex-start;
+        }
+        /* 快速修改按鈕手機版樣式 */
+        .quick-edit-buttons {
+          gap: 6px;
+          margin-top: 8px;
+        }
+        .quick-edit-btn {
+          padding: 4px 8px;
+          font-size: 11px;
+          border-radius: 12px;
+        }
+        .fromback-option {
+          padding: 8px 12px;
+          font-size: 13px;
+          border-radius: 15px;
         }
         .user-info {
           font-size: 14px;
@@ -444,6 +478,62 @@
         .tabs {
           overflow-x: auto;
           padding-bottom: 5px;
+          flex-wrap: nowrap;
+        }
+        .tab {
+          padding: 6px 10px;
+          font-size: 13px;
+        }
+        .record-status {
+          font-size: 11px;
+          padding: 2px 5px;
+        }
+        .batch-controls {
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-start;
+        }
+      }
+
+      /* 適應更小的螢幕 */
+      @media (max-width: 480px) {
+        .tab {
+          padding: 5px 8px;
+          font-size: 12px;
+        }
+        .record-title {
+          font-size: 14px;
+        }
+        .record-date {
+          font-size: 10px;
+        }
+        .record-details {
+          font-size: 12px;
+        }
+        .record-status {
+          font-size: 10px;
+          padding: 1px 4px;
+        }
+        h2 {
+          font-size: 20px;
+        }
+        .container {
+          margin: 10px;
+          padding: 12px;
+        }
+        .batch-controls {
+          flex-direction: column;
+          gap: 6px;
+          align-items: flex-start;
+        }
+        .fromback-options {
+          flex-direction: column;
+          gap: 6px;
+          align-items: flex-start;
+        }
+        .fromback-option {
+          padding: 5px 10px;
+          font-size: 12px;
         }
       }
 
@@ -491,22 +581,6 @@
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
-      }
-      .fromback-option {
-        border: 1px solid #ddd;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.3s;
-        background-color: white;
-      }
-      .fromback-option:hover {
-        border-color: #06c755;
-      }
-      .fromback-option.selected {
-        background-color: #06c755;
-        color: white;
-        border-color: #06c755;
       }
       .record-checkbox {
         margin-right: 10px;
@@ -664,6 +738,1115 @@
           transform: translate(-50%, -20px);
         }
       }
+
+      /* 快速修改按鈕樣式 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出按鈕 - 灰色系 */
+      .quick-edit-btn.general {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .quick-edit-btn.general:hover {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .quick-edit-btn.general.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      /* 逕往按鈕 - 藍色系 */
+      .quick-edit-btn.go {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .quick-edit-btn.go:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .quick-edit-btn.go.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      /* 逕返按鈕 - 橘色系 */
+      .quick-edit-btn.back {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .quick-edit-btn.back:hover {
+        background-color: #fd7e14;
+        color: white;
+      }
+
+      .quick-edit-btn.back.active {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      /* 新增申請表單的 FromBack 選項樣式優化 */
+      .fromback-option {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 20px;
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .fromback-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 一般公出選項 - 灰色系 */
+      .fromback-option[data-value=""] {
+        border-color: #6c757d;
+        color: #6c757d;
+      }
+
+      .fromback-option[data-value=""]:hover {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+      }
+
+      .fromback-option[data-value=""].selected {
+        background-color: #6c757d;
+        color: white;
+        border-color: #5a6268;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* 逕往選項 - 藍色系 */
+      .fromback-option[data-value="逕往"] {
+        border-color: #007bff;
+        color: #007bff;
+      }
+
+      .fromback-option[data-value="逕往"]:hover {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+      }
+
+      .fromback-option[data-value="逕往"].selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      /* 逕返選項 - 橘色系 */
+      .fromback-option[data-value="逕返"] {
+        border-color: #fd7e14;
+        color: #fd7e14;
+      }
+
+      .fromback-option[data-value="逕返"]:hover {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+      }
+
+      .fromback-option[data-value="逕返"].selected {
+        background-color: #fd7e14;
+        color: white;
+        border-color: #e55a00;
+        box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+      }
+
+      /* 新增：快速修改按鈕和公出類型選項樣式調整 */
+      .quick-edit-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .quick-edit-btn {
+        padding: 6px 12px;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .quick-edit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 快速修改按鈕手機版樣式 */
+      @media (max-width: 576px) {
+        .quick-edit-buttons {
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .quick-edit-btn {
+          padding: 4px 8px;
+          font-size: 11px;
+          border-radius: 12px;
+        }
+
+        .fromback-option {
+          padding: 8px 12px;
+          font-size: 13px;
+          border-radius: 15px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -723,28 +1906,6 @@
           </div>
         </div>
         <button id="searchBtn" class="button">搜尋</button>
-      </div>
-
-      <!-- 批量操作區域（僅在我的核准分頁顯示） -->
-      <div id="batchOperations" class="batch-operations">
-        <div class="batch-controls">
-          <button id="selectAllBtn" class="button secondary-button">
-            全選
-          </button>
-          <button id="unselectAllBtn" class="button secondary-button">
-            取消全選
-          </button>
-          <span style="margin-left: 10px"
-            >已選擇 <span id="selectedCount">0</span> 項</span
-          >
-        </div>
-        <div class="fromback-options">
-          <span>設定為：</span>
-          <div class="fromback-option" data-value="">一般</div>
-          <div class="fromback-option" data-value="逕往">逕往</div>
-          <div class="fromback-option" data-value="逕返">逕返</div>
-          <button id="batchUpdateBtn" class="button" disabled>批次更新</button>
-        </div>
       </div>
 
       <!-- 申請記錄列表 -->
@@ -934,7 +2095,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.4</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.5</div>
     </div>
 
     <!-- JavaScript -->
@@ -952,8 +2113,7 @@
       let currentStatus = "pending" // 當前檢視的申請狀態
       let currentCategory = null // 當前選中的分類
       let confirmCallback = null // 確認對話框的回呼函數
-      let selectedRecords = new Set() // 選中的記錄 ID
-      let selectedFromBack = "" // 選中的逕往逕返設定
+      // 移除批量操作變數，改為單筆快速修改模式
 
       // DOM 元素載入後初始化
       document.addEventListener("DOMContentLoaded", () => {
@@ -1064,43 +2224,7 @@
             setEndTimePlus4Hours(leaveTime)
           })
 
-        // 批量操作相關事件
-        document
-          .getElementById("selectAllBtn")
-          .addEventListener("click", () => {
-            selectAllRecords()
-          })
-
-        document
-          .getElementById("unselectAllBtn")
-          .addEventListener("click", () => {
-            unselectAllRecords()
-          })
-
-        document
-          .getElementById("batchUpdateBtn")
-          .addEventListener("click", () => {
-            confirmBatchUpdate()
-          })
-
-        // FromBack 選項選擇（批量操作用）
-        document
-          .querySelectorAll("#batchOperations .fromback-option")
-          .forEach((option) => {
-            option.addEventListener("click", () => {
-              // 更新選中狀態
-              document
-                .querySelectorAll("#batchOperations .fromback-option")
-                .forEach((opt) => {
-                  opt.classList.remove("selected")
-                })
-              option.classList.add("selected")
-              selectedFromBack = option.dataset.value
-
-              // 更新批量更新按鈕狀態
-              updateBatchUpdateButton()
-            })
-          })
+        // 移除批量操作相關事件（已不再需要）
 
         // 新增申請表單的 FromBack 選項選擇
         document
@@ -1445,17 +2569,6 @@
             tab.classList.remove("active")
           }
         })
-
-        // 顯示或隱藏批量操作區域
-        const batchOperations = document.getElementById("batchOperations")
-        if (status === "my-approved") {
-          batchOperations.classList.add("show")
-        } else {
-          batchOperations.classList.remove("show")
-          // 清除選擇狀態
-          selectedRecords.clear()
-          updateSelectedCount()
-        }
       }
       // 顯示申請記錄
       function displayRecords(records) {
@@ -1507,9 +2620,31 @@
               ? `<button class="cancel-btn button danger-button" onclick="confirmCancelApplication('${record.id}')">撤銷此案</button>`
               : ""
 
-          // 多選checkbox（僅在我的核准分頁顯示）
-          const checkbox = isMyApproved
-            ? `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}" onchange="updateSelectedRecords()">`
+          // 快速修改 FromBackCmpy 按鈕（僅在我的核准分頁顯示）
+          const quickEditButtons = isMyApproved
+            ? `<div class="quick-edit-buttons">
+                <button class="quick-edit-btn general ${
+                  !record.fromBackCmpy || record.fromBackCmpy === ""
+                    ? "active"
+                    : ""
+                }" 
+                        onclick="quickUpdateFromBackCmpy('${record.id}', '')" 
+                        title="設為一般公出">一般</button>
+                <button class="quick-edit-btn go ${
+                  record.fromBackCmpy === "逕往" ? "active" : ""
+                }" 
+                        onclick="quickUpdateFromBackCmpy('${
+                          record.id
+                        }', '逕往')" 
+                        title="設為逕往">逕往</button>
+                <button class="quick-edit-btn back ${
+                  record.fromBackCmpy === "逕返" ? "active" : ""
+                }" 
+                        onclick="quickUpdateFromBackCmpy('${
+                          record.id
+                        }', '逕返')" 
+                        title="設為逕返">逕返</button>
+              </div>`
             : ""
 
           // FromBackCmpy 狀態顯示（僅在我的核准分頁顯示）
@@ -1525,10 +2660,7 @@
             : ""
 
           html += `
-        <div class="record-item ${
-          isMyApproved ? "with-checkbox" : ""
-        }" data-id="${record.id}">
-          ${checkbox}
+        <div class="record-item" data-id="${record.id}">
           <div class="record-content">
             <div class="record-header">
               <div class="record-title">
@@ -1549,6 +2681,7 @@
             </div>
             <div class="record-actions">
               ${cancelButton}
+              ${quickEditButtons}
             </div>
           </div>
         </div>
@@ -1556,10 +2689,6 @@
         })
 
         recordsListElement.innerHTML = html
-
-        // 清除選擇狀態
-        selectedRecords.clear()
-        updateSelectedCount()
       }
       // 顯示確認對話框
       function showConfirmDialog(message, callback) {
@@ -1890,7 +3019,7 @@
           showStatusMessage("操作已完成。請手動關閉此視窗", "info")
         }
       }
-      // 新增：在顯示對話框函數中添加自動滾動到視圖中間的邏輯
+      // 新增：在顯示對話框函數中添加自動滾动到視圖中間的邏輯
       function showNewApplicationModal() {
         // 重置表單
         document.getElementById("applicationForm").reset()
@@ -1998,127 +3127,46 @@
         }
       }
 
-      // 更新選中記錄
-      function updateSelectedRecords() {
-        selectedRecords.clear()
-        document
-          .querySelectorAll(".record-checkbox:checked")
-          .forEach((checkbox) => {
-            selectedRecords.add(checkbox.dataset.recordId)
-          })
-        updateSelectedCount()
-        updateBatchUpdateButton()
-      }
+      // 移除批量操作相關函數，改為單筆快速修改
 
-      // 更新選中數量顯示
-      function updateSelectedCount() {
-        document.getElementById("selectedCount").textContent =
-          selectedRecords.size
-      }
-
-      // 全選記錄
-      function selectAllRecords() {
-        document.querySelectorAll(".record-checkbox").forEach((checkbox) => {
-          checkbox.checked = true
-          selectedRecords.add(checkbox.dataset.recordId)
-        })
-        updateSelectedCount()
-        updateBatchUpdateButton()
-      }
-
-      // 取消全選
-      function unselectAllRecords() {
-        document.querySelectorAll(".record-checkbox").forEach((checkbox) => {
-          checkbox.checked = false
-        })
-        selectedRecords.clear()
-        updateSelectedCount()
-        updateBatchUpdateButton()
-      }
-
-      // 更新批量更新按鈕狀態
-      function updateBatchUpdateButton() {
-        const button = document.getElementById("batchUpdateBtn")
-        const hasSelection =
-          selectedRecords.size > 0 && selectedFromBack !== undefined
-        button.disabled = !hasSelection
-      }
-
-      // 確認批量更新
-      function confirmBatchUpdate() {
-        if (selectedRecords.size === 0) {
-          showStatusMessage("請選擇要更新的記錄", "error")
-          return
-        }
-
-        const selectedOption = document.querySelector(
-          ".fromback-option.selected"
-        )
-        if (!selectedOption) {
-          showStatusMessage("請選擇設定類型", "error")
-          return
-        }
-
-        const typeName = selectedOption.textContent
-        showConfirmDialog(
-          `確定要將 ${selectedRecords.size} 筆記錄設定為「${typeName}」嗎？`,
-          performBatchUpdate
-        )
-      }
-
-      // 執行批量更新
-      async function performBatchUpdate() {
-        showLoading()
-
+      // 快速更新單筆記錄的 FromBackCmpy（用於我的核准分頁）
+      async function quickUpdateFromBackCmpy(recordId, fromBackCmpy) {
         try {
-          const updatePromises = Array.from(selectedRecords).map((recordId) =>
-            updateFromBackCmpy(recordId, selectedFromBack)
+          showLoading()
+
+          const response = await fetch(
+            `${base_url}Leave/${recordId}/fromback-cmpy`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                approverId: currentUser.userId,
+                fromBackCmpy: fromBackCmpy,
+              }),
+            }
           )
 
-          const results = await Promise.allSettled(updatePromises)
-
-          // 統計結果
-          const succeeded = results.filter(
-            (r) => r.status === "fulfilled"
-          ).length
-          const failed = results.filter((r) => r.status === "rejected").length
-
-          if (succeeded > 0) {
-            showStatusMessage(`成功更新 ${succeeded} 筆記錄`, "success")
-          }
-          if (failed > 0) {
-            showStatusMessage(`${failed} 筆記錄更新失敗`, "error")
+          if (!response.ok) {
+            throw new Error(`更新失敗`)
           }
 
-          // 重新載入記錄
+          // 顯示成功訊息
+          const typeName =
+            fromBackCmpy === "逕往"
+              ? "逕往"
+              : fromBackCmpy === "逕返"
+              ? "逕返"
+              : "一般公出"
+          showStatusMessage(`已更新為「${typeName}」`, "success")
+
+          // 重新載入記錄以顯示最新狀態
           await loadRecords()
         } catch (error) {
-          console.error("批量更新失敗:", error)
-          showStatusMessage("批量更新時發生錯誤", "error")
+          console.error("更新失敗:", error)
+          showStatusMessage("更新時發生錯誤", "error")
         } finally {
           hideLoading()
         }
-      }
-
-      // 更新單筆 FromBackCmpy
-      async function updateFromBackCmpy(recordId, fromBackCmpy) {
-        const response = await fetch(
-          `${base_url}Leave/${recordId}/fromback-cmpy`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              approverId: currentUser.userId,
-              fromBackCmpy: fromBackCmpy,
-            }),
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`更新記錄 ${recordId} 失敗`)
-        }
-
-        return response.json()
       }
     </script>
   </body>
