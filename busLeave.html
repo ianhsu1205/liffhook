@@ -740,10 +740,10 @@
         </div>
         <div class="fromback-options">
           <span>設定為：</span>
-          <div class="fromback-option" data-value="">一般公出</div>
+          <div class="fromback-option" data-value="">一般</div>
           <div class="fromback-option" data-value="逕往">逕往</div>
           <div class="fromback-option" data-value="逕返">逕返</div>
-          <button id="batchUpdateBtn" class="button" disabled>批量更新</button>
+          <button id="batchUpdateBtn" class="button" disabled>批次更新</button>
         </div>
       </div>
 
@@ -898,9 +898,7 @@
               <div class="form-group">
                 <label for="fromBackCmpy">公出類型</label>
                 <div class="fromback-options">
-                  <div class="fromback-option selected" data-value="">
-                    一般公出
-                  </div>
+                  <div class="fromback-option selected" data-value="">公出</div>
                   <div class="fromback-option" data-value="逕往">逕往</div>
                   <div class="fromback-option" data-value="逕返">逕返</div>
                 </div>
@@ -1516,7 +1514,7 @@
 
           // FromBackCmpy 狀態顯示（僅在我的核准分頁顯示）
           const fromBackDisplay = isMyApproved
-            ? `<br>類型: ${record.fromBackCmpy || "一般公出"}`
+            ? `<br>類型: ${record.fromBackCmpy || "一般"}`
             : ""
 
           // 申請人資訊（僅在我的核准分頁顯示）
@@ -1637,7 +1635,7 @@
         // 重置表單
         document.getElementById("applicationForm").reset()
 
-        // 重置逕往逕返選項為預設值（一般公出）
+        // 重置逕往逕返選項為預設值（一般）
         document
           .querySelectorAll("#applicationForm .fromback-option")
           .forEach((opt) => {
