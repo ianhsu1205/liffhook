@@ -265,15 +265,21 @@
         justify-content: space-between;
         margin-bottom: 10px;
         flex-wrap: wrap;
+        align-items: flex-start;
       }
       .record-title {
         font-weight: 600;
         color: #333;
         font-size: 18px;
+        flex: 1;
+        min-width: 0;
       }
       .record-date {
         color: #777;
         font-size: 14px;
+        white-space: nowrap;
+        margin-left: 10px;
+        flex-shrink: 0;
       }
       .record-details {
         margin-bottom: 10px;
@@ -457,6 +463,64 @@
         font-style: italic;
       }
 
+      /* 多選核准功能 */
+      .batch-operations {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .batch-operations.show {
+        display: block;
+      }
+      .batch-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+      }
+      .batch-controls .button {
+        padding: 8px 16px;
+        font-size: 14px;
+        margin: 0;
+      }
+      .fromback-options {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .fromback-option {
+        border: 1px solid #ddd;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: white;
+      }
+      .fromback-option:hover {
+        border-color: #06c755;
+      }
+      .fromback-option.selected {
+        background-color: #06c755;
+        color: white;
+        border-color: #06c755;
+      }
+      .record-checkbox {
+        margin-right: 10px;
+        transform: scale(1.2);
+      }
+      .record-item.with-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .record-content {
+        flex: 1;
+      }
+
       /* 申請表單時間選項 */
       .time-ranges {
         display: flex;
@@ -632,6 +696,7 @@
         <div class="tab active" data-status="pending">待簽核</div>
         <div class="tab" data-status="pass">已核准</div>
         <div class="tab" data-status="reject">不核準</div>
+        <div class="tab" data-status="my-approved">我的核准</div>
       </div>
 
       <!-- 搜尋條件區 -->
@@ -658,6 +723,28 @@
           </div>
         </div>
         <button id="searchBtn" class="button">搜尋</button>
+      </div>
+
+      <!-- 批量操作區域（僅在我的核准分頁顯示） -->
+      <div id="batchOperations" class="batch-operations">
+        <div class="batch-controls">
+          <button id="selectAllBtn" class="button secondary-button">
+            全選
+          </button>
+          <button id="unselectAllBtn" class="button secondary-button">
+            取消全選
+          </button>
+          <span style="margin-left: 10px"
+            >已選擇 <span id="selectedCount">0</span> 項</span
+          >
+        </div>
+        <div class="fromback-options">
+          <span>設定為：</span>
+          <div class="fromback-option" data-value="">一般公出</div>
+          <div class="fromback-option" data-value="逕往">逕往</div>
+          <div class="fromback-option" data-value="逕返">逕返</div>
+          <button id="batchUpdateBtn" class="button" disabled>批量更新</button>
+        </div>
       </div>
 
       <!-- 申請記錄列表 -->
@@ -806,6 +893,19 @@
                 ></textarea>
                 <div class="error-tooltip" id="desc-error">請輸入事由</div>
               </div>
+
+              <!-- 新增：逕往逕返設定 -->
+              <div class="form-group">
+                <label for="fromBackCmpy">公出類型</label>
+                <div class="fromback-options">
+                  <div class="fromback-option selected" data-value="">
+                    一般公出
+                  </div>
+                  <div class="fromback-option" data-value="逕往">逕往</div>
+                  <div class="fromback-option" data-value="逕返">逕返</div>
+                </div>
+                <input type="hidden" id="fromBackCmpy" value="" />
+              </div>
             </form>
           </div>
           <div class="modal-footer">
@@ -836,7 +936,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.3</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.4</div>
     </div>
 
     <!-- JavaScript -->
@@ -854,6 +954,8 @@
       let currentStatus = "pending" // 當前檢視的申請狀態
       let currentCategory = null // 當前選中的分類
       let confirmCallback = null // 確認對話框的回呼函數
+      let selectedRecords = new Set() // 選中的記錄 ID
+      let selectedFromBack = "" // 選中的逕往逕返設定
 
       // DOM 元素載入後初始化
       document.addEventListener("DOMContentLoaded", () => {
@@ -944,54 +1046,81 @@
         document
           .getElementById("eventItem")
           .addEventListener("change", function () {
-            const selectedItem = this.value
             const leaveTime = document.getElementById("leaveTime").value
 
-            // 如果選擇的是「未刷卡」項目
-            if (selectedItem === "未刷卡") {
-              // 設定地點預設為「公司」
-              document.getElementById("location").value = "公司"
-
-              // 設定事由預設為「未帶卡」
-              document.getElementById("desc").value = "未帶卡"
-
-              // 如果已選取開始時間，則結束時間設為相同
-              if (leaveTime) {
-                document.getElementById("backTime").value = leaveTime
-              }
-            } else {
-              // 不是未刷卡時清除預設值，但僅當這些欄位包含預設值時
-              if (
-                document.getElementById("location").value === "公司" &&
-                document.getElementById("desc").value === "未帶卡"
-              ) {
-                document.getElementById("location").value = ""
-                document.getElementById("desc").value = ""
-              }
-
-              // 如果已選取開始時間，重新計算結束時間
-              if (leaveTime) {
-                setEndTimePlus4Hours(leaveTime)
-              }
+            // 如果已選取開始時間，重新計算結束時間
+            if (leaveTime) {
+              setEndTimePlus4Hours(leaveTime)
             }
           })
 
-        // 新增功能：監聽開始時間變更，根據選項自動設定結束時間
+        // 新增功能：監聽開始時間變更，自動設定結束時間+4小時
         document
           .getElementById("leaveTime")
           .addEventListener("change", function () {
-            const selectedItem = document.getElementById("eventItem").value
             const leaveTime = this.value
 
             if (!leaveTime) return
 
-            if (selectedItem === "未刷卡") {
-              // 未刷卡項目：結束時間與開始時間相同
-              document.getElementById("backTime").value = leaveTime
-            } else {
-              // 其他項目：結束時間為開始時間+4小時
-              setEndTimePlus4Hours(leaveTime)
-            }
+            // 結束時間為開始時間+4小時
+            setEndTimePlus4Hours(leaveTime)
+          })
+
+        // 批量操作相關事件
+        document
+          .getElementById("selectAllBtn")
+          .addEventListener("click", () => {
+            selectAllRecords()
+          })
+
+        document
+          .getElementById("unselectAllBtn")
+          .addEventListener("click", () => {
+            unselectAllRecords()
+          })
+
+        document
+          .getElementById("batchUpdateBtn")
+          .addEventListener("click", () => {
+            confirmBatchUpdate()
+          })
+
+        // FromBack 選項選擇（批量操作用）
+        document
+          .querySelectorAll("#batchOperations .fromback-option")
+          .forEach((option) => {
+            option.addEventListener("click", () => {
+              // 更新選中狀態
+              document
+                .querySelectorAll("#batchOperations .fromback-option")
+                .forEach((opt) => {
+                  opt.classList.remove("selected")
+                })
+              option.classList.add("selected")
+              selectedFromBack = option.dataset.value
+
+              // 更新批量更新按鈕狀態
+              updateBatchUpdateButton()
+            })
+          })
+
+        // 新增申請表單的 FromBack 選項選擇
+        document
+          .querySelectorAll("#applicationForm .fromback-option")
+          .forEach((option) => {
+            option.addEventListener("click", () => {
+              // 更新選中狀態
+              document
+                .querySelectorAll("#applicationForm .fromback-option")
+                .forEach((opt) => {
+                  opt.classList.remove("selected")
+                })
+              option.classList.add("selected")
+
+              // 更新隱藏的 input 值
+              document.getElementById("fromBackCmpy").value =
+                option.dataset.value
+            })
           })
       }
       // 新增函數：設定結束時間為開始時間+4小時
@@ -1221,55 +1350,85 @@
       async function loadRecords() {
         showLoading()
         try {
-          const startDate = document.getElementById("startDate").value
-          const endDate = document.getElementById("endDate").value
+          let url, records
 
-          // 若沒有設定日期，預設為前7天至今
-          if (!startDate || !endDate) {
-            const today = new Date()
-            const sevenDaysAgo = new Date()
-            sevenDaysAgo.setDate(today.getDate() - 7)
+          if (currentStatus === "my-approved") {
+            // 載入我的核准記錄
+            const startDate = document.getElementById("startDate").value
+            const endDate = document.getElementById("endDate").value
 
-            // 格式化日期為 YYYY-MM-DD
-            endDate = today.toISOString().split("T")[0]
-            startDate = sevenDaysAgo.toISOString().split("T")[0]
+            url = `${base_url}Leave/approved-by-me?ApproverId=${currentUser.userId}`
 
-            // 更新輸入框的值
-            document.getElementById("startDate").value = startDate
-            document.getElementById("endDate").value = endDate
-          }
+            // 添加日期查詢參數
+            if (startDate && endDate) {
+              url += `&StartDate=${startDate}&EndDate=${endDate}`
+            }
 
-          let url = `${base_url}Leave/leave?UserId=${currentUser.userId}&ApproveResult=${currentStatus}`
-
-          // 添加日期查詢參數
-          if (startDate && endDate) {
-            url += `&StartDate=${startDate}&EndDate=${endDate}`
-          }
-
-          const response = await fetch(url, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          })
-
-          if (response.ok) {
-            const records = await response.json()
-            console.log("申請記錄:", records)
-
-            // 依日期排序（由大到小）
-            records.sort((a, b) => {
-              return new Date(b.leaveDate) - new Date(a.leaveDate)
+            const response = await fetch(url, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
             })
 
-            // 顯示申請記錄
-            displayRecords(records)
+            if (response.ok) {
+              records = await response.json()
+              console.log("我的核准記錄:", records)
+            } else {
+              console.error("獲取我的核准記錄失敗:", response.status)
+              showStatusMessage("無法獲取我的核准記錄", "error")
+              records = []
+            }
           } else {
-            console.error("獲取申請記錄失敗:", response.status)
-            showStatusMessage("無法獲取簽核記錄", "error")
-            displayRecords([])
+            // 載入申請記錄（原有邏輯）
+            const startDate = document.getElementById("startDate").value
+            const endDate = document.getElementById("endDate").value
+
+            // 若沒有設定日期，預設為前7天至今
+            if (!startDate || !endDate) {
+              const today = new Date()
+              const sevenDaysAgo = new Date()
+              sevenDaysAgo.setDate(today.getDate() - 7)
+
+              // 格式化日期為 YYYY-MM-DD
+              endDate = today.toISOString().split("T")[0]
+              startDate = sevenDaysAgo.toISOString().split("T")[0]
+
+              // 更新輸入框的值
+              document.getElementById("startDate").value = startDate
+              document.getElementById("endDate").value = endDate
+            }
+
+            url = `${base_url}Leave/leave?UserId=${currentUser.userId}&ApproveResult=${currentStatus}`
+
+            // 添加日期查詢參數
+            if (startDate && endDate) {
+              url += `&StartDate=${startDate}&EndDate=${endDate}`
+            }
+
+            const response = await fetch(url, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            })
+
+            if (response.ok) {
+              records = await response.json()
+              console.log("申請記錄:", records)
+            } else {
+              console.error("獲取申請記錄失敗:", response.status)
+              showStatusMessage("無法獲取簽核記錄", "error")
+              records = []
+            }
           }
+
+          // 依日期排序（由大到小）
+          records.sort((a, b) => {
+            return new Date(b.leaveDate) - new Date(a.leaveDate)
+          })
+
+          // 顯示記錄
+          displayRecords(records)
         } catch (error) {
-          console.error("載入申請記錄失敗:", error)
-          showStatusMessage("載入簽核記錄時發生錯誤", "error")
+          console.error("載入記錄失敗:", error)
+          showStatusMessage("載入記錄時發生錯誤", "error")
           displayRecords([])
         } finally {
           hideLoading()
@@ -1288,6 +1447,17 @@
             tab.classList.remove("active")
           }
         })
+
+        // 顯示或隱藏批量操作區域
+        const batchOperations = document.getElementById("batchOperations")
+        if (status === "my-approved") {
+          batchOperations.classList.add("show")
+        } else {
+          batchOperations.classList.remove("show")
+          // 清除選擇狀態
+          selectedRecords.clear()
+          updateSelectedCount()
+        }
       }
       // 顯示申請記錄
       function displayRecords(records) {
@@ -1306,56 +1476,92 @@
         }
 
         let html = ""
+        const isMyApproved = currentStatus === "my-approved"
 
         records.forEach((record) => {
           // 格式化狀態顯示
           let statusClass = ""
           let statusText = ""
 
-          switch (record.approveResult) {
-            case "pending":
-              statusClass = "status-pending"
-              statusText = "簽核中"
-              break
-            case "pass":
-              statusClass = "status-approved"
-              statusText = "核准"
-              break
-            case "reject":
-              statusClass = "status-rejected"
-              statusText = "不核準(請聯繫簽核人員)"
-              break
+          if (isMyApproved) {
+            statusClass = "status-approved"
+            statusText = "已核准"
+          } else {
+            switch (record.approveResult) {
+              case "pending":
+                statusClass = "status-pending"
+                statusText = "簽核中"
+                break
+              case "pass":
+                statusClass = "status-approved"
+                statusText = "核准"
+                break
+              case "reject":
+                statusClass = "status-rejected"
+                statusText = "不核準(請聯繫簽核人員)"
+                break
+            }
           }
 
           // 只有在 pending 狀態時才顯示撤銷按鈕
           const cancelButton =
-            record.approveResult === "pending"
+            record.approveResult === "pending" && !isMyApproved
               ? `<button class="cancel-btn button danger-button" onclick="confirmCancelApplication('${record.id}')">撤銷此案</button>`
               : ""
 
+          // 多選checkbox（僅在我的核准分頁顯示）
+          const checkbox = isMyApproved
+            ? `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}" onchange="updateSelectedRecords()">`
+            : ""
+
+          // FromBackCmpy 狀態顯示（僅在我的核准分頁顯示）
+          const fromBackDisplay = isMyApproved
+            ? `<br>類型: ${record.fromBackCmpy || "一般公出"}`
+            : ""
+
+          // 申請人資訊（僅在我的核准分頁顯示）
+          const applicantInfo = isMyApproved
+            ? `<br>申請人: ${record.applicantEmpId || ""} ${
+                record.applicantName || ""
+              } (${record.applicantDept || ""})`
+            : ""
+
           html += `
-      <div class="record-item" data-id="${record.id}">
-        <div class="record-header">
-          <div class="record-title">
-                        ${record.eventCatalog}類- ${record.eventName}
-            <span class="record-status ${statusClass}">${statusText}</span>
+        <div class="record-item ${
+          isMyApproved ? "with-checkbox" : ""
+        }" data-id="${record.id}">
+          ${checkbox}
+          <div class="record-content">
+            <div class="record-header">
+              <div class="record-title">
+                ${record.eventCatalog}類- ${record.eventName}
+                <span class="record-status ${statusClass}">${statusText}</span>
+              </div>
+              <div class="record-date">${record.leaveDate} ${
+            record.leaveTime
+          }</div>
+            </div>
+            <div class="record-details">
+              ${record.desc}
+              ${record.location ? `<br>地點: ${record.location}` : ""}
+              ${record.backDate ? `<br>結束日期: ${record.backDate}` : ""}
+              ${record.backTime ? `<br>結束時間: ${record.backTime}` : ""}
+              ${fromBackDisplay}
+              ${applicantInfo}
+            </div>
+            <div class="record-actions">
+              ${cancelButton}
+            </div>
           </div>
-          <div class="record-date">${record.leaveDate} ${record.leaveTime}</div>
         </div>
-        <div class="record-details">
-          ${record.desc}
-          ${record.location ? `<br>地點: ${record.location}` : ""}
-          ${record.backDate ? `<br>結束日期: ${record.backDate}` : ""}
-          ${record.backTime ? `<br>結束時間: ${record.backTime}` : ""}
-        </div>
-        <div class="record-actions">
-          ${cancelButton}
-        </div>
-      </div>
-    `
+      `
         })
 
         recordsListElement.innerHTML = html
+
+        // 清除選擇狀態
+        selectedRecords.clear()
+        updateSelectedCount()
       }
       // 顯示確認對話框
       function showConfirmDialog(message, callback) {
@@ -1430,6 +1636,17 @@
       function showNewApplicationModal() {
         // 重置表單
         document.getElementById("applicationForm").reset()
+
+        // 重置逕往逕返選項為預設值（一般公出）
+        document
+          .querySelectorAll("#applicationForm .fromback-option")
+          .forEach((opt) => {
+            opt.classList.remove("selected")
+          })
+        document
+          .querySelector("#applicationForm .fromback-option[data-value='']")
+          .classList.add("selected")
+        document.getElementById("fromBackCmpy").value = ""
 
         // 更新主管選擇下拉選單
         updateApproverOptions()
@@ -1580,6 +1797,7 @@
             eventCatalog: eventCatalog,
             desc: document.getElementById("desc").value,
             approveUserId: document.getElementById("approveUserId").value,
+            fromBackCmpy: document.getElementById("fromBackCmpy").value || null,
           }
 
           const response = await fetch(`${base_url}Leave/createLeave`, {
@@ -1780,6 +1998,129 @@
         } finally {
           hideLoading()
         }
+      }
+
+      // 更新選中記錄
+      function updateSelectedRecords() {
+        selectedRecords.clear()
+        document
+          .querySelectorAll(".record-checkbox:checked")
+          .forEach((checkbox) => {
+            selectedRecords.add(checkbox.dataset.recordId)
+          })
+        updateSelectedCount()
+        updateBatchUpdateButton()
+      }
+
+      // 更新選中數量顯示
+      function updateSelectedCount() {
+        document.getElementById("selectedCount").textContent =
+          selectedRecords.size
+      }
+
+      // 全選記錄
+      function selectAllRecords() {
+        document.querySelectorAll(".record-checkbox").forEach((checkbox) => {
+          checkbox.checked = true
+          selectedRecords.add(checkbox.dataset.recordId)
+        })
+        updateSelectedCount()
+        updateBatchUpdateButton()
+      }
+
+      // 取消全選
+      function unselectAllRecords() {
+        document.querySelectorAll(".record-checkbox").forEach((checkbox) => {
+          checkbox.checked = false
+        })
+        selectedRecords.clear()
+        updateSelectedCount()
+        updateBatchUpdateButton()
+      }
+
+      // 更新批量更新按鈕狀態
+      function updateBatchUpdateButton() {
+        const button = document.getElementById("batchUpdateBtn")
+        const hasSelection =
+          selectedRecords.size > 0 && selectedFromBack !== undefined
+        button.disabled = !hasSelection
+      }
+
+      // 確認批量更新
+      function confirmBatchUpdate() {
+        if (selectedRecords.size === 0) {
+          showStatusMessage("請選擇要更新的記錄", "error")
+          return
+        }
+
+        const selectedOption = document.querySelector(
+          ".fromback-option.selected"
+        )
+        if (!selectedOption) {
+          showStatusMessage("請選擇設定類型", "error")
+          return
+        }
+
+        const typeName = selectedOption.textContent
+        showConfirmDialog(
+          `確定要將 ${selectedRecords.size} 筆記錄設定為「${typeName}」嗎？`,
+          performBatchUpdate
+        )
+      }
+
+      // 執行批量更新
+      async function performBatchUpdate() {
+        showLoading()
+
+        try {
+          const updatePromises = Array.from(selectedRecords).map((recordId) =>
+            updateFromBackCmpy(recordId, selectedFromBack)
+          )
+
+          const results = await Promise.allSettled(updatePromises)
+
+          // 統計結果
+          const succeeded = results.filter(
+            (r) => r.status === "fulfilled"
+          ).length
+          const failed = results.filter((r) => r.status === "rejected").length
+
+          if (succeeded > 0) {
+            showStatusMessage(`成功更新 ${succeeded} 筆記錄`, "success")
+          }
+          if (failed > 0) {
+            showStatusMessage(`${failed} 筆記錄更新失敗`, "error")
+          }
+
+          // 重新載入記錄
+          await loadRecords()
+        } catch (error) {
+          console.error("批量更新失敗:", error)
+          showStatusMessage("批量更新時發生錯誤", "error")
+        } finally {
+          hideLoading()
+        }
+      }
+
+      // 更新單筆 FromBackCmpy
+      async function updateFromBackCmpy(recordId, fromBackCmpy) {
+        const response = await fetch(
+          `${base_url}Leave/${recordId}/fromback-cmpy`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              approverId: currentUser.userId,
+              fromBackCmpy: fromBackCmpy,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`更新記錄 ${recordId} 失敗`)
+        }
+
+        return response.json()
       }
     </script>
   </body>
