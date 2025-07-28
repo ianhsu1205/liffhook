@@ -239,12 +239,12 @@
         margin-bottom: 20px;
       }
       .tab {
-        padding: 8px 12px;
+        padding: 10px 16px;
         cursor: pointer;
         border-bottom: 3px solid transparent;
         font-weight: 500;
         transition: all 0.3s;
-        font-size: 14px;
+        font-size: 16px;
         white-space: nowrap;
         flex-shrink: 0;
       }
@@ -256,6 +256,34 @@
         color: #06c755;
         background-color: #f0fdf4;
         font-weight: 600;
+      }
+
+      /* 核准權限相關 tab 的特殊樣式 */
+      .approval-tab {
+        background-color: #fef7f0;
+        border: 1px solid #f4a261;
+        border-bottom: 3px solid transparent;
+        margin-left: 4px;
+        border-radius: 6px 6px 0 0;
+      }
+
+      .approval-tab:hover {
+        background-color: #fef3e7;
+      }
+
+      .approval-tab.active {
+        border-bottom-color: #f4a261;
+        color: #e76f51;
+        background-color: #fef3e7;
+        font-weight: 600;
+      }
+
+      /* tab 分隔線 */
+      .tab-divider {
+        width: 2px;
+        background-color: #ddd;
+        margin: 8px 12px;
+        flex-shrink: 0;
       }
 
       /* 申請列表 */
@@ -460,15 +488,18 @@
           flex-direction: column;
         }
         .date-range-container {
-          flex-direction: column;
-          gap: 15px;
+          flex-direction: row;
+          gap: 8px;
+          align-items: flex-end;
         }
         .date-range-container .form-group {
-          width: 100%;
+          flex: 1;
+          min-width: 0;
         }
         .date-separator {
           margin: 0;
-          text-align: center;
+          margin-bottom: 8px;
+          font-size: 12px;
         }
         .record-header {
           flex-direction: column;
@@ -537,8 +568,15 @@
       /* 適應更小的螢幕 */
       @media (max-width: 480px) {
         .tab {
-          padding: 5px 8px;
-          font-size: 12px;
+          padding: 6px 10px;
+          font-size: 14px;
+        }
+        .approval-tab {
+          margin-left: 2px;
+          padding: 6px 8px;
+        }
+        .tab-divider {
+          margin: 6px 8px;
         }
         .search-bar .form-group {
           min-width: 100%;
@@ -1695,8 +1733,11 @@
         <div class="tab active" data-status="pending">已送出</div>
         <div class="tab" data-status="pass">已核准</div>
         <div class="tab" data-status="reject">不核準</div>
-        <div class="tab" data-status="pending-approval">待簽核</div>
-        <div class="tab" data-status="my-approved">已簽核</div>
+        <div class="tab-divider"></div>
+        <div class="tab approval-tab" data-status="pending-approval">
+          待簽核
+        </div>
+        <div class="tab approval-tab" data-status="my-approved">已簽核</div>
       </div>
 
       <!-- 搜尋條件區 -->
@@ -1951,7 +1992,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.1</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -1979,8 +2020,28 @@
         // 初始化日期選擇器
         initDatePickers()
 
-        // 設置預設的分頁狀態（已送出）
-        setActiveTab("pending")
+        // 檢查 URL 參數並設置對應的 tab
+        const urlParams = new URLSearchParams(window.location.search)
+        const tabParam = urlParams.get("tab")
+
+        let defaultTab = "pending" // 預設為已送出
+
+        // 如果 URL 中指定了 tab 參數，使用該參數
+        if (
+          tabParam &&
+          [
+            "pending",
+            "pass",
+            "reject",
+            "pending-approval",
+            "my-approved",
+          ].includes(tabParam)
+        ) {
+          defaultTab = tabParam
+        }
+
+        // 設置預設的分頁狀態
+        setActiveTab(defaultTab)
 
         // 初始化 LIFF
         initLIFF()
