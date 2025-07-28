@@ -1555,6 +1555,65 @@
           border-radius: 15px;
         }
       }
+
+      /* 逕往及逕返選項 - 紫色系 */
+      .fromback-option[data-value="逕往及逕返"] {
+        border-color: #6f42c1;
+        color: #6f42c1;
+      }
+
+      .fromback-option[data-value="逕往及逕返"]:hover {
+        background-color: #6f42c1;
+        color: white;
+        border-color: #5a3399;
+      }
+
+      .fromback-option[data-value="逕往及逕返"].selected {
+        background-color: #6f42c1;
+        color: white;
+        border-color: #5a3399;
+        box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+      }
+
+      /* 逕往及逕返快速編輯按鈕 - 紫色系 */
+      .quick-edit-btn.both {
+        border-color: #6f42c1;
+        color: #6f42c1;
+      }
+
+      .quick-edit-btn.both:hover {
+        background-color: #6f42c1;
+        color: white;
+      }
+
+      .quick-edit-btn.both.active {
+        background-color: #6f42c1;
+        color: white;
+        border-color: #5a3399;
+      }
+
+      /* 確保快速編輯按鈕在同一列顯示 */
+      .quick-edit-buttons {
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+        overflow-x: auto;
+      }
+
+      .quick-edit-btn {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+        min-width: 45px;
+        border-radius: 6px !important;
+      }
+
+      /* 手機版本適配 */
+      @media (max-width: 576px) {
+        .quick-edit-btn {
+          padding: 3px 6px !important;
+          font-size: 9px !important;
+          min-width: 35px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1743,6 +1802,42 @@
               </div>
 
               <div class="form-group">
+                <label for="approverType" class="required">簽核範圍</label>
+                <select id="approverType" required>
+                  <option value="same-dept">本部門</option>
+                  <option value="other-dept">其它部門</option>
+                  <option value="other-company">其它公司別(有兼任主管)</option>
+                </select>
+                <div class="error-tooltip" id="approverType-error">
+                  請選擇簽核範圍
+                </div>
+              </div>
+
+              <div
+                class="form-group"
+                id="otherCompanyGroup"
+                style="display: none"
+              >
+                <label for="otherCompany" class="required">選擇公司</label>
+                <select id="otherCompany">
+                  <option value="">請選擇公司</option>
+                  <!-- 公司選項會由JavaScript動態填入 -->
+                </select>
+                <div class="error-tooltip" id="otherCompany-error">
+                  請選擇公司
+                </div>
+              </div>
+
+              <div class="form-group" id="otherDeptGroup" style="display: none">
+                <label for="otherDept" class="required">選擇部門</label>
+                <select id="otherDept">
+                  <option value="">請選擇部門</option>
+                  <!-- 部門選項會由JavaScript動態填入 -->
+                </select>
+                <div class="error-tooltip" id="otherDept-error">請選擇部門</div>
+              </div>
+
+              <div class="form-group">
                 <label for="approveUserId" class="required">簽核人員</label>
                 <select id="approveUserId" required>
                   <option value="">請選擇簽核人員</option>
@@ -1770,6 +1865,9 @@
                   <div class="fromback-option selected" data-value="">一般</div>
                   <div class="fromback-option" data-value="逕往">逕往</div>
                   <div class="fromback-option" data-value="逕返">逕返</div>
+                  <div class="fromback-option" data-value="逕往及逕返">
+                    逕往及逕返
+                  </div>
                 </div>
                 <input type="hidden" id="fromBackCmpy" value="" />
               </div>
@@ -1803,7 +1901,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.6</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.7</div>
     </div>
 
     <!-- JavaScript -->
@@ -1917,6 +2015,68 @@
             // 如果已選取開始時間，重新計算結束時間
             if (leaveTime) {
               setEndTimePlus4Hours(leaveTime)
+            }
+          })
+
+        // 新增功能：監聽簽核範圍變更
+        document
+          .getElementById("approverType")
+          .addEventListener("change", function () {
+            const approverType = this.value
+            const otherCompanyGroup =
+              document.getElementById("otherCompanyGroup")
+            const otherDeptGroup = document.getElementById("otherDeptGroup")
+
+            // 重置所有選擇
+            document.getElementById("otherCompany").selectedIndex = 0
+            document.getElementById("otherDept").selectedIndex = 0
+            document.getElementById("approveUserId").innerHTML =
+              '<option value="">請選擇簽核人員</option>'
+
+            if (approverType === "same-dept") {
+              // 本部門：隱藏其他選項，直接載入同部門人員
+              otherCompanyGroup.style.display = "none"
+              otherDeptGroup.style.display = "none"
+              loadPotentialApprovers()
+            } else if (approverType === "other-dept") {
+              // 其他部門：顯示部門選擇，隱藏公司選擇
+              otherCompanyGroup.style.display = "none"
+              otherDeptGroup.style.display = "block"
+              loadDepartments() // 載入本公司的所有部門
+            } else if (approverType === "other-company") {
+              // 其他公司：顯示公司和部門選擇
+              otherCompanyGroup.style.display = "block"
+              otherDeptGroup.style.display = "block"
+              loadCompanies()
+            }
+          })
+
+        // 新增功能：監聽公司選擇變更
+        document
+          .getElementById("otherCompany")
+          .addEventListener("change", function () {
+            const selectedCompany = this.value
+            if (selectedCompany) {
+              loadDepartments(selectedCompany)
+            } else {
+              document.getElementById("otherDept").innerHTML =
+                '<option value="">請選擇部門</option>'
+            }
+            // 重置簽核人員選擇
+            document.getElementById("approveUserId").innerHTML =
+              '<option value="">請選擇簽核人員</option>'
+          })
+
+        // 新增功能：監聽部門選擇變更
+        document
+          .getElementById("otherDept")
+          .addEventListener("change", function () {
+            const selectedDept = this.value
+            if (selectedDept) {
+              loadPotentialApprovers()
+            } else {
+              document.getElementById("approveUserId").innerHTML =
+                '<option value="">請選擇簽核人員</option>'
             }
           })
 
@@ -2154,19 +2314,151 @@
       }
 
       // 載入潛在的核准主管
-      async function loadPotentialApprovers() {
+      // 職稱排序權重 (數字越大權重越高)
+      const jobRankingMap = {
+        董事長: 17,
+        總經理: 16,
+        執董: 15,
+        經理: 14,
+        主任: 13,
+        副理: 12,
+        襄理: 11,
+        課長: 10,
+        副課長: 9,
+        站長: 8,
+        副站長: 7,
+        廠長: 6,
+        副廠長: 5,
+        股長: 4,
+        副股長: 3,
+        組長: 2,
+        副組長: 1,
+      }
+
+      // 根據職稱排序
+      function sortUsersByJobRank(users) {
+        return users.sort((a, b) => {
+          const aRank = getJobRank(a.job)
+          const bRank = getJobRank(b.job)
+          return bRank - aRank // 從高到低排序
+        })
+      }
+
+      // 獲取職稱權重
+      function getJobRank(job) {
+        if (!job) return 0
+
+        // 檢查職稱中是否包含關鍵字
+        for (const [keyword, rank] of Object.entries(jobRankingMap)) {
+          if (job.includes(keyword)) {
+            return rank
+          }
+        }
+        return 0 // 其他職稱默認權重為0
+      }
+
+      // 載入公司列表
+      async function loadCompanies() {
         try {
-          const response = await fetch(
-            `${base_url}Leave/approvers?company=${currentUser.company}&dept=${currentUser.dept}&excludeUserId=${currentUser.userId}`,
-            {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            }
-          )
+          const response = await fetch(`${base_url}Leave/companies`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          })
 
           if (response.ok) {
-            approvers = await response.json()
+            const companies = await response.json()
+            const selectElement = document.getElementById("otherCompany")
+            selectElement.innerHTML = '<option value="">請選擇公司</option>'
+
+            companies.forEach((company) => {
+              const option = document.createElement("option")
+              option.value = company
+              option.textContent = company
+              selectElement.appendChild(option)
+            })
+          } else {
+            console.error("獲取公司列表失敗:", response.status)
+            showStatusMessage("無法獲取公司列表", "error")
+          }
+        } catch (error) {
+          console.error("載入公司列表失敗:", error)
+          showStatusMessage("載入公司列表時發生錯誤", "error")
+        }
+      }
+
+      // 載入部門列表
+      async function loadDepartments(company = null) {
+        try {
+          let url = `${base_url}Leave/departments`
+          if (company) {
+            url += `?company=${encodeURIComponent(company)}`
+          }
+
+          const response = await fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          })
+
+          if (response.ok) {
+            const departments = await response.json()
+            const selectElement = document.getElementById("otherDept")
+            selectElement.innerHTML = '<option value="">請選擇部門</option>'
+
+            departments.forEach((dept) => {
+              const option = document.createElement("option")
+              option.value = dept
+              option.textContent = dept
+              selectElement.appendChild(option)
+            })
+          } else {
+            console.error("獲取部門列表失敗:", response.status)
+            showStatusMessage("無法獲取部門列表", "error")
+          }
+        } catch (error) {
+          console.error("載入部門列表失敗:", error)
+          showStatusMessage("載入部門列表時發生錯誤", "error")
+        }
+      }
+
+      async function loadPotentialApprovers() {
+        try {
+          const approverType = document.getElementById("approverType").value
+          let url = `${base_url}Leave/approvers?excludeUserId=${currentUser.userId}`
+
+          if (approverType === "same-dept") {
+            // 載入同部門人員
+            url += `&company=${currentUser.company}&dept=${currentUser.dept}`
+          } else if (approverType === "other-dept") {
+            // 載入其他部門人員 (排除駕駛長)
+            const selectedDept = document.getElementById("otherDept").value
+            if (!selectedDept) {
+              showStatusMessage("請先選擇部門", "error")
+              return
+            }
+            url += `&company=${currentUser.company}&dept=${selectedDept}&excludeJob=駕駛長`
+          } else if (approverType === "other-company") {
+            // 載入其他公司別的兼任主管
+            const selectedCompany =
+              document.getElementById("otherCompany").value
+            const selectedDept = document.getElementById("otherDept").value
+            if (!selectedCompany || !selectedDept) {
+              showStatusMessage("請先選擇公司和部門", "error")
+              return
+            }
+            url += `&company=${selectedCompany}&dept=${selectedDept}&hasManagerRole=true`
+          }
+
+          const response = await fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          })
+
+          if (response.ok) {
+            let approversData = await response.json()
+            // 根據職稱排序
+            approvers = sortUsersByJobRank(approversData)
             console.log("核准主管:", approvers)
+            updateApproverOptions()
           } else {
             console.error("獲取簽核人員失敗:", response.status)
             showStatusMessage("無法獲取簽核人員列表", "error")
@@ -2183,11 +2475,11 @@
           let url, records
 
           if (currentStatus === "my-approved") {
-            // 載入我的核准記錄
+            // 載入我的核准記錄 - 使用 searchDateType=approve
             const startDate = document.getElementById("startDate").value
             const endDate = document.getElementById("endDate").value
 
-            url = `${base_url}Leave/approved-by-me?ApproverId=${currentUser.userId}`
+            url = `${base_url}Leave/approved-by-me?ApproverId=${currentUser.userId}&searchDateType=approve`
 
             // 添加日期查詢參數
             if (startDate && endDate) {
@@ -2207,8 +2499,34 @@
               showStatusMessage("無法獲取我的核准記錄", "error")
               records = []
             }
+          } else if (currentStatus === "pending") {
+            // 載入待簽核記錄 - 不使用日期篩選，設定一年範圍
+            const today = new Date()
+            const oneYearAgo = new Date()
+            oneYearAgo.setFullYear(today.getFullYear() - 1)
+            const oneYearLater = new Date()
+            oneYearLater.setFullYear(today.getFullYear() + 1)
+
+            const startDate = oneYearAgo.toISOString().split("T")[0]
+            const endDate = oneYearLater.toISOString().split("T")[0]
+
+            url = `${base_url}Leave/leave?UserId=${currentUser.userId}&ApproveResult=${currentStatus}&searchDateType=leave&StartDate=${startDate}&EndDate=${endDate}`
+
+            const response = await fetch(url, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            })
+
+            if (response.ok) {
+              records = await response.json()
+              console.log("待簽核記錄:", records)
+            } else {
+              console.error("獲取待簽核記錄失敗:", response.status)
+              showStatusMessage("無法獲取待簽核記錄", "error")
+              records = []
+            }
           } else {
-            // 載入申請記錄（原有邏輯）
+            // 載入申請記錄（已核准、已拒絕）- 使用 searchDateType=leave
             const startDate = document.getElementById("startDate").value
             const endDate = document.getElementById("endDate").value
 
@@ -2227,7 +2545,7 @@
               document.getElementById("endDate").value = endDate
             }
 
-            url = `${base_url}Leave/leave?UserId=${currentUser.userId}&ApproveResult=${currentStatus}`
+            url = `${base_url}Leave/leave?UserId=${currentUser.userId}&ApproveResult=${currentStatus}&searchDateType=leave`
 
             // 添加日期查詢參數
             if (startDate && endDate) {
@@ -2277,6 +2595,16 @@
             tab.classList.remove("active")
           }
         })
+
+        // 控制日期篩選器的顯示/隱藏
+        const searchBar = document.querySelector(".search-bar")
+        if (status === "pending") {
+          // 待簽核分頁：隱藏日期篩選器
+          searchBar.style.display = "none"
+        } else {
+          // 其他分頁：顯示日期篩選器
+          searchBar.style.display = "flex"
+        }
       }
       // 顯示申請記錄
       function displayRecords(records) {
@@ -2352,12 +2680,27 @@
                           record.id
                         }', '逕返')" 
                         title="設為逕返">逕返</button>
+                <button class="quick-edit-btn both ${
+                  record.fromBackCmpy === "逕往及逕返" ? "active" : ""
+                }" 
+                        onclick="quickUpdateFromBackCmpy('${
+                          record.id
+                        }', '逕往及逕返')" 
+                        title="設為逕往及逕返">往返</button>
               </div>`
             : ""
 
           // FromBackCmpy 狀態顯示（僅在我的核准分頁顯示）
           const fromBackDisplay = isMyApproved
-            ? `<br>類型: ${record.fromBackCmpy || "一般"}`
+            ? `<br>類型: ${
+                record.fromBackCmpy === "逕往"
+                  ? "逕往"
+                  : record.fromBackCmpy === "逕返"
+                  ? "逕返"
+                  : record.fromBackCmpy === "逕往及逕返"
+                  ? "逕往及逕返"
+                  : "一般"
+              }`
             : ""
 
           // 申請人資訊（僅在我的核准分頁顯示）
@@ -2483,8 +2826,13 @@
           .classList.add("selected")
         document.getElementById("fromBackCmpy").value = ""
 
-        // 更新主管選擇下拉選單
-        updateApproverOptions()
+        // 重置簽核範圍為預設值（本部門）
+        document.getElementById("approverType").value = "same-dept"
+        document.getElementById("otherCompanyGroup").style.display = "none"
+        document.getElementById("otherDeptGroup").style.display = "none"
+
+        // 載入同部門的簽核人員
+        loadPotentialApprovers()
 
         // 顯示模態框
         document
@@ -2589,6 +2937,24 @@
         const approveUserId = document.getElementById("approveUserId").value
         if (!approveUserId) {
           isValid = showError("approveUserId", "請選擇簽核人員") && isValid
+        }
+
+        // 驗證簽核範圍相關選項
+        const approverType = document.getElementById("approverType").value
+        if (approverType === "other-dept") {
+          const otherDept = document.getElementById("otherDept").value
+          if (!otherDept) {
+            isValid = showError("otherDept", "請選擇部門") && isValid
+          }
+        } else if (approverType === "other-company") {
+          const otherCompany = document.getElementById("otherCompany").value
+          const otherDept = document.getElementById("otherDept").value
+          if (!otherCompany) {
+            isValid = showError("otherCompany", "請選擇公司") && isValid
+          }
+          if (!otherDept) {
+            isValid = showError("otherDept", "請選擇部門") && isValid
+          }
         }
 
         // 驗證申請說明
@@ -2864,6 +3230,8 @@
               ? "逕往"
               : fromBackCmpy === "逕返"
               ? "逕返"
+              : fromBackCmpy === "逕往及逕返"
+              ? "逕往及逕返"
               : "一般公出"
           showStatusMessage(`已更新為「${typeName}」`, "success")
 
