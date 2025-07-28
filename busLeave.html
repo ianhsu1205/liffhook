@@ -1901,7 +1901,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.8</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.9</div>
     </div>
 
     <!-- JavaScript -->
@@ -1928,6 +1928,9 @@
 
         // 初始化日期選擇器
         initDatePickers()
+
+        // 設置預設的分頁狀態（待簽核）
+        setActiveTab("pending")
 
         // 初始化 LIFF
         initLIFF()
@@ -2425,6 +2428,9 @@
           const approverType = document.getElementById("approverType").value
           let url = `${base_url}Leave/approvers?excludeUserId=${currentUser.userId}`
 
+          console.log("載入核准人員 - 類型:", approverType)
+          console.log("當前用戶資訊:", currentUser)
+
           if (approverType === "same-dept") {
             // 載入同部門人員
             url += `&company=${encodeURIComponent(
@@ -2445,6 +2451,10 @@
             const selectedCompany =
               document.getElementById("otherCompany").value
             const selectedDept = document.getElementById("otherDept").value
+
+            console.log("選擇的公司:", selectedCompany)
+            console.log("選擇的部門:", selectedDept)
+
             if (!selectedCompany || !selectedDept) {
               showStatusMessage("請先選擇公司和部門", "error")
               return
@@ -2461,15 +2471,22 @@
             headers: { "Content-Type": "application/json" },
           })
 
+          console.log("API 回應狀態:", response.status)
+
           if (response.ok) {
             let approversData = await response.json()
+            console.log("從 API 獲取的原始資料:", approversData)
+
             // 根據職稱排序
             approvers = sortUsersByJobRank(approversData)
-            console.log("核准主管:", approvers)
+            console.log("排序後的核准主管:", approvers)
 
             if (approvers.length === 0) {
               console.warn("未找到符合條件的核准人員")
-              showStatusMessage("未找到符合條件的核准人員", "error")
+              showStatusMessage(
+                "未找到符合條件的核准人員，請檢查該公司部門是否有兼任主管",
+                "error"
+              )
             }
 
             updateApproverOptions()
@@ -2477,11 +2494,17 @@
             console.error("獲取簽核人員失敗:", response.status)
             const errorText = await response.text()
             console.error("錯誤詳情:", errorText)
-            showStatusMessage("無法獲取簽核人員列表", "error")
+            showStatusMessage(
+              `無法獲取簽核人員列表 (錯誤代碼: ${response.status})`,
+              "error"
+            )
           }
         } catch (error) {
           console.error("載入簽核人員失敗:", error)
-          showStatusMessage("載入簽核人員列表時發生錯誤", "error")
+          showStatusMessage(
+            "載入簽核人員列表時發生錯誤: " + error.message,
+            "error"
+          )
         }
       }
       // 載入申請記錄
@@ -2702,7 +2725,7 @@
                         onclick="quickUpdateFromBackCmpy('${
                           record.id
                         }', '逕往及逕返')" 
-                        title="設為逕往及逕返">往返</button>
+                        title="設為逕往及逕返">逕往及逕返</button>
               </div>`
             : ""
 
@@ -3248,7 +3271,7 @@
               ? "逕返"
               : fromBackCmpy === "逕往及逕返"
               ? "逕往及逕返"
-              : "一般公出"
+              : "一般"
           showStatusMessage(`已更新為「${typeName}」`, "success")
 
           // 重新載入記錄以顯示最新狀態
