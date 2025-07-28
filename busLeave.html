@@ -2068,7 +2068,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.6</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.7</div>
     </div>
 
     <!-- JavaScript -->
@@ -2892,6 +2892,10 @@
           currentStatus === "pass" || currentStatus === "reject"
 
         sortedRecords.forEach((record) => {
+          // Debug: 輸出記錄物件查看可用欄位
+          console.log("Record fields:", Object.keys(record))
+          console.log("Record object:", record)
+
           // 格式化狀態顯示
           let statusClass = ""
           let statusText = ""
@@ -3011,8 +3015,8 @@
                 ${record.eventCatalog}類- ${record.eventName}
                 ${applicantInfo}
               </div>
-              <div class="record-date">${record.CreatedDate} ${
-            record.CreatedTime
+              <div class="record-date">送出於：${record.createdDate} ${
+            record.createdTime
           }</div>
             </div>
             <div class="record-details">
