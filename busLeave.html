@@ -1901,7 +1901,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.7</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.2.8</div>
     </div>
 
     <!-- JavaScript -->
@@ -2427,7 +2427,9 @@
 
           if (approverType === "same-dept") {
             // 載入同部門人員
-            url += `&company=${currentUser.company}&dept=${currentUser.dept}`
+            url += `&company=${encodeURIComponent(
+              currentUser.company
+            )}&dept=${encodeURIComponent(currentUser.dept)}`
           } else if (approverType === "other-dept") {
             // 載入其他部門人員 (排除駕駛長)
             const selectedDept = document.getElementById("otherDept").value
@@ -2435,7 +2437,9 @@
               showStatusMessage("請先選擇部門", "error")
               return
             }
-            url += `&company=${currentUser.company}&dept=${selectedDept}&excludeJob=駕駛長`
+            url += `&company=${encodeURIComponent(
+              currentUser.company
+            )}&dept=${encodeURIComponent(selectedDept)}&excludeJob=駕駛長`
           } else if (approverType === "other-company") {
             // 載入其他公司別的兼任主管
             const selectedCompany =
@@ -2445,8 +2449,12 @@
               showStatusMessage("請先選擇公司和部門", "error")
               return
             }
-            url += `&company=${selectedCompany}&dept=${selectedDept}&hasManagerRole=true`
+            url += `&company=${encodeURIComponent(
+              selectedCompany
+            )}&dept=${encodeURIComponent(selectedDept)}&hasManagerRole=true`
           }
+
+          console.log("正在載入核准人員，API URL:", url)
 
           const response = await fetch(url, {
             method: "GET",
@@ -2458,9 +2466,17 @@
             // 根據職稱排序
             approvers = sortUsersByJobRank(approversData)
             console.log("核准主管:", approvers)
+
+            if (approvers.length === 0) {
+              console.warn("未找到符合條件的核准人員")
+              showStatusMessage("未找到符合條件的核准人員", "error")
+            }
+
             updateApproverOptions()
           } else {
             console.error("獲取簽核人員失敗:", response.status)
+            const errorText = await response.text()
+            console.error("錯誤詳情:", errorText)
             showStatusMessage("無法獲取簽核人員列表", "error")
           }
         } catch (error) {
