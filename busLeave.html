@@ -141,6 +141,24 @@
       .danger-button:hover {
         background-color: #c0392b;
       }
+      .success-button {
+        background-color: #27ae60;
+      }
+      .success-button:hover {
+        background-color: #219a52;
+      }
+      .approval-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .approval-buttons .button {
+        width: auto;
+        flex: 1;
+        margin: 0;
+        padding: 10px 20px;
+        font-size: 14px;
+      }
       .button-group {
         display: flex;
         gap: 10px;
@@ -1643,10 +1661,11 @@
 
       <!-- 申請狀態分頁 -->
       <div class="tabs">
-        <div class="tab active" data-status="pending">待簽核</div>
+        <div class="tab" data-status="pending-approval">待簽核</div>
+        <div class="tab active" data-status="pending">已送出</div>
         <div class="tab" data-status="pass">已核准</div>
         <div class="tab" data-status="reject">不核準</div>
-        <div class="tab" data-status="my-approved">我的核准</div>
+        <div class="tab" data-status="my-approved">已簽核</div>
       </div>
 
       <!-- 搜尋條件區 -->
@@ -1901,7 +1920,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.2.9</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.0</div>
     </div>
 
     <!-- JavaScript -->
@@ -1929,7 +1948,7 @@
         // 初始化日期選擇器
         initDatePickers()
 
-        // 設置預設的分頁狀態（待簽核）
+        // 設置預設的分頁狀態（已送出）
         setActiveTab("pending")
 
         // 初始化 LIFF
@@ -2538,8 +2557,25 @@
               showStatusMessage("無法獲取我的核准記錄", "error")
               records = []
             }
+          } else if (currentStatus === "pending-approval") {
+            // 載入待簽核記錄 - 顯示指定要我簽核且尚未簽核的記錄
+            url = `${base_url}Leave/leave?ApproveUserId=${currentUser.userId}&ApproveResult=pending`
+
+            const response = await fetch(url, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            })
+
+            if (response.ok) {
+              records = await response.json()
+              console.log("待我簽核記錄:", records)
+            } else {
+              console.error("獲取待簽核記錄失敗:", response.status)
+              showStatusMessage("無法獲取待簽核記錄", "error")
+              records = []
+            }
           } else if (currentStatus === "pending") {
-            // 載入待簽核記錄 - 不使用日期篩選，設定一年範圍
+            // 載入已送出記錄 - 不使用日期篩選，設定一年範圍
             const today = new Date()
             const oneYearAgo = new Date()
             oneYearAgo.setFullYear(today.getFullYear() - 1)
@@ -2558,10 +2594,10 @@
 
             if (response.ok) {
               records = await response.json()
-              console.log("待簽核記錄:", records)
+              console.log("已送出記錄:", records)
             } else {
-              console.error("獲取待簽核記錄失敗:", response.status)
-              showStatusMessage("無法獲取待簽核記錄", "error")
+              console.error("獲取已送出記錄失敗:", response.status)
+              showStatusMessage("無法獲取已送出記錄", "error")
               records = []
             }
           } else {
@@ -2637,8 +2673,8 @@
 
         // 控制日期篩選器的顯示/隱藏
         const searchBar = document.querySelector(".search-bar")
-        if (status === "pending") {
-          // 待簽核分頁：隱藏日期篩選器
+        if (status === "pending" || status === "pending-approval") {
+          // 已送出分頁和待簽核分頁：隱藏日期篩選器
           searchBar.style.display = "none"
         } else {
           // 其他分頁：顯示日期篩選器
@@ -2663,6 +2699,7 @@
 
         let html = ""
         const isMyApproved = currentStatus === "my-approved"
+        const isPendingApproval = currentStatus === "pending-approval"
 
         records.forEach((record) => {
           // 格式化狀態顯示
@@ -2672,6 +2709,9 @@
           if (isMyApproved) {
             statusClass = "status-approved"
             statusText = "已核准"
+          } else if (isPendingApproval) {
+            statusClass = "status-pending"
+            statusText = "待簽核"
           } else {
             switch (record.approveResult) {
               case "pending":
@@ -2689,11 +2729,21 @@
             }
           }
 
-          // 只有在 pending 狀態時才顯示撤銷按鈕
+          // 只有在 pending 狀態時才顯示撤銷按鈕（非待簽核分頁）
           const cancelButton =
-            record.approveResult === "pending" && !isMyApproved
+            record.approveResult === "pending" &&
+            !isMyApproved &&
+            !isPendingApproval
               ? `<button class="cancel-btn button danger-button" onclick="confirmCancelApplication('${record.id}')">撤銷此案</button>`
               : ""
+
+          // 核准/不核准按鈕（僅在待簽核分頁顯示）
+          const approvalButtons = isPendingApproval
+            ? `<div class="approval-buttons">
+                <button class="approve-btn button success-button" onclick="showApprovalDialog('${record.id}', 'pass')">核准</button>
+                <button class="reject-btn button danger-button" onclick="showApprovalDialog('${record.id}', 'reject')">不核准</button>
+              </div>`
+            : ""
 
           // 快速修改 FromBackCmpy 按鈕（僅在我的核准分頁顯示）
           const quickEditButtons = isMyApproved
@@ -2725,7 +2775,7 @@
                         onclick="quickUpdateFromBackCmpy('${
                           record.id
                         }', '逕往及逕返')" 
-                        title="設為逕往及逕返">逕往及逕返</button>
+                        title="設為逕往及逕返">往返</button>
               </div>`
             : ""
 
@@ -2771,6 +2821,7 @@
             </div>
             <div class="record-actions">
               ${cancelButton}
+              ${approvalButtons}
               ${quickEditButtons}
             </div>
           </div>
@@ -3242,6 +3293,54 @@
 
       // 移除批量操作相關函數，改為單筆快速修改
 
+      // 顯示核准/不核准確認對話框
+      function showApprovalDialog(recordId, action) {
+        const actionText = action === "pass" ? "核准" : "不核准"
+        const message = `您確定要${actionText}此申請嗎？`
+
+        showConfirmDialog(message, () => handleApproval(recordId, action))
+      }
+
+      // 處理核准/不核准操作
+      async function handleApproval(recordId, action) {
+        try {
+          showLoading()
+
+          const approvalData = {
+            approverId: currentUser.userId,
+            result: action,
+            description: action === "pass" ? "核准通過" : "不予核准",
+          }
+
+          const response = await fetch(`${base_url}Leave/${recordId}/approve`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(approvalData),
+          })
+
+          if (response.ok) {
+            const actionText = action === "pass" ? "核准" : "不核准"
+            showStatusMessage(`申請已${actionText}`, "success")
+            // 重新載入記錄以更新列表
+            await loadRecords()
+          } else {
+            let errorMessage = `${action === "pass" ? "核准" : "不核准"}失敗`
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.message || errorMessage
+            } catch (parseError) {
+              console.error("解析錯誤回應失敗:", parseError)
+            }
+            showStatusMessage(errorMessage, "error")
+          }
+        } catch (error) {
+          console.error("處理核准失敗:", error)
+          showStatusMessage("處理申請時發生錯誤，請稍後再試", "error")
+        } finally {
+          hideLoading()
+        }
+      }
+
       // 快速更新單筆記錄的 FromBackCmpy（用於我的核准分頁）
       async function quickUpdateFromBackCmpy(recordId, fromBackCmpy) {
         try {
@@ -3271,7 +3370,7 @@
               ? "逕返"
               : fromBackCmpy === "逕往及逕返"
               ? "逕往及逕返"
-              : "一般"
+              : "一般公出"
           showStatusMessage(`已更新為「${typeName}」`, "success")
 
           // 重新載入記錄以顯示最新狀態
