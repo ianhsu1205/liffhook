@@ -162,17 +162,23 @@
         white-space: nowrap;
       }
       #newApplicationBtn {
-        padding: 8px 16px;
-        font-size: 14px;
+        padding: 12px 32px;
+        font-size: 16px;
         width: auto;
-        min-width: 100px;
-        background-color: #87ceeb; /* 淺藍色 */
-        color: #333;
-        border: 1px solid #5cb3d9;
+        min-width: 200px;
+        max-width: 300px;
+        background-color: #007bff; /* Bootstrap primary 顏色 */
+        color: white;
+        border: 1px solid #007bff;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
       }
       #newApplicationBtn:hover {
-        background-color: #7ec8e3;
-        border-color: #4a9bc1;
+        background-color: #0056b3;
+        border-color: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
       }
       .button-group {
         display: flex;
@@ -480,7 +486,7 @@
       /* 切換功能區 */
       .action-buttons {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         margin-bottom: 20px;
       }
 
@@ -1975,14 +1981,14 @@
               </div>
 
               <div class="form-group">
-                <label for="approverType" class="required">簽核範圍</label>
+                <label for="approverType" class="required">簽核人員選擇</label>
                 <select id="approverType" required>
-                  <option value="same-dept">本部門</option>
+                  <option value="same-dept">同部門</option>
                   <option value="other-dept">其它部門</option>
-                  <option value="other-company">其它公司別(有兼任主管)</option>
+                  <option value="other-company">其它公司(有兼任主管)</option>
                 </select>
                 <div class="error-tooltip" id="approverType-error">
-                  請選擇簽核範圍
+                  請選擇簽核人員
                 </div>
               </div>
 
@@ -2076,7 +2082,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.9</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.4.2</div>
     </div>
 
     <!-- JavaScript -->
@@ -2845,23 +2851,22 @@
       function updateDateLabels() {
         const startDateLabel = document.querySelector('label[for="startDate"]')
         const backDateLabel = document.querySelector('label[for="backDate"]')
+        const endDateLabel = document.querySelector('label[for="endDate"]')
 
         if (currentStatus === "my-approved") {
           // 已簽核標籤：簽核起日/簽核迄日
           startDateLabel.textContent = "簽核起日"
-          backDateLabel.textContent = "簽核迄日"
+          endDateLabel.textContent = "簽核迄日"
         } else if (currentStatus === "pass" || currentStatus === "reject") {
           // 已核準/不核準標籤：公出起日/公出迄日
           startDateLabel.textContent = "公出起日"
-          backDateLabel.textContent = "公出迄日"
+          endDateLabel.textContent = "公出迄日"
         } else {
           // 其他標籤保持原始標籤
           startDateLabel.textContent = "開始日期"
-          backDateLabel.textContent = "結束日期"
+          endDateLabel.textContent = "預計結束"
         }
-      }
-
-      // 設置激活的申請狀態分頁
+      } // 設置激活的申請狀態分頁
       function setActiveTab(status) {
         currentStatus = status
         updateDateLabels() // 更新日期字段標籤
@@ -3039,6 +3044,27 @@
                 })`
               : ""
 
+          // 根據當前標籤頁決定開始和結束時間的標籤文字
+          const getStartTimeLabel = () => {
+            if (currentStatus === "my-approved") {
+              return "簽核起日"
+            } else if (currentStatus === "pass" || currentStatus === "reject") {
+              return "公出起日"
+            } else {
+              return "開始時間"
+            }
+          }
+
+          const getEndTimeLabel = () => {
+            if (currentStatus === "my-approved") {
+              return "簽核迄日"
+            } else if (currentStatus === "pass" || currentStatus === "reject") {
+              return "公出迄日"
+            } else {
+              return "預計返回"
+            }
+          }
+
           html += `
         <div class="record-item" data-id="${record.id}">
           <div class="record-content">
@@ -3057,12 +3083,16 @@
               ${record.location ? `<br>地點: ${record.location}` : ""}
               ${
                 record.backDate
-                  ? `<br>開始時間: ${record.leaveDate} ${record.leaveTime}`
+                  ? `<br>${getStartTimeLabel()}: ${record.leaveDate} ${
+                      record.leaveTime
+                    }`
                   : ""
               }
               ${
                 record.backTime
-                  ? `<br>預計返回: ${record.backDate} ${record.backTime}`
+                  ? `<br>${getEndTimeLabel()}: ${record.backDate} ${
+                      record.backTime
+                    }`
                   : ""
               }
               ${fromBackDisplay}
@@ -3080,11 +3110,30 @@
         recordsListElement.innerHTML = html
       }
       // 顯示確認對話框
-      function showConfirmDialog(message, callback) {
+      function showConfirmDialog(message, callback, actionType = null) {
         const confirmMessageElement = document.getElementById("confirmMessage")
-        confirmMessageElement.textContent = message
+        const confirmOkBtn = document.getElementById("confirmOkBtn")
 
+        confirmMessageElement.textContent = message
         confirmCallback = callback
+
+        // 清除所有樣式類別
+        confirmOkBtn.className = "button"
+        confirmOkBtn.style.cssText = ""
+
+        // 根據操作類型設置按鈕樣式和文字
+        if (actionType === "pass") {
+          // 核准按鈕：綠色
+          confirmOkBtn.classList.add("success-button")
+          confirmOkBtn.textContent = "核准"
+        } else if (actionType === "reject") {
+          // 不核准按鈕：紅色
+          confirmOkBtn.classList.add("danger-button")
+          confirmOkBtn.textContent = "不核准"
+        } else {
+          // 一般確認按鈕：藍色（使用現有的 button 樣式）
+          confirmOkBtn.textContent = "確認"
+        }
 
         document.getElementById("confirmModal").classList.remove("hidden")
       }
@@ -3559,7 +3608,11 @@
         const actionText = action === "pass" ? "核准" : "不核准"
         const message = `您確定要${actionText}此申請嗎？`
 
-        showConfirmDialog(message, () => handleApproval(recordId, action))
+        showConfirmDialog(
+          message,
+          () => handleApproval(recordId, action),
+          action
+        )
       }
 
       // 處理核准/不核准操作
