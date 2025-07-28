@@ -643,21 +643,42 @@
 
       /* 公出類型醒目顯示樣式 */
       .fromback-highlight {
-        color: #e76f51 !important;
         font-weight: 600 !important;
-        background-color: #fef3e7 !important;
         padding: 3px 8px !important;
         border-radius: 6px !important;
         font-size: 14px !important;
         display: inline-block !important;
         margin-top: 4px !important;
-        border: 1px solid #f4a261 !important;
-        box-shadow: 0 1px 3px rgba(244, 162, 97, 0.2) !important;
+        border: 1px solid !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
       }
 
-      .fromback-highlight::before {
-        content: "🚗 ";
-        margin-right: 4px;
+      /* 一般公出樣式 - 灰色系 */
+      .fromback-highlight.general {
+        color: #6c757d !important;
+        background-color: #f8f9fa !important;
+        border-color: #6c757d !important;
+      }
+
+      /* 逕往樣式 - 藍色系 */
+      .fromback-highlight.go {
+        color: #007bff !important;
+        background-color: #e3f2fd !important;
+        border-color: #007bff !important;
+      }
+
+      /* 逕返樣式 - 橘色系 */
+      .fromback-highlight.back {
+        color: #fd7e14 !important;
+        background-color: #fff3e0 !important;
+        border-color: #fd7e14 !important;
+      }
+
+      /* 逕往及逕返樣式 - 紫色系 */
+      .fromback-highlight.both {
+        color: #6f42c1 !important;
+        background-color: #f3e5f5 !important;
+        border-color: #6f42c1 !important;
       }
 
       /* 多選核准功能 */
@@ -858,16 +879,16 @@
       }
 
       .quick-edit-btn {
-        padding: 8px 16px; /* 增大 padding */
-        border-radius: 18px; /* 增大圓角 */
+        padding: 10px 20px; /* 進一步增大 padding */
+        border-radius: 20px; /* 進一步增大圓角 */
         border: 1px solid #ddd;
         background-color: #f8f9fa;
         color: #495057;
-        font-size: 14px; /* 增大字體 */
+        font-size: 15px; /* 進一步增大字體 */
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
-        font-weight: 500; /* 增加字重 */
+        font-weight: 600; /* 進一步加粗 */
       }
 
       .quick-edit-btn:hover {
@@ -1650,10 +1671,10 @@
         }
 
         .quick-edit-btn {
-          padding: 6px 12px; /* 手機版也增大一些 */
-          font-size: 12px; /* 手機版字體也稍微增大 */
-          border-radius: 15px; /* 增大圓角 */
-          font-weight: 500; /* 增加字重 */
+          padding: 8px 16px; /* 手機版進一步增大 */
+          font-size: 13px; /* 手機版字體進一步增大 */
+          border-radius: 18px; /* 增大圓角 */
+          font-weight: 600; /* 進一步加粗 */
         }
 
         .fromback-option {
@@ -1707,19 +1728,19 @@
       }
 
       .quick-edit-btn {
-        padding: 8px 16px !important; /* 增大 */
-        font-size: 14px !important; /* 增大字體 */
-        min-width: 60px; /* 增加最小寬度 */
-        border-radius: 18px !important; /* 增大圓角 */
-        font-weight: 500 !important; /* 增加字重 */
+        padding: 10px 20px !important; /* 進一步增大 */
+        font-size: 15px !important; /* 進一步增大字體 */
+        min-width: 70px; /* 進一步增加最小寬度 */
+        border-radius: 20px !important; /* 進一步增大圓角 */
+        font-weight: 600 !important; /* 進一步加粗 */
       }
 
       /* 手機版本適配 */
       @media (max-width: 576px) {
         .quick-edit-btn {
-          padding: 6px 12px !important; /* 手機版也增大 */
-          font-size: 12px !important; /* 手機版字體增大 */
-          min-width: 50px; /* 手機版最小寬度 */
+          padding: 8px 16px !important; /* 手機版進一步增大 */
+          font-size: 13px !important; /* 手機版字體進一步增大 */
+          min-width: 60px; /* 手機版最小寬度進一步增加 */
         }
       }
     </style>
@@ -2047,7 +2068,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.5</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -2065,10 +2086,14 @@
       let currentStatus = "pending" // 當前檢視的申請狀態
       let currentCategory = null // 當前選中的分類
       let confirmCallback = null // 確認對話框的回呼函數
+      let lastUsedApprover = null // 最後使用的簽核人員
       // 移除批量操作變數，改為單筆快速修改模式
 
       // DOM 元素載入後初始化
       document.addEventListener("DOMContentLoaded", () => {
+        // 從 localStorage 讀取最後使用的簽核人員
+        lastUsedApprover = localStorage.getItem("lastUsedApprover")
+
         // 初始化頁面元素的事件監聽器
         initEventListeners()
 
@@ -2844,6 +2869,21 @@
           return
         }
 
+        // 對記錄進行排序，最新的在最上面
+        const sortedRecords = [...records].sort((a, b) => {
+          // 使用 leaveDate 和 leaveTime 進行排序
+          const dateTimeA = new Date(`${a.leaveDate}T${a.leaveTime || "00:00"}`)
+          const dateTimeB = new Date(`${b.leaveDate}T${b.leaveTime || "00:00"}`)
+
+          // 如果日期時間相同，則使用 id 進行排序（假設 id 越大越新）
+          if (dateTimeA.getTime() === dateTimeB.getTime()) {
+            return parseInt(b.id) - parseInt(a.id)
+          }
+
+          // 日期時間降序排列（最新的在前）
+          return dateTimeB - dateTimeA
+        })
+
         let html = ""
         const isMyApproved = currentStatus === "my-approved"
         const isPendingApproval = currentStatus === "pending-approval"
@@ -2851,7 +2891,7 @@
         const isPassOrReject =
           currentStatus === "pass" || currentStatus === "reject"
 
-        records.forEach((record) => {
+        sortedRecords.forEach((record) => {
           // 格式化狀態顯示
           let statusClass = ""
           let statusText = ""
@@ -2925,7 +2965,7 @@
                         onclick="quickUpdateFromBackCmpy('${
                           record.id
                         }', '逕往及逕返')" 
-                        title="設為逕往及逕返">往返</button>
+                        title="設為逕往及逕返">逕往及逕返</button>
               </div>`
             : ""
 
@@ -2936,7 +2976,15 @@
               isMyApproved ||
               isPassOrReject) &&
             record.fromBackCmpy
-              ? `<br>類型：<span class="fromback-highlight">${
+              ? `<br>類型：<span class="fromback-highlight ${
+                  record.fromBackCmpy === "逕往"
+                    ? "go"
+                    : record.fromBackCmpy === "逕返"
+                    ? "back"
+                    : record.fromBackCmpy === "逕往及逕返"
+                    ? "both"
+                    : "general"
+                }">${
                   record.fromBackCmpy === "逕往"
                     ? "逕往"
                     : record.fromBackCmpy === "逕返"
@@ -2963,8 +3011,8 @@
                 ${record.eventCatalog}類- ${record.eventName}
                 ${applicantInfo}
               </div>
-              <div class="record-date">${record.leaveDate} ${
-            record.leaveTime
+              <div class="record-date">${record.CreatedDate} ${
+            record.CreatedTime
           }</div>
             </div>
             <div class="record-details">
@@ -3110,6 +3158,14 @@
           option.textContent = `${approver.name} (${approver.job || "未輸入"})`
           selectElement.appendChild(option)
         })
+
+        // 如果有最後使用的簽核人員，自動選擇
+        if (
+          lastUsedApprover &&
+          approvers.some((a) => a.userId === lastUsedApprover)
+        ) {
+          selectElement.value = lastUsedApprover
+        }
       }
       // 顯示錯誤提示
       function showError(fieldId, message) {
@@ -3262,6 +3318,11 @@
           })
 
           if (response.ok) {
+            // 更新最後使用的簽核人員
+            lastUsedApprover = document.getElementById("approveUserId").value
+            // 保存到 localStorage
+            localStorage.setItem("lastUsedApprover", lastUsedApprover)
+
             showStatusMessage("簽核已成功送出", "success")
             document
               .getElementById("newApplicationModal")
@@ -3534,7 +3595,7 @@
               ? "逕返"
               : fromBackCmpy === "逕往及逕返"
               ? "逕往及逕返"
-              : "一般公出"
+              : "一般"
           showStatusMessage(`已更新為「${typeName}」`, "success")
 
           // 重新載入記錄以顯示最新狀態
