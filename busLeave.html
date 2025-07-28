@@ -156,8 +156,16 @@
         width: auto;
         flex: 1;
         margin: 0;
-        padding: 10px 20px;
+        padding: 8px 24px;
         font-size: 14px;
+        min-width: 80px;
+        white-space: nowrap;
+      }
+      #newApplicationBtn {
+        padding: 8px 16px;
+        font-size: 14px;
+        width: auto;
+        min-width: 100px;
       }
       .button-group {
         display: flex;
@@ -246,6 +254,8 @@
       .tab.active {
         border-bottom-color: #06c755;
         color: #06c755;
+        background-color: #f0fdf4;
+        font-weight: 600;
       }
 
       /* 申請列表 */
@@ -449,6 +459,17 @@
         .search-bar {
           flex-direction: column;
         }
+        .date-range-container {
+          flex-direction: column;
+          gap: 15px;
+        }
+        .date-range-container .form-group {
+          width: 100%;
+        }
+        .date-separator {
+          margin: 0;
+          text-align: center;
+        }
         .record-header {
           flex-direction: column;
           gap: 5px;
@@ -518,6 +539,16 @@
         .tab {
           padding: 5px 8px;
           font-size: 12px;
+        }
+        .search-bar .form-group {
+          min-width: 100%;
+        }
+        .search-bar .form-group label {
+          font-size: 14px;
+        }
+        .search-bar .form-group input {
+          padding: 10px;
+          font-size: 14px;
         }
         .record-title {
           font-size: 14px;
@@ -1661,10 +1692,10 @@
 
       <!-- 申請狀態分頁 -->
       <div class="tabs">
-        <div class="tab" data-status="pending-approval">待簽核</div>
         <div class="tab active" data-status="pending">已送出</div>
         <div class="tab" data-status="pass">已核准</div>
         <div class="tab" data-status="reject">不核準</div>
+        <div class="tab" data-status="pending-approval">待簽核</div>
         <div class="tab" data-status="my-approved">已簽核</div>
       </div>
 
@@ -1920,7 +1951,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.0</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.1</div>
     </div>
 
     <!-- JavaScript -->
@@ -2792,12 +2823,13 @@
               }`
             : ""
 
-          // 申請人資訊（僅在我的核准分頁顯示）
-          const applicantInfo = isMyApproved
-            ? `<br>申請人: ${record.applicantEmpId || ""} ${
-                record.applicantName || ""
-              } (${record.applicantDept || ""})`
-            : ""
+          // 申請人資訊（在我的核准分頁和待簽核分頁顯示）
+          const applicantInfo =
+            isMyApproved || isPendingApproval
+              ? `<br>申請人: ${record.empId || ""} ${record.name || ""} (${
+                  record.dept || ""
+                })`
+              : ""
 
           html += `
         <div class="record-item" data-id="${record.id}">
@@ -3378,6 +3410,54 @@
         } catch (error) {
           console.error("更新失敗:", error)
           showStatusMessage("更新時發生錯誤", "error")
+        } finally {
+          hideLoading()
+        }
+      }
+
+      // 顯示核准確認對話框
+      function showApprovalDialog(recordId, action) {
+        const actionText = action === "pass" ? "核准" : "不核准"
+        const message = `您確定要${actionText}此申請嗎？`
+
+        showConfirmDialog(message, () => handleApproval(recordId, action))
+      }
+
+      // 處理核准/不核准操作
+      async function handleApproval(recordId, action) {
+        try {
+          showLoading()
+
+          const approvalData = {
+            approverId: currentUser.userId,
+            result: action,
+            description: action === "pass" ? "核准" : "不核准",
+          }
+
+          const response = await fetch(`${base_url}Leave/${recordId}/approve`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(approvalData),
+          })
+
+          if (response.ok) {
+            const actionText = action === "pass" ? "核准" : "不核准"
+            showStatusMessage(`申請已${actionText}`, "success")
+            // 重新載入記錄以更新列表
+            await loadRecords()
+          } else {
+            let errorMessage = "操作失敗"
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.message || errorMessage
+            } catch (parseError) {
+              console.error("解析錯誤回應失敗:", parseError)
+            }
+            showStatusMessage(errorMessage, "error")
+          }
+        } catch (error) {
+          console.error("核准操作失敗:", error)
+          showStatusMessage("操作時發生錯誤，請稍後再試", "error")
         } finally {
           hideLoading()
         }
