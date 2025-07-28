@@ -641,6 +641,25 @@
         font-style: italic;
       }
 
+      /* 公出類型醒目顯示樣式 */
+      .fromback-highlight {
+        color: #e76f51 !important;
+        font-weight: 600 !important;
+        background-color: #fef3e7 !important;
+        padding: 3px 8px !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        display: inline-block !important;
+        margin-top: 4px !important;
+        border: 1px solid #f4a261 !important;
+        box-shadow: 0 1px 3px rgba(244, 162, 97, 0.2) !important;
+      }
+
+      .fromback-highlight::before {
+        content: "🚗 ";
+        margin-right: 4px;
+      }
+
       /* 多選核准功能 */
       .batch-operations {
         background-color: #f8f9fa;
@@ -839,15 +858,16 @@
       }
 
       .quick-edit-btn {
-        padding: 6px 12px;
-        border-radius: 15px;
+        padding: 8px 16px; /* 增大 padding */
+        border-radius: 18px; /* 增大圓角 */
         border: 1px solid #ddd;
         background-color: #f8f9fa;
         color: #495057;
-        font-size: 12px;
+        font-size: 14px; /* 增大字體 */
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
+        font-weight: 500; /* 增加字重 */
       }
 
       .quick-edit-btn:hover {
@@ -1630,9 +1650,10 @@
         }
 
         .quick-edit-btn {
-          padding: 4px 8px;
-          font-size: 11px;
-          border-radius: 12px;
+          padding: 6px 12px; /* 手機版也增大一些 */
+          font-size: 12px; /* 手機版字體也稍微增大 */
+          border-radius: 15px; /* 增大圓角 */
+          font-weight: 500; /* 增加字重 */
         }
 
         .fromback-option {
@@ -1681,23 +1702,24 @@
       /* 確保快速編輯按鈕在同一列顯示 */
       .quick-edit-buttons {
         flex-wrap: nowrap !important;
-        gap: 4px !important;
+        gap: 6px !important;
         overflow-x: auto;
       }
 
       .quick-edit-btn {
-        padding: 4px 8px !important;
-        font-size: 10px !important;
-        min-width: 45px;
-        border-radius: 6px !important;
+        padding: 8px 16px !important; /* 增大 */
+        font-size: 14px !important; /* 增大字體 */
+        min-width: 60px; /* 增加最小寬度 */
+        border-radius: 18px !important; /* 增大圓角 */
+        font-weight: 500 !important; /* 增加字重 */
       }
 
       /* 手機版本適配 */
       @media (max-width: 576px) {
         .quick-edit-btn {
-          padding: 3px 6px !important;
-          font-size: 9px !important;
-          min-width: 35px;
+          padding: 6px 12px !important; /* 手機版也增大 */
+          font-size: 12px !important; /* 手機版字體增大 */
+          min-width: 50px; /* 手機版最小寬度 */
         }
       }
     </style>
@@ -2025,7 +2047,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.4</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.5</div>
     </div>
 
     <!-- JavaScript -->
@@ -2825,6 +2847,9 @@
         let html = ""
         const isMyApproved = currentStatus === "my-approved"
         const isPendingApproval = currentStatus === "pending-approval"
+        const isPending = currentStatus === "pending"
+        const isPassOrReject =
+          currentStatus === "pass" || currentStatus === "reject"
 
         records.forEach((record) => {
           // 格式化狀態顯示
@@ -2904,18 +2929,23 @@
               </div>`
             : ""
 
-          // FromBackCmpy 狀態顯示（僅在我的核准分頁顯示）
-          const fromBackDisplay = isMyApproved
-            ? `<br>類型: ${
-                record.fromBackCmpy === "逕往"
-                  ? "逕往"
-                  : record.fromBackCmpy === "逕返"
-                  ? "逕返"
-                  : record.fromBackCmpy === "逕往及逕返"
-                  ? "逕往及逕返"
-                  : "一般"
-              }`
-            : ""
+          // FromBackCmpy 狀態顯示（在已送出、待簽核、我的核准分頁、已核准和不核準分頁顯示）
+          const fromBackDisplay =
+            (isPending ||
+              isPendingApproval ||
+              isMyApproved ||
+              isPassOrReject) &&
+            record.fromBackCmpy
+              ? `<br>類型：<span class="fromback-highlight">${
+                  record.fromBackCmpy === "逕往"
+                    ? "逕往"
+                    : record.fromBackCmpy === "逕返"
+                    ? "逕返"
+                    : record.fromBackCmpy === "逕往及逕返"
+                    ? "逕往及逕返"
+                    : "一般公出"
+                }</span>`
+              : ""
 
           // 申請人資訊（在我的核准分頁和待簽核分頁顯示）
           const applicantInfo =
@@ -2931,7 +2961,7 @@
             <div class="record-header">
               <div class="record-title">
                 ${record.eventCatalog}類- ${record.eventName}
-                申請人員：${applicantInfo}
+                ${applicantInfo}
               </div>
               <div class="record-date">${record.leaveDate} ${
             record.leaveTime
