@@ -2082,7 +2082,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.4.2</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.4.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -3111,6 +3111,8 @@
       }
       // 顯示確認對話框
       function showConfirmDialog(message, callback, actionType = null) {
+        console.log("showConfirmDialog called with actionType:", actionType)
+
         const confirmMessageElement = document.getElementById("confirmMessage")
         const confirmOkBtn = document.getElementById("confirmOkBtn")
 
@@ -3126,13 +3128,16 @@
           // 核准按鈕：綠色
           confirmOkBtn.classList.add("success-button")
           confirmOkBtn.textContent = "核准"
+          console.log("設置為核准按鈕(綠色)")
         } else if (actionType === "reject") {
           // 不核准按鈕：紅色
           confirmOkBtn.classList.add("danger-button")
           confirmOkBtn.textContent = "不核准"
+          console.log("設置為不核准按鈕(紅色)")
         } else {
           // 一般確認按鈕：藍色（使用現有的 button 樣式）
           confirmOkBtn.textContent = "確認"
+          console.log("設置為一般確認按鈕(藍色)")
         }
 
         document.getElementById("confirmModal").classList.remove("hidden")
@@ -3695,14 +3700,6 @@
         } finally {
           hideLoading()
         }
-      }
-
-      // 顯示核准確認對話框
-      function showApprovalDialog(recordId, action) {
-        const actionText = action === "pass" ? "核准" : "不核准"
-        const message = `您確定要${actionText}此申請嗎？`
-
-        showConfirmDialog(message, () => handleApproval(recordId, action))
       }
 
       // 處理核准/不核准操作
