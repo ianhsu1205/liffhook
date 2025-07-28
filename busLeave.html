@@ -166,6 +166,13 @@
         font-size: 14px;
         width: auto;
         min-width: 100px;
+        background-color: #87ceeb; /* 淺藍色 */
+        color: #333;
+        border: 1px solid #5cb3d9;
+      }
+      #newApplicationBtn:hover {
+        background-color: #7ec8e3;
+        border-color: #4a9bc1;
       }
       .button-group {
         display: flex;
@@ -1775,7 +1782,6 @@
         <div class="tab active" data-status="pending">已送出</div>
         <div class="tab" data-status="pass">已核准</div>
         <div class="tab" data-status="reject">不核準</div>
-        <div class="tab-divider"></div>
         <div class="tab approval-tab" data-status="pending-approval">
           待簽核
         </div>
@@ -1846,22 +1852,22 @@
               <!-- 申請日期和時間（同一行） -->
               <div class="date-time-group">
                 <div class="form-group">
-                  <label for="leaveDate" class="required">開始日期</label>
+                  <label for="leaveDate" class="required">公出日期</label>
                   <input
                     type="text"
                     id="leaveDate"
                     class="date-picker"
                     required
-                    placeholder="選擇開始日期"
+                    placeholder="選擇公出日期"
                   />
                   <div class="error-tooltip" id="leaveDate-error">
-                    請選擇開始日期
+                    請選擇公出日期
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="leaveTime" class="required">開始時間</label>
+                  <label for="leaveTime" class="required">公出時間</label>
                   <select id="leaveTime" required>
-                    <option value="">選擇時間</option>
+                    <option value="">公出時間</option>
                     <option value="07:00">07:00</option>
                     <option value="07:30">07:30</option>
                     <option value="08:00">08:00</option>
@@ -1898,7 +1904,7 @@
                     <option value="23:30">23:30</option>
                   </select>
                   <div class="error-tooltip" id="leaveTime-error">
-                    請選擇開始時間
+                    請輸入公出時間
                   </div>
                 </div>
               </div>
@@ -2029,7 +2035,9 @@
               <div class="form-group">
                 <label for="fromBackCmpy">公出類型</label>
                 <div class="fromback-options">
-                  <div class="fromback-option selected" data-value="">一般</div>
+                  <div class="fromback-option selected" data-value="一般">
+                    一般
+                  </div>
                   <div class="fromback-option" data-value="逕往">逕往</div>
                   <div class="fromback-option" data-value="逕返">逕返</div>
                   <div class="fromback-option" data-value="逕往及逕返">
@@ -2068,7 +2076,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.3.7</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.3.8</div>
     </div>
 
     <!-- JavaScript -->
@@ -2099,6 +2107,9 @@
 
         // 初始化日期選擇器
         initDatePickers()
+
+        // 初始化日期標籤
+        updateDateLabels()
 
         // 檢查 URL 參數並設置對應的 tab
         const urlParams = new URLSearchParams(window.location.search)
@@ -2472,10 +2483,10 @@
       function displayUserInfo(user) {
         const userInfoElement = document.getElementById("userInfo")
         userInfoElement.innerHTML = `
-    <strong>${user.name || "使用者"}${
-          user.empId ? " (" + user.empId + ")" : ""
-        }</strong> - 
-    ${user.company || ""} ${user.dept || ""} ${user.job || ""}
+    <div>${user.company || ""} - <strong>${user.dept || ""}</strong></div>
+    <div style="font-weight: bold; font-size: 16px; margin-top: 5px;">
+      ${user.empId || ""} ${user.name || "使用者"} ${user.job || ""}
+    </div>
   `
         userInfoElement.classList.remove("hidden")
       }
@@ -2830,9 +2841,30 @@
         }
       }
 
+      // 更新日期字段標籤
+      function updateDateLabels() {
+        const startDateLabel = document.querySelector('label[for="startDate"]')
+        const backDateLabel = document.querySelector('label[for="backDate"]')
+
+        if (currentStatus === "my-approved") {
+          // 已簽核標籤：簽核起日/簽核迄日
+          startDateLabel.textContent = "簽核起日"
+          backDateLabel.textContent = "簽核迄日"
+        } else if (currentStatus === "pass" || currentStatus === "reject") {
+          // 已核準/不核準標籤：公出起日/公出迄日
+          startDateLabel.textContent = "公出起日"
+          backDateLabel.textContent = "公出迄日"
+        } else {
+          // 其他標籤保持原始標籤
+          startDateLabel.textContent = "開始日期"
+          backDateLabel.textContent = "結束日期"
+        }
+      }
+
       // 設置激活的申請狀態分頁
       function setActiveTab(status) {
         currentStatus = status
+        updateDateLabels() // 更新日期字段標籤
 
         // 更新 tab 的激活狀態
         document.querySelectorAll(".tab").forEach((tab) => {
