@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.2</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.5.3</div>
     </div>
 
     <!-- JavaScript -->
@@ -2411,6 +2411,8 @@
         const today = new Date()
         const sevenDaysAgo = new Date()
         sevenDaysAgo.setDate(today.getDate() - 7)
+        const lastDaysLast = new Date()
+        lastDaysLast.setDate(today.getDate() + 30)
         const datePickerOptions = {
           locale: "zh_tw",
           dateFormat: "Y-m-d",
@@ -2425,7 +2427,7 @@
 
         flatpickr("#endDate", {
           ...datePickerOptions,
-          defaultDate: today,
+          defaultDate: lastDaysLast,
         })
 
         // 其他日期選擇器
@@ -3291,6 +3293,12 @@
           option.dataset.catalog = item.catalog // 使用 dataset 儲存 catalog
           selectElement.appendChild(option)
         })
+
+        // 如果只有一個項目，自動選擇該項目
+        if (filteredItems.length === 1) {
+          selectElement.value = filteredItems[0].itemName
+          console.log(`自動選擇唯一項目: ${filteredItems[0].itemName}`)
+        }
       }
 
       // 顯示新增申請對話框
