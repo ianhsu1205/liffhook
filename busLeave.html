@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.3</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.5.4</div>
     </div>
 
     <!-- JavaScript -->
@@ -3322,6 +3322,28 @@
         document.getElementById("otherCompanyGroup").style.display = "none"
         document.getElementById("otherDeptGroup").style.display = "none"
 
+        // 如果只有一個簽核項目，自動選擇
+        if (eventItems.length === 1) {
+          const singleItem = eventItems[0]
+          // 選擇對應的類別標籤
+          const categoryTab = document.querySelector(
+            `[data-category="${singleItem.catalog}"]`
+          )
+          if (categoryTab) {
+            // 移除其他活動標籤
+            document
+              .querySelectorAll(".category-tab")
+              .forEach((tab) => tab.classList.remove("active"))
+            // 設置當前標籤為活動
+            categoryTab.classList.add("active")
+            // 更新項目選項
+            updateEventItemOptions(singleItem.catalog)
+          }
+          console.log(
+            `自動選擇唯一簽核項目: ${singleItem.itemName} (${singleItem.catalog}類)`
+          )
+        }
+
         // 載入同部門的簽核人員
         loadPotentialApprovers()
 
@@ -3598,29 +3620,6 @@
         }
       }
       // 新增：在顯示對話框函數中添加自動滾动到視圖中間的邏輯
-      function showNewApplicationModal() {
-        // 重置表單
-        document.getElementById("applicationForm").reset()
-
-        // 更新主管選擇下拉選單
-        updateApproverOptions()
-
-        // 顯示模態框
-        const modal = document.getElementById("newApplicationModal")
-        modal.classList.remove("hidden")
-
-        // 新增：確保模態框置中
-        setTimeout(() => {
-          const modalContent = modal.querySelector(".modal")
-          if (modalContent) {
-            // 滾動到頁面頂部，然後模態框會自動置中
-            window.scrollTo({
-              top: 0,
-              behavior: "smooth",
-            })
-          }
-        }, 100)
-      }
 
       // 加入「確認撤銷申請」函數
       function confirmCancelApplication(id) {
