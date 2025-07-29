@@ -2029,7 +2029,7 @@
               <div class="form-group">
                 <label for="approverType" class="required">簽核人員選擇</label>
                 <select id="approverType" required>
-                  <option value="same-dept">同部門</option>
+                  <option value="same-dept">我的部門</option>
                   <option value="other-dept">其它部門</option>
                   <option value="other-company">其它公司(有兼任主管)</option>
                 </select>
@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.8</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.5.9</div>
     </div>
 
     <!-- JavaScript -->
@@ -2533,6 +2533,17 @@
     </div>
   `
         userInfoElement.classList.remove("hidden")
+
+        // 更新簽核人員選擇中的部門名稱顯示
+        const approverTypeSelect = document.getElementById("approverType")
+        if (approverTypeSelect && user.dept) {
+          const sameDeptOption = approverTypeSelect.querySelector(
+            'option[value="same-dept"]'
+          )
+          if (sameDeptOption) {
+            sameDeptOption.textContent = user.dept
+          }
+        }
       }
       // 載入申請項目
       async function loadEventItems() {
