@@ -361,6 +361,12 @@
         flex-wrap: wrap;
         align-items: flex-start;
       }
+      .record-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+      }
       .record-title {
         font-weight: 600;
         color: #333;
@@ -540,6 +546,10 @@
           flex-direction: column;
           gap: 5px;
           align-items: flex-start;
+        }
+        .record-meta {
+          align-items: flex-start;
+          width: 100%;
         }
         .record-title {
           font-size: 17px; /* 手機版稍微縮小但仍比原來大 */
@@ -2108,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.4.5</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.4.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -3030,7 +3040,7 @@
                 break
               case "reject":
                 statusClass = "status-rejected"
-                statusText = "不核準(請聯繫簽核人員)"
+                statusText = "不核準"
                 break
             }
           }
@@ -3149,9 +3159,12 @@
                 ${record.eventCatalog}類- ${record.eventName}
                 ${applicantInfo}
               </div>
-              <div class="record-date">送出於：${record.createdDate} ${
+              <div class="record-meta">
+                <div class="record-date">送出於：${record.createdDate} ${
             record.createdTime
           }</div>
+                <div class="record-status ${statusClass}">${statusText}</div>
+              </div>
             </div>
             <div class="record-details">
               
