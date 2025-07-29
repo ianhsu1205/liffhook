@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.5</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.5.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -3303,6 +3303,23 @@
 
       // 顯示新增申請對話框
       function showNewApplicationModal() {
+        console.log("showNewApplicationModal called")
+
+        // 檢查必要資料是否已載入
+        if (!currentUser) {
+          console.error("currentUser 未初始化")
+          showStatusMessage("用戶資訊載入中，請稍候再試", "error")
+          return
+        }
+
+        if (!eventItems || eventItems.length === 0) {
+          console.error("eventItems 未載入")
+          showStatusMessage("簽核項目載入中，請稍候再試", "error")
+          return
+        }
+
+        console.log("檢查通過，開始顯示modal")
+
         // 重置表單
         document.getElementById("applicationForm").reset()
 
@@ -3323,34 +3340,61 @@
         document.getElementById("otherDeptGroup").style.display = "none"
 
         // 如果只有一個簽核項目，自動選擇
-        if (eventItems.length === 1) {
+        if (eventItems && eventItems.length === 1) {
           const singleItem = eventItems[0]
-          // 選擇對應的類別標籤
-          const categoryTab = document.querySelector(
-            `[data-category="${singleItem.catalog}"]`
-          )
-          if (categoryTab) {
-            // 移除其他活動標籤
-            document
-              .querySelectorAll(".category-tab")
-              .forEach((tab) => tab.classList.remove("active"))
-            // 設置當前標籤為活動
-            categoryTab.classList.add("active")
-            // 更新項目選項
-            updateEventItemOptions(singleItem.catalog)
+          console.log("自動選擇唯一項目:", singleItem)
+
+          // 確保類別標籤已經初始化
+          if (!categories || categories.length === 0) {
+            console.log("初始化類別標籤...")
+            categories = [...new Set(eventItems.map((item) => item.catalog))]
+            initCategoryTabs()
           }
-          console.log(
-            `自動選擇唯一簽核項目: ${singleItem.itemName} (${singleItem.catalog}類)`
-          )
+
+          // 等待DOM更新後再選擇類別標籤
+          setTimeout(() => {
+            const categoryTab = document.querySelector(
+              `[data-category="${singleItem.catalog}"]`
+            )
+            if (categoryTab) {
+              console.log("找到類別標籤:", categoryTab)
+              // 移除其他活動標籤
+              document
+                .querySelectorAll(".category-tab")
+                .forEach((tab) => tab.classList.remove("active"))
+              // 設置當前標籤為活動
+              categoryTab.classList.add("active")
+              // 設置當前類別
+              currentCategory = singleItem.catalog
+              // 更新項目選項
+              updateEventItemOptions(singleItem.catalog)
+              console.log(
+                `自動選擇唯一簽核項目: ${singleItem.itemName} (${singleItem.catalog}類)`
+              )
+            } else {
+              console.error("找不到對應的類別標籤:", singleItem.catalog)
+              console.log(
+                "可用的類別標籤:",
+                document.querySelectorAll(".category-tab")
+              )
+            }
+          }, 100)
         }
 
         // 載入同部門的簽核人員
-        loadPotentialApprovers()
+        try {
+          loadPotentialApprovers()
+        } catch (error) {
+          console.error("載入簽核人員失敗:", error)
+          showStatusMessage("載入簽核人員失敗", "error")
+        }
 
         // 顯示模態框
         document
           .getElementById("newApplicationModal")
           .classList.remove("hidden")
+
+        console.log("modal 顯示完成")
       }
       // 清除時間選擇
       function clearTimeSelections() {
