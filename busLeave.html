@@ -2108,7 +2108,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.4.4</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.4.5</div>
     </div>
 
     <!-- JavaScript -->
@@ -2660,18 +2660,18 @@
       async function loadPotentialApprovers() {
         try {
           const approverType = document.getElementById("approverType").value
-          let url = `${base_url}Leave/approvers?excludeUserId=${currentUser.userId}`
+          let url = `${base_url}Leave/approvers?excludeUserId=${currentUser.userId}&hasManagerRole=true`
 
           console.log("載入核准人員 - 類型:", approverType)
           console.log("當前用戶資訊:", currentUser)
 
           if (approverType === "same-dept") {
-            // 載入同部門人員
+            // 載入同部門主管
             url += `&company=${encodeURIComponent(
               currentUser.company
             )}&dept=${encodeURIComponent(currentUser.dept)}`
           } else if (approverType === "other-dept") {
-            // 載入其他部門人員 (排除駕駛長)
+            // 載入其他部門主管
             const selectedDept = document.getElementById("otherDept").value
             if (!selectedDept) {
               showStatusMessage("請先選擇部門", "error")
@@ -2679,7 +2679,7 @@
             }
             url += `&company=${encodeURIComponent(
               currentUser.company
-            )}&dept=${encodeURIComponent(selectedDept)}&excludeJob=駕駛長`
+            )}&dept=${encodeURIComponent(selectedDept)}`
           } else if (approverType === "other-company") {
             // 載入其他公司別的兼任主管
             const selectedCompany =
@@ -2695,7 +2695,7 @@
             }
             url += `&company=${encodeURIComponent(
               selectedCompany
-            )}&dept=${encodeURIComponent(selectedDept)}&hasManagerRole=true`
+            )}&dept=${encodeURIComponent(selectedDept)}`
           }
 
           console.log("正在載入核准人員，API URL:", url)
@@ -2711,14 +2711,47 @@
             let approversData = await response.json()
             console.log("從 API 獲取的原始資料:", approversData)
 
+            // 篩選只包含主管職位的人員
+            const managerJobs = [
+              "董事長",
+              "總經理",
+              "執董",
+              "經理",
+              "主任",
+              "副理",
+              "襄理",
+              "課長",
+              "副課長",
+              "站長",
+              "副站長",
+              "廠長",
+              "副廠長",
+              "股長",
+              "副股長",
+              "組長",
+              "副組長",
+            ]
+
+            approversData = approversData.filter((user) => {
+              const isManager = managerJobs.some(
+                (job) => user.job && user.job.includes(job)
+              )
+              if (!isManager) {
+                console.log(`篩選掉非主管職位: ${user.name} (${user.job})`)
+              }
+              return isManager
+            })
+
+            console.log("篩選後的主管人員:", approversData)
+
             // 根據職稱排序
             approvers = sortUsersByJobRank(approversData)
             console.log("排序後的核准主管:", approvers)
 
             if (approvers.length === 0) {
-              console.warn("未找到符合條件的核准人員")
+              console.warn("未找到符合條件的主管人員")
               showStatusMessage(
-                "未找到符合條件的核准人員，請檢查該公司部門是否有兼任主管",
+                "未找到符合條件的主管人員，請檢查該公司部門是否有主管",
                 "error"
               )
             }
@@ -2748,11 +2781,12 @@
           let url, records
 
           if (currentStatus === "my-approved") {
-            // 載入我的核准記錄 - 使用 searchDateType=approve
+            // 載入我的簽核記錄 - 包括核准和不核准的記錄
             const startDate = document.getElementById("startDate").value
             const endDate = document.getElementById("endDate").value
 
-            url = `${base_url}Leave/approved-by-me?ApproverId=${currentUser.userId}&searchDateType=approve`
+            // 使用通用API獲取我簽核過的所有記錄
+            url = `${base_url}Leave/leave?ApproveUserId=${currentUser.userId}&searchDateType=approve`
 
             // 添加日期查詢參數
             if (startDate && endDate) {
@@ -2765,11 +2799,17 @@
             })
 
             if (response.ok) {
-              records = await response.json()
-              console.log("我的核准記錄:", records)
+              const allRecords = await response.json()
+              // 過濾出已經簽核完成的記錄（包括核准和不核准）
+              records = allRecords.filter(
+                (record) =>
+                  record.approveResult === "pass" ||
+                  record.approveResult === "reject"
+              )
+              console.log("我的簽核記錄:", records)
             } else {
-              console.error("獲取我的核准記錄失敗:", response.status)
-              showStatusMessage("無法獲取我的核准記錄", "error")
+              console.error("獲取我的簽核記錄失敗:", response.status)
+              showStatusMessage("無法獲取我的簽核記錄", "error")
               records = []
             }
           } else if (currentStatus === "pending-approval") {
@@ -2964,8 +3004,17 @@
           let statusText = ""
 
           if (isMyApproved) {
-            statusClass = "status-approved"
-            statusText = "已核准"
+            // 在我的簽核標籤頁中，根據實際審核結果顯示狀態
+            if (record.approveResult === "pass") {
+              statusClass = "status-approved"
+              statusText = "已核准"
+            } else if (record.approveResult === "reject") {
+              statusClass = "status-rejected"
+              statusText = "已不核准"
+            } else {
+              statusClass = "status-approved"
+              statusText = "已核准"
+            }
           } else if (isPendingApproval) {
             statusClass = "status-pending"
             statusText = "待簽核"
@@ -3002,9 +3051,10 @@
               </div>`
             : ""
 
-          // 快速修改 FromBackCmpy 按鈕（僅在我的核准分頁顯示）
-          const quickEditButtons = isMyApproved
-            ? `<div class="quick-edit-buttons">
+          // 快速修改 FromBackCmpy 按鈕（僅在我的簽核分頁且狀態為已核准時顯示）
+          const quickEditButtons =
+            isMyApproved && record.approveResult === "pass"
+              ? `<div class="quick-edit-buttons">
                 <button class="quick-edit-btn general ${
                   !record.fromBackCmpy || record.fromBackCmpy === ""
                     ? "active"
@@ -3034,7 +3084,7 @@
                         }', '逕往及逕返')" 
                         title="設為逕往及逕返">逕往及逕返</button>
               </div>`
-            : ""
+              : ""
 
           // FromBackCmpy 狀態顯示（在已送出、待簽核、我的核准分頁、已核准和不核準分頁顯示）
           const fromBackDisplay =
