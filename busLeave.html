@@ -2017,6 +2017,16 @@
               </div>
 
               <div class="form-group">
+                <label for="desc" class="required">事由</label>
+                <textarea
+                  id="desc"
+                  placeholder="請輸入事由"
+                  required
+                ></textarea>
+                <div class="error-tooltip" id="desc-error">請輸入事由</div>
+              </div>
+
+              <div class="form-group">
                 <label for="approverType" class="required">簽核人員選擇</label>
                 <select id="approverType" required>
                   <option value="same-dept">同部門</option>
@@ -2061,16 +2071,6 @@
                 <div class="error-tooltip" id="approveUserId-error">
                   請選擇核准人員
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label for="desc" class="required">事由</label>
-                <textarea
-                  id="desc"
-                  placeholder="請輸入事由"
-                  required
-                ></textarea>
-                <div class="error-tooltip" id="desc-error">請輸入事由</div>
               </div>
 
               <!-- 新增：逕往逕返設定 -->
@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.4.7</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.4.8</div>
     </div>
 
     <!-- JavaScript -->
