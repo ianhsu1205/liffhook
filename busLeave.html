@@ -3592,6 +3592,29 @@
         }
       }
       // 新增：在顯示對話框函數中添加自動滾动到視圖中間的邏輯
+      function showNewApplicationModal() {
+        // 重置表單
+        document.getElementById("applicationForm").reset()
+
+        // 更新主管選擇下拉選單
+        updateApproverOptions()
+
+        // 顯示模態框
+        const modal = document.getElementById("newApplicationModal")
+        modal.classList.remove("hidden")
+
+        // 新增：確保模態框置中
+        setTimeout(() => {
+          const modalContent = modal.querySelector(".modal")
+          if (modalContent) {
+            // 滾動到頁面頂部，然後模態框會自動置中
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            })
+          }
+        }, 100)
+      }
 
       // 加入「確認撤銷申請」函數
       function confirmCancelApplication(id) {
