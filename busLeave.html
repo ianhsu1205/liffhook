@@ -2118,7 +2118,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.1</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.5.2</div>
     </div>
 
     <!-- JavaScript -->
@@ -3182,6 +3182,9 @@
                   ? `<br>預計返回: ${record.backDate} ${record.backTime}`
                   : ""
               }
+              <br>簽核人員：${record.approveDept || ""} ${
+            record.approveName || ""
+          } (${record.approveJob || ""})
               <br>簽核時間：${record.approveDateTime || "尚未簽核"} 
               ${fromBackDisplay}
             </div>
