@@ -1790,6 +1790,96 @@
           min-width: 60px; /* 手機版最小寬度進一步增加 */
         }
       }
+
+      /* 簽核狀態修改按鈕樣式 */
+      .approval-status-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+
+      .status-btn {
+        padding: 6px 12px;
+        border: 2px solid;
+        border-radius: 15px;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 12px;
+        font-weight: 500;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .status-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 核准狀態按鈕 - 綠色系 */
+      .status-btn.pass-btn {
+        border-color: #28a745;
+        color: #28a745;
+      }
+
+      .status-btn.pass-btn:hover {
+        background-color: #28a745;
+        color: white;
+      }
+
+      .status-btn.pass-btn.active {
+        background-color: #28a745;
+        color: white;
+        box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+      }
+
+      /* 不核准狀態按鈕 - 紅色系 */
+      .status-btn.reject-btn {
+        border-color: #dc3545;
+        color: #dc3545;
+      }
+
+      .status-btn.reject-btn:hover {
+        background-color: #dc3545;
+        color: white;
+      }
+
+      .status-btn.reject-btn.active {
+        background-color: #dc3545;
+        color: white;
+        box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+      }
+
+      /* 待簽核狀態按鈕 - 橙色系 */
+      .status-btn.pending-btn {
+        border-color: #ffc107;
+        color: #856404;
+      }
+
+      .status-btn.pending-btn:hover {
+        background-color: #ffc107;
+        color: #212529;
+      }
+
+      .status-btn.pending-btn.active {
+        background-color: #ffc107;
+        color: #212529;
+        box-shadow: 0 3px 8px rgba(255, 193, 7, 0.3);
+      }
+
+      /* 手機端響應式調整 */
+      @media (max-width: 480px) {
+        .approval-status-buttons {
+          gap: 6px;
+        }
+
+        .status-btn {
+          padding: 4px 8px;
+          font-size: 11px;
+          min-width: 50px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2118,7 +2208,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.5.9</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.0</div>
     </div>
 
     <!-- JavaScript -->
@@ -3111,6 +3201,33 @@
               </div>`
               : ""
 
+          // 簽核狀態修改按鈕（僅在我的簽核分頁顯示）
+          const approvalStatusButtons = isMyApproved
+            ? `<div class="approval-status-buttons">
+                <button class="status-btn pass-btn ${
+                  record.approveResult === "pass" ? "active" : ""
+                }" 
+                        onclick="showApprovalStatusDialog('${
+                          record.id
+                        }', 'pass')" 
+                        title="設為核准">核准</button>
+                <button class="status-btn reject-btn ${
+                  record.approveResult === "reject" ? "active" : ""
+                }" 
+                        onclick="showApprovalStatusDialog('${
+                          record.id
+                        }', 'reject')" 
+                        title="設為不核准">不核准</button>
+                <button class="status-btn pending-btn ${
+                  record.approveResult === "pending" ? "active" : ""
+                }" 
+                        onclick="showApprovalStatusDialog('${
+                          record.id
+                        }', 'pending')" 
+                        title="改回待簽核">待簽核</button>
+              </div>`
+            : ""
+
           // FromBackCmpy 狀態顯示（在已送出、待簽核、我的核准分頁、已核准和不核準分頁顯示）
           const fromBackDisplay =
             (isPending ||
@@ -3205,6 +3322,7 @@
               ${cancelButton}
               ${approvalButtons}
               ${quickEditButtons}
+              ${approvalStatusButtons}
             </div>
           </div>
         </div>
@@ -3801,6 +3919,100 @@
         } catch (error) {
           console.error("更新失敗:", error)
           showStatusMessage("更新時發生錯誤", "error")
+        } finally {
+          hideLoading()
+        }
+      }
+
+      // 顯示簽核狀態變更確認對話框
+      function showApprovalStatusDialog(recordId, newStatus) {
+        let actionText, message
+
+        switch (newStatus) {
+          case "pass":
+            actionText = "核准"
+            message = "您確定要將此申請狀態改為「核准」嗎？"
+            break
+          case "reject":
+            actionText = "不核准"
+            message = "您確定要將此申請狀態改為「不核准」嗎？"
+            break
+          case "pending":
+            actionText = "改回待簽核"
+            message =
+              "您確定要將此申請狀態改回「待簽核」嗎？這將清除原有的審核記錄。"
+            break
+          default:
+            return
+        }
+
+        showConfirmDialog(
+          message,
+          () => handleApprovalStatusChange(recordId, newStatus),
+          newStatus
+        )
+      }
+
+      // 處理簽核狀態變更
+      async function handleApprovalStatusChange(recordId, newStatus) {
+        try {
+          showLoading()
+
+          let description = ""
+          switch (newStatus) {
+            case "pass":
+              description = "核准通過"
+              break
+            case "reject":
+              description = "不予核准"
+              break
+            case "pending":
+              description = "" // 待簽核狀態不需要描述
+              break
+          }
+
+          const approvalData = {
+            approverId: currentUser.userId,
+            result: newStatus,
+            description: description,
+          }
+
+          const response = await fetch(`${base_url}Leave/${recordId}/approve`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(approvalData),
+          })
+
+          if (response.ok) {
+            let statusText
+            switch (newStatus) {
+              case "pass":
+                statusText = "核准"
+                break
+              case "reject":
+                statusText = "不核准"
+                break
+              case "pending":
+                statusText = "改回待簽核"
+                break
+            }
+
+            showStatusMessage(`申請狀態已更新為「${statusText}」`, "success")
+            // 重新載入記錄以更新列表
+            await loadRecords()
+          } else {
+            let errorMessage = "狀態更新失敗"
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.message || errorMessage
+            } catch (parseError) {
+              console.error("解析錯誤回應失敗:", parseError)
+            }
+            showStatusMessage(errorMessage, "error")
+          }
+        } catch (error) {
+          console.error("處理狀態變更失敗:", error)
+          showStatusMessage("處理申請時發生錯誤，請稍後再試", "error")
         } finally {
           hideLoading()
         }
