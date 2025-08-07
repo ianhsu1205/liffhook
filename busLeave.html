@@ -1807,15 +1807,16 @@
       }
 
       .status-btn {
-        padding: 6px 12px;
-        border: 2px solid;
-        border-radius: 15px;
-        background-color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-size: 12px;
+        font-size: 14px;
         font-weight: 500;
-        min-width: 60px;
+        min-width: 70px;
         text-align: center;
       }
 
@@ -1824,55 +1825,46 @@
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
 
-      /* 核准狀態按鈕 - 綠色系 */
+      /* 核准狀態按鈕 - 使用success-button樣式 */
       .status-btn.pass-btn {
-        border-color: #28a745;
-        color: #28a745;
+        background-color: #27ae60;
       }
 
       .status-btn.pass-btn:hover {
-        background-color: #28a745;
-        color: white;
+        background-color: #219a52;
       }
 
       .status-btn.pass-btn.active {
-        background-color: #28a745;
-        color: white;
-        box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+        background-color: #1e8449;
+        box-shadow: 0 3px 8px rgba(39, 174, 96, 0.3);
       }
 
-      /* 不核准狀態按鈕 - 紅色系 */
+      /* 不核准狀態按鈕 - 使用danger-button樣式 */
       .status-btn.reject-btn {
-        border-color: #dc3545;
-        color: #dc3545;
+        background-color: #e74c3c;
       }
 
       .status-btn.reject-btn:hover {
-        background-color: #dc3545;
-        color: white;
+        background-color: #c0392b;
       }
 
       .status-btn.reject-btn.active {
-        background-color: #dc3545;
-        color: white;
-        box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+        background-color: #a93226;
+        box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
       }
 
-      /* 待簽核狀態按鈕 - 橙色系 */
+      /* 待簽核狀態按鈕 - 使用綠色系 */
       .status-btn.pending-btn {
-        border-color: #ffc107;
-        color: #856404;
+        background-color: #27ae60;
       }
 
       .status-btn.pending-btn:hover {
-        background-color: #ffc107;
-        color: #212529;
+        background-color: #219a52;
       }
 
       .status-btn.pending-btn.active {
-        background-color: #ffc107;
-        color: #212529;
-        box-shadow: 0 3px 8px rgba(255, 193, 7, 0.3);
+        background-color: #1e8449;
+        box-shadow: 0 3px 8px rgba(39, 174, 96, 0.3);
       }
 
       /* 手機端響應式調整 */
@@ -1887,9 +1879,9 @@
         }
 
         .status-btn {
-          padding: 4px 8px;
-          font-size: 11px;
-          min-width: 50px;
+          padding: 6px 12px;
+          font-size: 12px;
+          min-width: 60px;
         }
       }
     </style>
@@ -2220,7 +2212,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.1</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.2</div>
     </div>
 
     <!-- JavaScript -->
