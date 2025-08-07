@@ -1799,6 +1799,13 @@
         flex-wrap: wrap;
       }
 
+      /* 簽核狀態操作容器 */
+      .approval-status-actions {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #e9ecef;
+      }
+
       .status-btn {
         padding: 6px 12px;
         border: 2px solid;
@@ -1872,6 +1879,11 @@
       @media (max-width: 480px) {
         .approval-status-buttons {
           gap: 6px;
+        }
+
+        .approval-status-actions {
+          margin-top: 8px;
+          padding-top: 6px;
         }
 
         .status-btn {
@@ -2208,7 +2220,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.0</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.1</div>
     </div>
 
     <!-- JavaScript -->
@@ -3322,8 +3334,12 @@
               ${cancelButton}
               ${approvalButtons}
               ${quickEditButtons}
-              ${approvalStatusButtons}
             </div>
+            ${
+              approvalStatusButtons
+                ? `<div class="approval-status-actions">${approvalStatusButtons}</div>`
+                : ""
+            }
           </div>
         </div>
       `
