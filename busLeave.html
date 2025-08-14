@@ -1985,25 +1985,27 @@
                 </div>
               </div>
 
-              <!-- 申請日期和時間（同一行） -->
+              <!-- 公出日期 -->
+              <div class="form-group">
+                <label for="leaveDate" class="required">公出日期</label>
+                <input
+                  type="text"
+                  id="leaveDate"
+                  class="date-picker"
+                  required
+                  placeholder="選擇公出日期"
+                />
+                <div class="error-tooltip" id="leaveDate-error">
+                  請選擇公出日期
+                </div>
+              </div>
+
+              <!-- 時間範圍（同一行） -->
               <div class="date-time-group">
                 <div class="form-group">
-                  <label for="leaveDate" class="required">公出起日</label>
-                  <input
-                    type="text"
-                    id="leaveDate"
-                    class="date-picker"
-                    required
-                    placeholder="選擇公出起日"
-                  />
-                  <div class="error-tooltip" id="leaveDate-error">
-                    請選擇公出起日
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="leaveTime" class="required">公出時間</label>
+                  <label for="leaveTime" class="required">開始時間</label>
                   <select id="leaveTime" required>
-                    <option value="">公出時間</option>
+                    <option value="">選擇開始時間</option>
                     <option value="07:00">07:00</option>
                     <option value="07:30">07:30</option>
                     <option value="08:00">08:00</option>
@@ -2040,29 +2042,13 @@
                     <option value="23:30">23:30</option>
                   </select>
                   <div class="error-tooltip" id="leaveTime-error">
-                    請輸入公出時間
-                  </div>
-                </div>
-              </div>
-
-              <!-- 結束日期和時間（同一行） -->
-              <div class="date-time-group">
-                <div class="form-group">
-                  <label for="backDate" class="required">公出迄日</label>
-                  <input
-                    type="text"
-                    id="backDate"
-                    class="date-picker"
-                    placeholder="選擇公出迄日"
-                  />
-                  <div class="error-tooltip" id="backDate-error">
-                    公出迄日必須在公出起日之後
+                    請選擇開始時間
                   </div>
                 </div>
                 <div class="form-group">
                   <label for="backTime" class="required">結束時間</label>
-                  <select id="backTime">
-                    <option value="">選擇時間</option>
+                  <select id="backTime" required>
+                    <option value="">選擇結束時間</option>
                     <option value="07:00">07:00</option>
                     <option value="07:30">07:30</option>
                     <option value="08:00">08:00</option>
@@ -2099,7 +2085,7 @@
                     <option value="23:30">23:30</option>
                   </select>
                   <div class="error-tooltip" id="backTime-error">
-                    請選擇結束時間
+                    結束時間不能小於開始時間
                   </div>
                 </div>
               </div>
@@ -2212,7 +2198,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.3</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.4</div>
     </div>
 
     <!-- JavaScript -->
@@ -2337,16 +2323,6 @@
             }
           })
 
-        // 新增功能：監聽開始日期變更，自動設定結束日期為同一天
-        document
-          .getElementById("leaveDate")
-          .addEventListener("change", function () {
-            const startDate = this.value
-            if (startDate) {
-              document.getElementById("backDate").value = startDate
-            }
-          })
-
         // 新增功能：監聽項目選擇變化
         document
           .getElementById("eventItem")
@@ -2421,16 +2397,26 @@
             }
           })
 
-        // 新增功能：監聽開始時間變更，自動設定結束時間+4小時
+        // 監聽開始時間變更
         document
           .getElementById("leaveTime")
           .addEventListener("change", function () {
             const leaveTime = this.value
-
             if (!leaveTime) return
 
-            // 結束時間為開始時間+4小時
+            // 自動設定結束時間+4小時
             setEndTimePlus4Hours(leaveTime)
+
+            // 驗證時間順序
+            validateTimeOrder()
+          })
+
+        // 監聽結束時間變更
+        document
+          .getElementById("backTime")
+          .addEventListener("change", function () {
+            // 驗證時間順序
+            validateTimeOrder()
           })
 
         // 移除批量操作相關事件（已不再需要）
@@ -2500,6 +2486,25 @@
         // 設定結束時間
         backTimeSelect.value = bestOption.value
       }
+
+      // 時間順序驗證函數
+      function validateTimeOrder() {
+        const leaveTime = document.getElementById("leaveTime").value
+        const backTime = document.getElementById("backTime").value
+        const backTimeError = document.getElementById("backTime-error")
+
+        // 隱藏錯誤提示
+        backTimeError.style.display = "none"
+
+        // 如果兩個時間都有值，進行驗證
+        if (leaveTime && backTime) {
+          if (backTime <= leaveTime) {
+            backTimeError.style.display = "block"
+            return false
+          }
+        }
+        return true
+      }
       // 初始化日期選擇器
       function initDatePickers() {
         const today = new Date()
@@ -2524,8 +2529,8 @@
           defaultDate: lastDaysLast,
         })
 
-        // 其他日期選擇器
-        flatpickr("#leaveDate, #backDate", datePickerOptions)
+        // 公出日期選擇器
+        flatpickr("#leaveDate", datePickerOptions)
       }
 
       // 初始化 LIFF SDK
@@ -3035,7 +3040,6 @@
       // 更新日期字段標籤
       function updateDateLabels() {
         const startDateLabel = document.querySelector('label[for="startDate"]')
-        const backDateLabel = document.querySelector('label[for="backDate"]')
         const endDateLabel = document.querySelector('label[for="endDate"]')
 
         if (currentStatus === "my-approved") {
@@ -3522,42 +3526,27 @@
           isValid = showError("eventItem", "請選擇簽核項目") && isValid
         }
 
-        // 驗證申請日期
+        // 驗證公出日期
         const leaveDate = document.getElementById("leaveDate").value
         if (!leaveDate) {
-          isValid = showError("leaveDate", "請選擇公出起日") && isValid
+          isValid = showError("leaveDate", "請選擇公出日期") && isValid
         }
 
-        // 驗證申請時間
+        // 驗證開始時間
         const leaveTime = document.getElementById("leaveTime").value
         if (!leaveTime) {
           isValid = showError("leaveTime", "請選擇開始時間") && isValid
         }
 
-        // 驗證結束日期（現在改為必填）
-        const backDate = document.getElementById("backDate").value
-        if (!backDate) {
-          isValid = showError("backDate", "請選擇公出迄日") && isValid
-        } else if (leaveDate && new Date(backDate) < new Date(leaveDate)) {
-          isValid =
-            showError("backDate", "公出迄日必須在公出起日之後") && isValid
-        }
-
-        // 驗證結束時間（現在改為必填）
+        // 驗證結束時間
         const backTime = document.getElementById("backTime").value
         if (!backTime) {
           isValid = showError("backTime", "請選擇結束時間") && isValid
         }
 
-        // 驗證同一天時間順序
-        if (
-          backDate &&
-          leaveDate &&
-          backDate === leaveDate &&
-          backTime &&
-          leaveTime
-        ) {
-          if (backTime < leaveTime) {
+        // 驗證時間順序（結束時間必須晚於開始時間）
+        if (backTime && leaveTime) {
+          if (backTime <= leaveTime) {
             isValid =
               showError("backTime", "結束時間必須晚於開始時間") && isValid
           }
@@ -3621,7 +3610,7 @@
             name: currentUser.name,
             leaveDate: document.getElementById("leaveDate").value,
             leaveTime: document.getElementById("leaveTime").value,
-            backDate: document.getElementById("backDate").value,
+            backDate: document.getElementById("leaveDate").value, // 同一天，所以使用相同日期
             backTime: document.getElementById("backTime").value,
             location: document.getElementById("location").value || null,
             eventName: eventItemValue,
