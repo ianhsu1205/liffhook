@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>大都會客運路線資訊</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>大都會客運路線資訊查詢</h1>
+    </header>
+
+    <main class="container">
+      <section class="search-card">
+        <div class="field">
+          <label for="routeName">路線名稱</label>
+          <input
+            type="text"
+            id="routeName"
+            list="routeOptions"
+            placeholder="輸入關鍵字自動比對 (中文)"
+          />
+          <datalist id="routeOptions"></datalist>
+        </div>
+        <div class="actions">
+          <button id="btn-search" class="primary">查詢</button>
+        </div>
+      </section>
+
+      <section id="result" class="result-card hidden">
+        <div class="result-header">
+          <div>
+            <div class="route-title" id="routeTitle">—</div>
+            <div class="route-sub" id="routeSub">—</div>
+          </div>
+          <div>
+            <button id="btn-open-map" class="primary" disabled>
+              開啟路線圖
+            </button>
+          </div>
+        </div>
+
+        <!-- 預覽功能已移除，僅保留按鈕開新分頁 -->
+
+        <div id="routeEmpty" class="route-empty hidden">
+          查無資料，請嘗試其他關鍵字。
+        </div>
+        <div id="routeList" class="route-list"></div>
+      </section>
+    </main>
+
+    <footer class="app-footer">歡迎使用大都會客運路線資訊查詢</footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

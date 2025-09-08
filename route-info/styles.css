@@ -1,0 +1,48 @@
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans TC",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;color:#1a1a1a}
+.hidden{display:none !important}
+.app-header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.app-header h1{font-size:20px;margin:0;font-weight:700}
+.app-header .primary{background:#fff;color:#2563eb;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+.container{max-width:1000px;margin:24px auto;padding:0 16px}
+.search-card,.result-card{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.06);padding:16px 16px}
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.field input{padding:12px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:16px}
+.actions{display:flex;gap:8px}
+.primary{background:#2563eb;color:#fff;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:700}
+.primary:hover{opacity:.95}
+.result-card.hidden{display:none}
+.result-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eef1f5;padding-bottom:12px;margin-bottom:12px}
+.route-title{font-size:22px;font-weight:800}
+.route-sub{font-size:14px;color:#64748b;margin-top:2px}
+/* 預覽功能已移除 */
+.route-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.route-empty{color:#64748b;padding:8px 0}
+.route-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+.route-card h3{margin:0 0 6px;font-size:16px;color:#111827}
+.meta{display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5}
+.meta-line{color:#334155;word-break:break-word}
+.meta-line.muted{color:#64748b}
+.meta-sep{height:8px}
+.kv{display:grid;grid-template-columns:88px 1fr;gap:8px;font-size:14px}
+.kv div{color:#334155}
+.badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:2px 6px;border-radius:999px;font-size:12px;margin-left:6px}
+.app-footer{color:#64748b;text-align:center;margin:20px 0 40px}
+
+/* Tablet 調整 */
+@media (max-width: 768px){
+	.container{padding:0 12px}
+	.route-title{font-size:20px}
+	.route-list{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+}
+
+/* Mobile 調整 */
+@media (max-width: 480px){
+	.app-header{flex-wrap:wrap;gap:8px}
+	.app-header h1{font-size:18px;width:100%}
+	.app-header .primary{width:100%}
+	.search-card,.result-card{padding:12px;border-radius:12px}
+	.actions{flex-direction:column}
+	.primary{width:100%}
+	.route-list{grid-template-columns:1fr}
+	.kv{grid-template-columns:84px 1fr;font-size:15px}
+}
