@@ -3044,7 +3044,7 @@ function goToPlateInputStep() {
   // 檢查是否已有此公司的車輛資料緩存
   if (!companyVehicles[companyValue]) {
     // 第一次獲取此公司的資料
-    fetch(`${base_url}/BusVehicle?operatorName=${encodeURIComponent(companyValue)}`)
+    fetch(`${base_url}BusVehicle?operatorName=${encodeURIComponent(companyValue)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`API請求失敗: ${response.status}`);
