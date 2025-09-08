@@ -9,7 +9,8 @@
   const routeList = document.getElementById('routeList');
   const routeEmpty = document.getElementById('routeEmpty');
 
-  const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
+//  const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
+  const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
   const operator = '大都會客運';
 
   // 載入候選路線名（GroupBy RouteNameZh）
@@ -66,7 +67,7 @@
     items.forEach((r) => {
       const card = document.createElement('div');
       card.className = 'route-card';
-  // 不顯示方向資訊
+      // 不顯示方向資訊
       const city = (r.City || r.city || '').toString();
       const cityZh = city === 'Taipei' ? '台北市' : city === 'NewTaipei' ? '新北市' : city === 'InterCity' ? '國道公路' : (city || '');
       // 時間格式化：0510 -> 05:10
@@ -79,16 +80,18 @@
 
       const dep = r.DepartureStopNameZh || r.departureStopNameZh || '—';
       const des = r.DestinationStopNameZh || r.destinationStopNameZh || '—';
-
-      const s0F = fmt(r.SubRoute0FirstBusTime ?? r.subRoute0FirstBusTime);
-      const s0L = fmt(r.SubRoute0LastBusTime ?? r.subRoute0LastBusTime);
-      const s0HF = fmt(r.SubRoute0HolidayFirstBusTime ?? r.subRoute0HolidayFirstBusTime);
-      const s0HL = fmt(r.SubRoute0HolidayLastBusTime ?? r.subRoute0HolidayLastBusTime);
-
-      const s1F = fmt(r.SubRoute1FirstBusTime ?? r.subRoute1FirstBusTime);
-      const s1L = fmt(r.SubRoute1LastBusTime ?? r.subRoute1LastBusTime);
-      const s1HF = fmt(r.SubRoute1HolidayFirstBusTime ?? r.subRoute1HolidayFirstBusTime);
-      const s1HL = fmt(r.SubRoute1HolidayLastBusTime ?? r.subRoute1HolidayLastBusTime);
+      // 後端已移除 SubRoute* 時間欄位；若不存在則不顯示去返時間
+      const s0F_raw = r.SubRoute0FirstBusTime ?? r.subRoute0FirstBusTime;
+      const s0L_raw = r.SubRoute0LastBusTime ?? r.subRoute0LastBusTime;
+      const s0HF_raw = r.SubRoute0HolidayFirstBusTime ?? r.subRoute0HolidayFirstBusTime;
+      const s0HL_raw = r.SubRoute0HolidayLastBusTime ?? r.subRoute0HolidayLastBusTime;
+      const s1F_raw = r.SubRoute1FirstBusTime ?? r.subRoute1FirstBusTime;
+      const s1L_raw = r.SubRoute1LastBusTime ?? r.subRoute1LastBusTime;
+      const s1HF_raw = r.SubRoute1HolidayFirstBusTime ?? r.subRoute1HolidayFirstBusTime;
+      const s1HL_raw = r.SubRoute1HolidayLastBusTime ?? r.subRoute1HolidayLastBusTime;
+      const hasTime = [s0F_raw, s0L_raw, s0HF_raw, s0HL_raw, s1F_raw, s1L_raw, s1HF_raw, s1HL_raw].some(v => !!v);
+      const s0F = fmt(s0F_raw), s0L = fmt(s0L_raw), s0HF = fmt(s0HF_raw), s0HL = fmt(s0HL_raw);
+      const s1F = fmt(s1F_raw), s1L = fmt(s1L_raw), s1HF = fmt(s1HF_raw), s1HL = fmt(s1HL_raw);
 
       const ticket = r.TicketPriceDescriptionZh || r.ticketPriceDescriptionZh || '—';
 
@@ -101,14 +104,33 @@
         <h3>${r.RouteNameZh || r.routeNameZh} <span class="badge">${cityZh}</span></h3>
         <div class="meta">
           <div class="meta-line">${metaLineStartEnd}</div>
-          <div class="meta-sep" aria-hidden="true"></div>
-          <div class="meta-line">${metaLineGo}</div>
-          <div class="meta-sep" aria-hidden="true"></div>
-          <div class="meta-line">${metaLineBack}</div>
+          ${hasTime ? `<div class="meta-sep" aria-hidden="true"></div>` : ''}
+          ${hasTime ? `<div class="meta-line">${metaLineGo}</div>` : ''}
+          ${hasTime ? `<div class="meta-sep" aria-hidden="true"></div>` : ''}
+          ${hasTime ? `<div class="meta-line">${metaLineBack}</div>` : ''}
           <div class="meta-line muted">收費方式：${ticket}</div>
         </div>
       `;
       routeList.appendChild(card);
+
+      // 追加 PrimaryInfos 卡片（依序接在該路線之後）
+      const infos = r.PrimaryInfos || r.primaryInfos || [];
+      if (Array.isArray(infos) && infos.length > 0) {
+        infos.forEach((p) => {
+          const itemName = p.ItemName || p.itemName || '';
+          const contextName = p.ContextName || p.contextName || '';
+          if (!itemName && !contextName) return;
+          const infoCard = document.createElement('div');
+          infoCard.className = 'route-card info-card';
+          infoCard.innerHTML = `
+            <h4>${itemName}</h4>
+            <div class="meta">
+              <div class="meta-line">${contextName || '—'}</div>
+            </div>
+          `;
+          routeList.appendChild(infoCard);
+        });
+      }
     });
     // 空狀態
     if (!items || items.length === 0) {

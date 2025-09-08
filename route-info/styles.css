@@ -19,6 +19,11 @@
 .route-empty{color:#64748b;padding:8px 0}
 .route-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px}
 .route-card h3{margin:0 0 6px;font-size:16px;color:#111827}
+.route-card.info-card{background:#fafbff}
+/* 標題以主題藍強調，與一般卡片標題做色彩區隔 */
+.route-card.info-card h4{margin:0 0 4px;font-size:14px;color:#1d4ed8}
+/* 內容以中性深灰，並保留換行 */
+.route-card.info-card .meta-line{white-space:pre-line;color:#374151}
 .meta{display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5}
 .meta-line{color:#334155;word-break:break-word}
 .meta-line.muted{color:#64748b}
