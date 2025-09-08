@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>大都會意見信箱</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>大都會意見信箱</h1>
+      <p class="hint">此表單禁止使用 emoji，若輸入包含 emoji 會自動移除。</p>
+
+      <form id="form" class="card" novalidate>
+        <div class="grid">
+          <label class="field">
+            <span>稱呼（必填）</span>
+            <input type="text" id="svr_name" placeholder="王小明" required />
+          </label>
+          <label class="field">
+            <span>Email（必填）</span>
+            <input
+              type="email"
+              id="email"
+              placeholder="test@example.com"
+              required
+            />
+          </label>
+          <label class="field">
+            <span>聯絡電話</span>
+            <input type="tel" id="svr_tel" placeholder="0912345678" />
+          </label>
+          <label class="field">
+            <span>發生時間（必填）</span>
+            <input type="datetime-local" id="svr_date" required />
+          </label>
+        </div>
+        <label class="field">
+          <span>意見內容（必填）</span>
+          <textarea
+            id="svr_detail"
+            rows="6"
+            placeholder="請輸入意見內容"
+            required
+          ></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="button" id="btn-preview" class="secondary">預覽</button>
+          <button type="button" id="btn-submit" class="primary">送出</button>
+        </div>
+
+        <div id="msg" class="msg hidden"></div>
+      </form>
+
+      <!-- 預覽對話框 -->
+      <section
+        id="dlg-preview"
+        class="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dlgPreviewTitle"
+      >
+        <div class="modal-card">
+          <h2 id="dlgPreviewTitle">送出前預覽</h2>
+          <div class="preview-list">
+            <div>
+              <span>稱呼</span>
+              <p id="pv_name">-</p>
+            </div>
+            <div>
+              <span>Email</span>
+              <p id="pv_email">-</p>
+            </div>
+            <div>
+              <span>聯絡電話</span>
+              <p id="pv_tel">-</p>
+            </div>
+            <div>
+              <span>發生時間</span>
+              <p id="pv_date">-</p>
+            </div>
+            <div>
+              <span>意見內容</span>
+              <p id="pv_detail">-</p>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="btn-close-preview" class="secondary">
+              返回修改
+            </button>
+            <button type="button" id="btn-confirm-submit" class="primary">
+              確認送出
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 成功對話框 -->
+      <section
+        id="dlg-success"
+        class="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dlgSuccessTitle"
+      >
+        <div class="modal-card">
+          <h2 id="dlgSuccessTitle">已成功送出</h2>
+          <p class="hint">
+            感謝您的意見回饋。此視窗將在
+            <span id="countdown">10</span> 秒後自動關閉。
+          </p>
+          <div class="modal-actions">
+            <button type="button" id="btn-close-success" class="primary">
+              關閉
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
