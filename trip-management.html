@@ -1277,7 +1277,7 @@
         }
       }
     </style>
-    <audio id="notifySound" src="/audio/2456.wav" preload="auto"></audio>
+    <audio id="notifySound" src="audio/2456.wav" preload="auto"></audio>
 
     <div id="notification"></div>
     <!-- 全域浮動訊息容器（避免推擠主版面） -->
@@ -1411,7 +1411,7 @@
           if (!document.getElementById("notifySound")) {
             const audioElement = document.createElement("audio")
             audioElement.id = "notifySound"
-            audioElement.src = "/audio/2456.wav" // 設定本地音效來源
+            audioElement.src = "audio/2456.wav" // 設定本地音效來源
             audioElement.preload = "auto"
             document.body.appendChild(audioElement)
           }
@@ -4903,3 +4903,4 @@
     </script>
   </body>
 </html>
+
