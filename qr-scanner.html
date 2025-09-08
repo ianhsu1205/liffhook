@@ -714,7 +714,7 @@
 
           // 先檢查趟次狀態，若非 completed 則不允許核銷，顯示前端訊息
           try {
-            const tripResp = await fetch(`/api/Trip/${tripId}`)
+            const tripResp = await fetch(`${API_BASE_URL}/Trip/${tripId}`)
             if (tripResp.ok) {
               const tripJson = await tripResp.json()
               const tripStatus = (tripJson?.data?.status || "").toLowerCase()
@@ -1111,3 +1111,4 @@
     </script>
   </body>
 </html>
+
