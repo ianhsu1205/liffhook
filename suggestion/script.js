@@ -1,5 +1,5 @@
 (() => {
-  const API_URL = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo/SuggestionProxy/proxy';
+  const API_URL = 'https://35.221.146.143.nip.io/linehook/SuggestionProxy/proxy';
   const LIFF_ID = (new URL(location.href).searchParams.get('liffId') || window.SUGGESTION_LIFF_ID || ''); // 可在部署時以環境注入，或以 ?liffId= 帶入
 
   const $ = (id) => document.getElementById(id);
@@ -207,3 +207,4 @@
   setNowIfEmpty();
   initLiff();
 })();
+
