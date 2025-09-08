@@ -149,6 +149,7 @@
         padding: 20px;
         border-radius: 12px;
         display: none;
+        text-align: left;
       }
 
       .scan-result.success {
@@ -226,7 +227,7 @@
         font-weight: 600;
         z-index: 1000;
         max-width: 90%;
-        text-align: center;
+        text-align: left;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(10px);
       }
@@ -304,7 +305,7 @@
 
       .success-animation .success-details {
         font-size: 18px;
-        text-align: center;
+        text-align: left;
         margin-bottom: 30px;
       }
 
@@ -347,7 +348,7 @@
           background: #f39c12;
           color: white;
           padding: 10px;
-          text-align: center;
+          text-align: left;
           font-size: 14px;
         "
       >
@@ -365,7 +366,7 @@
         <!-- 掃描區域 -->
         <div class="scan-section">
           <div class="scan-title">📱 QR Code 掃描確認</div>
-          <div style="text-align: center; color: #666; margin-bottom: 20px">
+          <div style="text-align: left; color: #666; margin-bottom: 20px">
             系統將自動開啟掃描器，請對準預約QR Code進行掃描
           </div>
 
@@ -383,7 +384,7 @@
           </div>
           <div
             style="
-              text-align: center;
+              text-align: left;
               margin-top: 20px;
               color: #666;
               font-size: 14px;
@@ -726,7 +727,7 @@
                 )
                 const details = document.getElementById("reservationDetails")
                 details.innerHTML = `
-                  <div style="grid-column: 1 / -1; text-align: center; padding: 24px 16px;">
+                  <div style="grid-column: 1 / -1; text-align: left; padding: 24px 16px;">
                     <div style="font-size: 20px; font-weight: 700; color: #c0392b; margin-bottom: 10px; line-height: 1.6;">
                       本趟次尚未發車，無法確認您是否搭乘
                     </div>
@@ -798,7 +799,7 @@
             updateStatusIndicator("ℹ️ 未查到保留座位申請", "warning")
             const details = document.getElementById("reservationDetails")
             details.innerHTML = `
-              <div style="grid-column: 1 / -1; text-align: center; padding: 24px 16px;">
+              <div style="grid-column: 1 / -1; text-align: left; padding: 24px 16px;">
                 <div style="font-size: 20px; font-weight: 700; color: #c0392b; margin-bottom: 10px; line-height: 1.6;">
                   本趟次未查到您的申請記錄，若您搭乘的非通知保留的班車，請記得在今日內取消保留，以免影響您的權益
                 </div>
@@ -876,7 +877,7 @@
       function showBoardingSuccess(result) {
         const details = document.getElementById("reservationDetails")
         details.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 30px 20px;">
+          <div style="grid-column: 1 / -1; text-align: left; padding: 30px 20px;">
             <div style="font-size: 24px; font-weight: bold; color: #27ae60; margin-bottom: 15px;">
               ${result.passengerName}，歡迎搭乘！
             </div>
@@ -912,7 +913,7 @@
         // 修改標題
         const titleElement = document.querySelector("#reservationInfo h3")
         if (titleElement) {
-          titleElement.textContent = "🚌 搭乘確認完成"
+          titleElement.textContent = "🚌 確認搭乘"
         }
 
         // 顯示區域
@@ -921,7 +922,7 @@
         // 開始倒數計時
         startAutoCloseTimer()
 
-        showScanResult("✅ 搭乘確認完成", "success")
+        showScanResult("✅ 歡迎搭乘", "success")
       }
 
       // 顯示預約資訊（僅用於已核銷的情況）
@@ -943,7 +944,7 @@
 
         const details = document.getElementById("reservationDetails")
         details.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 24px 16px;">
+          <div style="grid-column: 1 / -1; text-align: left; padding: 24px 16px;">
             <div style="font-size: 20px; font-weight: 700; color: #27ae60; margin-bottom: 12px;">
               ${reservation.customTitle || "🚌 您已搭乘本趟次：趟次資訊如下："}
             </div>
@@ -965,9 +966,10 @@
                 }</div>
               </div>
               <div class="info-item">
-                <div class="info-label">上車站</div>
+                <div class="info-label">搭乘站牌</div>
                 <div class="info-value">${reservation.stopName || "-"}</div>
               </div>
+              
               <div class="info-item">
                 <div class="info-label">發車時間</div>
                 <div class="info-value">${
@@ -1111,4 +1113,3 @@
     </script>
   </body>
 </html>
-
