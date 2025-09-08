@@ -9,8 +9,8 @@
   const routeList = document.getElementById('routeList');
   const routeEmpty = document.getElementById('routeEmpty');
 
-//  const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
-  const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
+  const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
+  //const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
   const operator = '大都會客運';
 
   // 載入候選路線名（GroupBy RouteNameZh）
@@ -182,3 +182,4 @@
   // 初始載入
   loadNames();
 })();
+
