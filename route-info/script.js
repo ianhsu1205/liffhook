@@ -14,7 +14,7 @@
 
   // 載入候選路線名（GroupBy RouteNameZh）
   async function loadNames(keyword = '') {
-    const url = new URL(location.origin + apiBase + '/names');
+    const url = new URL(apiBase + '/names');
     url.searchParams.set('operatorNameZh', operator);
     if (keyword) url.searchParams.set('keyword', keyword);
     const resp = await fetch(url);
@@ -160,4 +160,5 @@
   // 初始載入
   loadNames();
 })();
+
 
