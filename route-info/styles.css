@@ -1,7 +1,7 @@
 *{box-sizing:border-box}body{margin:0;font-family:"Noto Sans TC",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;color:#1a1a1a}
 .hidden{display:none !important}
-.app-header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.1)}
-.app-header h1{font-size:20px;margin:0;font-weight:700}
+.app-header{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.app-header h1{font-size:20px;margin:0;font-weight:700;text-align:center;width:100%}
 .app-header .primary{background:#fff;color:#2563eb;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
 .container{max-width:1000px;margin:24px auto;padding:0 16px}
 .search-card,.result-card{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.06);padding:16px 16px}
