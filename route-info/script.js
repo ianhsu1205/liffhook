@@ -34,7 +34,7 @@
 
   // 查詢詳細
   async function queryDetail(name, operatorName = operator) {
-    const url = new URL(location.origin + apiBase + '/detail');
+    const url = new URL(apiBase + '/detail');
     if (operatorName !== undefined && operatorName !== null) {
       url.searchParams.set('operatorNameZh', operatorName);
     }
@@ -160,5 +160,6 @@
   // 初始載入
   loadNames();
 })();
+
 
 
