@@ -1,0 +1,7 @@
+由於無法直接下載音效檔案，您可以從以下來源手動下載音效：
+
+1. https://mixkit.co/free-sound-effects/notification/ - 免費的通知音效
+2. https://notificationsounds.com/ - 各種通知音效
+3. https://soundbible.com/tags-notification.html - 免費音效
+
+下載後，將檔案放在 wwwroot/audio 目錄中，並更新程式碼引用的路徑。

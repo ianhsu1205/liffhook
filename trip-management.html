@@ -1,0 +1,4905 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>都會之星保留座位管理系統</title>
+    <script>
+      // 靜音非必要的 console 輸出（保留 error），可透過 window.__ENABLE_DEBUG__ = true 重新開啟
+      ;(function () {
+        try {
+          if (!window.__ENABLE_DEBUG__) {
+            var noop = function () {}
+            if (window.console) {
+              console.log = noop
+              console.info = noop
+              console.debug = noop
+              console.warn = noop
+            }
+          }
+        } catch (e) {
+          // 忽略覆寫失敗
+        }
+      })()
+    </script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        /* 放大主內容寬度，充分利用可視區域 */
+        max-width: 100%;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+
+      .trip-area {
+        flex: 1 1 auto;
+        padding: 15px;
+        background: #ffffff;
+        position: relative; /* 讓內部訊息可絕對定位，不影響版面高度 */
+        /* 固定高度 + 內部列表獨立捲動（上方標題/訊息區不捲動） */
+        max-height: 600px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* 僅讓趟次列表可垂直捲動 */
+      .trip-area #tripsContainer {
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0; /* 避免子容器高度撐爆 flex 容器 */
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 12px;
+        color: #333;
+        border-bottom: 2px solid #4caf50;
+        padding-bottom: 4px;
+      }
+
+      .form-group {
+        margin-bottom: 12px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      .form-control:focus {
+        border-color: #4caf50;
+        outline: none;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+      }
+
+      .time-input-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+
+      .time-input {
+        width: 50px;
+        text-align: center;
+      }
+
+      .time-input-large {
+        width: 80px;
+        height: 50px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+      }
+
+      .time-input-large:focus {
+        border-color: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+      }
+
+      .time-separator {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin: 0 10px;
+      }
+
+      .vehicle-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .suggestion-item {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+      }
+
+      .suggestion-item:hover,
+      .suggestion-item.selected {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+
+      .form-group {
+        position: relative;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: #4caf50;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #45a049;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-warning {
+        background: #ffc107;
+        color: #212529;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-info {
+        background: #17a2b8;
+        color: white;
+      }
+
+      /* 停用動畫/轉場以避免重渲染時的抖動 */
+      .no-anim,
+      .no-anim * {
+        transition: none !important;
+        animation: none !important;
+      }
+
+      /* 遊戲化元素 */
+      .trip-card {
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        /* 僅針對不影響排版的屬性做轉場，避免抖動 */
+        transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        position: relative;
+      }
+
+      .trip-card:hover {
+        /* 不做位移，使用更明顯的外環與陰影做高亮 */
+        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.35),
+          0 12px 24px rgba(0, 0, 0, 0.22);
+        border-color: #3399ff;
+        filter: brightness(1.02);
+      }
+
+      /* 鍵盤可及性：focus 也有相同高亮 */
+      .trip-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.45),
+          0 12px 24px rgba(0, 0, 0, 0.22);
+        border-color: #3399ff;
+        filter: brightness(1.02);
+      }
+
+      .trip-card.ready {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+      }
+
+      .trip-card.pending {
+        border-color: #ffc107;
+        background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+      }
+
+      .trip-card.notified {
+        border-color: #007bff;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%);
+      }
+
+      .trip-card.completed {
+        border-color: #6c757d;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        opacity: 0.8;
+      }
+
+      /* 路線顏色配置 - 與可搭乘路線顏色保持一致 */
+      .trip-card.route-208802 {
+        border-color: #007bff;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%);
+      }
+
+      .trip-card.route-2088A2 {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+      }
+
+      .trip-card.route-2088B2 {
+        border-color: #fd7e14;
+        background: linear-gradient(135deg, #fff8f0 0%, #ffe8cc 100%);
+      }
+
+      .trip-card.route-default {
+        border-color: #6c757d;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      }
+
+      /* 緊湊卡片頭部 */
+      .trip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .trip-basic-info {
+        flex: 1;
+      }
+
+      .trip-quick-stats {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+        margin-right: 35px; /* 為toggle按鈕留出空間 */
+      }
+
+      .seat-indicator {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 15px;
+        padding: 4px 8px;
+        font-weight: bold;
+        white-space: nowrap; /* 防止文字換行 */
+      }
+
+      .seat-indicator.full {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+
+      .seat-indicator.ready {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+
+      /* 摺疊功能 */
+      .trip-collapsible {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+
+      .trip-collapsible.expanded {
+        max-height: 500px;
+      }
+
+      .toggle-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #ddd;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        cursor: pointer;
+        color: #333;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .toggle-btn:hover {
+        background: #f8f9fa;
+        border-color: #4caf50;
+        color: #4caf50;
+        transform: scale(1.1);
+      }
+
+      .toggle-btn.expanded {
+        transform: rotate(180deg);
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
+      }
+
+      .toggle-btn.expanded:hover {
+        transform: rotate(180deg) scale(1.1);
+      }
+
+      /* 讓整個trip-header都可以點擊 */
+      .trip-header {
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .trip-header:hover {
+        background-color: rgba(76, 175, 80, 0.05);
+        border-radius: 5px;
+      }
+
+      .bus-icon {
+        width: 40px;
+        height: 28px;
+        background: #4caf50;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 10px;
+        font-size: 12px;
+      }
+
+      /* bus-icon 路線顏色配置 */
+      .bus-icon.route-208802 {
+        background: #007bff; /* 藍色 */
+      }
+
+      .bus-icon.route-2088A2 {
+        background: #28a745; /* 綠色 */
+      }
+
+      .bus-icon.route-2088B2 {
+        background: #fd7e14; /* 橙色 */
+      }
+
+      .bus-icon.route-default {
+        background: #6c757d; /* 灰色 */
+      }
+
+      /* 乘客區域優化 */
+      .passenger-area {
+        margin-top: 8px;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        font-size: 13px;
+      }
+
+      .passenger-area h4 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #495057;
+      }
+
+      /* 控制按鈕區域 */
+      .trip-controls {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+
+      .trip-controls .btn {
+        font-size: 11px;
+        padding: 5px 10px;
+      }
+
+      .passenger-icon {
+        width: 30px;
+        height: 30px;
+        background: #007bff;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        margin: 2px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .passenger-icon:hover {
+        transform: scale(1.1);
+      }
+
+      .passenger-icon.boarded {
+        background: #28a745;
+      }
+
+      .passenger-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        padding: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        cursor: grab;
+      }
+
+      .passenger-card:hover {
+        /* 不做位移，使用外環 + 陰影 + 淡色底做高亮 */
+        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.28),
+          0 10px 20px rgba(0, 0, 0, 0.18);
+        border-color: #99c8ff;
+        background: linear-gradient(
+            0deg,
+            rgba(77, 163, 255, 0.06),
+            rgba(77, 163, 255, 0.06)
+          ),
+          #ffffff;
+      }
+
+      .passenger-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.38),
+          0 10px 20px rgba(0, 0, 0, 0.18);
+        border-color: #66b3ff;
+        background: linear-gradient(
+            0deg,
+            rgba(77, 163, 255, 0.08),
+            rgba(77, 163, 255, 0.08)
+          ),
+          #ffffff;
+      }
+
+      .passenger-card.dragging {
+        opacity: 0.7;
+        transform: rotate(5deg);
+      }
+
+      .passenger-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .passenger-name {
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .passenger-seats {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .passenger-route {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .passenger-contact {
+        color: #888;
+        font-size: 11px;
+        margin-bottom: 8px;
+      }
+
+      .passenger-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      .btn-xs {
+        padding: 3px 8px;
+        font-size: 11px;
+        border-radius: 3px;
+      }
+
+      .pending-passengers {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+        max-height: 600px;
+        overflow-y: auto;
+      }
+
+      .trip-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .route-selector {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .route-option {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: white;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s;
+      }
+
+      .route-option:hover {
+        background: #e3f2fd;
+        border-color: #2196f3;
+      }
+
+      .route-option.selected {
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
+      }
+
+      .vehicle-selector {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-top: 10px;
+      }
+
+      .vehicle-option {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .vehicle-option:hover {
+        background: #f5f5f5;
+      }
+
+      .vehicle-option.selected {
+        background: #4caf50;
+        color: white;
+      }
+
+      .stats-panel {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        min-width: 90px;
+      }
+
+      .stat-number {
+        font-size: 18px;
+        font-weight: bold;
+        color: #4caf50;
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #4caf50;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 拖拽相關樣式 */
+      .passenger-icon {
+        cursor: grab;
+        user-select: none;
+        transition: all 0.2s ease;
+      }
+
+      .passenger-icon:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .passenger-icon:active {
+        cursor: grabbing;
+        transform: scale(0.95);
+      }
+
+      .trip-card {
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .trip-card.drag-over {
+        border: 2px dashed #4caf50;
+        background-color: rgba(76, 175, 80, 0.1);
+        transform: scale(1.02);
+      }
+
+      .trip-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(76, 175, 80, 0.05);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      .trip-card.drag-over::after {
+        opacity: 1;
+      }
+
+      /* 音頻啟用 Modal 樣式 */
+      #audioActivationModal {
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #audioActivationContent {
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        width: 80%;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      #activateAudioBtn {
+        background-color: #4caf50;
+        color: white;
+        padding: 15px 30px;
+        font-size: 20px;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: all 0.3s;
+      }
+
+      #activateAudioBtn:hover {
+        background-color: #45a049;
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .close {
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        color: #aaa;
+      }
+
+      .close:hover {
+        color: #000;
+      }
+
+      .error-message {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin: 0; /* 避免推擠版面 */
+        display: none;
+        position: absolute; /* 改為浮動顯示，避免區塊跳動 */
+        top: 8px;
+        right: 8px;
+        max-width: 42%;
+        z-index: 20;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      }
+
+      .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin: 0; /* 避免推擠版面 */
+        display: none;
+        position: absolute; /* 改為浮動顯示，避免區塊跳動 */
+        top: 8px;
+        right: 8px;
+        max-width: 42%;
+        z-index: 20;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 通知區塊與音效 */
+      #notification {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: #4caf50;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.2);
+        font-size: 16px;
+        z-index: 9999;
+        display: none;
+        animation: fadeInOut 2.5s;
+      }
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* 音效元件隱藏 */
+      #notifySound {
+        display: none;
+      }
+
+      /* 保持左右分欄，不再在 576px 以下改為上下排列 */
+
+      /* 平板優化（992px 以下）：增加按鈕與輸入框可點擊區、縮小間距 */
+      @media (max-width: 992px) {
+        .main-content {
+          gap: 12px;
+        }
+        .btn {
+          padding: 12px 16px;
+          font-size: 15px;
+        }
+        .time-input-large {
+          width: 72px;
+          height: 44px;
+          font-size: 20px;
+        }
+        .sidebar,
+        .passenger-area,
+        .trip-area {
+          padding: 12px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .route-selector {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .main-content {
+          gap: 10px;
+        }
+        body {
+          padding: 12px;
+        }
+        .header h1 {
+          font-size: 20px;
+        }
+        .trip-card {
+          padding: 8px;
+        }
+      }
+
+      /* 手機優化（576px 以下）：單欄、縮小邊距、元素滿寬 */
+      @media (max-width: 576px) {
+        body {
+          padding: 8px;
+        }
+        .main-content {
+          gap: 8px;
+        }
+        .sidebar,
+        .passenger-area,
+        .trip-area {
+          padding: 10px;
+        }
+        .route-selector {
+          grid-template-columns: 1fr;
+        }
+        .btn {
+          padding: 10px 14px;
+          font-size: 14px;
+        }
+      }
+
+      /* 路線徽章樣式 */
+      .route-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+        margin: 2px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 路線配色 - 參考keepSeatApp.html */
+      .route-208802 {
+        background-color: #007bff; /* 藍色 - 小1 */
+      }
+
+      .route-2088A2 {
+        background-color: #28a745; /* 綠色 - 藍15 */
+      }
+
+      .route-2088B2 {
+        background-color: #fd7e14; /* 橘色 - 紅33 */
+      }
+
+      .route-default {
+        background-color: #6c757d; /* 灰色 - 其他路線 */
+      }
+
+      /* 乘客卡片中的路線顯示 */
+      .passenger-route small {
+        line-height: 1.6;
+      }
+
+      /* 新增視覺提示樣式 */
+      .visual-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+        padding: 12px 18px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        z-index: 10000;
+        transition: opacity 0.5s;
+      }
+
+      .visual-notification.error {
+        background: rgba(220, 53, 69, 0.9);
+      }
+
+      .visual-notification.success {
+        background: rgba(40, 167, 69, 0.9);
+      }
+
+      /* 主內容：左右分欄 */
+      .main-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        min-height: 70vh;
+      }
+      .main-content > .passenger-area {
+        flex: 0 0 520px;
+        max-width: 520px;
+      }
+
+      /* Header 置中與色彩設定 */
+      .header {
+        text-align: center;
+        padding: 16px 20px;
+      }
+      .header h1 {
+        color: #2f855a; /* 主標題綠色 */
+      }
+      .header p {
+        color: #495057; /* 說明文字深灰 */
+      }
+      .header p #currentDate {
+        color: #007bff; /* 日期強調為藍色 */
+        font-weight: 600;
+      }
+
+      /* 頂部工具列：統一控制尺寸與視覺層級 */
+      .top-toolbar .form-control {
+        height: 44px;
+        font-size: 16px;
+        padding: 8px 12px;
+      }
+      /* 車牌輸入稍微放大字級 */
+      .top-toolbar #vehicleNumber.form-control {
+        font-size: 18px;
+      }
+      /* 時間輸入在工具列內改為較小高度，與其他控制一致 */
+      .top-toolbar .time-input-large {
+        height: 44px;
+        width: 72px; /* 維持寬度方便輸入 */
+        font-size: 18px;
+        border-width: 2px;
+      }
+      .top-toolbar .btn {
+        height: 44px;
+        padding: 0 16px;
+        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* 路線按鈕縮小，並與其他控制維持一致高度 */
+      .top-toolbar .route-selector {
+        gap: 8px;
+      }
+      .top-toolbar .route-option {
+        padding: 6px 10px;
+        font-size: 14px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>都會之星車輛座位保留系統</h1>
+        <p>v1.0.0.20 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+      </div>
+
+      <!-- 頂部新增趟次工具列 -->
+      <div
+        class="top-toolbar"
+        style="
+          background: #fff;
+          padding: 12px 16px;
+          border-bottom: 1px solid #e9ecef;
+          display: flex;
+          gap: 12px;
+          align-items: flex-end;
+          flex-wrap: wrap;
+        "
+      >
+        <form
+          id="newTripForm"
+          style="
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            width: 100%;
+          "
+        >
+          <div class="form-group" style="min-width: 220px; flex: 1 1 260px">
+            <label>選擇路線:</label>
+            <div class="route-selector" id="routeSelector"></div>
+            <input type="hidden" id="selectedRoute" name="route" />
+          </div>
+          <div class="form-group" style="min-width: 160px">
+            <label>車輛號碼:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="vehicleNumber"
+              placeholder="請輸入車號"
+              maxlength="10"
+            />
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: column">
+            <label>發車時間:</label>
+            <div class="time-input-group">
+              <input
+                type="text"
+                class="form-control time-input-large"
+                id="hourInput"
+                maxlength="2"
+                placeholder="時"
+                pattern="[0-9]*"
+              />
+              <span class="time-separator">:</span>
+              <input
+                type="text"
+                class="form-control time-input-large"
+                id="minuteInput"
+                maxlength="2"
+                placeholder="分"
+                pattern="[0-9]*"
+              />
+            </div>
+          </div>
+          <div class="form-group" style="min-width: 160px">
+            <label>保留座位數量:</label>
+            <input
+              type="number"
+              class="form-control"
+              id="keepCountInput"
+              placeholder="保留座位數"
+              min="1"
+              max="40"
+              value="4"
+            />
+          </div>
+          <div
+            class="form-group"
+            style="align-self: stretch; display: flex; align-items: flex-end"
+          >
+            <button type="submit" class="btn btn-primary">🚌 建立趟次</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="main-content">
+        <div class="passenger-area">
+          <div class="section-title">👥 待保留乘客</div>
+          <div class="pending-passengers" id="pendingPassengersList">
+            <!-- 動態載入待排筆數的乘客 -->
+          </div>
+        </div>
+
+        <!-- 右側趟次區域 -->
+        <div class="trip-area">
+          <div class="section-title">🚍 趟次管理</div>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>載入中...</p>
+          </div>
+          <div id="tripsContainer">
+            <!-- 動態載入趟次卡片 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編輯趟次模態框 -->
+    <div id="editTripModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>✏️ 編輯趟次</h2>
+        <form id="editTripForm">
+          <input type="hidden" id="editTripId" />
+
+          <div class="form-group">
+            <label>路線:</label>
+            <div class="route-selector" id="editRouteSelector">
+              <!-- 動態載入路線 -->
+            </div>
+            <input type="hidden" id="editSelectedRoute" />
+          </div>
+
+          <div class="form-group">
+            <label>車輛號碼:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="editVehicleNumber"
+              placeholder="請輸入車號"
+              maxlength="10"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>發車時間:</label>
+            <div class="time-input-group">
+              <input
+                type="text"
+                class="form-control time-input-large"
+                id="editHourInput"
+                maxlength="2"
+                placeholder="時"
+                pattern="[0-9]*"
+              />
+              <span class="time-separator">:</span>
+              <input
+                type="text"
+                class="form-control time-input-large"
+                id="editMinuteInput"
+                maxlength="2"
+                placeholder="分"
+                pattern="[0-9]*"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>保留座位數量:</label>
+            <div style="position: relative">
+              <input
+                type="number"
+                class="form-control"
+                id="editKeepCountInput"
+                placeholder="保留座位數"
+                min="1"
+                max="40"
+                value="4"
+              />
+              <small
+                id="seatCountHint"
+                style="display: block; color: #666; margin-top: 4px"
+              >
+                <i class="fa fa-info-circle"></i>
+                座位數不能小於原始座位數或已分配的座位數
+              </small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary">💾 儲存</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEditModal()"
+            >
+              ❌ 取消
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 通知區塊與音效 -->
+    <style>
+      #notification {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: #4caf50;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.2);
+        font-size: 16px;
+        z-index: 9999;
+        display: none;
+        animation: fadeInOut 2.5s;
+      }
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+    <audio id="notifySound" src="/audio/2456.wav" preload="auto"></audio>
+
+    <div id="notification"></div>
+    <!-- 全域浮動訊息容器（避免推擠主版面） -->
+    <div
+      id="globalMessageHost"
+      style="
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      "
+    ></div>
+
+    <script>
+      // 與 keepSeatApp.html 一致的 API 基底網址
+      const BASE_URL = "https://35.221.146.143.nip.io/linehook"
+      // ======= 修正 showLoading 未定義，並加上通知/音效功能 =======
+      function showLoading(show) {
+        var loading = document.getElementById("loading")
+        if (loading) {
+          loading.style.display = show ? "block" : "none"
+        }
+      }
+
+      // 新增視覺提示功能
+      function showVisualNotification(message, type = "success") {
+        // 移除先前的通知
+        const oldNotifications = document.querySelectorAll(
+          ".visual-notification"
+        )
+        oldNotifications.forEach((n) => n.remove())
+
+        const notification = document.createElement("div")
+        notification.className = `visual-notification ${type}`
+        notification.textContent = message
+        document.body.appendChild(notification)
+
+        setTimeout(() => {
+          notification.style.opacity = "0"
+          setTimeout(() => notification.remove(), 500)
+        }, 3000)
+      }
+
+      // 載入音效檔並預先播放（靜音）來避免第一次播放失敗
+      function preloadAudio() {
+        const sound = document.getElementById("notifySound")
+        if (sound) {
+          // 先將音量設為0
+          const originalVolume = sound.volume
+          sound.volume = 0
+          // 播放然後立即暫停，強制瀏覽器載入音效
+          sound
+            .play()
+            .then(() => {
+              sound.pause()
+              sound.currentTime = 0
+              sound.volume = originalVolume
+              console.log("音效已預先載入，第一次播放應該可以正常運作")
+            })
+            .catch((error) => {
+              console.warn("預先載入音效失敗，可能仍需要用戶互動:", error)
+            })
+        }
+      }
+
+      // 頁面加載後立即預先載入音效
+      document.addEventListener("DOMContentLoaded", () => {
+        const AudioContext = window.AudioContext || window.webkitAudioContext
+        if (AudioContext && !window.globalAudioContext) {
+          window.globalAudioContext = new AudioContext()
+        }
+        const audioContext = window.globalAudioContext
+        if (audioContext && audioContext.state === "suspended") {
+          audioContext
+            .resume()
+            .then(() => {
+              console.log("音頻上下文已啟用")
+              preloadAudio() // 預先載入音效
+            })
+            .catch((error) => {
+              console.warn("音頻上下文啟用失敗:", error)
+            })
+        } else {
+          preloadAudio() // 預先載入音效
+        }
+      })
+
+      // 顯示音頻啟用 Modal
+      function showAudioActivationModal() {
+        // 創建 modal HTML
+        const modalHtml = `
+          <div id="audioActivationModal">
+            <div id="audioActivationContent">
+              <h2>啟用通知音效</h2>
+              <p>為了能夠在新預約或取消時播放提示音，請點擊下方按鈕啟用音效系統。</p>
+              <p>這是瀏覽器安全限制，需要您的互動才能啟用音效。</p>
+              <button id="activateAudioBtn">點擊這裡啟用音效</button>
+            </div>
+          </div>
+        `
+
+        // 添加到頁面
+        document.body.insertAdjacentHTML("beforeend", modalHtml)
+
+        // 設置啟用按鈕點擊事件
+        document
+          .getElementById("activateAudioBtn")
+          .addEventListener("click", function () {
+            // 初始化音效系統
+            initializeAudioSystem()
+
+            // 播放測試音效
+            playTestSound()
+
+            // 關閉 modal
+            document.getElementById("audioActivationModal").remove()
+
+            // 顯示成功通知
+            showVisualNotification("音效系統已成功啟用！", "success")
+          })
+      }
+
+      // 初始化音效系統
+      function initializeAudioSystem() {
+        try {
+          // 創建音頻元素（如果不存在）
+          if (!document.getElementById("notifySound")) {
+            const audioElement = document.createElement("audio")
+            audioElement.id = "notifySound"
+            audioElement.src = "/audio/2456.wav" // 設定本地音效來源
+            audioElement.preload = "auto"
+            document.body.appendChild(audioElement)
+          }
+
+          // 創建 AudioContext 並啟用
+          window.audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)()
+          if (window.audioContext.state === "suspended") {
+            window.audioContext.resume()
+          }
+
+          console.log("音效系統初始化成功，狀態: " + window.audioContext.state)
+          return true
+        } catch (error) {
+          console.error("初始化音效系統失敗:", error)
+          return false
+        }
+      }
+
+      // 播放測試音效
+      function playTestSound() {
+        try {
+          const sound = document.getElementById("notifySound")
+          if (sound) {
+            // 重置播放位置
+            sound.currentTime = 0
+
+            // 播放聲音
+            sound
+              .play()
+              .then(() => {
+                console.log("測試音效播放成功")
+              })
+              .catch((error) => {
+                console.error("測試音效播放失敗:", error)
+              })
+          } else {
+            console.error("找不到音效元素")
+          }
+        } catch (error) {
+          console.error("播放測試音效時發生錯誤:", error)
+        }
+      }
+
+      // 全域變數
+      let routes = []
+      let vehicles = []
+      let trips = []
+      let pendingPassengers = []
+
+      // 車輛自動完成相關變數
+      let vehicleData = []
+      let selectedSuggestionIndex = -1
+      let visibleSuggestions = []
+      let lastInputValue = ""
+
+      // 初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        // 先顯示音頻啟用 modal，然後再初始化頁面
+        showAudioActivationModal()
+
+        initializePage()
+        setupEventListeners()
+      })
+
+      function initializePage() {
+        // 顯示當前日期
+        updateCurrentDate()
+
+        showLoading(true)
+        Promise.all([
+          loadRoutes(),
+          loadTrips(),
+          loadPendingPassengers(),
+          loadVehicleData(),
+        ])
+          .then(() => {
+            showLoading(false)
+            // 統計區已移除
+          })
+          .catch((error) => {
+            showError("載入資料失敗: " + error.message)
+            showLoading(false)
+          })
+      }
+
+      function updateCurrentDate() {
+        const today = new Date()
+        const dateString = today.toLocaleDateString("zh-TW", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          weekday: "short",
+        })
+        document.getElementById("currentDate").textContent = dateString
+      }
+
+      function setupEventListeners() {
+        // 新增趟次表單
+        document
+          .getElementById("newTripForm")
+          .addEventListener("submit", createTrip)
+
+        // 編輯趟次表單
+        document
+          .getElementById("editTripForm")
+          .addEventListener("submit", updateTrip)
+
+        // 時間輸入處理
+        setupTimeInputs()
+
+        // 點擊外部隱藏車輛建議
+        document.addEventListener("click", function (e) {
+          const vehicleInput = document.getElementById("vehicleNumber")
+          const editVehicleInput = document.getElementById("editVehicleNumber")
+          const suggestions = document.querySelector(".vehicle-suggestions")
+
+          if (
+            suggestions &&
+            !vehicleInput.contains(e.target) &&
+            !editVehicleInput.contains(e.target) &&
+            !suggestions.contains(e.target)
+          ) {
+            hideVehicleSuggestions()
+          }
+        })
+
+        // 模態框關閉
+        document
+          .querySelector(".close")
+          .addEventListener("click", closeEditModal)
+        // 移除點擊外部關閉功能，避免意外關閉編輯對話框
+        // window.addEventListener("click", function (event) {
+        //   const modal = document.getElementById("editTripModal")
+        //   if (event.target === modal) {
+        //     closeEditModal()
+        //   }
+        // })
+      }
+
+      // 時間輸入設置
+      function setupTimeInputs() {
+        const hourInput = document.getElementById("hourInput")
+        const minuteInput = document.getElementById("minuteInput")
+        const vehicleInput = document.getElementById("vehicleNumber")
+
+        // 小時輸入處理
+        hourInput.addEventListener("input", function (e) {
+          let value = e.target.value.replace(/\D/g, "")
+          if (value.length > 2) value = value.slice(0, 2)
+          if (value !== "" && parseInt(value) > 23) value = "23"
+
+          // 補零
+          if (value.length === 1 && parseInt(value) > 2) {
+            value = "0" + value
+          }
+          if (value.length === 2) {
+            value = value.padStart(2, "0")
+            minuteInput.focus()
+          }
+
+          e.target.value = value
+        })
+
+        // 分鐘輸入處理
+        minuteInput.addEventListener("input", function (e) {
+          let value = e.target.value.replace(/\D/g, "")
+          if (value.length > 2) value = value.slice(0, 2)
+          if (value !== "" && parseInt(value) > 59) value = "59"
+
+          // 補零
+          if (value.length === 1 && parseInt(value) > 5) {
+            value = "0" + value
+          }
+          if (value.length === 2) {
+            value = value.padStart(2, "0")
+            // 跳到保留座位數量輸入框
+            document.getElementById("keepCountInput").focus()
+          }
+
+          e.target.value = value
+        })
+
+        // 新增趟次的車號自動完成功能
+        setupVehicleAutocomplete(vehicleInput, hourInput)
+
+        // Enter 鍵處理
+        hourInput.addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            minuteInput.focus()
+          }
+        })
+
+        minuteInput.addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            document.getElementById("keepCountInput").focus()
+          }
+        })
+
+        // 時間輸入的鍵盤導航功能
+        hourInput.addEventListener("keydown", function (e) {
+          const currentPos = e.target.selectionStart
+          const currentValue = e.target.value
+
+          if (e.key === "ArrowRight") {
+            // 右箭頭：如果在輸入框最右邊，跳到分鐘輸入
+            if (currentPos === currentValue.length) {
+              e.preventDefault()
+              minuteInput.focus()
+              minuteInput.setSelectionRange(0, 0)
+            }
+          } else if (e.key === "Backspace") {
+            // 倒退鍵：如果在輸入框最左邊且為空，跳到車輛輸入
+            if (currentPos === 0 && currentValue === "") {
+              e.preventDefault()
+              vehicleInput.focus()
+              vehicleInput.setSelectionRange(
+                vehicleInput.value.length,
+                vehicleInput.value.length
+              )
+            }
+          }
+        })
+
+        minuteInput.addEventListener("keydown", function (e) {
+          const currentPos = e.target.selectionStart
+          const currentValue = e.target.value
+
+          if (e.key === "ArrowLeft") {
+            // 左箭頭：如果在輸入框最左邊，跳到小時輸入
+            if (currentPos === 0) {
+              e.preventDefault()
+              hourInput.focus()
+              hourInput.setSelectionRange(
+                hourInput.value.length,
+                hourInput.value.length
+              )
+            }
+          } else if (e.key === "Backspace") {
+            // 倒退鍵：如果在輸入框最左邊且為空，跳到小時輸入
+            if (currentPos === 0 && currentValue === "") {
+              e.preventDefault()
+              hourInput.focus()
+              hourInput.setSelectionRange(
+                hourInput.value.length,
+                hourInput.value.length
+              )
+            }
+          }
+        })
+
+        // 修改趟次的時間輸入處理
+        const editHourInput = document.getElementById("editHourInput")
+        const editMinuteInput = document.getElementById("editMinuteInput")
+        const editVehicleInput = document.getElementById("editVehicleNumber")
+
+        // 修改趟次的小時輸入處理
+        editHourInput.addEventListener("input", function (e) {
+          let value = e.target.value.replace(/\D/g, "")
+          if (value.length > 2) value = value.slice(0, 2)
+          if (value !== "" && parseInt(value) > 23) value = "23"
+
+          // 補零
+          if (value.length === 1 && parseInt(value) > 2) {
+            value = "0" + value
+          }
+          if (value.length === 2) {
+            value = value.padStart(2, "0")
+            editMinuteInput.focus()
+          }
+
+          e.target.value = value
+        })
+
+        // 修改趟次的分鐘輸入處理
+        editMinuteInput.addEventListener("input", function (e) {
+          let value = e.target.value.replace(/\D/g, "")
+          if (value.length > 2) value = value.slice(0, 2)
+          if (value !== "" && parseInt(value) > 59) value = "59"
+
+          // 補零
+          if (value.length === 1 && parseInt(value) > 5) {
+            value = "0" + value
+          }
+          if (value.length === 2) {
+            value = value.padStart(2, "0")
+          }
+
+          e.target.value = value
+        })
+
+        // 修改趟次的時間導航功能
+        editHourInput.addEventListener("keydown", function (e) {
+          const currentPos = e.target.selectionStart
+          const currentValue = e.target.value
+
+          if (e.key === "ArrowRight") {
+            if (currentPos === currentValue.length) {
+              e.preventDefault()
+              editMinuteInput.focus()
+              editMinuteInput.setSelectionRange(0, 0)
+            }
+          } else if (e.key === "Backspace") {
+            if (currentPos === 0 && currentValue === "") {
+              e.preventDefault()
+              editVehicleInput.focus()
+              editVehicleInput.setSelectionRange(
+                editVehicleInput.value.length,
+                editVehicleInput.value.length
+              )
+            }
+          }
+        })
+
+        editMinuteInput.addEventListener("keydown", function (e) {
+          const currentPos = e.target.selectionStart
+          const currentValue = e.target.value
+
+          if (e.key === "ArrowLeft") {
+            if (currentPos === 0) {
+              e.preventDefault()
+              editHourInput.focus()
+              editHourInput.setSelectionRange(
+                editHourInput.value.length,
+                editHourInput.value.length
+              )
+            }
+          } else if (e.key === "Backspace") {
+            if (currentPos === 0 && currentValue === "") {
+              e.preventDefault()
+              editHourInput.focus()
+              editHourInput.setSelectionRange(
+                editHourInput.value.length,
+                editHourInput.value.length
+              )
+            }
+          }
+        })
+
+        // 修改趟次的車號自動完成功能
+        setupVehicleAutocomplete(editVehicleInput, editHourInput)
+      }
+
+      // 設置車號自動完成功能（通用函數）
+      function setupVehicleAutocomplete(inputElement, nextFocusElement) {
+        inputElement.addEventListener("input", function (e) {
+          const value = e.target.value.toUpperCase()
+          e.target.value = value
+
+          // 只有在實際內容變化時才重置選擇索引
+          if (value !== lastInputValue) {
+            selectedSuggestionIndex = -1
+            lastInputValue = value
+            showVehicleSuggestions(value, inputElement)
+          }
+        })
+
+        inputElement.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowDown") {
+            e.preventDefault()
+            const suggestions = document.querySelectorAll(".suggestion-item")
+
+            if (suggestions.length > 0) {
+              if (selectedSuggestionIndex === -1) {
+                selectedSuggestionIndex = 0
+              } else {
+                selectedSuggestionIndex = Math.min(
+                  selectedSuggestionIndex + 1,
+                  suggestions.length - 1
+                )
+              }
+              updateSuggestionSelection(suggestions)
+            }
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault()
+            const suggestions = document.querySelectorAll(".suggestion-item")
+
+            if (suggestions.length > 0) {
+              if (selectedSuggestionIndex === 0) {
+                selectedSuggestionIndex = -1
+                updateSuggestionSelection(suggestions)
+                inputElement.focus()
+              } else if (selectedSuggestionIndex > 0) {
+                selectedSuggestionIndex = selectedSuggestionIndex - 1
+                updateSuggestionSelection(suggestions)
+              }
+            }
+          } else if (e.key === "Enter") {
+            e.preventDefault()
+            const suggestions = document.querySelectorAll(".suggestion-item")
+            if (selectedSuggestionIndex >= 0 && suggestions.length > 0) {
+              const selectedVehicle =
+                visibleSuggestions[selectedSuggestionIndex]
+              selectVehicle(
+                selectedVehicle.plateNumber,
+                inputElement,
+                nextFocusElement
+              )
+            } else {
+              hideVehicleSuggestions()
+              nextFocusElement.focus()
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault()
+            hideVehicleSuggestions()
+            selectedSuggestionIndex = -1
+          }
+        })
+      }
+
+      // 車輛建議功能
+      function showVehicleSuggestions(inputValue, targetInput = null) {
+        if (!inputValue || inputValue.length < 1) {
+          hideVehicleSuggestions()
+          return
+        }
+
+        const matches = vehicleData.filter((vehicle) =>
+          vehicle.plateNumber.toUpperCase().includes(inputValue)
+        )
+
+        if (matches.length === 0) {
+          hideVehicleSuggestions()
+          return
+        }
+
+        visibleSuggestions = matches.slice(0, 5)
+        let suggestionHtml = '<div class="vehicle-suggestions">'
+        visibleSuggestions.forEach((vehicle, index) => {
+          const inputId = targetInput ? targetInput.id : "vehicleNumber"
+          suggestionHtml += `
+            <div class="suggestion-item" data-index="${index}" onclick="selectVehicleFromSuggestion('${vehicle.plateNumber}', '${inputId}')">
+              ${vehicle.plateNumber} - ${vehicle.operatorName}
+            </div>
+          `
+        })
+        suggestionHtml += "</div>"
+
+        // 移除現有建議
+        hideVehicleSuggestions()
+
+        // 添加新建議
+        const vehicleInput =
+          targetInput || document.getElementById("vehicleNumber")
+        vehicleInput.insertAdjacentHTML("afterend", suggestionHtml)
+      }
+
+      // 更新建議選擇的視覺效果
+      function updateSuggestionSelection(suggestions) {
+        // 移除所有選中樣式
+        suggestions.forEach((item) => item.classList.remove("selected"))
+
+        // 添加選中樣式到目前項目
+        if (
+          selectedSuggestionIndex >= 0 &&
+          selectedSuggestionIndex < suggestions.length
+        ) {
+          suggestions[selectedSuggestionIndex].classList.add("selected")
+        }
+      }
+
+      function hideVehicleSuggestions() {
+        const suggestions = document.querySelector(".vehicle-suggestions")
+        if (suggestions) {
+          suggestions.remove()
+        }
+      }
+
+      function selectVehicle(
+        plateNumber,
+        inputElement = null,
+        nextFocusElement = null
+      ) {
+        const targetInput =
+          inputElement || document.getElementById("vehicleNumber")
+        const nextElement =
+          nextFocusElement || document.getElementById("hourInput")
+
+        targetInput.value = plateNumber
+        hideVehicleSuggestions()
+        selectedSuggestionIndex = -1
+        nextElement.focus()
+      }
+
+      function selectVehicleFromSuggestion(plateNumber, inputId) {
+        const inputElement = document.getElementById(inputId)
+        let nextElement
+
+        if (inputId === "editVehicleNumber") {
+          nextElement = document.getElementById("editHourInput")
+        } else {
+          nextElement = document.getElementById("hourInput")
+        }
+
+        selectVehicle(plateNumber, inputElement, nextElement)
+      }
+
+      // 載入車輛資料
+      async function loadVehicleData() {
+        try {
+          const response = await fetch(
+            `${BASE_URL}/BusVehicle/for-trips?operatorName=大都會客運`
+          )
+          const result = await response.json()
+          if (result.success && result.data) {
+            vehicleData = result.data
+          } else {
+            console.error("車輛資料格式錯誤:", result)
+            vehicleData = []
+          }
+        } catch (error) {
+          console.error("載入車輛資料失敗:", error)
+          vehicleData = []
+        }
+      }
+
+      // API 調用函數
+      async function loadRoutes() {
+        try {
+          const response = await fetch(`${BASE_URL}/KeepStop`)
+          const stops = await response.json()
+
+          // 按 SubRouteId 分組，只取 OpenKeep 為 true 的
+          const routeMap = new Map()
+          stops
+            .filter((stop) => stop.openKeep)
+            .forEach((stop) => {
+              if (!routeMap.has(stop.subRouteId)) {
+                routeMap.set(stop.subRouteId, {
+                  subRouteId: stop.subRouteId,
+                  routeName: stop.subRouteId, // 使用 SubRouteId 作為路線名稱
+                  operatorName: stop.operatorName || "未知營運商",
+                })
+              }
+            })
+
+          routes = Array.from(routeMap.values())
+          console.log(
+            "載入路線數量:",
+            routes.length,
+            "路線列表:",
+            routes.map((r) => r.subRouteId)
+          )
+          renderRouteSelector()
+        } catch (error) {
+          throw new Error("載入路線失敗")
+        }
+      }
+
+      async function loadVehicles() {
+        try {
+          const response = await fetch(`${BASE_URL}/BusVehicle/for-trips`)
+          const result = await response.json()
+
+          if (result.success) {
+            vehicles = result.data
+            renderVehicleSelector()
+            updateOperatorFilter()
+          } else {
+            console.error("載入車輛失敗:", result.message)
+            vehicles = []
+          }
+        } catch (error) {
+          console.error("載入車輛失敗:", error)
+          vehicles = []
+          throw new Error("載入車輛失敗")
+        }
+      }
+
+      async function loadTrips() {
+        try {
+          console.log("載入當日趟次資料...")
+          const response = await fetch(`${BASE_URL}/Trip`)
+          const result = await response.json()
+
+          if (result.success) {
+            trips = result.data
+            console.log(`載入成功: ${trips.length} 個當日趟次`)
+            if (result.data.length !== trips.length) {
+              console.log(
+                `前端過濾: 原始 ${result.data.length} 筆 → 當日 ${trips.length} 筆`
+              )
+            }
+            renderTripsSync()
+          } else {
+            console.error("載入趟次失敗:", result.message)
+            trips = []
+          }
+        } catch (error) {
+          console.error("載入趟次失敗:", error)
+          trips = []
+          throw new Error("載入趟次失敗")
+        }
+      }
+
+      // 在 loadPendingPassengers 成功後偵測新預約
+      async function loadPendingPassengers() {
+        try {
+          console.log("載入當日待保留乘客...")
+          const response = await fetch(`${BASE_URL}/Trip/pending-passengers`)
+          const result = await response.json()
+
+          if (result.success) {
+            // 前端額外過濾當日資料（雙重保護）
+            const todayPassengers = result.data
+
+            // 檢查是否有新預約進來
+            if (
+              Array.isArray(pendingPassengers) &&
+              todayPassengers.length > pendingPassengers.length
+            ) {
+              showNotification("有新的預約進入待排！")
+            }
+
+            pendingPassengers = todayPassengers
+            console.log(
+              `載入成功: ${pendingPassengers.length} 位當日待保留乘客`
+            )
+            if (result.data.length !== pendingPassengers.length) {
+              console.log(
+                `前端過濾: 原始 ${result.data.length} 筆 → 當日 ${pendingPassengers.length} 筆`
+              )
+            }
+            if (result.filterDate) {
+              console.log(`後端篩選日期: ${result.filterDate}`)
+            }
+            if (pendingPassengers.length > 0) {
+              console.log(
+                "乘客下車站牌範例:",
+                pendingPassengers
+                  .slice(0, 3)
+                  .map((p) => `${p.name}: ${p.keepStop} → ${p.destStop}`)
+              )
+            }
+            await renderPendingPassengers()
+            // 統計區已移除
+          } else {
+            console.error("載入待分配乘客失敗:", result.message)
+          }
+        } catch (error) {
+          console.error("載入等待乘客失敗:", error)
+          throw new Error("載入等待乘客失敗")
+        }
+      }
+
+      // 強制每次新增/取消預約後自動重載待排資料與畫面
+      async function reloadPendingPassengersAndNotify() {
+        const prevCount = Array.isArray(pendingPassengers)
+          ? pendingPassengers.length
+          : 0
+        await loadPendingPassengers()
+        // 畫面自動整理
+        await renderPendingPassengers()
+        updateStatistics()
+        // 新增通知
+        if (
+          Array.isArray(pendingPassengers) &&
+          pendingPassengers.length > prevCount
+        ) {
+          showNotification("有新的預約進入待排！")
+        }
+        if (
+          Array.isArray(pendingPassengers) &&
+          pendingPassengers.length < prevCount
+        ) {
+          showNotification(
+            "有乘客取消預約，已自動移除！--reloadPendingPassengersAndNotify"
+          )
+        }
+      }
+
+      // 渲染函數
+      function renderRouteSelector() {
+        const selector = document.getElementById("routeSelector")
+        const editSelector = document.getElementById("editRouteSelector")
+
+        const routeHtml = routes
+          .map(
+            (route) => `
+                <div class="route-option" data-route="${route.subRouteId}"
+                     onclick="selectRoute('${route.subRouteId}', '${
+              route.routeName
+            }')">
+                    ${route.routeName}
+                    <br><small>${route.operatorName.substring(0, 3)}</small>
+                </div>
+            `
+          )
+          .join("")
+
+        selector.innerHTML = routeHtml
+        editSelector.innerHTML = routeHtml.replace(
+          /selectRoute/g,
+          "selectEditRoute"
+        )
+      }
+
+      function renderVehicleSelector() {
+        const selector = document.getElementById("vehicleSelector")
+        const editSelector = document.getElementById("editVehicleSelector")
+
+        const vehicleHtml = vehicles
+          .map(
+            (vehicle) => `
+                <div class="vehicle-option" data-vehicle="${vehicle.plateNumber}"
+                     data-operator="${vehicle.operatorName}"
+                     onclick="selectVehicleFromList('${vehicle.plateNumber}')">
+                    <strong>${vehicle.plateNumber}</strong>
+                    <br><small>${vehicle.operatorName}</small>
+                </div>
+            `
+          )
+          .join("")
+
+        selector.innerHTML = vehicleHtml
+        editSelector.innerHTML = vehicleHtml.replace(
+          /selectVehicleFromList/g,
+          "selectEditVehicle"
+        )
+      }
+
+      // 包裝 renderTrips 的同步調用函數
+      function renderTripsSync() {
+        renderTrips().catch((error) => {
+          console.error("渲染趟次時發生錯誤:", error)
+          showError("渲染趟次時發生錯誤")
+        })
+      }
+
+      async function renderTrips() {
+        console.log("Rendering trips...")
+        const container = document.getElementById("tripsContainer")
+        const prevScrollTop = container ? container.scrollTop : 0
+        if (container) container.classList.add("no-anim")
+
+        // 保存展開的趟次 ID
+        const expandedTrips = Array.from(
+          document.querySelectorAll(".trip-collapsible.expanded")
+        ).map((el) => el.id.replace("details-", ""))
+
+        if (trips.length === 0) {
+          container.innerHTML =
+            '<p style="text-align: center; color: #666; padding: 40px;">尚未建立任何趟次</p>'
+          return
+        }
+
+        // 按發車時間排序趟次
+        const sortedTrips = [...trips].sort((a, b) => {
+          const timeA = a.departureTime.replace(":", "")
+          const timeB = b.departureTime.replace(":", "")
+          return timeA.localeCompare(timeB)
+        })
+
+        const tripsHtml = sortedTrips
+          .map((trip) => {
+            const currentSeats = getTripPassengerCount(trip.tripId)
+            console.log(
+              `Trip ID: ${trip.tripId}, Current Seats: ${currentSeats}`
+            )
+            const seatStatus =
+              currentSeats >= trip.keepCount
+                ? "full"
+                : currentSeats > 0
+                ? "pending"
+                : ""
+
+            return `
+                <div class="trip-card ${trip.status} ${getRouteColorClass(
+              trip.route
+            )}" data-trip-id="${trip.tripId}">
+                    <button class="toggle-btn" onclick="toggleTripDetails('${
+                      trip.tripId
+                    }')">🔽</button>
+                    
+                    <div class="trip-header" onclick="toggleTripDetails('${
+                      trip.tripId
+                    }')">
+                        <div style="display: flex; align-items: center; flex: 1;">
+
+                            <div class="trip-basic-info">
+                                <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <span class="route-badge ${getRouteColorClass(
+                                      trip.route
+                                    )}" style="font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; color: white;">${
+              trip.route
+            }</span>
+                                    <span style="font-size: 14px; color: #666;">｜</span>
+                                    <span style="font-size: 16px; font-weight: bold; color: #333;">${
+                                      trip.vehicleNumber
+                                    }</span>
+                                </div>
+                                <div style="display: flex; gap: 15px; font-size: 13px; color: #666; margin-top: 2px;">
+                                    <span>🕐 ${trip.departureTime}</span>
+                                    <span style="color: ${
+                                      trip.status === "ready"
+                                        ? "#28a745"
+                                        : trip.status === "notified"
+                                        ? "#007bff"
+                                        : trip.status === "completed"
+                                        ? "#6c757d"
+                                        : "#ffc107"
+                                    }">
+                                        ${
+                                          trip.status === "ready"
+                                            ? "準備發車"
+                                            : trip.status === "notified"
+                                            ? "已通知乘客"
+                                            : trip.status === "completed"
+                                            ? "已發車"
+                                            : "分配保留位中…"
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="trip-quick-stats">
+                            <div class="seat-indicator ${seatStatus}">
+                                🪑 ${currentSeats}/${trip.keepCount}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="trip-collapsible" id="details-${trip.tripId}">
+                        <div class="passenger-area">
+                            <h4>已保留乘客:</h4>
+                            <div id="passengers-${trip.tripId}">
+                                <p style="color: #999; font-style: italic;">載入中...</p>
+                            </div>
+                        </div>
+
+                        <div class="trip-controls">
+                        ${
+                          trip.status !== "completed"
+                            ? `
+                        <button class="btn btn-info" onclick="autoAssignTrip('${trip.tripId}')">
+                            🤖 自動排班
+                        </button>
+                        <button class="btn btn-warning" onclick="editTrip('${trip.tripId}')">
+                            ✏️ 編輯
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteTrip('${trip.tripId}')">
+                            🗑️ 刪除
+                        </button>
+                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}')">
+                            🖨️ 列印
+                        </button>
+                        <button class="btn btn-primary" onclick="notifyPassengers('${trip.tripId}')">
+                            📱 通知
+                        </button>
+                        <button class="btn btn-secondary" onclick="markTripCompleted('${trip.tripId}')">
+                            ✅ 已發車
+                        </button>`
+                            : `
+                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}', window.enableBrowserFallback)">
+                            🖨️ 列印
+                        </button>
+                        <button class="btn btn-secondary" disabled title="此趟已發車">
+                            ✅ 已發車
+                        </button>`
+                        }
+                        </div>
+                    </div>
+                </div>
+            `
+          })
+          .join("")
+
+        // 添加展開摺疊按鈕和趟次
+        const finalHtml = `
+          <div class="view-toggle">
+            <button class="btn btn-info" onclick="expandAllTrips()">
+              📖 全部展開
+            </button>
+            <button class="btn btn-info" onclick="collapseAllTrips()">
+              📕 全部摺疊
+            </button>
+          </div>
+          ${tripsHtml}
+        `
+
+        container.innerHTML = finalHtml
+
+        // 恢復展開的趟次
+        expandedTrips.forEach((tripId) => {
+          const details = document.getElementById(`details-${tripId}`)
+          if (details) {
+            details.classList.add("expanded")
+          }
+        })
+
+        // 異步加載所有趟次的乘客資料
+        const updatePromises = sortedTrips.map(async (trip) => {
+          console.log(
+            `開始處理趟次 ${trip.tripId} (${trip.vehicleNumber}, 路線: ${trip.route})`
+          )
+
+          try {
+            // 更新乘客列表
+            const passengersHtml = await renderTripPassengers(trip.tripId)
+            const passengersContainer = document.getElementById(
+              `passengers-${trip.tripId}`
+            )
+            if (passengersContainer) {
+              passengersContainer.innerHTML = passengersHtml
+              console.log(`趟次 ${trip.tripId} 的乘客列表已更新`)
+            } else {
+              console.warn(`找不到趟次 ${trip.tripId} 的乘客容器元素`)
+            }
+          } catch (error) {
+            console.error(`處理趟次 ${trip.tripId} 時發生錯誤:`, error)
+          }
+        })
+
+        // 等待所有更新完成
+        await Promise.all(updatePromises)
+        console.log("所有趟次乘客資料更新完成")
+
+        // 重新初始化拖拽功能
+        setTimeout(() => {
+          makeDraggable()
+        }, 100)
+
+        // 還原滾動位置並解除 no-anim
+        if (container) {
+          container.scrollTop = prevScrollTop
+          requestAnimationFrame(() => container.classList.remove("no-anim"))
+        }
+      }
+
+      async function renderPendingPassengers() {
+        const container = document.getElementById("pendingPassengersList")
+
+        // 只顯示未分配的乘客（tripId 為 null 或 undefined），並以請求時間先進先出排序（早→晚）
+        const unassignedPassengers = pendingPassengers
+          .filter((passenger) => !passenger.tripId)
+          .sort((a, b) => {
+            const ta = new Date(a.requestDateTime).getTime() || 0
+            const tb = new Date(b.requestDateTime).getTime() || 0
+            return ta - tb
+          })
+
+        if (unassignedPassengers.length === 0) {
+          container.innerHTML =
+            '<p style="text-align: center; color: #666;">暫無待保留乘客</p>'
+          return
+        }
+
+        // 使用 for 迴圈逐個處理乘客的路線匹配，避免並發競爭
+        const passengersWithRoutes = []
+
+        for (const passenger of unassignedPassengers) {
+          // 除錯資訊
+          console.log(
+            "處理乘客:",
+            passenger.name,
+            "下車站牌:",
+            passenger.destStop,
+            "預設路線:",
+            passenger.includeRoutes
+          )
+
+          // 使用乘客資料中預先計算的可用路線（IncludeRoutes 欄位）
+          let relatedRoutes = []
+
+          if (passenger.includeRoutes && passenger.includeRoutes.trim()) {
+            // 解析 CSV 格式的路線清單
+            const availableRouteIds = passenger.includeRoutes
+              .split(",")
+              .map((id) => id.trim())
+              .filter((id) => id)
+
+            // 🔧 修復：直接使用 IncludeRoutes 中的路線ID，不依賴前端 routes 過濾
+            // 因為 IncludeRoutes 來自下車站牌(OnlyDest=true)，前端 routes 來自上車站牌(OpenKeep=true)
+            relatedRoutes = availableRouteIds.map((routeId) => ({
+              subRouteId: routeId,
+              routeName: routeId,
+            }))
+
+            console.log(
+              `乘客 ${passenger.name} 使用預設路線:`,
+              availableRouteIds,
+              "直接顯示:",
+              relatedRoutes.map((r) => r.subRouteId)
+            )
+          } else {
+            console.log(`乘客 ${passenger.name} 沒有預設路線資訊，將顯示無路線`)
+          }
+
+          // 顯示匹配的路線徽章
+          let routeInfo
+          if (relatedRoutes.length > 0) {
+            routeInfo = relatedRoutes
+              .map(
+                (r) =>
+                  `<span class="route-badge route-${r.subRouteId}">${r.subRouteId}</span>`
+              )
+              .join(" ")
+          } else {
+            // 如果真的完全沒有路線，顯示錯誤訊息
+            routeInfo = `<span class="route-badge route-default">無可用路線</span>`
+          }
+
+          const requestTime = extractTimeFromDateTime(passenger.requestDateTime)
+          // 通知時間（最後通知時間），以 HH:mm:ss 顯示；若無則顯示未通知
+          const notifiedTime = passenger.responseDateTime
+            ? extractHmsFromDateTime(passenger.responseDateTime)
+            : null
+          const notifyBadge = passenger.responseDateTime
+            ? `<span style="background:#e8f5e9;border:1px solid #c3e6cb;color:#1e7e34;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;">📣 已通知 ${notifiedTime}</span>`
+            : `<span style="background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;">未通知</span>`
+
+          const passengerHtml = `
+              <div class="passenger-card" data-passenger-id="${
+                passenger.id
+              }" draggable="true">
+                  <div class="passenger-header">
+                      <div class="passenger-name">${
+                        passenger.name
+                      } <span style="color: #007bff; font-weight: bold;">⏰ ${requestTime}</span></div>
+                      <div class="passenger-seats">${
+                        passenger.seatCount || 1
+                      }位</div>
+                  </div>
+                      <div class="passenger-notify" style="margin:4px 0;">${notifyBadge}</div>
+                  <div class="passenger-route">
+                      📍 ${passenger.keepStop} → ${passenger.destStop}
+                      <br><small>🚌 可搭路線: ${routeInfo}</small>
+                  </div>
+                  <div class="passenger-contact" style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ffc107;">
+                      📞 <strong style="color: #856404; font-size: 14px;">${
+                        passenger.phone || "無電話資料"
+                      }</strong>
+                  </div>
+                  <div class="passenger-actions">
+                      <button class="btn btn-primary btn-xs" onclick="showManualAssignModal('${
+                        passenger.id
+                      }')">
+                          手動排班
+                      </button>
+                      <button class="btn btn-info btn-xs" onclick="autoAssignSinglePassenger('${
+                        passenger.id
+                      }')">
+                          自動排班
+                      </button>
+                  </div>
+              </div>
+            `
+
+          passengersWithRoutes.push(passengerHtml)
+        }
+
+        // 以雙欄呈現，視覺上採用先右上下（由於為串接字串，欄位順序由 CSS 決定排列流）
+        const passengersHtml = passengersWithRoutes.join("")
+
+        // 使用 CSS Grid 兩欄，讓列表更密集可視
+        container.style.display = "grid"
+        container.style.gridTemplateColumns = "1fr 1fr"
+        container.style.gap = "8px"
+        container.innerHTML = passengersHtml
+
+        // 重新初始化拖拽功能
+        setTimeout(() => {
+          makeDraggable()
+        }, 100)
+      }
+
+      // 從API獲取趟次乘客資料
+      async function loadTripPassengers(tripId) {
+        try {
+          console.log(
+            `loadTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`
+          )
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+
+          if (!response.ok) {
+            console.error(`loadTripPassengers: HTTP錯誤 ${response.status}`)
+            return null
+          }
+
+          const result = await response.json()
+          console.log(`loadTripPassengers: 趟次 ${tripId} 的API回應:`, result)
+
+          if (result.success) {
+            return result.data
+          } else {
+            console.warn(`loadTripPassengers: 趟次 ${tripId} 獲取失敗`)
+            throw new Error(result.message || "載入趟次乘客失敗")
+          }
+        } catch (error) {
+          console.error(
+            `loadTripPassengers: 載入趟次 ${tripId} 乘客出錯:`,
+            error
+          )
+          return null
+        }
+      }
+
+      async function renderTripPassengers(tripId) {
+        try {
+          console.log(
+            `renderTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`
+          )
+          const tripData = await loadTripPassengers(tripId)
+
+          // 同時支援大寫和小寫開頭的屬性名稱
+          if (!tripData || !tripData.passengers) {
+            console.warn(`renderTripPassengers: 趟次 ${tripId} 無有效乘客資料`)
+            console.log(`tripData:`, tripData)
+            return '<p style="color: #999; font-style: italic;">尚無已保留乘客</p>'
+          }
+
+          const assignedPassengers = tripData.passengers
+          console.log(
+            `renderTripPassengers: 趟次 ${tripId} 有 ${assignedPassengers.length} 位乘客`
+          )
+
+          // 先計算總座位數（含 seatCount），並同步到 trips 陣列，更新座位指標
+          const totalSeatsNow = assignedPassengers.reduce(
+            (sum, p) => sum + (p.seatCount || p.SeatCount || 1),
+            0
+          )
+          const tripRefForCount = trips.find((t) => t.tripId === tripId)
+          if (tripRefForCount) {
+            tripRefForCount.assignedSeats = totalSeatsNow
+          }
+          updateTripSeatDisplay(tripId, totalSeatsNow)
+
+          if (assignedPassengers.length === 0) {
+            console.log(`renderTripPassengers: 趟次 ${tripId} 沒有乘客`)
+            return '<p style="color: #999; font-style: italic;">尚無已保留乘客</p>'
+          }
+
+          // 按預約時間排序 (早到晚)
+          const sortedPassengers = [...assignedPassengers].sort((a, b) => {
+            const timeA = extractTimeFromDateTime(a.requestDateTime)
+            const timeB = extractTimeFromDateTime(b.requestDateTime)
+            return timeA.localeCompare(timeB)
+          })
+
+          // 創建2列佈局的容器
+          let passengersHtml =
+            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 8px;">'
+
+          sortedPassengers.forEach((passenger) => {
+            const keepTime = extractTimeFromDateTime(passenger.requestDateTime)
+            const notifiedTime = passenger.responseDateTime
+              ? extractHmsFromDateTime(passenger.responseDateTime)
+              : null
+            const notifyBadge = passenger.responseDateTime
+              ? `<span style="background:#e8f5e9;border:1px solid #c3e6cb;color:#1e7e34;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">📣 已通知 ${notifiedTime}</span>`
+              : `<span style="background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">未通知</span>`
+            passengersHtml += `
+              <div class="assigned-passenger-compact" style="
+                background: #e8f5e8;
+                border: 1px solid #c3e6cb;
+                border-radius: 5px;
+                padding: 6px 8px;
+                font-size: 12px;
+                position: relative;
+              ">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
+                  <strong style="font-size: 13px;">${passenger.name}</strong>
+                  <span style="color: #007bff; font-weight: bold; font-size: 13px;">⏰ ${keepTime}</span>
+                </div>
+                <div style="font-size: 13px; line-height: 1.3;">
+                  <div style="margin: 0 0 4px 0;">${notifyBadge}</div>
+                  <div style="background: #fff3cd; padding: 1px 4px; border-radius: 2px; border-left: 2px solid #ffc107; display: inline-block; margin-bottom: 2px;">
+                    📞 <strong style="color: #856404;">${
+                      passenger.phone || "無電話"
+                    }</strong>
+                  </div>
+                  <div style="color: #666; margin-top: 2px;">
+                    📍 ${passenger.keepStop} → ${passenger.destStop}
+                  </div>
+                  <div style="margin-top: 2px;">
+                    🪑 <span style="font-weight: bold; color: #007bff;">${
+                      passenger.seatCount || 1
+                    }位</span>
+                  </div>
+                </div>
+                <button
+                  class="btn btn-danger"
+                  onclick="removePassengerFromTrip('${
+                    passenger.id
+                  }', '${tripId}', ${
+              passenger.seatCount || passenger.SeatCount || 1
+            })"
+                  style="
+                    position: absolute;
+                    bottom: 3px;
+                    right: 3px;
+                    font-size: 10px;
+                    padding: 2px 4px;
+                    line-height: 1;
+                    border-radius: 3px;
+                    background: #dc3545;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    z-index: 1;
+                  "
+                >
+                  ❌
+                </button>
+              </div>
+            `
+          })
+
+          passengersHtml += "</div>"
+          console.log(`renderTripPassengers: 趟次 ${tripId} 乘客渲染完成`)
+          return passengersHtml
+        } catch (error) {
+          console.error(
+            `renderTripPassengers: 載入趟次 ${tripId} 乘客資料失敗:`,
+            error
+          )
+          return '<p style="color: #999; font-style: italic;">載入乘客資料失敗</p>'
+        }
+
+        // 創建2列佈局的容器
+        let passengersHtml =
+          '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 8px;">'
+
+        sortedPassengers.forEach((passenger) => {
+          const keepTime = extractTimeFromDateTime(passenger.requestDateTime)
+          passengersHtml += `
+            <div class="assigned-passenger-compact" style="
+              background: #e8f5e8;
+              border: 1px solid #c3e6cb;
+              border-radius: 5px;
+              padding: 6px 8px;
+              font-size: 13px;
+              position: relative;
+            ">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
+                <strong style="font-size: 13px;">${passenger.name}</strong>
+                <span style="color: #007bff; font-weight: bold; font-size: 13px;">⏰ ${keepTime}</span>
+              </div>
+              <div style="font-size: 13px; line-height: 1.3;">
+                <div style="background: #fff3cd; padding: 1px 4px; border-radius: 2px; border-left: 2px solid #ffc107; display: inline-block; margin-bottom: 2px;">
+                  📞 <strong style="color: #856404;">${
+                    passenger.phone || "無電話"
+                  }</strong>
+                </div>
+                <div style="color: #666; margin-top: 2px;">
+                  📍 ${passenger.keepStop} → ${passenger.destStop}
+                </div>
+                <div style="margin-top: 2px;">
+                  🪑 <span style="font-weight: bold; color: #007bff;">${
+                    passenger.seatCount || 1
+                  }位</span>
+                </div>
+              </div>
+              <button
+                class="btn btn-danger"
+                onclick="removePassengerFromTrip('${
+                  passenger.id
+                }', '${tripId}', ${
+            passenger.seatCount || passenger.SeatCount || 1
+          })"
+                style="
+                  position: absolute;
+                  bottom: 3px;
+                  right: 3px;
+                  font-size: 10px;
+                  padding: 2px 4px;
+                  line-height: 1;
+                  border-radius: 3px;
+                  background: #dc3545;
+                  border: none;
+                  color: white;
+                  cursor: pointer;
+                  z-index: 1;
+                "
+>
+                ❌
+              </button>
+            </div>
+          `
+        })
+
+        passengersHtml += "</div>"
+        return passengersHtml
+      }
+
+      // 根據路線ID分配對應的顏色類別
+      function getRouteColorClass(routeName) {
+        if (!routeName) return "route-default"
+
+        // 直接根據路線ID分配對應顏色，與可搭乘路線顏色保持一致
+        switch (routeName) {
+          case "208802": // 小1
+            return "route-208802"
+          case "2088A2": // 藍15
+            return "route-2088A2"
+          case "2088B2": // 紅33
+            return "route-2088B2"
+          default:
+            return "route-default"
+        }
+      }
+
+      // 從 RequestDateTime 中提取時:分格式的時間
+      function extractTimeFromDateTime(requestDateTime) {
+        if (!requestDateTime) return "未知"
+
+        try {
+          // 假設格式可能是 "YYYY-MM-DD HH:mm" 或 "HH:mm" 或其他
+          const timeMatch = requestDateTime.match(/(\d{1,2}):(\d{1,2})/)
+          if (timeMatch) {
+            const hour = timeMatch[1].padStart(2, "0")
+            const minute = timeMatch[2].padStart(2, "0")
+            return `${hour}:${minute}`
+          }
+
+          // 如果是完整的 DateTime 字串，嘗試解析
+          const date = new Date(requestDateTime)
+          if (!isNaN(date.getTime())) {
+            return date.toTimeString().substring(0, 5) // "HH:mm"
+          }
+
+          return "未知"
+        } catch (error) {
+          console.error("解析時間失敗:", error, requestDateTime)
+          return "未知"
+        }
+      }
+
+      // 從字串日期中擷取 HH:mm:ss（顯示通知時間用）
+      function extractHmsFromDateTime(dateTimeStr) {
+        if (!dateTimeStr) return "--:--:--"
+        try {
+          // 先嘗試用正則直接抓 HH:mm:ss
+          const hms = dateTimeStr.match(/(\d{1,2}):(\d{1,2})/)
+          if (hms) {
+            const h = hms[1].padStart(2, "0")
+            const m = hms[2].padStart(2, "0")
+            return `${h}:${m}}`
+          }
+          // 再嘗試 Date 解析
+          const dt = new Date(dateTimeStr)
+          if (!isNaN(dt.getTime())) {
+            const h = String(dt.getHours()).padStart(2, "0")
+            const m = String(dt.getMinutes()).padStart(2, "0")
+            return `${h}:${m}`
+          }
+        } catch (_) {}
+        return "--:--"
+      }
+
+      // 選擇函數
+      function selectRoute(routeId, routeName) {
+        document
+          .querySelectorAll("#routeSelector .route-option")
+          .forEach((el) => el.classList.remove("selected"))
+        document
+          .querySelector(`#routeSelector [data-route="${routeId}"]`)
+          .classList.add("selected")
+        document.getElementById("selectedRoute").value = routeId
+      }
+
+      function selectEditRoute(routeId, routeName) {
+        document
+          .querySelectorAll("#editRouteSelector .route-option")
+          .forEach((el) => el.classList.remove("selected"))
+        document
+          .querySelector(`#editRouteSelector [data-route="${routeId}"]`)
+          .classList.add("selected")
+        document.getElementById("editSelectedRoute").value = routeId
+      }
+
+      function selectVehicleFromList(plateNumber) {
+        document
+          .querySelectorAll("#vehicleSelector .vehicle-option")
+          .forEach((el) => el.classList.remove("selected"))
+        document
+          .querySelector(`#vehicleSelector [data-vehicle="${plateNumber}"]`)
+          .classList.add("selected")
+        document.getElementById("selectedVehicle").value = plateNumber
+      }
+
+      function selectEditVehicle(plateNumber) {
+        document
+          .querySelectorAll("#editVehicleSelector .vehicle-option")
+          .forEach((el) => el.classList.remove("selected"))
+        document
+          .querySelector(`#editVehicleSelector [data-vehicle="${plateNumber}"]`)
+          .classList.add("selected")
+        document.getElementById("editSelectedVehicle").value = plateNumber
+      }
+
+      // 篩選函數
+      function filterVehiclesByOperator() {
+        const selectedOperator = document.getElementById("operatorFilter").value
+        const vehicleOptions = document.querySelectorAll(
+          "#vehicleSelector .vehicle-option"
+        )
+
+        vehicleOptions.forEach((option) => {
+          const operator = option.dataset.operator
+          if (!selectedOperator || operator === selectedOperator) {
+            option.style.display = "block"
+          } else {
+            option.style.display = "none"
+          }
+        })
+      }
+
+      function filterEditVehiclesByOperator() {
+        const selectedOperator =
+          document.getElementById("editOperatorFilter").value
+        const vehicleOptions = document.querySelectorAll(
+          "#editVehicleSelector .vehicle-option"
+        )
+
+        vehicleOptions.forEach((option) => {
+          const operator = option.dataset.operator
+          if (!selectedOperator || operator === selectedOperator) {
+            option.style.display = "block"
+          } else {
+            option.style.display = "none"
+          }
+        })
+      }
+
+      function updateOperatorFilter() {
+        const operators = [...new Set(vehicles.map((v) => v.operatorName))]
+        const filterSelect = document.getElementById("operatorFilter")
+        const editFilterSelect = document.getElementById("editOperatorFilter")
+
+        const optionsHtml = operators
+          .map((op) => `<option value="${op}">${op}</option>`)
+          .join("")
+
+        filterSelect.innerHTML =
+          '<option value="">所有業者</option>' + optionsHtml
+        editFilterSelect.innerHTML =
+          '<option value="">所有業者</option>' + optionsHtml
+      }
+
+      // 主要操作函數
+      async function createTrip(event) {
+        event.preventDefault()
+
+        const route = document.getElementById("selectedRoute").value
+        const vehicleNumber = document.getElementById("vehicleNumber").value
+        const hour = document.getElementById("hourInput").value
+        const minute = document.getElementById("minuteInput").value
+        const keepCount = document.getElementById("keepCountInput").value || 4
+
+        if (!route || !vehicleNumber || !hour || !minute) {
+          showError("請填寫所有必要資訊")
+          return
+        }
+
+        const departureTime = `${hour.padStart(2, "0")}:${minute.padStart(
+          2,
+          "0"
+        )}`
+
+        try {
+          const response = await fetch(`${BASE_URL}/Trip`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              route: route,
+              vehicleNumber: vehicleNumber,
+              departureTime: departureTime,
+              status: "pending",
+              keepCount: parseInt(keepCount),
+            }),
+          })
+
+          if (response.ok) {
+            showSuccess(`趟次已建立！`)
+            document.getElementById("newTripForm").reset()
+            clearSelections()
+            await loadTrips()
+            // 統計區已移除
+          } else {
+            throw new Error("建立趟次失敗")
+          }
+        } catch (error) {
+          showError("建立趟次失敗: " + error.message)
+        }
+      }
+
+      async function autoAssignPassengers(route) {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/auto-assign`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              route: route,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+
+          const contentType = response.headers.get("content-type")
+          if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text()
+            throw new Error(`API回應格式錯誤，預期JSON但收到: ${text}`)
+          }
+
+          const result = await response.json()
+
+          if (result.success) {
+            showSuccess(
+              `自動分配完成！成功分配 ${result.assignedCount || 0} 位乘客`
+            )
+            await loadTrips()
+            await loadPendingPassengers()
+            // 統計區已移除
+          } else {
+            throw new Error(result.message || "自動排班失敗")
+          }
+        } catch (error) {
+          console.error("趟次自動排班錯誤詳情:", error)
+          showError("自動排班失敗: " + error.message)
+        }
+      }
+
+      async function assignPassengerToTrip(passengerId, tripId) {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/assign-passenger`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              PassengerId: passengerId,
+              TripId: tripId,
+            }),
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            showSuccess("乘客分配成功！")
+
+            // 更新本地座位數據（如果有返回座位統計）
+            if (
+              result.totalSeats !== undefined &&
+              result.tripCapacity !== undefined
+            ) {
+              // 同步更新 trips 陣列中的此趟次狀態
+              const tripRef =
+                trips && Array.isArray(trips)
+                  ? trips.find((t) => t.tripId === tripId)
+                  : null
+              if (tripRef) {
+                tripRef.assignedSeats = result.totalSeats
+                // 若後端回傳最新容量，更新 keepCount
+                if (!isNaN(result.tripCapacity)) {
+                  tripRef.keepCount = result.tripCapacity
+                }
+              }
+              updateTripSeatDisplay(
+                tripId,
+                result.totalSeats,
+                result.tripCapacity
+              )
+            }
+
+            await loadTrips()
+            await loadPendingPassengers()
+            // 統計區已移除
+            return result
+          } else {
+            throw new Error(result.message || "分配乘客失敗")
+          }
+        } catch (error) {
+          showError("分配乘客失敗: " + error.message)
+          return { success: false, message: error.message }
+        }
+      }
+
+      // 僅針對指定趟次自動排班（FIFO），不會排到其他趟次
+      async function autoAssignTrip(tripId) {
+        try {
+          const trip = trips.find((t) => t.tripId === tripId)
+          if (!trip) {
+            showError("找不到指定趟次")
+            return
+          }
+
+          // 計算趟次剩餘可用座位
+          const currentSeats = getTripPassengerCount(tripId)
+          let remaining = (trip.keepCount || 0) - currentSeats
+          if (remaining <= 0) {
+            showNotification("此趟次座位已滿，無法自動排班", "info")
+            return
+          }
+
+          // 取得未分配的乘客，依 requestDateTime 由早到晚（FIFO）
+          const candidates = pendingPassengers
+            .filter((p) => !p.tripId)
+            .sort((a, b) => {
+              const ta = new Date(a.requestDateTime).getTime() || 0
+              const tb = new Date(b.requestDateTime).getTime() || 0
+              return ta - tb
+            })
+
+          if (candidates.length === 0) {
+            showNotification("目前沒有待保留乘客可分配", "info")
+            return
+          }
+
+          let assignedCount = 0
+
+          for (const p of candidates) {
+            if (remaining <= 0) break
+
+            // 路線符合性：若乘客有 includeRoutes（CSV），需包含此趟次路線
+            let canTake = true
+            if (p.includeRoutes && p.includeRoutes.trim()) {
+              const routesCsv = p.includeRoutes
+                .split(",")
+                .map((r) => r.trim())
+                .filter(Boolean)
+              canTake = routesCsv.includes(trip.route)
+            }
+
+            if (!canTake) continue
+
+            const need = p.seatCount || 1
+            if (need > remaining) continue
+
+            try {
+              const result = await assignPassengerToTrip(p.id, tripId)
+              if (result && result.success !== false) {
+                assignedCount += need
+                remaining -= need
+                // 若後端回傳最新統計，立即覆寫顯示與 trips 狀態
+                if (
+                  result.totalSeats !== undefined &&
+                  result.tripCapacity !== undefined
+                ) {
+                  const tripRef = trips.find((t) => t.tripId === tripId)
+                  if (tripRef) {
+                    tripRef.assignedSeats = result.totalSeats
+                    if (!isNaN(result.tripCapacity)) {
+                      tripRef.keepCount = result.tripCapacity
+                    }
+                  }
+                  updateTripSeatDisplay(
+                    tripId,
+                    result.totalSeats,
+                    result.tripCapacity
+                  )
+                } else {
+                  // 沒回傳統計時，按本次指派數估算更新指標
+                  const estimated = getTripPassengerCount(tripId) + need
+                  const cap = trip.keepCount
+                  const tripRef = trips.find((t) => t.tripId === tripId)
+                  if (tripRef) {
+                    tripRef.assignedSeats = estimated
+                  }
+                  updateTripSeatDisplay(tripId, estimated, cap)
+                }
+              }
+            } catch (e) {
+              console.warn("指派乘客失敗，略過:", p.id, e)
+            }
+          }
+
+          if (assignedCount > 0) {
+            showSuccess(`自動排班完成，已指派 ${assignedCount} 個座位到此趟次`)
+            await loadTrips()
+            await loadPendingPassengers()
+            // 統計區已移除
+          } else {
+            showNotification("沒有符合條件或座位的乘客可分配到此趟次", "info")
+          }
+        } catch (error) {
+          console.error("autoAssignTrip 錯誤:", error)
+          showError("自動排班失敗: " + error.message)
+        }
+      }
+
+      async function unassignPassenger(
+        passengerId,
+        tripIdFromCaller = null,
+        seatCountFromCaller = 1
+      ) {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/unassign-passenger`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              PassengerId: passengerId,
+            }),
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            showVisualNotification(
+              `乘客 ${result.data.passengerName} 從${result.data.departureTime} ${result.data.vehicleNumber} 取消保留`,
+              "success"
+            )
+
+            // 優先使用呼叫端提供的 tripId/seatCount 進行局部更新，避免整體抖動
+            const tripId = tripIdFromCaller
+            const seatDelta = Math.max(1, seatCountFromCaller || 1)
+
+            if (tripId) {
+              // 停用動畫，局部更新此趟次
+              const container = document.getElementById("tripsContainer")
+              if (container) container.classList.add("no-anim")
+
+              try {
+                // 更新本地座位數
+                const trip = trips.find((t) => t.tripId === tripId)
+                if (trip) {
+                  const current =
+                    typeof trip.assignedSeats === "number"
+                      ? trip.assignedSeats
+                      : getTripPassengerCount(tripId)
+                  trip.assignedSeats = Math.max(0, (current || 0) - seatDelta)
+                  updateTripSeatDisplay(tripId)
+                }
+
+                // 重新載入該趟次的乘客列表（而不是整體渲染）
+                const passengersHtml = await renderTripPassengers(tripId)
+                const passengersContainer = document.getElementById(
+                  `passengers-${tripId}`
+                )
+                if (passengersContainer)
+                  passengersContainer.innerHTML = passengersHtml
+
+                // 刷新待排清單即可（整體 trips 不重繪）
+                await loadPendingPassengers()
+              } finally {
+                if (container)
+                  requestAnimationFrame(() =>
+                    container.classList.remove("no-anim")
+                  )
+              }
+
+              return result
+            }
+
+            // 後備路徑：若拿不到 tripId，落回原流程（可能造成較多重繪）
+            await loadTrips()
+            await loadPendingPassengers()
+            trips.forEach((trip) => updateTripSeatDisplay(trip.tripId))
+            renderTripsSync()
+            return result
+          } else {
+            throw new Error(result.message || "取消分配失敗")
+          }
+        } catch (error) {
+          console.error("取消分配失敗:", error)
+          showError("取消分配失敗: " + error.message)
+          showVisualNotification("操作失敗", "error")
+          throw error
+        }
+      }
+
+      async function updateTripStatus(tripId, status) {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}/status`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: status,
+            }),
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            showSuccess(
+              `${result.data.departureTime}的${result.data.vehicleNumber}狀態已更新！`
+            )
+            await loadTrips()
+            // 統計區已移除
+          } else {
+            throw new Error(result.message || "更新狀態失敗")
+          }
+        } catch (error) {
+          showError("更新狀態失敗: " + error.message)
+        }
+      }
+
+      async function loadTripPassengers(tripId) {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+          const result = await response.json()
+
+          if (result.success) {
+            return result.data
+          } else {
+            throw new Error(result.message || "載入趟次乘客失敗")
+          }
+        } catch (error) {
+          console.error("載入趟次乘客失敗:", error)
+          return null
+        }
+      }
+
+      function editTrip(tripId) {
+        const trip = trips.find((t) => t.tripId === tripId)
+        if (!trip) return
+
+        document.getElementById("editTripId").value = tripId
+        document.getElementById("editSelectedRoute").value = trip.route
+        document.getElementById("editVehicleNumber").value = trip.vehicleNumber
+        document.getElementById("editKeepCountInput").value =
+          trip.keepCount || 4
+
+        // 保存原始座位數，用於之後的驗證
+        document.getElementById("editKeepCountInput").dataset.originalCount =
+          trip.keepCount || 4
+
+        // 計算當前已分配的座位數
+        const currentAssignedSeats = getTripPassengerCount(tripId)
+        document.getElementById("editKeepCountInput").dataset.assignedSeats =
+          currentAssignedSeats
+
+        // 設置最小值為原始座位數或已分配座位數（取較大值）
+        const minSeats = Math.max(trip.keepCount || 4, currentAssignedSeats)
+        document.getElementById("editKeepCountInput").min = minSeats
+
+        // 更新提示信息
+        document.getElementById(
+          "seatCountHint"
+        ).innerHTML = `<i class="fa fa-info-circle"></i> 座位數不能小於 <strong>${minSeats}</strong> (原始: ${
+          trip.keepCount || 4
+        }, 已分配: ${currentAssignedSeats})`
+
+        const [hour, minute] = trip.departureTime.split(":")
+        document.getElementById("editHourInput").value = hour.padStart(2, "0")
+        document.getElementById("editMinuteInput").value = minute.padStart(
+          2,
+          "0"
+        )
+
+        // 設定選中狀態
+        setTimeout(() => {
+          selectEditRoute(trip.route, "")
+        }, 100)
+
+        document.getElementById("editTripModal").style.display = "block"
+      }
+
+      async function updateTrip(event) {
+        event.preventDefault()
+
+        const tripId = document.getElementById("editTripId").value
+        const route = document.getElementById("editSelectedRoute").value
+        const vehicleNumber = document.getElementById("editVehicleNumber").value
+        const hour = document.getElementById("editHourInput").value
+        const minute = document.getElementById("editMinuteInput").value
+        const keepCountInput = document.getElementById("editKeepCountInput")
+        let keepCount = parseInt(keepCountInput.value) || 4
+
+        // 獲取原始座位數和已分配座位數
+        const originalCount =
+          parseInt(keepCountInput.dataset.originalCount) || 4
+        const assignedSeats =
+          parseInt(keepCountInput.dataset.assignedSeats) || 0
+
+        // 確保座位數不小於已分配的座位數
+        const minAllowedSeats = Math.max(originalCount, assignedSeats)
+        if (keepCount < minAllowedSeats) {
+          showError(
+            `座位數不能小於原始座位數 ${originalCount} 或已分配的座位數 ${assignedSeats}`
+          )
+          keepCountInput.value = minAllowedSeats
+          return
+        }
+
+        if (!route || !vehicleNumber || !hour || !minute) {
+          showError("請填寫所有必要資訊")
+          return
+        }
+
+        const departureTime = `${hour.padStart(2, "0")}:${minute.padStart(
+          2,
+          "0"
+        )}`
+
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              route: route,
+              vehicleNumber: vehicleNumber,
+              departureTime: departureTime,
+              keepCount: parseInt(keepCount),
+            }),
+          })
+
+          if (response.ok) {
+            showSuccess("趟次更新成功！")
+            closeEditModal()
+            await loadTrips()
+            await loadPendingPassengers()
+            // 統計區已移除
+          } else {
+            throw new Error("更新趟次失敗")
+          }
+        } catch (error) {
+          showError("更新趟次失敗: " + error.message)
+        }
+      }
+
+      async function deleteTrip(tripId) {
+        if (!confirm("確定要刪除這個趟次嗎？已保留的乘客將退回等待狀態。")) {
+          return
+        }
+
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}`, {
+            method: "DELETE",
+          })
+
+          if (response.ok) {
+            showSuccess("趟次刪除成功！")
+            await loadTrips()
+            await loadPendingPassengers()
+            updateStatistics()
+          } else {
+            // 嘗試讀取後端錯誤訊息
+            let errorMessage = "刪除趟次失敗"
+            try {
+              const errorData = await response.json()
+              if (errorData.message) {
+                errorMessage = errorData.message
+              } else if (errorData.error) {
+                errorMessage = errorData.error
+              }
+            } catch (parseError) {
+              // 如果無法解析JSON，使用HTTP狀態訊息
+              errorMessage = `刪除趟次失敗 (HTTP ${response.status}: ${response.statusText})`
+            }
+
+            console.error("刪除趟次錯誤詳情:", {
+              status: response.status,
+              statusText: response.statusText,
+              tripId: tripId,
+            })
+
+            throw new Error(errorMessage)
+          }
+        } catch (error) {
+          console.error("刪除趟次異常:", error)
+          showError("刪除趟次失敗: " + error.message)
+        }
+      }
+
+      async function notifyPassengers(tripId) {
+        try {
+          const response = await fetch(
+            `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
+            {
+              method: "POST",
+            }
+          )
+
+          if (response.ok) {
+            // 解析回應，若 notifiedCount === 0 則不顯示成功、直接停止
+            let result = null
+            try {
+              result = await response.json()
+            } catch (_) {
+              // 若非 JSON，視為無法取得 notifiedCount，照舊顯示成功
+            }
+
+            if (result && typeof result.notifiedCount === "number") {
+              if (result.notifiedCount === 0) {
+                showSuccess(
+                  result?.message ? `${result.message}` : "通知發送成功！"
+                )
+                return
+              }
+            }
+
+            showSuccess(
+              result?.message
+                ? `通知發送成功：${result.message}`
+                : "通知發送成功！"
+            )
+            // 更新趟次狀態為已通知
+            //await updateTripStatus(tripId, "notified")
+
+            // 特別更新該趟次的乘客列表，確保顯示正確
+            const tripData = await loadTripPassengers(tripId)
+            console.log(`通知後趟次 ${tripId} 的乘客資料:`, tripData)
+
+            if (tripData && tripData.passengers) {
+              // 手動更新該趟次的乘客列表顯示
+              const passengersHtml = await renderTripPassengers(tripId)
+              const passengersContainer = document.getElementById(
+                `passengers-${tripId}`
+              )
+              if (passengersContainer) {
+                passengersContainer.innerHTML = passengersHtml
+                console.log(`趟次 ${tripId} 的乘客列表已更新`)
+              }
+            }
+          } else {
+            throw new Error(response.statusText || "通知發送失敗")
+          }
+        } catch (error) {
+          console.error("通知發送錯誤:", error)
+          showError("通知發送失敗: " + error.message)
+        }
+      }
+
+      async function markTripCompleted(tripId) {
+        // 若沒有任何已排入的乘客則禁止改為已發車
+        try {
+          const assignedSeats = getTripPassengerCount(tripId) || 0
+          if (assignedSeats === 0) {
+            showNotification("沒有排入任何保留位，無法改為為已發車", "info")
+            return
+          }
+        } catch (_) {
+          // 如果計算失敗，保守處理：不阻擋流程
+        }
+
+        if (!confirm("確定要將此趟次標記為已發車嗎？")) {
+          return
+        }
+
+        try {
+          await updateTripStatus(tripId, "completed")
+          showSuccess("趟次已標記為已發車！")
+        } catch (error) {
+          showError("標記已發車失敗: " + error.message)
+        }
+      }
+
+      // 列印趟次預約單
+      async function printReservation(tripId, useBrowserFallback = false) {
+        try {
+          console.log("🖨️ 開始列印趟次預約單，趟次ID:", tripId)
+
+          // 取得趟次詳細資訊
+          const response = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+          if (!response.ok) {
+            throw new Error(
+              `無法取得趟次資料: ${response.status} ${response.statusText}`
+            )
+          }
+
+          const result = await response.json()
+          console.log("API回應原始資料:", result)
+
+          if (!result.success) {
+            throw new Error(`無法取得趟次資料: ${result.message}`)
+          }
+
+          // API 返回結構檢查和處理
+          if (!result.data) {
+            throw new Error("API回應缺少data欄位")
+          }
+
+          // 根據API實際回傳結構調整
+          const tripData = {
+            trip: result.data.trip || result.data.Trip || {},
+            passengers: result.data.passengers || result.data.Passengers || [],
+          }
+
+          // 若沒有排入乘客，提示後直接返回，不進行列印
+          if (!tripData.passengers || tripData.passengers.length === 0) {
+            showNotification(
+              `${tripData.trip.vehicleNumber} 沒有排入任何保留位，未列印`,
+              "info"
+            )
+            return
+          }
+
+          // 通知開始列印（已確認有乘客）
+          // showNotification("正在準備列印...", "info")
+
+          // 生成 QR 碼 URL (使用趟次ID)
+          const qrCodeUrl = await generateQRCodeURL(tripId)
+
+          // 計算乘客總座位數
+          let totalSeats = 0
+          tripData.passengers.forEach((p) => {
+            totalSeats += p.seatCount || 1
+          })
+
+          // 使用瀏覽器列印（配合 Chrome --kiosk --kiosk-printing 可靜默列印）
+          const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
+          const printContent =
+            document.getElementById("print-content") ||
+            createPrintContentElement()
+          printContent.innerHTML = html
+          await waitForQRCodeLoading()
+          try {
+            printContent.style.display = "block"
+            const beforePrintHandler = () => {}
+            const afterPrintHandler = () => {
+              printContent.style.display = "none"
+              window.removeEventListener("beforeprint", beforePrintHandler)
+              window.removeEventListener("afterprint", afterPrintHandler)
+              showSuccess(
+                `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`
+              )
+            }
+            window.addEventListener("beforeprint", beforePrintHandler)
+            window.addEventListener("afterprint", afterPrintHandler)
+            // showNotification("正在使用瀏覽器列印...", "info")
+            window.print()
+            setTimeout(() => {
+              if (printContent.style.display !== "none") {
+                printContent.style.display = "none"
+                window.removeEventListener("beforeprint", beforePrintHandler)
+                window.removeEventListener("afterprint", afterPrintHandler)
+              }
+            }, 8000)
+          } catch (printError) {
+            console.error("列印過程錯誤:", printError)
+            const el = document.getElementById("print-content")
+            if (el) el.style.display = "none"
+            showError(`列印過程發生錯誤: ${printError.message}`)
+          }
+        } catch (error) {
+          console.error("列印失敗:", error)
+          showError(`列印失敗: ${error.message}`)
+        }
+      }
+
+      // 建立 QZ 列印的 HTML（含內嵌樣式，適配 80mm 小票寬度）
+      function buildReservationHtml(tripData, qrCodeUrl, totalSeats) {
+        const list = (tripData.passengers || [])
+          .map((p, i) => {
+            const name = p.name || p.Name || "未知"
+            const seats = p.seatCount || p.SeatCount || 1
+            const from = p.keepStop || p.KeepStop || "未知"
+            const to = p.destStop || p.DestStop || "未知"
+            const rawPhone = p.phone || p.Phone || ""
+            const digitsOnly = String(rawPhone).replace(/\D/g, "")
+            const tail3 = digitsOnly ? digitsOnly.slice(-3) : ""
+            return `${i + 1}. ${name} (${seats}位 ) → ${to}  ${tail3}`
+          })
+          .join("<br/>")
+
+        const route = tripData.trip.route || "未知"
+        const car = tripData.trip.vehicleNumber || "未知"
+        const time = tripData.trip.departureTime || "未知"
+        const now = new Date().toLocaleString()
+
+        return `
+          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:1.2;color:#000;padding:2mm;text-align:center;">
+            <div style="font-size:16pt;font-weight:700;margin:0 0 3mm;">保留座位清單</div>
+            <div style="font-size:12pt;font-weight:700;margin:2mm 0;">大都會客運</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div>路線: ${route}</div>
+            <div>車號: ${car}</div>
+            <div>發車時間: ${time}</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div style="text-align:left;display:inline-block;width:90%;font-size:9pt;">${list}</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div>總計: ${totalSeats} 位乘客</div>
+            <div class="qr-code" style="margin:2mm 0;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
+            <div>列印時間: ${now}</div>
+            <div style="height:8mm;"></div>
+          </div>
+        `
+      }
+
+      // 創建列印內容元素
+      function createPrintContentElement() {
+        const printContent = document.createElement("div")
+        printContent.id = "print-content"
+        printContent.style.display = "none"
+        printContent.style.position = "absolute"
+        printContent.style.left = "-9999px"
+        printContent.style.top = "-9999px"
+        document.body.appendChild(printContent)
+
+        // 添加列印樣式
+        const printStyle = document.createElement("style")
+        printStyle.textContent = `
+          @media print {
+            /* 強制單頁列印，最小化邊距 */
+            @page {
+              margin: 2mm !important;
+              size: 79mm auto !important; /* 自動高度 */
+              padding: 0 !important;
+            }
+            
+            /* 隱藏所有非列印內容 */
+            body > *:not(#print-content) {
+              display: none !important;
+            }
+            
+            /* 確保列印內容可見且樣式正確 */
+            #print-content {
+              display: block !important;
+              position: static !important;
+              left: auto !important;
+              top: auto !important;
+              width: 75mm !important;
+              height: auto !important;
+              font-family: "Microsoft JhengHei", "Courier New", monospace !important;
+              font-size: 10pt !important;
+              line-height: 1.2 !important;
+              color: black !important;
+              background: white !important;
+              padding: 2mm !important;
+              text-align: center !important;
+              margin: 0 auto !important;
+              box-sizing: border-box !important;
+              overflow: visible !important;
+              page-break-inside: avoid !important;
+            }
+            
+            /* 列印內容的所有子元素樣式 */
+            #print-content * {
+              background: transparent !important;
+              color: black !important;
+              text-align: center !important;
+              page-break-inside: avoid !important;
+            }
+            
+            /* 標題樣式 */
+            #print-content .print-header {
+              font-size: 12pt !important;
+              font-weight: bold !important;
+              margin: 2mm 0 !important;
+            }
+            
+            #print-content .print-title {
+              font-size: 16pt !important;
+              font-weight: bold !important;
+              margin: 0 0 3mm 0 !important;
+            }
+            
+            /* QR碼樣式 */
+            #print-content .qr-code {
+              page-break-inside: avoid !important;
+              margin: 2mm 0 !important;
+            }
+            
+            #print-content .qr-code img {
+              width: 30mm !important;
+              height: 30mm !important;
+              display: block !important;
+              margin: 0 auto !important;
+            }
+            
+            /* 乘客列表樣式 */
+            #print-content .passenger-list {
+              font-size: 9pt !important;
+              line-height: 1.1 !important;
+              margin: 2mm auto !important;
+              text-align: left !important;
+              width: 90% !important;
+              display: inline-block !important;
+            }
+          }
+        `
+        document.head.appendChild(printStyle)
+
+        return printContent
+      }
+
+      // 等待 QR 碼圖片載入
+      function waitForQRCodeLoading() {
+        return new Promise((resolve) => {
+          const qrImage = document.querySelector("#print-content .qr-code img")
+          if (!qrImage) {
+            console.warn("沒有找到 QR 碼圖片")
+            resolve()
+            return
+          }
+
+          if (qrImage.complete) {
+            console.log("QR 碼圖片已載入")
+            resolve()
+            return
+          }
+
+          qrImage.onload = () => {
+            console.log("QR 碼圖片載入完成")
+            resolve()
+          }
+
+          qrImage.onerror = () => {
+            console.warn("QR 碼圖片載入失敗")
+            resolve()
+          }
+
+          // 防止永遠等待
+          setTimeout(resolve, 3000)
+        })
+      }
+
+      // 生成 QR 碼 URL
+      async function generateQRCodeURL(text) {
+        // 使用簡單的 QR 碼 API
+        const encodedText = encodeURIComponent(text)
+        return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedText}`
+      }
+
+      // 測試 API 連接
+      async function testApiConnection() {
+        try {
+          console.log("測試 API 連接...")
+          const response = await fetch(`${BASE_URL}/Trip/test-endpoint`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              test: "hello",
+              timestamp: new Date().toISOString(),
+            }),
+          })
+
+          const result = await response.json()
+          console.log("API 測試結果:", result)
+          if (result.success) {
+            showSuccess("API 連接正常")
+          } else {
+            showError("API 測試失敗: " + result.message)
+          }
+        } catch (error) {
+          console.error("API 測試錯誤:", error)
+          showError("API 連接測試失敗: " + error.message)
+        }
+      }
+
+      // 單個乘客自動排班
+      async function autoAssignSinglePassenger(passengerId) {
+        try {
+          const passenger = pendingPassengers.find((p) => p.id === passengerId)
+          if (!passenger) {
+            showError("找不到乘客資料")
+            return
+          }
+
+          // 詳細調試輸出
+          console.log("=== 自動排班調試信息 ===")
+          console.log(
+            "PassengerId 類型:",
+            typeof passengerId,
+            "值:",
+            passengerId
+          )
+          console.log("完整乘客資料:", passenger)
+          console.log("KeepStop:", passenger.keepStop)
+          console.log("DestStop:", passenger.destStop)
+          console.log("SeatCount:", passenger.seatCount)
+
+          // 🚀 優化：使用預計算的 IncludeRoutes，無需 API 調用
+          let availableRoutes = []
+          if (passenger.includeRoutes && passenger.includeRoutes.trim()) {
+            // 從預計算的 CSV 欄位解析可用路線
+            availableRoutes = passenger.includeRoutes
+              .split(",")
+              .map((route) => route.trim())
+              .filter((route) => route.length > 0)
+            console.log("📈 使用預計算路線 (無API調用):", availableRoutes)
+          } else {
+            // 降級處理：如果沒有預計算資料，才使用 API
+            console.log(`⚠️ 降級處理：查詢可用路線...`)
+            const routesResponse = await fetch(
+              `${BASE_URL}/Trip/available-routes/${encodeURIComponent(
+                passenger.destStop
+              )}`
+            )
+
+            if (!routesResponse.ok) {
+              throw new Error(`無法查詢可用路線: HTTP ${routesResponse.status}`)
+            }
+
+            const routesResult = await routesResponse.json()
+            console.log("可用路線查詢結果:", routesResult)
+
+            if (
+              !routesResult.success ||
+              !routesResult.data ||
+              routesResult.data.length === 0
+            ) {
+              throw new Error(`目的地站牌 "${passenger.destStop}" 沒有可用路線`)
+            }
+
+            availableRoutes = routesResult.data
+            console.log("找到可用路線:", availableRoutes)
+          }
+
+          // 顯示可用路線訊息
+          showSuccess(
+            `找到 ${availableRoutes.length} 條可用路線: ${availableRoutes.join(
+              ", "
+            )}`
+          )
+
+          const requestData = {
+            PassengerId: passengerId,
+            KeepStop: passenger.keepStop || "",
+            DestStop: passenger.destStop || "",
+            SeatCount: passenger.seatCount || 1,
+            AvailableRoutes: availableRoutes,
+          }
+
+          console.log(
+            "準備發送的請求資料:",
+            JSON.stringify(requestData, null, 2)
+          )
+
+          const response = await fetch(`${BASE_URL}/Trip/auto-assign-single`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestData),
+          })
+
+          if (!response.ok) {
+            // 嘗試讀取錯誤回應的詳細訊息
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+            try {
+              const errorText = await response.text()
+              console.log("伺服器回應的完整錯誤內容:", errorText)
+
+              // 嘗試解析為 JSON
+              if (errorText) {
+                try {
+                  const errorResult = JSON.parse(errorText)
+                  if (errorResult.message) {
+                    errorMessage = `HTTP ${response.status}: ${errorResult.message}`
+                  } else if (errorResult.title) {
+                    errorMessage = `HTTP ${response.status}: ${errorResult.title}`
+                  } else {
+                    errorMessage = `HTTP ${response.status}: ${errorText}`
+                  }
+                } catch (jsonError) {
+                  errorMessage = `HTTP ${response.status}: ${errorText}`
+                }
+              }
+            } catch (parseError) {
+              console.error("無法讀取錯誤回應:", parseError)
+            }
+            throw new Error(errorMessage)
+          }
+
+          const contentType = response.headers.get("content-type")
+          if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text()
+            throw new Error(`API回應格式錯誤，預期JSON但收到: ${text}`)
+          }
+
+          const result = await response.json()
+
+          if (result.success) {
+            showSuccess(
+              `乘客 ${passenger.name} 已保留 ${result.data.departureTime} 的 ${result.data.vehicleNumber} `
+            )
+            await loadTrips()
+            await loadPendingPassengers()
+            updateStatistics()
+          } else {
+            // 處理詳細的錯誤信息
+            let errorMessage = result.message || "自動保留失敗"
+            let detailMessage = ""
+
+            // 檢查是否有詳細的錯誤信息
+            if (result.detail) {
+              detailMessage += `原因：${result.detail}`
+            }
+
+            // 顯示錯誤分類和技術細節
+            if (result.errorCategory) {
+              detailMessage += `\n錯誤類別：${result.errorCategory}`
+            }
+
+            if (
+              result.technicalError &&
+              result.technicalError !== result.message
+            ) {
+              detailMessage += `\n技術詳情：${result.technicalError}`
+            }
+
+            if (result.errorType) {
+              detailMessage += `\n錯誤類型：${result.errorType}`
+            }
+
+            // 顯示建議操作步驟
+            if (result.steps && result.steps.length > 0) {
+              detailMessage += `\n\n建議步驟：`
+              result.steps.forEach((step, index) => {
+                detailMessage += `\n${step}`
+              })
+            }
+
+            // 顯示除錯資訊（僅在開發環境）
+            if (result.debugInfo && window.location.hostname === "localhost") {
+              detailMessage += `\n\n除錯資訊：`
+              detailMessage += `\n• 方法：${result.debugInfo.method}`
+              detailMessage += `\n• 錯誤類型：${result.debugInfo.errorType}`
+              if (result.debugInfo.hasInnerException) {
+                detailMessage += `\n• 內部錯誤：${result.debugInfo.innerExceptionMessage}`
+              }
+            }
+
+            // 顯示時間戳
+            if (result.timestamp) {
+              detailMessage += `\n\n發生時間：${result.timestamp}`
+            }
+
+            if (result.reason) {
+              detailMessage += `\n問題：${result.reason}`
+            }
+
+            // 顯示可用的趟次信息
+            if (result.availableTrips && result.availableTrips.length > 0) {
+              detailMessage += `\n\n目前可用趟次：`
+              result.availableTrips.forEach((trip) => {
+                detailMessage += `\n• ${trip.vehicleNumber} (${trip.route}) ${trip.departureTime} - 座位：${trip.availableSeats}/${trip.totalSeats} 可用`
+              })
+            }
+
+            // 顯示建議操作
+            if (result.suggestions && result.suggestions.length > 0) {
+              detailMessage += `\n\n建議操作：`
+              result.suggestions.forEach((suggestion, index) => {
+                detailMessage += `\n${index + 1}. ${suggestion}`
+              })
+            }
+
+            // 顯示診斷信息
+            if (result.detail && result.detail.totalTripsToday !== undefined) {
+              detailMessage += `\n\n系統診断：`
+              detailMessage += `\n• 今日總趟次：${result.detail.totalTripsToday} 個`
+              if (
+                result.detail.availableRoutesToday &&
+                result.detail.availableRoutesToday.length > 0
+              ) {
+                detailMessage += `\n• 可用路線：${result.detail.availableRoutesToday.join(
+                  ", "
+                )}`
+              }
+              if (
+                result.detail.requiredRoutes &&
+                result.detail.requiredRoutes.length > 0
+              ) {
+                detailMessage += `\n• 需要路線：${result.detail.requiredRoutes.join(
+                  ", "
+                )}`
+              }
+            }
+
+            // 顯示乘客信息
+            if (result.passengerInfo) {
+              detailMessage += `\n\n乘客資訊：`
+              detailMessage += `\n• 姓名：${result.passengerInfo.name}`
+              detailMessage += `\n• 需要座位：${result.passengerInfo.requiredSeats} 個`
+              if (
+                result.passengerInfo.routes &&
+                result.passengerInfo.routes.length > 0
+              ) {
+                detailMessage += `\n• 可搭路線：${result.passengerInfo.routes.join(
+                  ", "
+                )}`
+              }
+            }
+
+            // 使用更詳細的錯誤顯示
+            showDetailedError(errorMessage, detailMessage)
+          }
+        } catch (error) {
+          console.error("自動保留錯誤詳情:", error)
+
+          // 嘗試從錯誤信息中提取更詳細的信息
+          let errorMessage = "自動保留失敗"
+          let errorDetail = error.message
+
+          // 根據錯誤類型進行分類處理
+          if (error.message.includes("HTTP 400")) {
+            errorMessage = "保留請求有誤"
+            errorDetail = error.message.replace("HTTP 400: ", "")
+          } else if (error.message.includes("HTTP 500")) {
+            errorMessage = "系統處理錯誤"
+            errorDetail = error.message.replace("HTTP 500: ", "")
+
+            // 嘗試解析 HTTP 500 錯誤中的 JSON 內容
+            try {
+              const jsonMatch = errorDetail.match(/\{.*\}/)
+              if (jsonMatch) {
+                const errorObj = JSON.parse(jsonMatch[0])
+                if (errorObj.message) {
+                  errorMessage = errorObj.message
+                }
+                if (errorObj.detail) {
+                  errorDetail = `${errorObj.detail}`
+                }
+                if (errorObj.errorCategory) {
+                  errorDetail += `\n錯誤類別：${errorObj.errorCategory}`
+                }
+                if (errorObj.technicalError) {
+                  errorDetail += `\n技術詳情：${errorObj.technicalError}`
+                }
+              }
+            } catch (parseError) {
+              console.warn("無法解析 HTTP 500 錯誤中的 JSON 內容:", parseError)
+            }
+          } else if (
+            error.message.includes("沒有") ||
+            error.message.includes("找不到")
+          ) {
+            errorMessage = "找不到可用趟次"
+            errorDetail = "目前沒有符合條件的趟次可進行保留"
+          } else if (error.message.includes("座位")) {
+            errorMessage = "座位不足"
+            errorDetail = "所選趟次的座位數量不足"
+          } else if (
+            error.message.includes("網路") ||
+            error.message.includes("connection") ||
+            error.message.includes("fetch")
+          ) {
+            errorMessage = "網路連線問題"
+            errorDetail = "請檢查網路連線或重新整理頁面"
+          } else if (error.message.includes("timeout")) {
+            errorMessage = "請求逾時"
+            errorDetail = "系統處理時間過長，請稍後再試"
+          }
+
+          // 如果錯誤信息很長或包含詳細資訊，使用詳細錯誤顯示
+          if (
+            errorDetail &&
+            (errorDetail.length > 50 || errorDetail.includes("\n"))
+          ) {
+            showDetailedError(errorMessage, errorDetail)
+          } else {
+            showError(`${errorMessage}: ${errorDetail}`)
+          }
+        }
+      }
+
+      // 顯示手動排班模態框
+      async function showManualAssignModal(passengerId) {
+        const passenger = pendingPassengers.find((p) => p.id === passengerId)
+        if (!passenger) {
+          showError("找不到乘客資料")
+          return
+        }
+
+        // 🚀 優化：使用預計算的 IncludeRoutes 進行路線過濾
+        let passengerAvailableRoutes = []
+        if (passenger.includeRoutes && passenger.includeRoutes.trim()) {
+          passengerAvailableRoutes = passenger.includeRoutes
+            .split(",")
+            .map((route) => route.trim())
+            .filter((route) => route.length > 0)
+          console.log(
+            "📈 使用預計算路線過濾趟次 (無API調用):",
+            passengerAvailableRoutes
+          )
+        }
+
+        // 找出適合的趟次（有空位且路線相符）
+        const availableTrips = []
+
+        for (const trip of trips) {
+          // 檢查基本條件
+          if (
+            trip.status === "completed" ||
+            getTripPassengerCount(trip.tripId) >= trip.keepCount
+          ) {
+            continue
+          }
+
+          // 🚀 優化：路線匹配檢查
+          let canTake = false
+          if (passengerAvailableRoutes.length > 0) {
+            // 使用預計算路線，無需 API 調用
+            canTake = passengerAvailableRoutes.includes(trip.route)
+            console.log(
+              `趟次 ${trip.route}: ${canTake ? "符合" : "不符合"} 預計算路線`
+            )
+          } else {
+            // 降級處理：使用原有的 API 檢查方式
+            console.log(`⚠️ 降級處理：API檢查趟次 ${trip.route}`)
+            canTake = await canPassengerTakeRoute(passengerId, trip.route)
+          }
+
+          if (canTake) {
+            availableTrips.push(trip)
+          }
+        }
+
+        if (availableTrips.length === 0) {
+          showError(
+            `乘客 ${passenger.name} 沒有適合的趟次可供選擇，請檢查目的地站牌 "${passenger.destStop}" 或可用趟次座位`
+          )
+          return
+        }
+
+        let modalHtml = `
+          <div class="modal" id="manualAssignModal" style="display: block;">
+            <div class="modal-content">
+              <span class="close" onclick="closeManualAssignModal()">&times;</span>
+              <h3>手動排班 - ${passenger.name}</h3>
+              <p><strong>路線:</strong> ${passenger.keepStop} → ${
+          passenger.destStop
+        }</p>
+              <p><strong>座位需求:</strong> ${passenger.seatCount || 1} 位</p>
+              <p><strong>電話:</strong> ${passenger.phone || "無"}</p>
+              <hr>
+              <h4>選擇趟次:</h4>
+              <div style="max-height: 300px; overflow-y: auto;">
+        `
+
+        availableTrips.forEach((trip) => {
+          const passengerCount = getTripPassengerCount(trip.tripId)
+          const remainingSeats = trip.keepCount - passengerCount
+
+          modalHtml += `
+            <div class="trip-option" style="border: 1px solid #ddd; margin: 5px 0; padding: 10px; border-radius: 5px; cursor: pointer;"
+                 onclick="assignToTrip('${passengerId}', '${trip.tripId}')">
+              <strong>${trip.route} - ${trip.vehicleNumber}</strong><br>
+              發車時間: ${trip.departureTime}<br>
+              座位狀況: ${passengerCount}/${
+            trip.keepCount
+          } (剩餘 ${remainingSeats} 位)<br>
+              狀態: ${
+                trip.status === "pending"
+                  ? "準備發車"
+                  : trip.status === "notified"
+                  ? "已通知"
+                  : "待分配保留位中"
+              }
+            </div>
+          `
+        })
+
+        modalHtml += `
+              </div>
+            </div>
+          </div>
+        `
+
+        document.body.insertAdjacentHTML("beforeend", modalHtml)
+      }
+
+      function closeManualAssignModal() {
+        const modal = document.getElementById("manualAssignModal")
+        if (modal) {
+          modal.remove()
+        }
+      }
+
+      async function assignToTrip(passengerId, tripId) {
+        try {
+          await assignPassengerToTrip(passengerId, tripId)
+          closeManualAssignModal()
+        } catch (error) {
+          showError("排班失敗: " + error.message)
+        }
+      }
+
+      // 移除乘客從趟次
+      async function removePassengerFromTrip(
+        passengerId,
+        tripId,
+        seatCount = 1
+      ) {
+        if (!confirm("確定要將此乘客從趟次中移除嗎？")) {
+          return
+        }
+
+        try {
+          await unassignPassenger(passengerId, tripId, seatCount)
+
+          // 強制重新載入和渲染
+          // 已改為局部更新，這裡無需整體重載
+          updateStatistics() // 目前統計已移除，留存占位
+        } catch (error) {
+          showError("移除失敗: " + error.message)
+        }
+      }
+
+      // 輔助函數
+      function closeEditModal() {
+        document.getElementById("editTripModal").style.display = "none"
+      }
+
+      function clearSelections() {
+        document
+          .querySelectorAll(".route-option.selected")
+          .forEach((el) => el.classList.remove("selected"))
+        document
+          .querySelectorAll(".vehicle-option.selected")
+          .forEach((el) => el.classList.remove("selected"))
+        document.getElementById("selectedRoute").value = ""
+        document.getElementById("vehicleNumber").value = ""
+        document.getElementById("hourInput").value = ""
+        document.getElementById("minuteInput").value = ""
+        document.getElementById("keepCountInput").value = "4"
+      }
+
+      function getTripPassengerCount(tripId) {
+        // 從 trips 陣列上的 assignedSeats 讀取（由 renderTripPassengers 與 API 回應維護）
+        const trip =
+          trips && Array.isArray(trips)
+            ? trips.find((t) => t.tripId === tripId)
+            : null
+        if (trip && typeof trip.assignedSeats === "number") {
+          return trip.assignedSeats
+        }
+        return 0
+      }
+
+      // 更新趟次座位顯示
+      function updateTripSeatDisplay(
+        tripId,
+        currentSeatsOverride,
+        keepCountOverride
+      ) {
+        const trip = trips.find((t) => t.tripId === tripId)
+        if (!trip) {
+          console.error(`Trip with ID ${tripId} not found.`)
+          return
+        }
+
+        const currentSeats =
+          typeof currentSeatsOverride === "number"
+            ? currentSeatsOverride
+            : getTripPassengerCount(tripId)
+        const effectiveKeep =
+          typeof keepCountOverride === "number" && !isNaN(keepCountOverride)
+            ? keepCountOverride
+            : trip.keepCount
+        const seatIndicator = document.querySelector(
+          `.trip-card[data-trip-id="${tripId}"] .seat-indicator`
+        )
+
+        if (seatIndicator) {
+          seatIndicator.textContent = `🪑 ${currentSeats}/${effectiveKeep}`
+          seatIndicator.className = `seat-indicator ${
+            currentSeats >= effectiveKeep
+              ? "full"
+              : currentSeats > 0
+              ? "pending"
+              : ""
+          }`
+        } else {
+          console.error(
+            `Seat indicator for trip ID ${tripId} not found in DOM.`
+          )
+        }
+      }
+
+      function updateStatistics() {
+        /* 已移除視覺統計 */
+      }
+
+      function showLoading(show) {
+        document.getElementById("loading").style.display = show
+          ? "block"
+          : "none"
+      }
+
+      function showError(message) {
+        renderToast(message, "error")
+      }
+
+      function showDetailedError(title, details) {
+        // 使用較大的可滾動 toast 以避免推擠版面
+        const container = ensureGlobalMessageHost()
+        const toast = document.createElement("div")
+        toast.style.pointerEvents = "auto"
+        toast.style.background = "#f8d7da"
+        toast.style.border = "1px solid #f5c6cb"
+        toast.style.color = "#721c24"
+        toast.style.padding = "12px 14px"
+        toast.style.borderRadius = "8px"
+        toast.style.boxShadow = "0 8px 24px rgba(0,0,0,.18)"
+        toast.style.maxWidth = "560px" // 再長一點
+        toast.style.maxHeight = "50vh"
+        toast.style.overflow = "auto"
+        toast.style.opacity = "0"
+        toast.style.transform = "translateY(-4px)"
+        toast.style.transition = "opacity .3s ease, transform .3s ease"
+        toast.innerHTML = `<div style="font-weight:700;margin-bottom:6px;">${title}</div>`
+        if (details && details.trim()) {
+          const formatted = details.replace(/\n/g, "<br>")
+          toast.innerHTML += `<div style=\"font-size:14px; line-height:1.5;\">${formatted}</div>`
+        }
+        container.appendChild(toast)
+        // 動畫進場
+        requestAnimationFrame(() => {
+          toast.style.opacity = "1"
+          toast.style.transform = "translateY(0)"
+        })
+        // 逾時淡出移除（保留較長時間便於閱讀）
+        setTimeout(() => {
+          toast.style.opacity = "0"
+          toast.style.transform = "translateY(-4px)"
+          setTimeout(() => toast.remove(), 300)
+        }, 10000)
+      }
+
+      function showSuccess(message) {
+        renderToast(message, "success")
+      }
+
+      function showNotification(message, type = "info") {
+        // 將 info / warning 也做可見顯示，避免使用者感覺「沒反應」
+        if (type === "error") return showError(message)
+        return renderToast(message, type)
+      }
+
+      function ensureGlobalMessageHost() {
+        let host = document.getElementById("globalMessageHost")
+        if (!host) {
+          host = document.createElement("div")
+          host.id = "globalMessageHost"
+          host.style.position = "fixed"
+          host.style.top = "24px"
+          host.style.left = "50%"
+          host.style.transform = "translateX(-50%)"
+          host.style.zIndex = "10000"
+          host.style.display = "flex"
+          host.style.flexDirection = "column"
+          host.style.gap = "8px"
+          host.style.alignItems = "center"
+          host.style.pointerEvents = "none"
+          document.body.appendChild(host)
+        }
+        return host
+      }
+
+      function renderToast(message, type = "info") {
+        const container = ensureGlobalMessageHost()
+        const toast = document.createElement("div")
+        toast.style.pointerEvents = "auto"
+        toast.style.padding = "10px 12px"
+        toast.style.borderRadius = "8px"
+        toast.style.boxShadow = "0 8px 24px rgba(0,0,0,.18)"
+        toast.style.maxWidth = "520px" // 再長一點
+        toast.style.fontSize = "14px"
+        toast.style.lineHeight = "1.4"
+        toast.style.color = "#fff"
+        toast.style.opacity = "0"
+        toast.style.transform = "translateY(-4px)"
+        toast.style.transition = "opacity .3s ease, transform .3s ease"
+        switch (type) {
+          case "error":
+            toast.style.background = "#ff4d4f" // 更醒目的紅色
+            break
+          case "success":
+            toast.style.background = "#00c853" // 更亮的綠色
+            break
+          case "warning":
+            toast.style.background = "#ffca28" // 亮黃
+            toast.style.color = "#3d2e00"
+            break
+          default:
+            toast.style.background = "#2f86eb" // 亮藍
+            break
+        }
+        toast.textContent = message
+        container.appendChild(toast)
+        // 動畫進場
+        requestAnimationFrame(() => {
+          toast.style.opacity = "1"
+          toast.style.transform = "translateY(0)"
+        })
+        // 顯示約 5 秒，淡出後移除
+        const displayMs = 8000
+        setTimeout(() => {
+          toast.style.opacity = "0"
+          toast.style.transform = "translateY(-4px)"
+          setTimeout(() => toast.remove(), 300)
+        }, displayMs)
+        return toast
+      }
+
+      // 測試列印功能
+      function testPrint() {
+        try {
+          // 使用標準列印
+          standardTestPrint()
+        } catch (error) {
+          console.error("測試列印錯誤:", error)
+          showError(`測試列印失敗: ${error.message}`)
+        }
+      }
+
+      // 標準列印測試（kiosk-printing 下將靜默列印）
+      async function standardTestPrint() {
+        showNotification("正在測試列印功能...", "info")
+
+        const html = `
+          <div id="print-content" style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:1.2;color:#000;padding:2mm;text-align:center;">
+            <div style="font-size:16pt;font-weight:700;margin:0 0 3mm;">列印測試頁</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <p>時間: ${new Date().toLocaleString()}</p>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <p>如果您看到此頁面，列印設定正確</p>
+            <div style="height:8mm;"></div>
+          </div>`
+
+        const printContent =
+          document.getElementById("print-content") ||
+          createPrintContentElement()
+        printContent.innerHTML = html
+        printContent.style.display = "block"
+        const beforePrintHandler = () => {}
+        const afterPrintHandler = () => {
+          printContent.style.display = "none"
+          window.removeEventListener("beforeprint", beforePrintHandler)
+          window.removeEventListener("afterprint", afterPrintHandler)
+          showSuccess("列印測試完成")
+        }
+        window.addEventListener("beforeprint", beforePrintHandler)
+        window.addEventListener("afterprint", afterPrintHandler)
+        window.print()
+        setTimeout(() => {
+          if (printContent.style.display !== "none") {
+            printContent.style.display = "none"
+            window.removeEventListener("beforeprint", beforePrintHandler)
+            window.removeEventListener("afterprint", afterPrintHandler)
+          }
+        }, 8000)
+      }
+
+      // 拖拽功能支援
+      function makeDraggable() {
+        const passengerCards = document.querySelectorAll(".passenger-card")
+        const tripCards = document.querySelectorAll(".trip-card")
+
+        passengerCards.forEach((card) => {
+          card.draggable = true
+          card.addEventListener("dragstart", handleDragStart)
+          card.addEventListener("dragend", handleDragEnd)
+        })
+
+        tripCards.forEach((card) => {
+          card.addEventListener("dragover", handleDragOver)
+          card.addEventListener("drop", handleDrop)
+          card.addEventListener("dragleave", handleDragLeave)
+        })
+      }
+
+      function handleDragStart(e) {
+        e.target.classList.add("dragging")
+        e.dataTransfer.setData("text/plain", e.target.dataset.passengerId)
+      }
+
+      function handleDragEnd(e) {
+        e.target.classList.remove("dragging")
+      }
+
+      // 檢查乘客是否可以搭乘指定路線
+      async function canPassengerTakeRoute(passengerId, routeId) {
+        try {
+          // 找到乘客資料
+          const passenger = pendingPassengers.find((p) => p.id === passengerId)
+          if (!passenger || !passenger.destStop) {
+            console.log("找不到乘客或乘客沒有目的地站牌")
+            return false
+          }
+
+          // 獲取路線的站牌資料
+          const response = await fetch(`${BASE_URL}/KeepStop/route/${routeId}`)
+          if (!response.ok) {
+            console.log("無法獲取路線站牌資料")
+            return false
+          }
+
+          const stops = await response.json()
+          if (!stops || stops.length === 0) {
+            console.log("路線沒有站牌資料")
+            return false
+          }
+
+          const destStop = passenger.destStop || ""
+          const cleanDestStop = destStop.replace(/\s+/g, "").toUpperCase()
+
+          // 檢查目的地站牌是否在該路線的站牌列表中
+          const hasDestStop = stops.some((stop) => {
+            const stopName = stop.stopNameZh || ""
+            const cleanStopName = stopName.replace(/\s+/g, "").toUpperCase()
+            return (
+              cleanStopName.includes(cleanDestStop) ||
+              cleanDestStop.includes(cleanStopName)
+            )
+          })
+
+          console.log(
+            `乘客 ${passenger.name} (目的地: ${destStop}) ${
+              hasDestStop ? "可以" : "不可以"
+            } 搭乘路線 ${routeId}`
+          )
+          return hasDestStop
+        } catch (error) {
+          console.error("檢查乘客路線匹配失敗:", error)
+          return false
+        }
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault()
+        e.currentTarget.classList.add("drag-over")
+      }
+
+      async function handleDrop(e) {
+        e.preventDefault()
+        e.currentTarget.classList.remove("drag-over")
+
+        const passengerId = e.dataTransfer.getData("text/plain")
+        const tripCard = e.currentTarget
+        const tripId = tripCard.dataset.tripId
+
+        if (passengerId && tripId) {
+          // 找到對應的趟次
+          const trip = trips.find((t) => t.tripId === tripId)
+          if (!trip) {
+            showError("找不到對應的趟次")
+            return
+          }
+
+          // 🚀 優化：使用預計算的 IncludeRoutes 檢查路線匹配
+          const passenger = pendingPassengers.find((p) => p.id === passengerId)
+          if (!passenger) {
+            showError("找不到對應的乘客")
+            return
+          }
+
+          let canTake = false
+          if (passenger.includeRoutes && passenger.includeRoutes.trim()) {
+            // 使用預計算路線，無需 API 調用
+            const availableRoutes = passenger.includeRoutes
+              .split(",")
+              .map((route) => route.trim())
+              .filter((route) => route.length > 0)
+            canTake = availableRoutes.includes(trip.route)
+            console.log(
+              `📈 拖拽檢查 (無API調用): 趟次 ${trip.route} ${
+                canTake ? "符合" : "不符合"
+              } 預計算路線`
+            )
+          } else {
+            // 降級處理：使用原有的 API 檢查方式
+            console.log(`⚠️ 拖拽降級處理：API檢查趟次 ${trip.route}`)
+            canTake = await canPassengerTakeRoute(passengerId, trip.route)
+          }
+
+          if (!canTake) {
+            const passengerName = passenger ? passenger.name : "未知乘客"
+            showError(
+              `${passengerName} 無法搭乘路線 ${trip.route}，請檢查目的地站牌是否正確`
+            )
+            return
+          }
+
+          // 如果可以搭乘，則分配乘客
+          assignPassengerToTrip(passengerId, tripId)
+        }
+      }
+
+      function handleDragLeave(e) {
+        e.currentTarget.classList.remove("drag-over")
+      }
+
+      // 切換趟次詳細資訊
+      function toggleTripDetails(tripId) {
+        const details = document.getElementById(`details-${tripId}`)
+        const toggleBtn = document.querySelector(
+          `[data-trip-id="${tripId}"] .toggle-btn`
+        )
+
+        if (details && toggleBtn) {
+          if (details.classList.contains("expanded")) {
+            details.classList.remove("expanded")
+            toggleBtn.classList.remove("expanded")
+            toggleBtn.textContent = "🔽"
+          } else {
+            details.classList.add("expanded")
+            toggleBtn.classList.add("expanded")
+            toggleBtn.textContent = "🔼"
+          }
+        }
+      }
+
+      // 全部展開趟次
+      function expandAllTrips() {
+        const allDetails = document.querySelectorAll(".trip-collapsible")
+        const allToggleBtns = document.querySelectorAll(".toggle-btn")
+
+        allDetails.forEach((detail) => {
+          detail.classList.add("expanded")
+        })
+
+        allToggleBtns.forEach((btn) => {
+          btn.classList.add("expanded")
+          btn.textContent = "🔼"
+        })
+      }
+
+      // 全部摺疊趟次
+      function collapseAllTrips() {
+        const allDetails = document.querySelectorAll(".trip-collapsible")
+        const allToggleBtns = document.querySelectorAll(".toggle-btn")
+
+        allDetails.forEach((detail) => {
+          detail.classList.remove("expanded")
+        })
+
+        allToggleBtns.forEach((btn) => {
+          btn.classList.remove("expanded")
+          btn.textContent = "🔽"
+        })
+      }
+
+      function pollPendingPassengers() {
+        fetch(`${BASE_URL}/Trip/pending-passengers`)
+          .then((res) => res.json())
+          .then((result) => {
+            if (!result.success || !Array.isArray(result.data)) return
+
+            const todayPassengers = result.data // 直接使用 API 返回的資料
+
+            // 若資料無變更，避免重繪以減少抖動
+            try {
+              const currentKey = JSON.stringify(pendingPassengers)
+              const incomingKey = JSON.stringify(todayPassengers)
+              if (currentKey === incomingKey) {
+                return
+              }
+            } catch (_) {
+              // 比對失敗時，繼續走差異流程
+            }
+
+            const removedReservations = pendingPassengers.filter(
+              (oldPassenger) =>
+                !todayPassengers.some(
+                  (newPassenger) => newPassenger.id === oldPassenger.id
+                )
+            )
+
+            const addedReservations = todayPassengers.filter(
+              (newPassenger) =>
+                !pendingPassengers.some(
+                  (oldPassenger) => oldPassenger.id === newPassenger.id
+                )
+            )
+
+            if (removedReservations.length > 0) {
+              removedReservations.forEach((removedPassenger) => {
+                trips.forEach((trip) => {
+                  if (trip.passengers) {
+                    trip.passengers = trip.passengers.filter(
+                      (passenger) => passenger.id !== removedPassenger.id
+                    )
+                  }
+                  // 僅更新受影響的座位顯示
+                  updateTripSeatDisplay(trip.tripId)
+                })
+              })
+              showNotification("有乘客取消預約，已自動移除！")
+
+              // 使用安全的方式播放音效
+              playNotificationSound()
+            }
+
+            if (addedReservations.length > 0) {
+              showNotification("有新的預約進入待排！")
+
+              // 使用安全的方式播放音效
+              playNotificationSound()
+            }
+
+            pendingPassengers = todayPassengers
+
+            // 僅在有差異時進行必要的重繪
+            renderPendingPassengers()
+            renderTripsSync()
+            updateStatistics()
+          })
+          .catch((error) => {
+            console.error("API request failed:", error)
+          })
+      }
+
+      // 安全播放通知音效
+      function playNotificationSound() {
+        try {
+          const sound = document.getElementById("notifySound")
+          if (sound) {
+            // 檢查 AudioContext 是否存在並且是否已啟用
+            if (
+              window.audioContext &&
+              window.audioContext.state === "running"
+            ) {
+              // 重置播放位置
+              sound.currentTime = 0
+
+              // 播放聲音
+              const playPromise = sound.play()
+
+              // 處理播放 Promise
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    console.log("通知音效播放成功")
+                  })
+                  .catch((error) => {
+                    console.error("通知音效播放失敗:", error)
+
+                    // 如果是因為用戶互動限制，提示用戶
+                    if (error.name === "NotAllowedError") {
+                      showVisualNotification(
+                        "請點擊「啟用音效通知」按鈕來啟用音效",
+                        "warning"
+                      )
+                    }
+                  })
+              }
+            } else {
+              console.warn("AudioContext 未啟用，無法播放音效")
+              showVisualNotification(
+                "請點擊「啟用音效通知」按鈕來啟用音效",
+                "warning"
+              )
+            }
+          } else {
+            console.error("找不到音效元素")
+          }
+        } catch (error) {
+          console.error("播放通知音效時發生錯誤:", error)
+        }
+      }
+      setInterval(pollPendingPassengers, 5000) // 每5秒自動偵測
+    </script>
+
+    <!-- 列印內容區域 -->
+    <div
+      id="print-content"
+      style="
+        display: none;
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        background: white;
+        color: black;
+      "
+    ></div>
+
+    <!-- 列印樣式 -->
+    <style>
+      /* 列印內容樣式定義 */
+      #print-content .print-title {
+        font-size: 16pt;
+        font-weight: bold;
+        text-align: center;
+        margin: 0 0 3mm 0;
+        background: white;
+        color: black;
+      }
+
+      #print-content .print-header {
+        font-size: 12pt;
+        font-weight: bold;
+        margin: 2mm 0;
+        text-align: center;
+        background: white;
+        color: black;
+      }
+
+      #print-content .print-divider {
+        height: 3mm;
+        margin: 0;
+        padding: 0;
+        background: white;
+        border: none;
+      }
+
+      #print-content .print-route,
+      #print-content .print-stop {
+        font-size: 11pt;
+        font-weight: bold;
+        margin: 1mm 0;
+        text-align: center;
+        background: white;
+        color: black;
+      }
+
+      #print-content .passenger-list {
+        font-size: 9pt;
+        line-height: 1.2;
+        margin: 2mm 0;
+        text-align: left;
+        background: white;
+        color: black;
+      }
+
+      #print-content .print-summary,
+      #print-content .print-datetime {
+        font-size: 9pt;
+        margin: 1mm 0;
+        text-align: center;
+        background: white;
+        color: black;
+      }
+
+      #print-content .print-spacer {
+        height: 4mm;
+        margin: 0;
+        padding: 0;
+        background: white;
+        border: none;
+      }
+
+      #print-content .qr-code {
+        margin: 2mm 0;
+        text-align: center;
+        background: white;
+      }
+
+      #print-content .qr-code img {
+        background: white;
+        border: none;
+        width: 30mm;
+        height: 30mm;
+      }
+
+      /* 列印時的樣式 */
+      @media print {
+        /* 強制單頁列印，最小化邊距 */
+        @page {
+          margin: 2mm !important;
+          size: 79mm auto !important; /* 自動高度 */
+          padding: 0 !important;
+        }
+
+        /* 隱藏所有非列印內容 */
+        body > *:not(#print-content) {
+          display: none !important;
+        }
+
+        /* 確保列印內容可見且樣式正確 */
+        #print-content {
+          display: block !important;
+          position: static !important;
+          left: auto !important;
+          top: auto !important;
+          width: 75mm !important;
+          height: auto !important;
+          font-family: "Microsoft JhengHei", "Courier New", monospace !important;
+          font-size: 10pt !important;
+          line-height: 1.2 !important;
+          color: black !important;
+          background: white !important;
+          padding: 2mm !important;
+          text-align: center !important;
+          margin: 0 auto !important;
+          box-sizing: border-box !important;
+          overflow: visible !important;
+          page-break-inside: avoid !important;
+        }
+      }
+    </style>
+
+    <script>
+      // 頁面載入時初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        // 初始化頁面
+      })
+    </script>
+  </body>
+</html>
