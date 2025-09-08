@@ -593,9 +593,32 @@
       }
 
       .route-option.selected {
+        /* 基本選取狀態，實際顏色由下方各路線覆蓋 */
         background: #4caf50;
         color: white;
         border-color: #4caf50;
+      }
+
+      /* 路線選擇按鈕：比照三個路線的配色（選取時）*/
+      .route-option.selected.route-208802 {
+        background: #007bff; /* 藍色 - 小1 */
+        border-color: #007bff;
+        color: #fff;
+      }
+      .route-option.selected.route-2088A2 {
+        background: #28a745; /* 綠色 - 藍15 */
+        border-color: #28a745;
+        color: #fff;
+      }
+      .route-option.selected.route-2088B2 {
+        background: #fd7e14; /* 橘色 - 紅33 */
+        border-color: #fd7e14;
+        color: #fff;
+      }
+      .route-option.selected.route-default {
+        background: #6c757d; /* 灰色 - 其他路線 */
+        border-color: #6c757d;
+        color: #fff;
       }
 
       .vehicle-selector {
@@ -1054,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.20 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.21 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2767,22 +2790,52 @@
 
       // 選擇函數
       function selectRoute(routeId, routeName) {
-        document
-          .querySelectorAll("#routeSelector .route-option")
-          .forEach((el) => el.classList.remove("selected"))
-        document
-          .querySelector(`#routeSelector [data-route="${routeId}"]`)
-          .classList.add("selected")
+        const all = document.querySelectorAll("#routeSelector .route-option")
+        // 清除所有按鈕的選取與顏色類別
+        all.forEach((el) => {
+          el.classList.remove(
+            "selected",
+            "route-208802",
+            "route-2088A2",
+            "route-2088B2",
+            "route-default"
+          )
+        })
+        // 套用選取與對應配色
+        const target = document.querySelector(
+          `#routeSelector [data-route="${routeId}"]`
+        )
+        if (target) {
+          target.classList.add("selected")
+          const colorClass = getRouteColorClass(routeId) || "route-default"
+          target.classList.add(colorClass)
+        }
         document.getElementById("selectedRoute").value = routeId
       }
 
       function selectEditRoute(routeId, routeName) {
-        document
-          .querySelectorAll("#editRouteSelector .route-option")
-          .forEach((el) => el.classList.remove("selected"))
-        document
-          .querySelector(`#editRouteSelector [data-route="${routeId}"]`)
-          .classList.add("selected")
+        const all = document.querySelectorAll(
+          "#editRouteSelector .route-option"
+        )
+        // 清除所有按鈕的選取與顏色類別
+        all.forEach((el) => {
+          el.classList.remove(
+            "selected",
+            "route-208802",
+            "route-2088A2",
+            "route-2088B2",
+            "route-default"
+          )
+        })
+        // 套用選取與對應配色
+        const target = document.querySelector(
+          `#editRouteSelector [data-route="${routeId}"]`
+        )
+        if (target) {
+          target.classList.add("selected")
+          const colorClass = getRouteColorClass(routeId) || "route-default"
+          target.classList.add(colorClass)
+        }
         document.getElementById("editSelectedRoute").value = routeId
       }
 
@@ -4903,4 +4956,3 @@
     </script>
   </body>
 </html>
-
