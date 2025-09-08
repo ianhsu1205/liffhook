@@ -53,7 +53,7 @@
     // 支援大小寫差異的欄位
     routeTitle.textContent = d.RouteNameZh || d.routeNameZh || '—';
     const op = operatorLabelOverride || d.Operator || d.operator || operator;
-    routeSub.textContent = `${op} · 共 ${items.length} 筆變化`;
+    routeSub.textContent = `${op} · 查到 ${items.length} 條路線`;
 
   // 路線圖連結：優先使用第一筆的 RouteMapImageUrl；不預覽，只提供開新分頁
     const first = items[0];
