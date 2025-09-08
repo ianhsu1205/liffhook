@@ -13,6 +13,19 @@
 //  const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
   const operator = '大都會客運';
 
+  // 防止一聚焦就跳出 datalist：先暫時移除 list 屬性，輸入後再恢復
+  const originalListId = routeInput.getAttribute('list') || 'routeOptions';
+  routeInput.dataset.listBackup = originalListId;
+  // 關閉瀏覽器自動完成/拼字修正，避免非預期的建議
+  routeInput.setAttribute('autocomplete', 'off');
+  routeInput.setAttribute('autocapitalize', 'off');
+  routeInput.setAttribute('spellcheck', 'false');
+  routeInput.addEventListener('focus', () => {
+    // 清空候選並移除 list，避免一聚焦就彈出
+    dataList.innerHTML = '';
+    routeInput.removeAttribute('list');
+  });
+
   // 載入候選路線名（GroupBy RouteNameZh）
   async function loadNames(keyword = '') {
     const kw = (keyword || '').trim();
@@ -154,6 +167,11 @@
     const kw = e.target.value.trim();
     // 輕量 debounce
     clearTimeout(routeInput._t);
+    // 當使用者開始輸入內容時，恢復 list 讓 datalist 正常運作
+    if (kw && !routeInput.getAttribute('list')) {
+      const listId = routeInput.dataset.listBackup;
+      if (listId) routeInput.setAttribute('list', listId);
+    }
     routeInput._t = setTimeout(() => loadNames(kw), 200);
   });
 
