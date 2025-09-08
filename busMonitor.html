@@ -2052,7 +2052,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.1.9(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.2.0(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -3044,7 +3044,7 @@ function goToPlateInputStep() {
   // 檢查是否已有此公司的車輛資料緩存
   if (!companyVehicles[companyValue]) {
     // 第一次獲取此公司的資料
-    fetch(`${base_url}BusVehicle?operatorName=${encodeURIComponent(companyValue)}`)
+    fetch(`${base_url}BusVehicle/BusVehicle?operatorName=${encodeURIComponent(companyValue)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`API請求失敗: ${response.status}`);
