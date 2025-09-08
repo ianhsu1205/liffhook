@@ -15,9 +15,15 @@
 
   // 載入候選路線名（GroupBy RouteNameZh）
   async function loadNames(keyword = '') {
+    const kw = (keyword || '').trim();
+    // 無輸入時不要顯示任何候選，避免一點進輸入框就彈出選單
+    if (!kw) {
+      dataList.innerHTML = '';
+      return;
+    }
     const url = new URL(apiBase + '/names');
     url.searchParams.set('operatorNameZh', operator);
-    if (keyword) url.searchParams.set('keyword', keyword);
+    url.searchParams.set('keyword', kw);
     const resp = await fetch(url);
     if (!resp.ok) return;
     const json = await resp.json();
@@ -179,6 +185,5 @@
     window.open(href, '_blank', 'noopener');
   });
 
-  // 初始載入
-  loadNames();
+  // 初始不載入任何候選，避免一聚焦就出現下拉
 })();
