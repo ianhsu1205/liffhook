@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>保留座位</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      // 靜音非必要的 console 輸出（保留 error），可透過 window.__ENABLE_DEBUG__ = true 重新開啟
+      ;(function () {
+        try {
+          if (!window.__ENABLE_DEBUG__) {
+            var noop = function () {}
+            if (window.console) {
+              console.log = noop
+              console.info = noop
+              console.debug = noop
+              console.warn = noop
+            }
+          }
+        } catch (e) {
+          // 忽略覆寫失敗
+        }
+      })()
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Noto Sans TC", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 0;
+        color: #333;
+        min-height: 100vh;
+        background-attachment: fixed;
+      }
+
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+        background: white;
+        min-height: 100vh;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 頭部區域 */
+      .header {
+        background: linear-gradient(135deg, #06c755 0%, #04a73e 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        animation: rotate 20s linear infinite;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+        font-size: 14px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* 主要內容區域 */
+      .main-content {
+        padding: 20px;
+      }
+
+      /* 表單區域 */
+      .form-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #e9ecef;
+      }
+
+      .form-section h3 {
+        margin: 0 0 15px 0;
+        color: #495057;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .required::after {
+        content: " *";
+        color: #dc3545;
+      }
+
+      .input-wrapper {
+        position: relative;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: inherit;
+        transition: all 0.3s ease;
+        background: white;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #06c755;
+        box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.1);
+      }
+
+      /* 搜尋輸入框樣式 */
+      .search-input {
+        position: relative;
+      }
+
+      .search-input::after {
+        content: "🔍";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      /* 搜尋結果列表 */
+      .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+      }
+
+      .search-results.show {
+        display: block;
+      }
+
+      .search-result-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f4;
+        transition: background-color 0.2s ease;
+      }
+
+      .search-result-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .search-result-item:last-child {
+        border-bottom: none;
+      }
+
+      .search-result-title {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 4px;
+      }
+
+      .search-result-desc {
+        font-size: 12px;
+        color: #6c757d;
+      }
+
+      /* 按鈕樣式 */
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #06c755 0%, #04a73e 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(6, 199, 85, 0.4);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+      }
+
+      .btn-full {
+        width: 100%;
+        margin-top: 10px;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      /* 錯誤訊息 */
+      .error-message {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+      }
+
+      .error-message.show {
+        display: block;
+      }
+
+      .input-error {
+        border-color: #dc3545 !important;
+      }
+
+      /* 成功訊息 */
+      .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #c3e6cb;
+        display: none;
+      }
+
+      .success-message.show {
+        display: block;
+      }
+
+      /* 載入中樣式 */
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .loading.show {
+        display: block;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #06c755;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 隱藏元素 */
+      .hidden {
+        display: none !important;
+      }
+
+      /* 乘客須知樣式 */
+      .notice-container {
+        background: #e8f4fd;
+        border: 2px solid #b3d9f7;
+        border-radius: 12px;
+        margin: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 123, 255, 0.1);
+      }
+
+      .notice-header {
+        background: #007bff;
+        color: white;
+        padding: 15px 20px;
+        text-align: center;
+      }
+
+      .notice-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .notice-content {
+        padding: 20px;
+      }
+
+      .notice-content p {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #333;
+        font-weight: 600;
+      }
+
+      .notice-content ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .notice-content li {
+        margin-bottom: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #555;
+      }
+
+      /* 成功動畫 */
+      .success-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(6, 199, 85, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+      }
+
+      .success-checkmark {
+        width: 80px;
+        height: 80px;
+        border: 4px solid white;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        animation: successPulse 0.6s ease-in-out;
+      }
+
+      .success-checkmark::after {
+        content: "✓";
+        font-size: 40px;
+        font-weight: bold;
+      }
+
+      .success-message-text {
+        font-size: 24px;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .success-details {
+        font-size: 16px;
+        text-align: center;
+        opacity: 0.9;
+      }
+
+      @keyframes successPulse {
+        0% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /* 取消成功動畫樣式 */
+      .cancel-success-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(220, 53, 69, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+      }
+
+      .cancel-checkmark {
+        width: 80px;
+        height: 80px;
+        border: 4px solid white;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+        animation: successPulse 0.6s ease-in-out;
+      }
+
+      .cancel-checkmark::after {
+        content: "✓";
+        font-size: 40px;
+        font-weight: bold;
+      }
+
+      .cancel-message-text {
+        font-size: 24px;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .cancel-details {
+        font-size: 16px;
+        text-align: center;
+        opacity: 0.9;
+      }
+
+      /* 自訂確認對話方塊 */
+      .confirm-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(3px);
+      }
+
+      .confirm-dialog {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 320px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        animation: fadeInUp 0.3s ease-out;
+      }
+
+      .confirm-dialog h3 {
+        margin: 0 0 16px 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .confirm-dialog p {
+        margin: 0 0 24px 0;
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .confirm-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      .confirm-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 80px;
+      }
+
+      .confirm-btn.primary {
+        background: #06c755;
+        color: white;
+      }
+
+      .confirm-btn.primary:hover {
+        background: #05b149;
+      }
+
+      .confirm-btn.secondary {
+        background: #f5f5f5;
+        color: #666;
+      }
+
+      .confirm-btn.secondary:hover {
+        background: #e9e9e9;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* 響應式設計 */
+      @media (max-width: 480px) {
+        .container {
+          margin: 0;
+          box-shadow: none;
+        }
+
+        .main-content {
+          padding: 15px;
+        }
+
+        .form-section {
+          padding: 15px;
+        }
+      }
+
+      /* 時間選擇器樣式 */
+      .time-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .time-selector select {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      /* 座位數量選擇器 */
+      .seat-counter {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 10px;
+      }
+
+      .counter-btn {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #06c755;
+        background: white;
+        color: #06c755;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .counter-btn:hover {
+        background: #06c755;
+        color: white;
+      }
+
+      .counter-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .seat-count {
+        font-size: 18px;
+        font-weight: 600;
+        min-width: 30px;
+        text-align: center;
+      }
+
+      /* 預約摘要 */
+      .reservation-summary {
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 20px;
+        border: 1px solid #e1bee7;
+      }
+
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-item:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 16px;
+        margin-top: 10px;
+        padding-top: 15px;
+        border-top: 2px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-label {
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .summary-value {
+        font-weight: 500;
+        color: #495057;
+      }
+
+      /* 新的站牌選取器樣式 */
+      .stop-selector-button {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+        font-size: 16px;
+      }
+
+      .stop-selector-button:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+      }
+
+      .stop-selector-button.selected {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+      }
+
+      .selector-arrow {
+        color: #6c757d;
+        font-size: 12px;
+      }
+
+      /* 站牌選取全頁視窗 */
+      .stop-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+
+      .stop-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .stop-modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 12px 12px 0 0;
+      }
+
+      .stop-modal-header h2 {
+        margin: 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .stop-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6c757d;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .stop-modal-close:hover {
+        color: #dc3545;
+      }
+
+      .stop-modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+      }
+
+      .stop-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .stop-item {
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        position: relative;
+        min-height: 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .stop-item:hover {
+        border-color: #007bff;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+      }
+
+      .stop-item.selected {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+      }
+
+      .stop-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+        line-height: 1.3;
+        word-break: break-all;
+      }
+
+      /* 站牌下框線顏色分組 */
+      .stop-route-208802 {
+        border-bottom: 6px solid #007bff !important; /* 藍色 - 208802 路線 */
+      }
+
+      .stop-route-2088A2 {
+        border-bottom: 6px solid #28a745 !important; /* 綠色 - 2088A2 路線 */
+      }
+
+      .stop-route-2088B2 {
+        border-bottom: 6px solid #fd7e14 !important; /* 橙色 - 2088B2 路線 */
+      }
+
+      .stop-route-default {
+        border-bottom: 6px solid #6c757d !important; /* 灰色 - 其他 */
+      }
+
+      /* 手機響應式 */
+      @media (max-width: 768px) {
+        .stop-modal {
+          padding: 5px;
+        }
+
+        .stop-modal-content {
+          max-height: 95vh;
+        }
+
+        .stop-modal-header {
+          padding: 15px;
+        }
+
+        .stop-modal-body {
+          padding: 10px;
+        }
+
+        .stop-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .stop-item {
+          padding: 6px;
+          min-height: 50px;
+        }
+
+        .stop-name {
+          font-size: 13px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .stop-grid {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+
+        .stop-item {
+          padding: 6px;
+          min-height: 45px;
+        }
+
+        .stop-name {
+          font-size: 12px;
+        }
+      }
+
+      /* 圖例樣式 */
+      .route-legend {
+        margin-bottom: 15px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+      }
+
+      .legend-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+
+      .legend-items {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #495057;
+        font-weight: 500;
+      }
+
+      .legend-color {
+        width: 24px;
+        height: 5px;
+        border-radius: 3px;
+      }
+
+      .legend-color.route-208802 {
+        background-color: #007bff;
+      }
+
+      .legend-color.route-2088A2 {
+        background-color: #28a745;
+      }
+
+      .legend-color.route-2088B2 {
+        background-color: #fd7e14;
+      }
+
+      .legend-color.route-default {
+        background-color: #6c757d;
+      }
+
+      @media (max-width: 480px) {
+        .legend-items {
+          gap: 12px;
+        }
+
+        .legend-item {
+          font-size: 13px;
+        }
+
+        .legend-color {
+          width: 20px;
+          height: 4px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 自訂確認對話方塊 -->
+    <div id="confirmOverlay" class="confirm-overlay hidden">
+      <div class="confirm-dialog">
+        <h3>確認操作</h3>
+        <p id="confirmMessage">您確定要執行此操作嗎？</p>
+        <div class="confirm-buttons">
+          <button id="confirmCancel" class="confirm-btn secondary">取消</button>
+          <button id="confirmOk" class="confirm-btn primary">確定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成功動畫 -->
+    <div id="successAnimation" class="success-animation hidden">
+      <div class="success-checkmark"></div>
+      <div class="success-message-text">送出成功！</div>
+      <div class="success-details">我們已收到您的保留座位通知</div>
+    </div>
+
+    <!-- 取消成功動畫 -->
+    <div id="cancelSuccessAnimation" class="cancel-success-animation hidden">
+      <div class="cancel-checkmark"></div>
+      <div class="cancel-message-text">取消成功！</div>
+      <div class="cancel-details">您的保留座位需求已取消</div>
+    </div>
+
+    <div class="container">
+      <!-- 頭部區域 -->
+      <div class="header">
+        <h1>申請保留座位</h1>
+      </div>
+
+      <!-- 乘客須知 -->
+      <div class="notice-container">
+        <div class="notice-header">
+          <h3>📋 乘客須知</h3>
+        </div>
+        <div class="notice-content">
+          <p><strong>敬告乘客：</strong></p>
+          <ol>
+            <li>保留座位請依排定的車號及站牌上車。</li>
+            <li>
+              上車後請使用「我已搭乘」的掃描功能掃描QRCode確認搭乘，若非排定的車輛則無法確認。
+            </li>
+            <li>若您已保留成功但搭乘非排定的車輛，請記得於當日取消保留。</li>
+            <li>
+              目前2088B為試辦路線，每日18:00故定班次，請留給信中後站-台北悠活村的乘客，非常感謝。
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 主要內容 -->
+      <div class="main-content">
+        <!-- 現有預約顯示 -->
+        <div id="existingReservation" class="form-section hidden">
+          <h3>⚠️ 您還有尚未搭乘的保留座位</h3>
+          <div
+            style="
+              background: #fff3cd;
+              border: 2px solid #ffc107;
+              border-radius: 8px;
+              padding: 20px;
+            "
+          >
+            <div class="reservation-details">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 10px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">乘車站牌：</span>
+                <span
+                  id="existingKeepStop"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 10px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">下車站牌：</span>
+                <span
+                  id="existingDestStop"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 10px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">乘客稱呼：</span>
+                <span
+                  id="existingName"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 10px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">座位數量：</span>
+                <span
+                  id="existingSeatCount"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 10px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">預約時間：</span>
+                <span
+                  id="existingDateTime"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 15px;
+                "
+              >
+                <span style="color: #856404; font-weight: 500">狀態：</span>
+                <span
+                  id="existingStatus"
+                  style="color: #856404; font-weight: 600"
+                ></span>
+              </div>
+              <button
+                id="cancelReservationBtn"
+                onclick="cancelExistingReservation()"
+                style="
+                  width: 100%;
+                  background: #dc3545;
+                  color: white;
+                  border: none;
+                  padding: 12px;
+                  border-radius: 8px;
+                  font-size: 16px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                "
+              >
+                取消預約
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 載入中 -->
+        <div id="loadingMessage" class="loading">
+          <div class="spinner"></div>
+          <p>載入中，請稍候...</p>
+        </div>
+
+        <!-- 預約表單 -->
+        <form id="reservationForm" class="hidden">
+          <!-- 乘車站牌選擇 -->
+          <div class="form-section">
+            <h3>📍 選擇乘車站牌</h3>
+            <div class="input-group">
+              <label for="keepStopDisplay" class="required">乘車站牌</label>
+              <div class="input-wrapper">
+                <div
+                  id="keepStopDisplay"
+                  class="stop-selector-button"
+                  onclick="openKeepStopSelector()"
+                >
+                  <span id="keepStopDisplayText">點擊選擇乘車站牌</span>
+                  <span class="selector-arrow">▼</span>
+                </div>
+              </div>
+              <div id="keepStopError" class="error-message"></div>
+            </div>
+          </div>
+
+          <!-- 下車站牌選擇 -->
+          <div class="form-section">
+            <h3>🎯 選擇下車站牌</h3>
+            <div class="input-group">
+              <label for="destStopDisplay" class="required">下車站牌</label>
+              <div class="input-wrapper">
+                <div
+                  id="destStopDisplay"
+                  class="stop-selector-button"
+                  onclick="openDestStopSelector()"
+                >
+                  <span id="destStopDisplayText">點擊選擇下車站牌</span>
+                  <span class="selector-arrow">▼</span>
+                </div>
+              </div>
+              <div id="destStopError" class="error-message"></div>
+            </div>
+          </div>
+
+          <!-- 乘客資訊 -->
+          <div class="form-section">
+            <h3>👤 乘客資訊</h3>
+            <div class="input-group">
+              <label for="passengerName" class="required">稱呼</label>
+              <input
+                type="text"
+                id="passengerName"
+                placeholder="請輸入您的稱呼"
+                maxlength="20"
+              />
+              <div id="nameError" class="error-message"></div>
+            </div>
+
+            <div class="input-group">
+              <label for="passengerPhone" class="required">電話號碼</label>
+              <input
+                type="tel"
+                id="passengerPhone"
+                placeholder="請輸入手機號碼（例：0912345678）"
+                maxlength="10"
+              />
+              <div id="phoneError" class="error-message"></div>
+            </div>
+          </div>
+
+          <!-- 座位數量 -->
+          <div class="form-section">
+            <h3>🪑 座位數量</h3>
+            <div class="input-group">
+              <label>需要保留的座位數</label>
+              <div class="seat-counter">
+                <button
+                  type="button"
+                  class="counter-btn"
+                  onclick="decreaseSeatCount()"
+                  id="decreaseBtn"
+                >
+                  −
+                </button>
+                <span class="seat-count" id="seatCount">1</span>
+                <button
+                  type="button"
+                  class="counter-btn"
+                  onclick="increaseSeatCount()"
+                  id="increaseBtn"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 預約摘要 -->
+          <div id="reservationSummary" class="reservation-summary hidden">
+            <h3>📋 預約摘要</h3>
+            <div class="summary-item">
+              <span class="summary-label">乘車站牌：</span>
+              <span class="summary-value" id="summaryKeepStop">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">下車站牌：</span>
+              <span class="summary-value" id="summaryDestStop">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">您的稱呼：</span>
+              <span class="summary-value" id="summaryName">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">聯絡電話：</span>
+              <span class="summary-value" id="summaryPhone">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">預約時間：</span>
+              <span class="summary-value" id="summaryDateTime">-</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">座位數量：</span>
+              <span class="summary-value" id="summarySeatCount">1</span>
+            </div>
+          </div>
+
+          <!-- 提交按鈕 -->
+          <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+            確認送出保留申請
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // 全域變數
+      const API_BASE_URL = "https://35.221.146.143.nip.io/linehook/keepseat"
+      let keepStops = []
+      let destStops = []
+      let seatCount = 1
+      let currentUser = null
+      let currentReservation = null
+
+      // 調試函數
+      // 初始化
+      document.addEventListener("DOMContentLoaded", async function () {
+        try {
+          showLoading(true)
+
+          await initializeLiff()
+          await loadUserProfile()
+          await loadStops()
+          initializeEventListeners()
+          await checkExistingReservation()
+
+          showLoading(false)
+        } catch (error) {
+          console.error("初始化失敗:", error)
+          showError("系統初始化失敗，請重新整理頁面")
+          showLoading(false)
+        }
+      })
+
+      // LIFF 初始化
+      async function initializeLiff() {
+        try {
+          await liff.init({ liffId: "2007942695-GA2M48Aj" })
+          console.log("LIFF 初始化成功")
+        } catch (error) {
+          console.error("LIFF 初始化失敗:", error)
+          throw error
+        }
+      }
+
+      // 載入用戶資料
+      async function loadUserProfile() {
+        try {
+          if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile()
+            currentUser = {
+              userId: profile.userId,
+              displayName: profile.displayName,
+              pictureUrl: profile.pictureUrl,
+            }
+            console.log("用戶資料載入完成:", currentUser)
+          } else {
+            console.log("用戶未登入，開始登入流程")
+            liff.login()
+            // 登入後頁面會重新載入，所以這裡直接返回
+            return
+          }
+        } catch (error) {
+          console.error("載入用戶資料失敗:", error)
+          throw error
+        }
+      }
+
+      // 檢查現有預約
+      async function checkExistingReservation() {
+        if (!currentUser || !currentUser.userId) {
+          console.log("用戶資訊未載入，跳過預約檢查")
+          return
+        }
+
+        console.log("開始檢查現有預約，用戶ID:", currentUser.userId)
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/check-existing/${currentUser.userId}`
+          )
+
+          console.log("預約檢查回應狀態:", response.status)
+
+          // 嘗試讀取回應內容
+          let responseText = ""
+          try {
+            responseText = await response.text()
+            console.log("原始回應內容:", responseText)
+          } catch (e) {
+            console.error("讀取回應失敗:", e)
+            responseText = ""
+          }
+
+          if (response.ok) {
+            // 成功回應，嘗試解析JSON
+            let result = null
+            try {
+              result = JSON.parse(responseText)
+              console.log("解析的JSON結果:", result)
+            } catch (parseError) {
+              console.warn("JSON解析失敗:", parseError)
+              showReservationForm()
+              return
+            }
+
+            if (result.hasExisting && result.data) {
+              console.log("發現現有預約:", result.data)
+              currentReservation = result.data
+              displayExistingReservation(result.data)
+              hideReservationForm()
+            } else {
+              console.log("沒有現有預約")
+              currentReservation = null
+              hideExistingReservation()
+              showReservationForm()
+            }
+          } else {
+            // 錯誤回應，檢查是否包含預約信息
+            console.log(
+              "API回傳錯誤，狀態碼:",
+              response.status,
+              "內容:",
+              responseText
+            )
+
+            // 嘗試解析錯誤回應中的JSON（有些錯誤回應可能包含預約信息）
+            try {
+              const errorResult = JSON.parse(responseText)
+              console.log("錯誤回應的JSON:", errorResult)
+
+              // 如果錯誤回應中包含預約信息
+              if (errorResult.reservation) {
+                console.log(
+                  "在錯誤回應中發現預約信息:",
+                  errorResult.reservation
+                )
+                currentReservation = errorResult.reservation
+                displayExistingReservation(errorResult.reservation)
+                hideReservationForm()
+                return
+              }
+            } catch (jsonError) {
+              console.log("錯誤回應不是JSON格式")
+            }
+
+            // 檢查文字內容是否提到有預約
+            if (
+              responseText.includes("未搭乘") ||
+              responseText.includes("已有預約") ||
+              responseText.includes("保留座位")
+            ) {
+              console.log("檢測到有預約相關錯誤訊息")
+
+              // 顯示錯誤訊息但不顯示表單
+              showError("您有未完成的預約。錯誤訊息：" + responseText)
+              hideReservationForm()
+
+              // 創建一個臨時的預約顯示
+              const tempReservation = {
+                id: "unknown",
+                keepStop: "資訊載入失敗",
+                destStop: "資訊載入失敗",
+                name: "資訊載入失敗",
+                seatCount: "未知",
+                requestDateTime: "資訊載入失敗",
+                status: "有未完成預約 - " + responseText,
+              }
+
+              displayExistingReservation(tempReservation)
+            } else {
+              console.log("沒有預約相關錯誤，顯示預約表單")
+              currentReservation = null
+              hideExistingReservation()
+              showReservationForm()
+            }
+          }
+        } catch (error) {
+          console.error("檢查現有預約失敗:", error)
+          currentReservation = null
+          hideExistingReservation()
+          showReservationForm()
+        }
+      }
+
+      // 顯示現有預約
+      function displayExistingReservation(reservation) {
+        console.log("顯示現有預約資訊:", reservation)
+
+        document.getElementById("existingKeepStop").textContent =
+          reservation.keepStop || "未知"
+        document.getElementById("existingDestStop").textContent =
+          reservation.destStop || "未知"
+        document.getElementById("existingName").textContent =
+          currentUser?.displayName || "未知"
+        document.getElementById("existingSeatCount").textContent =
+          reservation.seatCount || "未知"
+        document.getElementById("existingDateTime").textContent =
+          reservation.requestDateTime || "未知"
+
+        // 根據狀態顯示不同的訊息和樣式
+        let statusText = reservation.status || "待安排"
+        let backgroundColor = "#fff3cd"
+        let borderColor = "#ffc107"
+
+        if (reservation.tripId) {
+          // 已安排的預約
+          statusText = "待安排車輛"
+          backgroundColor = "#d1ecf1"
+          borderColor = "#bee5eb"
+        } else {
+          // 未安排的預約
+          statusText = "待安排車輛"
+        }
+
+        // 檢查是否有特殊狀態標記
+        if (
+          reservation.isUnridden ||
+          (reservation.status && reservation.status.includes("未搭乘"))
+        ) {
+          statusText = "⚠️ 未搭乘 - 請及時取消或準時搭乘"
+          backgroundColor = "#f8d7da"
+          borderColor = "#f5c6cb"
+        }
+
+        document.getElementById("existingStatus").textContent = statusText
+
+        // 更新背景色
+        const reservationElement = document.getElementById(
+          "existingReservation"
+        )
+        const detailsDiv = reservationElement.querySelector(
+          "div[style*='background']"
+        )
+        if (detailsDiv) {
+          detailsDiv.style.background = backgroundColor
+          detailsDiv.style.borderColor = borderColor
+        }
+
+        console.log("顯示現有預約區域")
+        document
+          .getElementById("existingReservation")
+          .classList.remove("hidden")
+      }
+
+      // 隱藏現有預約
+      function hideExistingReservation() {
+        console.log("隱藏現有預約區域")
+        document.getElementById("existingReservation").classList.add("hidden")
+      }
+
+      // 顯示預約表單
+      function showReservationForm() {
+        console.log("顯示預約表單")
+        document.getElementById("reservationForm").classList.remove("hidden")
+      }
+
+      // 隱藏預約表單
+      function hideReservationForm() {
+        console.log("隱藏預約表單")
+        document.getElementById("reservationForm").classList.add("hidden")
+      }
+
+      // 取消現有預約
+      async function cancelExistingReservation() {
+        if (!currentReservation) {
+          return
+        }
+
+        const shouldCancel = await showConfirm("確定要取消當前的預約嗎？")
+        if (!shouldCancel) return
+
+        try {
+          showLoading(true)
+
+          const response = await fetch(`${API_BASE_URL}/cancel`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              keepSeatId: currentReservation.id,
+              userId: currentUser.userId,
+            }),
+          })
+
+          if (response.ok) {
+            showCancelSuccessAnimation()
+            setTimeout(() => {
+              document
+                .getElementById("cancelSuccessAnimation")
+                .classList.add("hidden")
+              hideExistingReservation()
+              showReservationForm()
+              currentReservation = null
+            }, 2000)
+          } else {
+            let errorText = ""
+            try {
+              errorText = await response.text()
+            } catch (e) {
+              errorText = "取消預約失敗"
+            }
+            alert(`取消預約失敗: ${errorText}`)
+          }
+        } catch (error) {
+          console.error("取消預約失敗:", error)
+          alert("取消預約時發生錯誤")
+        } finally {
+          showLoading(false)
+        }
+      }
+
+      // 載入站牌資料
+      async function loadStops() {
+        try {
+          // 載入乘車站牌
+          const keepResponse = await fetch(`${API_BASE_URL}/keep-stops`)
+          if (keepResponse.ok) {
+            const keepResult = await keepResponse.json()
+            keepStops = keepResult.data || []
+            console.log(`載入了 ${keepStops.length} 個乘車站牌`)
+          }
+
+          // 載入下車站牌
+          const destResponse = await fetch(`${API_BASE_URL}/dest-stops`)
+          if (destResponse.ok) {
+            const destResult = await destResponse.json()
+            destStops = destResult.data || []
+            console.log(`載入了 ${destStops.length} 個下車站牌`)
+          }
+
+          if (keepStops.length === 0 || destStops.length === 0) {
+            showError("站牌資料載入失敗，請聯繫客服")
+          }
+        } catch (error) {
+          console.error("載入站牌資料失敗:", error)
+          keepStops = []
+          destStops = []
+          showError("載入站牌資料時發生錯誤")
+        }
+      }
+
+      // 站牌選取器相關功能
+      let currentStops = [] // 儲存目前的站牌資料
+      let currentSelector = null // 記錄目前選取的選取器類型
+
+      // 開啟上車站牌選取器
+      function openKeepStopSelector() {
+        currentSelector = "keep"
+        loadStopsAndShowModal("選擇上車站牌")
+      }
+
+      // 開啟下車站牌選取器
+      function openDestStopSelector() {
+        currentSelector = "dest"
+        loadStopsAndShowModal("選擇下車站牌")
+      }
+
+      // 載入站牌資料並顯示選取視窗
+      async function loadStopsAndShowModal(title) {
+        try {
+          showLoading(true)
+
+          // 根據選擇器類型載入對應的站牌資料
+          let stopsToShow = []
+          if (currentSelector === "keep") {
+            // 上車站牌：從 keep-stops API 載入
+            const response = await fetch(`${API_BASE_URL}/keep-stops`)
+            if (response.ok) {
+              const result = await response.json()
+              stopsToShow = result.data || []
+            }
+          } else if (currentSelector === "dest") {
+            // 下車站牌：從 dest-stops API 載入
+            const response = await fetch(`${API_BASE_URL}/dest-stops`)
+            if (response.ok) {
+              const result = await response.json()
+              stopsToShow = result.data || []
+            }
+          }
+
+          // 排序站牌
+          currentStops = sortStopsByRoute(stopsToShow)
+
+          showLoading(false)
+
+          // 如果只有一個站牌，自動選擇
+          if (currentStops.length === 1) {
+            const onlyStop = currentStops[0]
+
+            // 更新對應的顯示欄位
+            if (currentSelector === "keep") {
+              document.getElementById("keepStopDisplayText").textContent =
+                onlyStop.stopName
+              document
+                .getElementById("keepStopDisplay")
+                .classList.add("selected")
+            } else if (currentSelector === "dest") {
+              document.getElementById("destStopDisplayText").textContent =
+                onlyStop.stopName
+              document
+                .getElementById("destStopDisplay")
+                .classList.add("selected")
+            }
+
+            // 更新摘要
+            updateSummary()
+
+            // 不顯示選取視窗
+            currentSelector = null
+            return
+          }
+
+          showStopModal(title)
+        } catch (error) {
+          showLoading(false)
+          showError("載入站牌資料失敗: " + error.message)
+        }
+      }
+
+      // 根據路線排序站牌
+      function sortStopsByRoute(stops) {
+        return stops.sort((a, b) => {
+          // 定義路線優先順序
+          const getRoutePriority = (stop) => {
+            if (stop.routes.some((route) => route === "208802")) return 1
+            if (stop.routes.some((route) => route === "2088A2")) return 2
+            if (stop.routes.some((route) => route === "2088B2")) return 3
+            return 999 // 其他路線排在最後
+          }
+
+          // 檢查是否包含特定路線
+          const hasRoute2088B2 = (stop) =>
+            stop.routes.some((route) => route === "2088B2")
+
+          const priorityA = getRoutePriority(a)
+          const priorityB = getRoutePriority(b)
+
+          // 1. 首先按路線優先順序排序
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB
+          }
+
+          // 2. 相同優先順序內的排序
+          if (priorityA === priorityB) {
+            // 特殊處理：只有一條路線的站牌排在最後
+            const isOnlyOneRouteA = a.routes.length === 1
+            const isOnlyOneRouteB = b.routes.length === 1
+
+            if (isOnlyOneRouteA && !isOnlyOneRouteB) {
+              return 1 // A 排在後面
+            }
+            if (!isOnlyOneRouteA && isOnlyOneRouteB) {
+              return -1 // B 排在後面
+            }
+
+            // 根據路線類型選擇排序方式
+            if (hasRoute2088B2(a) || hasRoute2088B2(b)) {
+              // 2088B2 路線使用 minSequence 排序
+              if (a.minSequence !== b.minSequence) {
+                return a.minSequence - b.minSequence
+              }
+            } else {
+              // 其他路線使用 stopUID 排序
+              if (a.stopUID !== b.stopUID) {
+                return (a.stopUID || "").localeCompare(b.stopUID || "")
+              }
+            }
+
+            // 最後按站牌名稱排序
+            return a.stopName.localeCompare(b.stopName, "zh-TW")
+          }
+
+          return 0
+        })
+      }
+
+      // 顯示站牌選取視窗
+      function showStopModal(title) {
+        const modal = document.getElementById("stopModal")
+        const modalTitle = modal.querySelector(".stop-modal-header h2")
+        const stopGrid = modal.querySelector(".stop-grid")
+        const legendContainer = modal.querySelector(".legend-items")
+
+        modalTitle.textContent = title
+        stopGrid.innerHTML = ""
+
+        // 生成圖例
+        generateRouteLegend(legendContainer)
+
+        // 生成站牌項目
+        currentStops.forEach((stop, index) => {
+          const stopItem = createStopItem(stop, index)
+          stopGrid.appendChild(stopItem)
+        })
+
+        modal.style.display = "flex"
+      }
+
+      // 生成路線圖例
+      function generateRouteLegend(container) {
+        container.innerHTML = ""
+
+        // 收集當前站牌中存在的路線
+        const availableRoutes = new Set()
+        currentStops.forEach((stop) => {
+          stop.routes.forEach((route) => availableRoutes.add(route))
+        })
+
+        // 定義路線顏色對應
+        const routeColors = [
+          { route: "208802", name: "208802", colorClass: "route-208802" },
+          { route: "2088A2", name: "2088A2", colorClass: "route-2088A2" },
+          { route: "2088B2", name: "2088B2", colorClass: "route-2088B2" },
+        ]
+
+        // 只顯示存在的路線圖例
+        routeColors.forEach((routeInfo) => {
+          if (availableRoutes.has(routeInfo.route)) {
+            const legendItem = document.createElement("div")
+            legendItem.className = "legend-item"
+
+            legendItem.innerHTML = `
+              <div class="legend-color ${routeInfo.colorClass}"></div>
+              <span>${routeInfo.name}</span>
+            `
+
+            container.appendChild(legendItem)
+          }
+        })
+
+        // 如果有其他路線，顯示預設顏色圖例
+        const hasOtherRoutes = Array.from(availableRoutes).some(
+          (route) => !["208802", "2088A2", "2088B2"].includes(route)
+        )
+
+        if (hasOtherRoutes) {
+          const legendItem = document.createElement("div")
+          legendItem.className = "legend-item"
+
+          legendItem.innerHTML = `
+            <div class="legend-color route-default"></div>
+            <span>其他路線</span>
+          `
+
+          container.appendChild(legendItem)
+        }
+      }
+
+      // 建立站牌項目元素
+      function createStopItem(stop, index) {
+        const div = document.createElement("div")
+        div.className = "stop-item"
+        div.setAttribute("data-index", index)
+
+        // 根據站牌包含的路線決定顏色類別
+        const stopColorClass = getStopColorClass(stop.stopName, stop.routes)
+        div.classList.add(stopColorClass)
+
+        div.innerHTML = `
+          <div class="stop-name">${stop.stopName}</div>
+        `
+
+        // 加入點擊事件
+        div.addEventListener("click", () => selectStop(stop, div))
+
+        return div
+      }
+
+      // 根據站牌包含的路線決定顏色類別
+      function getStopColorClass(stopName, routes) {
+        // 根據站牌包含的路線來決定顏色
+        if (routes.includes("208802")) {
+          return "stop-route-208802"
+        } else if (routes.includes("2088A2")) {
+          return "stop-route-2088A2"
+        } else if (routes.includes("2088B2")) {
+          return "stop-route-2088B2"
+        } else {
+          return "stop-route-default"
+        }
+      }
+
+      // 選取站牌
+      function selectStop(stop, element) {
+        // 移除其他選取狀態
+        document.querySelectorAll(".stop-item.selected").forEach((item) => {
+          item.classList.remove("selected")
+        })
+
+        // 加入選取狀態
+        element.classList.add("selected")
+
+        // 更新對應的顯示欄位
+        if (currentSelector === "keep") {
+          document.getElementById("keepStopDisplayText").textContent =
+            stop.stopName
+          document.getElementById("keepStopDisplay").classList.add("selected")
+        } else if (currentSelector === "dest") {
+          document.getElementById("destStopDisplayText").textContent =
+            stop.stopName
+          document.getElementById("destStopDisplay").classList.add("selected")
+        }
+
+        // 更新摘要
+        updateSummary()
+
+        // 關閉視窗
+        setTimeout(() => {
+          closeStopSelector()
+        }, 200)
+      }
+
+      // 關閉站牌選取視窗
+      function closeStopSelector() {
+        const modal = document.getElementById("stopModal")
+        modal.style.display = "none"
+        currentSelector = null
+      }
+
+      // 格式化當前時間為API格式
+      function getCurrentDateTime() {
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, "0")
+        const day = String(now.getDate()).padStart(2, "0")
+        const hours = String(now.getHours()).padStart(2, "0")
+        const minutes = String(now.getMinutes()).padStart(2, "0")
+        const seconds = String(now.getSeconds()).padStart(2, "0")
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      }
+
+      // 初始化事件監聽器
+      function initializeEventListeners() {
+        // 站牌選取器點擊事件
+        document
+          .getElementById("keepStopDisplay")
+          .addEventListener("click", openKeepStopSelector)
+        document
+          .getElementById("destStopDisplay")
+          .addEventListener("click", openDestStopSelector)
+
+        // 站牌選取視窗關閉按鈕
+        document
+          .querySelector(".stop-modal-close")
+          .addEventListener("click", closeStopSelector)
+
+        // 點擊視窗外部關閉
+        document
+          .getElementById("stopModal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) {
+              closeStopSelector()
+            }
+          })
+
+        // 表單提交
+        document
+          .getElementById("reservationForm")
+          .addEventListener("submit", handleFormSubmit)
+
+        // 輸入驗證
+        document
+          .getElementById("passengerName")
+          .addEventListener("blur", validateName)
+        document
+          .getElementById("passengerPhone")
+          .addEventListener("blur", validatePhone)
+
+        // 即時更新摘要
+        document
+          .getElementById("passengerName")
+          .addEventListener("input", updateSummary)
+        document
+          .getElementById("passengerPhone")
+          .addEventListener("input", updateSummary)
+      }
+
+      // 表單驗證
+      function validateName() {
+        const name = document.getElementById("passengerName").value.trim()
+        if (name.length === 0) {
+          showError("請輸入稱呼", "nameError", "passengerName")
+          return false
+        }
+        if (name.length > 20) {
+          showError("稱呼不能超過20個字符", "nameError", "passengerName")
+          return false
+        }
+        clearError("nameError", "passengerName")
+        return true
+      }
+
+      function validatePhone() {
+        const phone = document.getElementById("passengerPhone").value.trim()
+        const phoneRegex = /^09\d{8}$/
+        if (!phoneRegex.test(phone)) {
+          showError(
+            "請輸入正確的手機號碼格式（09xxxxxxxx）",
+            "phoneError",
+            "passengerPhone"
+          )
+          return false
+        }
+        clearError("phoneError", "passengerPhone")
+        return true
+      }
+
+      function validateStops() {
+        let valid = true
+
+        const keepStopName = document
+          .getElementById("keepStopDisplay")
+          .textContent.trim()
+        const destStopName = document
+          .getElementById("destStopDisplay")
+          .textContent.trim()
+
+        if (!keepStopName || keepStopName === "請選擇上車站牌") {
+          showError("請選擇上車站牌", "keepStopError", "keepStopDisplay")
+          valid = false
+        } else {
+          clearError("keepStopError", "keepStopDisplay")
+        }
+
+        if (!destStopName || destStopName === "請選擇下車站牌") {
+          showError("請選擇下車站牌", "destStopError", "destStopDisplay")
+          valid = false
+        } else {
+          clearError("destStopError", "destStopDisplay")
+        }
+
+        if (keepStopName && destStopName && keepStopName === destStopName) {
+          showError(
+            "上車站牌與下車站牌不能相同",
+            "destStopError",
+            "destStopDisplay"
+          )
+          valid = false
+        } else {
+          clearError("destStopError", "destStopDisplay")
+        }
+
+        return valid
+      }
+
+      // 座位數量控制
+      function increaseSeatCount() {
+        if (seatCount < 4) {
+          seatCount++
+          updateSeatDisplay()
+          updateSummary()
+        }
+      }
+
+      function decreaseSeatCount() {
+        if (seatCount > 1) {
+          seatCount--
+          updateSeatDisplay()
+          updateSummary()
+        }
+      }
+
+      function updateSeatDisplay() {
+        document.getElementById("seatCount").textContent = seatCount
+        document.getElementById("decreaseBtn").disabled = seatCount <= 1
+        document.getElementById("increaseBtn").disabled = seatCount >= 4
+      }
+
+      // 表單驗證
+      function validateName() {
+        const name = document.getElementById("passengerName").value.trim()
+        if (name.length === 0) {
+          showError("請輸入稱呼", "nameError", "passengerName")
+          return false
+        }
+        if (name.length > 20) {
+          showError("稱呼不能超過20個字符", "nameError", "passengerName")
+          return false
+        }
+        clearError("nameError", "passengerName")
+        return true
+      }
+
+      function validatePhone() {
+        const phone = document.getElementById("passengerPhone").value.trim()
+        const phoneRegex = /^09\d{8}$/
+        if (!phoneRegex.test(phone)) {
+          showError(
+            "請輸入正確的手機號碼格式（09xxxxxxxx）",
+            "phoneError",
+            "passengerPhone"
+          )
+          return false
+        }
+        clearError("phoneError", "passengerPhone")
+        return true
+      }
+
+      function validateDate() {
+        const date = document.getElementById("reservationDate").value
+        if (!date) {
+          showError("請選擇預約日期", "dateError", "reservationDate")
+          return false
+        }
+        const selectedDate = new Date(date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        if (selectedDate < today) {
+          showError("預約日期不能早於今天", "dateError", "reservationDate")
+          return false
+        }
+        clearError("dateError", "reservationDate")
+        return true
+      }
+
+      function validateTime() {
+        const hour = document.getElementById("reservationHour").value
+        const minute = document.getElementById("reservationMinute").value
+        if (!hour || !minute) {
+          showError("請選擇預約時間", "timeError")
+          return false
+        }
+        clearError("timeError")
+        return true
+      }
+
+      function validateStops() {
+        let valid = true
+
+        const keepStopName = document
+          .getElementById("keepStopDisplayText")
+          .textContent.trim()
+        const destStopName = document
+          .getElementById("destStopDisplayText")
+          .textContent.trim()
+
+        if (!keepStopName || keepStopName === "點擊選擇乘車站牌") {
+          showError("請選擇乘車站牌", "keepStopError", "keepStopDisplay")
+          valid = false
+        } else {
+          clearError("keepStopError", "keepStopDisplay")
+        }
+
+        if (!destStopName || destStopName === "點擊選擇下車站牌") {
+          showError("請選擇下車站牌", "destStopError", "destStopDisplay")
+          valid = false
+        } else {
+          clearError("destStopError", "destStopDisplay")
+        }
+
+        if (keepStopName && destStopName && keepStopName === destStopName) {
+          showError(
+            "上車站牌與下車站牌不能相同",
+            "destStopError",
+            "destStopDisplay"
+          )
+          valid = false
+        } else {
+          clearError("destStopError", "destStopDisplay")
+        }
+
+        return valid
+      }
+
+      // 更新預約摘要
+      function updateSummary() {
+        const name = document.getElementById("passengerName").value.trim()
+        const phone = document.getElementById("passengerPhone").value.trim()
+        const keepStopName = document
+          .getElementById("keepStopDisplayText")
+          .textContent.trim()
+        const destStopName = document
+          .getElementById("destStopDisplayText")
+          .textContent.trim()
+
+        // 更新摘要顯示
+        document.getElementById("summaryKeepStop").textContent =
+          keepStopName && keepStopName !== "點擊選擇乘車站牌"
+            ? keepStopName
+            : "-"
+        document.getElementById("summaryDestStop").textContent =
+          destStopName && destStopName !== "點擊選擇下車站牌"
+            ? destStopName
+            : "-"
+        document.getElementById("summaryName").textContent = name || "-"
+        document.getElementById("summaryPhone").textContent = phone || "-"
+        document.getElementById("summarySeatCount").textContent = seatCount
+
+        // 顯示當前時間
+        document.getElementById("summaryDateTime").textContent =
+          getCurrentDateTime()
+
+        // 顯示或隱藏摘要
+        const hasBasicInfo =
+          keepStopName &&
+          keepStopName !== "點擊選擇乘車站牌" &&
+          destStopName &&
+          destStopName !== "點擊選擇下車站牌" &&
+          name &&
+          phone
+        if (hasBasicInfo) {
+          document
+            .getElementById("reservationSummary")
+            .classList.remove("hidden")
+        } else {
+          document.getElementById("reservationSummary").classList.add("hidden")
+        }
+      }
+
+      // 表單提交處理
+      async function handleFormSubmit(e) {
+        e.preventDefault()
+
+        // 驗證所有欄位
+        const isNameValid = validateName()
+        const isPhoneValid = validatePhone()
+        const isStopsValid = validateStops()
+
+        if (!isNameValid || !isPhoneValid || !isStopsValid) {
+          showError("請填寫所有必要欄位並確認資訊正確")
+          return
+        }
+
+        if (!currentUser) {
+          showError("用戶資訊載入失敗，請重新整理頁面")
+          return
+        }
+
+        try {
+          showLoading(true)
+          const submitBtn = document.getElementById("submitBtn")
+          submitBtn.disabled = true
+
+          // 準備提交資料
+          const keepStopName = document
+            .getElementById("keepStopDisplayText")
+            .textContent.trim()
+          const destStopName = document
+            .getElementById("destStopDisplayText")
+            .textContent.trim()
+
+          const formData = {
+            userId: currentUser.userId,
+            keepStop: keepStopName,
+            destStop: destStopName,
+            name: document.getElementById("passengerName").value.trim(),
+            phone: document.getElementById("passengerPhone").value.trim(),
+            requestDateTime: getCurrentDateTime(),
+            seatCount: seatCount,
+          }
+
+          console.log("提交預約資料:", formData)
+
+          // 發送請求
+          const response = await fetch(`${API_BASE_URL}/request`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          })
+
+          let result = null
+          try {
+            result = await response.json()
+          } catch (parseError) {
+            // 如果不是JSON格式，嘗試讀取文字內容
+            console.warn("回應不是JSON格式:", parseError)
+            const textResult = await response.text()
+            result = { message: textResult }
+          }
+
+          if (response.ok) {
+            // 成功
+            showSuccessAnimation()
+            setTimeout(() => {
+              if (liff && liff.isInClient()) {
+                liff.closeWindow()
+              }
+            }, 3000)
+          } else {
+            // 失敗 - 檢查是否為預約衝突
+            const errorMessage = result.message || result || "預約失敗"
+            if (
+              errorMessage.includes("未搭乘") ||
+              errorMessage.includes("已有預約")
+            ) {
+              // 有現有預約，重新檢查預約狀態
+              await checkExistingReservation()
+              showError("您已有未完成的預約，請先處理現有預約")
+            } else {
+              showError(errorMessage)
+            }
+          }
+        } catch (error) {
+          console.error("提交預約失敗:", error)
+          showError("網路錯誤，請稍後再試")
+        } finally {
+          showLoading(false)
+          document.getElementById("submitBtn").disabled = false
+        }
+      }
+
+      // 重置表單
+      function resetForm() {
+        document.getElementById("reservationForm").reset()
+        document.getElementById("keepStopDisplay").textContent =
+          "請選擇上車站牌"
+        document.getElementById("destStopDisplay").textContent =
+          "請選擇下車站牌"
+        seatCount = 1
+        updateSeatDisplay()
+        updateSummary()
+      }
+
+      // 顯示錯誤訊息
+      function showError(message, errorId = null, inputId = null) {
+        if (errorId) {
+          const errorElement = document.getElementById(errorId)
+          errorElement.textContent = message
+          errorElement.classList.add("show")
+        } else {
+          alert(message)
+        }
+
+        if (inputId) {
+          document.getElementById(inputId).classList.add("input-error")
+        }
+      }
+
+      // 清除錯誤訊息
+      function clearError(errorId, inputId) {
+        const errorElement = document.getElementById(errorId)
+        errorElement.classList.remove("show")
+        if (inputId) {
+          document.getElementById(inputId).classList.remove("input-error")
+        }
+      }
+
+      // 顯示成功動畫
+      function showSuccessAnimation() {
+        document.getElementById("successAnimation").classList.remove("hidden")
+      }
+
+      // 顯示取消成功動畫
+      function showCancelSuccessAnimation() {
+        document
+          .getElementById("cancelSuccessAnimation")
+          .classList.remove("hidden")
+      }
+
+      // 自訂確認對話方塊
+      function showConfirm(message) {
+        return new Promise((resolve) => {
+          const overlay = document.getElementById("confirmOverlay")
+          const messageElement = document.getElementById("confirmMessage")
+          const cancelBtn = document.getElementById("confirmCancel")
+          const okBtn = document.getElementById("confirmOk")
+
+          messageElement.textContent = message
+          overlay.classList.remove("hidden")
+
+          const handleResult = (result) => {
+            overlay.classList.add("hidden")
+            cancelBtn.removeEventListener("click", handleCancel)
+            okBtn.removeEventListener("click", handleOk)
+            resolve(result)
+          }
+
+          const handleCancel = () => handleResult(false)
+          const handleOk = () => handleResult(true)
+
+          cancelBtn.addEventListener("click", handleCancel)
+          okBtn.addEventListener("click", handleOk)
+        })
+      }
+
+      // 顯示/隱藏載入中
+      function showLoading(show) {
+        const loadingElement = document.getElementById("loadingMessage")
+        if (show) {
+          loadingElement.classList.add("show")
+        } else {
+          loadingElement.classList.remove("show")
+        }
+      }
+
+      // 初始化座位顯示
+      updateSeatDisplay()
+    </script>
+
+    <!-- 站牌選取全頁視窗 -->
+    <div id="stopModal" class="stop-modal" style="display: none">
+      <div class="stop-modal-content">
+        <div class="stop-modal-header">
+          <h2>選擇站牌</h2>
+          <button class="stop-modal-close">✕</button>
+        </div>
+        <div class="stop-modal-body">
+          <div class="route-legend" id="routeLegend">
+            <div class="legend-title">路線顏色說明</div>
+            <div class="legend-items">
+              <!-- 圖例項目將動態載入這裡 -->
+            </div>
+          </div>
+          <div class="stop-grid">
+            <!-- 站牌將動態載入這裡 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
