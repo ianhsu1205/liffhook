@@ -720,6 +720,34 @@
         }, 2000)
       }
 
+      // 嘗試在使用者點擊同步階段直接關閉 LIFF 視窗
+      function attemptDirectClose() {
+        try {
+          if (
+            typeof liff !== "undefined" &&
+            liff &&
+            typeof liff.isInClient === "function" &&
+            liff.isInClient() &&
+            typeof liff.closeWindow === "function"
+          ) {
+            console.log("[attemptDirectClose] 呼叫 liff.closeWindow()")
+            liff.closeWindow()
+            setTimeout(() => {
+              if (!document.hidden) {
+                console.log(
+                  "[attemptDirectClose] liff.closeWindow 未生效，fallback closePage"
+                )
+                closePage(true)
+              }
+            }, 360)
+            return
+          }
+        } catch (e) {
+          console.warn("[attemptDirectClose] 直接關閉失敗", e)
+        }
+        closePage(true)
+      }
+
       // 初始化LIFF
       document.addEventListener("DOMContentLoaded", function () {
         // 狀態指示器點擊計數，連續點擊5次將顯示緊急重啟按鈕
@@ -769,14 +797,27 @@
         document.body.addEventListener("click", function (e) {
           const t = e.target
           if (!t) return
-          // 任一帶 data-close 或含有 closePage inline handler 的元素
-          if (
+          const trigger =
             t.closest("[data-close]") ||
             (t.getAttribute &&
-              (t.getAttribute("onclick") || "").includes("closePage"))
-          ) {
+            (t.getAttribute("onclick") || "").includes("closePage")
+              ? t
+              : null)
+          if (trigger) {
             e.preventDefault()
-            closePage(true)
+            if (trigger.__closing) return
+            trigger.__closing = true
+            const originalOpacity = trigger.style.opacity
+            trigger.style.opacity = "0.55"
+            if (trigger.hasAttribute("data-direct-close")) {
+              attemptDirectClose()
+            } else {
+              closePage(true)
+            }
+            setTimeout(() => {
+              trigger.__closing = false
+              trigger.style.opacity = originalOpacity
+            }, 1200)
           }
         })
 
@@ -1375,8 +1416,8 @@
                 <div style="font-size: 20px; font-weight: 700; color: #c0392b; margin-bottom: 10px; line-height: 1.6;">
                   本趟次未查到您的申請記錄，若您搭乘的非通知保留的班車，請記得在今日內取消保留，以免影響您的權益
                 </div>
-                <button 
-                    data-close="1" 
+        <button 
+          data-close="1" data-direct-close="1" 
                   style="background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 8px; cursor: pointer;"
                 >
                   立即關閉
@@ -1476,7 +1517,7 @@
               上車時間：${result.boardingTime}
             </div>
             <button 
-              data-close="1" 
+              data-close="1" data-direct-close="1" 
               style="
                 background: #27ae60; 
                 color: white; 
@@ -1570,7 +1611,7 @@
               </div>
             </div>
             <button 
-              data-close="1" 
+              data-close="1" data-direct-close="1" 
               style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 16px; cursor: pointer;"
             >
               立即關閉
@@ -1752,7 +1793,7 @@
           messageElement.innerHTML = `
             <div>${message}</div>
             <button 
-              data-close="1" 
+              data-close="1" data-direct-close="1" 
               style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-top: 8px; cursor: pointer;"
             >
               關閉
