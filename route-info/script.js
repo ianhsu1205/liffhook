@@ -9,9 +9,11 @@
   const routeList = document.getElementById('routeList');
   const routeEmpty = document.getElementById('routeEmpty');
 
- const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
-//  const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
-  const operator = '大都會客運';
+// const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
+  const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
+  // 多業者查詢示範：可自行增減或用 UI 動態產生
+  const operators = ['大都會客運', '三重客運','臺北客運','首都客運'];
+  const buildOperatorNames = () => operators.filter(Boolean).join(',');
 
   // 防止一聚焦就跳出 datalist：先暫時移除 list 屬性，輸入後再恢復
   const originalListId = routeInput.getAttribute('list') || 'routeOptions';
@@ -34,8 +36,9 @@
       dataList.innerHTML = '';
       return;
     }
-    const url = new URL(apiBase + '/names');
-    url.searchParams.set('operatorNameZh', operator);
+  const url = new URL(apiBase + '/names');
+  const opsParam = buildOperatorNames();
+  if (opsParam) url.searchParams.set('operatorNames', opsParam);
     url.searchParams.set('keyword', kw);
     const resp = await fetch(url);
     if (!resp.ok) return;
@@ -53,10 +56,10 @@
   }
 
   // 查詢詳細
-  async function queryDetail(name, operatorName = operator) {
+  async function queryDetail(name, operatorList = operators) {
     const url = new URL(apiBase + '/detail');
-    if (operatorName !== undefined && operatorName !== null) {
-      url.searchParams.set('operatorNameZh', operatorName);
+    if (Array.isArray(operatorList) && operatorList.length > 0) {
+      url.searchParams.set('operatorNames', operatorList.join(','));
     }
     url.searchParams.set('name', name);
     const resp = await fetch(url);
@@ -69,15 +72,24 @@
     // 支援 Items/items
     const items = Array.isArray(d)
       ? d
-      : (d.Items || d.items || []);
+      : (d.items || []);
     // 支援大小寫差異的欄位
-    routeTitle.textContent = d.RouteNameZh || d.routeNameZh || '—';
-    const op = operatorLabelOverride || d.Operator || d.operator || operator;
-    routeSub.textContent = `${op} · 查到 ${items.length} 條路線`;
+    routeTitle.textContent =d.routeNameZh || '';
+      // 依實際回傳的每筆路線項目中的 operatorNameZh 動態彙總顯示（優先）
+      const opArrRaw = d.Operators || d.operators || null; // 後端回傳的 operators 陣列（可能為 null）
+      const operatorsInResult = Array.from(new Set(
+        (items || [])
+          .map(r => r.operatorNameZh || r.operatornamezh || '')
+          .filter(Boolean)
+      ));
+      const opLabel = operatorLabelOverride
+        || (operatorsInResult.length > 0 ? operatorsInResult.join(',')
+            : (Array.isArray(opArrRaw) && opArrRaw.length > 0 ? opArrRaw.join(',') : '全部業者'));
+
 
   // 路線圖連結：優先使用第一筆的 RouteMapImageUrl；不預覽，只提供開新分頁
     const first = items[0];
-    const firstMap = first?.RouteMapImageUrl || first?.routeMapImageUrl;
+    const firstMap = first?.routeMapImageUrl;
   btnOpenMap.dataset.href = firstMap || '';
   btnOpenMap.disabled = !firstMap;
 
@@ -184,12 +196,12 @@
   btnOpenMap.dataset.href = '';
       routeList.innerHTML = '';
       routeEmpty.classList.add('hidden');
-      let data = await queryDetail(name, operator);
-      // 若以大都會客運查無資料，自動放寬為不限營運商再查一次
+      let data = await queryDetail(name, operators);
+      // 若以指定多業者查無資料，自動放寬為不限營運商再查一次（不帶 operatorNames）
       const items = (data?.data?.Items || data?.data?.items || []);
       if (!items || items.length === 0) {
-        data = await queryDetail(name, '');
-        renderDetail(data, '查無符合名稱');
+        data = await queryDetail(name, []);
+        renderDetail(data, '查無符合名稱(指定業者)');
       } else {
         renderDetail(data);
       }
