@@ -1077,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.25 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.26 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1345,6 +1345,7 @@
     <script>
       // 與 keepSeatApp.html 一致的 API 基底網址
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
+      // const BASE_URL = "http://localhost:5000/api"
       // ======= 修正 showLoading 未定義，並加上通知/音效功能 =======
       function showLoading(show) {
         var loading = document.getElementById("loading")
@@ -1585,8 +1586,8 @@
                 showCompletedTrips ? "true" : "false"
               )
             } catch (_) {}
-            // 勾選或取消都重新向後端取一次，以確保狀態最新
-            loadTrips().catch(() => renderTripsSync())
+            const mode = showCompletedTrips ? "completed" : "active"
+            loadTrips(mode).catch(() => renderTripsSync())
           })
         }
 
@@ -2058,20 +2059,37 @@
         }
       }
 
-      async function loadTrips() {
+      async function loadTrips(mode) {
+        // mode: 'completed' | 'active' | undefined (全部)
+        const viewMode = mode || (showCompletedTrips ? "completed" : "active")
+        let url = `${BASE_URL}/Trip`
+        if (viewMode === "completed") {
+          url += "?status=completed"
+        } else if (viewMode === "active") {
+          url += "?status=active"
+        }
         try {
-          console.log("載入當日趟次資料...")
-          const response = await fetch(`${BASE_URL}/Trip`)
+          console.log("載入當日趟次資料... mode=", viewMode, "url=", url)
+          let response = await fetch(url)
+          if (!response.ok) {
+            console.warn("帶參數取得失敗，改用基礎端點 /Trip")
+            response = await fetch(`${BASE_URL}/Trip`)
+          }
           const result = await response.json()
 
           if (result.success) {
-            trips = result.data
-            console.log(`載入成功: ${trips.length} 個當日趟次`)
-            if (result.data.length !== trips.length) {
-              console.log(
-                `前端過濾: 原始 ${result.data.length} 筆 → 當日 ${trips.length} 筆`
+            trips = Array.isArray(result.data) ? result.data : []
+            // 後端若未處理 status 參數，這裡再做一次前端保險過濾
+            if (viewMode === "completed") {
+              trips = trips.filter(
+                (t) => (t.status || "").toLowerCase().trim() === "completed"
+              )
+            } else if (viewMode === "active") {
+              trips = trips.filter(
+                (t) => (t.status || "").toLowerCase().trim() !== "completed"
               )
             }
+            console.log(`載入成功 (${viewMode}) : ${trips.length} 筆`)
             renderTripsSync()
           } else {
             console.error("載入趟次失敗:", result.message)
