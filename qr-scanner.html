@@ -16,24 +16,36 @@
     <meta http-equiv="Expires" content="0" />
     <title>🎫 保留座位搭乘確認</title>
     <!-- 載入最新版本的 LIFF SDK -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+      crossorigin="anonymous"
+    ></script>
     <!-- 備用 LIFF SDK -->
     <script>
       // 檢查 LIFF SDK 是否載入成功，如果失敗則嘗試載入備用版本
       window.addEventListener("load", function () {
-        if (typeof liff === "undefined") {
-          console.warn("主要 LIFF SDK 載入失敗，嘗試載入備用版本...")
-          const script = document.createElement("script")
-          script.src =
-            "https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"
-          script.onload = function () {
-            console.log("備用 LIFF SDK 載入成功")
+        setTimeout(function () {
+          if (typeof liff === "undefined") {
+            console.warn("主要 LIFF SDK 載入失敗，嘗試載入備用版本...")
+            const script = document.createElement("script")
+            script.src =
+              "https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"
+            script.crossOrigin = "anonymous"
+            script.onload = function () {
+              console.log("備用 LIFF SDK 載入成功")
+              // 重新觸發初始化
+              if (typeof initLiff === "function") {
+                console.log("重新觸發 LIFF 初始化")
+                initLiff()
+              }
+            }
+            script.onerror = function () {
+              console.error("備用 LIFF SDK 也載入失敗")
+              alert("無法載入LINE功能，請檢查網路連接並重新整理頁面")
+            }
+            document.head.appendChild(script)
           }
-          script.onerror = function () {
-            console.error("備用 LIFF SDK 也載入失敗")
-          }
-          document.head.appendChild(script)
-        }
+        }, 2000)
       })
     </script>
     <style>
@@ -701,8 +713,6 @@
 
       // LIFF 初始化標誌與進度追蹤
       var liffInitialized = false
-      // LIFF 初始化標誌與進度追蹤
-      var liffInitialized = false
       var initializationInProgress = false
 
       // LIFF 初始化
@@ -717,6 +727,22 @@
           if (DEBUG) console.log("⏳ LIFF 初始化進行中，請等待...")
           return false
         }
+
+        // 如果30秒內無法完成初始化，則顯示錯誤並提供重啟選項
+        const initTimeout = setTimeout(() => {
+          if (!liffInitialized && initializationInProgress) {
+            console.error("LIFF 初始化超時")
+            initializationInProgress = false
+            updateStatusIndicator("❌ LINE 連接超時", "error")
+            showStatusMessageWithClose(
+              "LINE 連接超時，請點擊下方按鈕重試",
+              "error",
+              true
+            )
+            // 顯示重啟按鈕
+            document.getElementById("emergencyRestart").style.display = "block"
+          }
+        }, 30000)
 
         try {
           // 標記初始化開始
@@ -835,7 +861,6 @@
           initializationInProgress = false
         }
       }
-      let initializationInProgress = false
 
       // 主初始化函數 - 增加防護機制避免重複呼叫
       async function initializeLiff() {
@@ -1583,7 +1608,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-4 (修復初始化問題)
+      版本: 20250909-5
     </div>
   </body>
 </html>
