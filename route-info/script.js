@@ -11,7 +11,7 @@
 
  const apiBase = 'https://35.221.146.143.nip.io/linehook/TdxRouteInfo';
   //const apiBase = 'http://localhost:5000/api/TdxRouteInfo';
-  // 多業者查詢示範：可自行增減或用 UI 動態產生
+  // 多業者查詢示範：可自行增減或用 UI 動態產生加入大南和欣欣，以防共駛路線查不到
   const operators = ['大都會客運', '三重客運','臺北客運','首都客運','大南汽車','欣欣客運'];
   const buildOperatorNames = () => operators.filter(Boolean).join(',');
 
@@ -217,3 +217,4 @@
 
   // 初始不載入任何候選，避免一聚焦就出現下拉
 })();
+
