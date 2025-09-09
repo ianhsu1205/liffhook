@@ -448,6 +448,9 @@
               margin: 25px auto 0;
               max-width: 480px;
               text-align: center;
+              position: relative;
+              z-index: 12000;
+              pointer-events: auto;
             "
           >
             <div
@@ -483,7 +486,7 @@
               <button
                 id="inlineCenterAlertClose"
                 type="button"
-                onclick="(function(btn){ if(btn.dataset.clicked)return; btn.dataset.clicked='1'; closeInlineCenterAlert(true); })(this)"
+                data-close-inline="1"
                 style="
                   margin-top: 18px;
                   background: #d32f2f;
@@ -557,7 +560,7 @@
       // 全局變量
       let reservationData = null
       let autoCloseTimer = null
-      const DEBUG = true // 開啟調試模式
+      const DEBUG = false // 關閉調試模式
       let isScanning = false // 是否正在掃描中
       let viewportMetaElement = null // 存儲視口元素以便動態調整
       let rafId = null // requestAnimationFrame ID
@@ -779,25 +782,19 @@
         if (inlineBtn && !inlineBtn.__bound) {
           inlineBtn.__bound = true
           inlineBtn.addEventListener("click", function () {
-            console.log("[inlineCenterAlertClose] click")
-            if (this.dataset.clickedOnce) {
-              closePage(true)
-              return
-            }
-            this.dataset.clickedOnce = "1"
-            this.style.opacity = ".6"
-            if (typeof closeInlineCenterAlert === "function") {
-              try {
+            if (this.disabled) return
+            this.disabled = true
+            this.style.opacity = ".55"
+            try {
+              if (typeof closeInlineCenterAlert === "function")
                 closeInlineCenterAlert(true)
-              } catch (e) {
-                console.warn(e)
-              }
+            } catch (e) {
+              console.warn(e)
             }
+            // 若 400ms 後仍未離開，再嘗試一次 closePage(true)
             setTimeout(() => {
-              if (!document.hidden) {
-                closePage(true)
-              }
-            }, 250)
+              if (!document.hidden) closePage(true)
+            }, 400)
           })
         }
       })
@@ -1596,6 +1593,14 @@
       // 顯示未發車訊息 (與上車確認使用相同的顯示方式)
       function showTripNotDepartedMessage() {
         updateStatusIndicator("⚠️ 本趟次尚未發車", "warning")
+
+        // 確保載入遮罩被移除，避免遮住按鈕
+        try {
+          const overlay = document.getElementById("loadingOverlay")
+          if (overlay) overlay.classList.remove("visible")
+        } catch (e) {
+          console.warn("移除 loadingOverlay 失敗", e)
+        }
 
         // 若有正在倒數的其他計時先清掉
         if (autoCloseTimer) {
