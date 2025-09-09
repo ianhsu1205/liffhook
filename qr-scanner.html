@@ -902,15 +902,30 @@
                 // )
                 const details = document.getElementById("reservationDetails")
                 details.innerHTML = `
-                  <div style="grid-column: 1 / -1; text-align: center; padding: 30px 20px;">
-                    <div style="font-size: 24px; font-weight: 700; color: #e74c3c; margin-bottom: 20px; line-height: 1.6;">
+                  <div style="grid-column: 1 / -1; text-align: left; padding: 30px 20px;">
+                    <div style="font-size: 24px; font-weight: bold; color: #e74c3c; margin-bottom: 15px;">
                       本趟次尚未發車，無法確認您是否搭乘
+                    </div>
+                    <div style="font-size: 18px; color: #2c3e50; margin-bottom: 20px;">
+                      請在發車後再進行掃描確認
                     </div>
                     <button 
                       onclick="closePage()" 
-                      style="background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; margin-top: 15px; cursor: pointer; font-weight: 600;"
+                      style="
+                        background: #e74c3c; 
+                        color: white; 
+                        border: none; 
+                        padding: 12px 25px; 
+                        border-radius: 25px; 
+                        font-size: 16px; 
+                        margin-top: 20px; 
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                      " 
+                      onmouseover="this.style.background='#c0392b'" 
+                      onmouseout="this.style.background='#e74c3c'"
                     >
-                      確認關閉
+                      立即關閉
                     </button>
                   </div>
                 `
