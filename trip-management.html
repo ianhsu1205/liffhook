@@ -726,6 +726,46 @@
         transform: scale(1.02);
       }
 
+      /* 拖拽被阻擋（已發車）視覺樣式 */
+      .trip-card.drag-blocked {
+        border: 2px solid rgba(220, 53, 69, 0.6) !important;
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(220, 53, 69, 0.08),
+          rgba(220, 53, 69, 0.08) 6px,
+          rgba(220, 53, 69, 0.14) 6px,
+          rgba(220, 53, 69, 0.14) 12px
+        );
+        cursor: not-allowed !important;
+        position: relative;
+      }
+
+      .trip-card.drag-blocked::before {
+        content: "已發車不可再排入";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        background: rgba(220, 53, 69, 0.9);
+        color: #fff;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+        pointer-events: none;
+        animation: fadeIn 0.25s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       .trip-card::after {
         content: "";
         position: absolute;
@@ -1077,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.26 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.27 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1344,8 +1384,8 @@
 
     <script>
       // 與 keepSeatApp.html 一致的 API 基底網址
-      const BASE_URL = "https://35.221.146.143.nip.io/linehook"
-      // const BASE_URL = "http://localhost:5000/api"
+      // const BASE_URL = "https://35.221.146.143.nip.io/linehook"
+      const BASE_URL = "http://localhost:5000/api"
       // ======= 修正 showLoading 未定義，並加上通知/音效功能 =======
       function showLoading(show) {
         var loading = document.getElementById("loading")
@@ -1587,7 +1627,19 @@
               )
             } catch (_) {}
             const mode = showCompletedTrips ? "completed" : "active"
-            loadTrips(mode).catch(() => renderTripsSync())
+            showDisplayModeBanner(showCompletedTrips)
+            loadTrips(mode)
+              .then(() => {
+                // 重新載入待排乘客以刷新按鈕狀態 / draggable
+                return loadPendingPassengers()
+              })
+              .then(() => {
+                applyAssignUIState()
+              })
+              .catch(() => {
+                renderTripsSync()
+                applyAssignUIState()
+              })
           })
         }
 
@@ -1626,6 +1678,71 @@
         //     closeEditModal()
         //   }
         // })
+      }
+
+      // 顯示 / 隱藏模式提示橫幅
+      function showDisplayModeBanner(isCompleted) {
+        let banner = document.getElementById("displayModeBanner")
+        if (!banner) {
+          banner = document.createElement("div")
+          banner.id = "displayModeBanner"
+          banner.style.position = "fixed"
+          banner.style.top = "0"
+          banner.style.left = "0"
+          banner.style.right = "0"
+          banner.style.zIndex = "1500"
+          banner.style.padding = "10px 16px"
+          banner.style.fontSize = "14px"
+          banner.style.fontWeight = "600"
+          banner.style.display = "flex"
+          banner.style.alignItems = "center"
+          banner.style.justifyContent = "center"
+          banner.style.gap = "12px"
+          banner.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)"
+          banner.style.transition = "transform .35s ease, opacity .35s ease"
+          document.body.appendChild(banner)
+        }
+        if (isCompleted) {
+          banner.innerHTML =
+            '<span style="color:#fff;">目前為 <strong style="color:#ffe082;">已發車紀錄檢視模式</strong>：僅可查看，不能排班 / 拖曳。</span><button onclick="toggleCompletedOff()" style="background:#fff;color:#d32f2f;border:none;padding:4px 10px;border-radius:4px;font-weight:600;cursor:pointer;">切換回進行中</button>'
+          banner.style.background = "linear-gradient(90deg,#d32f2f,#b71c1c)"
+          banner.style.opacity = "1"
+          banner.style.transform = "translateY(0)"
+        } else {
+          banner.innerHTML =
+            '<span style="color:#1b5e20;">已回到進行中趟次模式，可進行排班操作。</span>'
+          banner.style.background = "linear-gradient(90deg,#a5d6a7,#66bb6a)"
+          setTimeout(() => {
+            // 短暫顯示後淡出移除
+            banner.style.opacity = "0"
+            banner.style.transform = "translateY(-100%)"
+            setTimeout(() => banner.remove(), 600)
+          }, 1800)
+        }
+      }
+
+      function toggleCompletedOff() {
+        const toggle = document.getElementById("showCompletedToggle")
+        if (toggle) {
+          toggle.checked = false
+          toggle.dispatchEvent(new Event("change"))
+        }
+      }
+
+      // 依模式套用按鈕與拖拽狀態
+      function applyAssignUIState() {
+        const passengerCards = document.querySelectorAll(".passenger-card")
+        if (showCompletedTrips) {
+          passengerCards.forEach((c) => {
+            c.setAttribute("draggable", "false")
+            c.classList.add("drag-disabled")
+          })
+        } else {
+          passengerCards.forEach((c) => {
+            c.setAttribute("draggable", "true")
+            c.classList.remove("drag-disabled")
+          })
+        }
       }
 
       // 時間輸入設置
@@ -2311,7 +2428,13 @@
             return `
                 <div class="trip-card ${trip.status} ${getRouteColorClass(
               trip.route
-            )}" data-trip-id="${trip.tripId}">
+            )}" data-trip-id="${trip.tripId}" data-status="${
+              trip.status
+            }" title="${
+              (trip.status || "") === "completed"
+                ? "已發車：禁止拖放/新增乘客"
+                : "可拖放待分配乘客進入"
+            }">
                     <button class="toggle-btn" onclick="toggleTripDetails('${
                       trip.tripId
                     }')">🔽</button>
@@ -2577,16 +2700,13 @@
                       }</strong>
                   </div>
                   <div class="passenger-actions">
-                      <button class="btn btn-primary btn-xs" onclick="showManualAssignModal('${
-                        passenger.id
-                      }')">
-                          手動排班
-                      </button>
-                      <button class="btn btn-info btn-xs" onclick="autoAssignSinglePassenger('${
-                        passenger.id
-                      }')">
-                          自動排班
-                      </button>
+                      ${
+                        showCompletedTrips
+                          ? `<button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">手動排班</button>
+                             <button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">自動排班</button>`
+                          : `<button class=\"btn btn-primary btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動排班</button>
+                             <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動排班</button>`
+                      }
                   </div>
               </div>
             `
@@ -2640,12 +2760,41 @@
         }
       }
 
+      // 已發車趟次使用：載入包含已搭乘的完整乘客清單
+      async function loadCompletedTripPassengers(tripId) {
+        try {
+          console.log(
+            `loadCompletedTripPassengers: 載入已發車趟次 ${tripId} 全部乘客...`
+          )
+          const response = await fetch(
+            `${BASE_URL}/Trip/${tripId}/passengers-all`
+          )
+          if (!response.ok) return null
+          const result = await response.json()
+          if (result.success) return result.data
+          return null
+        } catch (e) {
+          console.error("loadCompletedTripPassengers error", e)
+          return null
+        }
+      }
+
       async function renderTripPassengers(tripId) {
         try {
           console.log(
             `renderTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`
           )
-          const tripData = await loadTripPassengers(tripId)
+          // 若目前為顯示已發車模式，改用 passengers-all 端點
+          let tripData
+          const tripMeta = trips.find((t) => t.tripId === tripId)
+          const isCompletedView =
+            showCompletedTrips ||
+            (tripMeta && (tripMeta.status || "").toLowerCase() === "completed")
+          if (isCompletedView) {
+            tripData = await loadCompletedTripPassengers(tripId)
+          } else {
+            tripData = await loadTripPassengers(tripId)
+          }
 
           // 同時支援大寫和小寫開頭的屬性名稱
           if (!tripData || !tripData.passengers) {
@@ -2694,6 +2843,14 @@
             const notifyBadge = passenger.responseDateTime
               ? `<span style="background:#e8f5e9;border:1px solid #c3e6cb;color:#1e7e34;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">📣 已通知 ${notifiedTime}</span>`
               : `<span style="background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">未通知</span>`
+            const boardedBadge =
+              passenger.isBoarded || passenger.boardedDateTime
+                ? `<span style='background:#d1ecf1;border:1px solid #bee5eb;color:#0c5460;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;margin-left:4px;'>已搭乘${
+                    passenger.boardedDateTime
+                      ? " " + extractTimeFromDateTime(passenger.boardedDateTime)
+                      : ""
+                  }</span>`
+                : ""
             passengersHtml += `
               <div class="assigned-passenger-compact" style="
                 background: #e8f5e8;
@@ -2708,7 +2865,7 @@
                   <span style="color: #007bff; font-weight: bold; font-size: 13px;">⏰ ${keepTime}</span>
                 </div>
                 <div style="font-size: 13px; line-height: 1.3;">
-                  <div style="margin: 0 0 4px 0;">${notifyBadge}</div>
+                  <div style="margin: 0 0 4px 0;">${notifyBadge} ${boardedBadge}</div>
                   <div style="background: #fff3cd; padding: 1px 4px; border-radius: 2px; border-left: 2px solid #ffc107; display: inline-block; margin-bottom: 2px;">
                     📞 <strong style="color: #856404;">${
                       passenger.phone || "無電話"
@@ -2723,30 +2880,15 @@
                     }位</span>
                   </div>
                 </div>
-                <button
-                  class="btn btn-danger"
-                  onclick="removePassengerFromTrip('${
-                    passenger.id
-                  }', '${tripId}', ${
-              passenger.seatCount || passenger.SeatCount || 1
-            })"
-                  style="
-                    position: absolute;
-                    bottom: 3px;
-                    right: 3px;
-                    font-size: 10px;
-                    padding: 2px 4px;
-                    line-height: 1;
-                    border-radius: 3px;
-                    background: #dc3545;
-                    border: none;
-                    color: white;
-                    cursor: pointer;
-                    z-index: 1;
-                  "
-                >
-                  ❌
-                </button>
+                ${
+                  isCompletedView
+                    ? ""
+                    : `<button class="btn btn-danger" onclick="removePassengerFromTrip('${
+                        passenger.id
+                      }', '${tripId}', ${
+                        passenger.seatCount || passenger.SeatCount || 1
+                      })" style="position:absolute;bottom:3px;right:3px;font-size:10px;padding:2px 4px;line-height:1;border-radius:3px;background:#dc3545;border:none;color:white;cursor:pointer;z-index:1;">❌</button>`
+                }
               </div>
             `
           })
@@ -2761,71 +2903,6 @@
           )
           return '<p style="color: #999; font-style: italic;">載入乘客資料失敗</p>'
         }
-
-        // 創建2列佈局的容器
-        let passengersHtml =
-          '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 8px;">'
-
-        sortedPassengers.forEach((passenger) => {
-          const keepTime = extractTimeFromDateTime(passenger.requestDateTime)
-          passengersHtml += `
-            <div class="assigned-passenger-compact" style="
-              background: #e8f5e8;
-              border: 1px solid #c3e6cb;
-              border-radius: 5px;
-              padding: 6px 8px;
-              font-size: 13px;
-              position: relative;
-            ">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
-                <strong style="font-size: 13px;">${passenger.name}</strong>
-                <span style="color: #007bff; font-weight: bold; font-size: 13px;">⏰ ${keepTime}</span>
-              </div>
-              <div style="font-size: 13px; line-height: 1.3;">
-                <div style="background: #fff3cd; padding: 1px 4px; border-radius: 2px; border-left: 2px solid #ffc107; display: inline-block; margin-bottom: 2px;">
-                  📞 <strong style="color: #856404;">${
-                    passenger.phone || "無電話"
-                  }</strong>
-                </div>
-                <div style="color: #666; margin-top: 2px;">
-                  📍 ${passenger.keepStop} → ${passenger.destStop}
-                </div>
-                <div style="margin-top: 2px;">
-                  🪑 <span style="font-weight: bold; color: #007bff;">${
-                    passenger.seatCount || 1
-                  }位</span>
-                </div>
-              </div>
-              <button
-                class="btn btn-danger"
-                onclick="removePassengerFromTrip('${
-                  passenger.id
-                }', '${tripId}', ${
-            passenger.seatCount || passenger.SeatCount || 1
-          })"
-                style="
-                  position: absolute;
-                  bottom: 3px;
-                  right: 3px;
-                  font-size: 10px;
-                  padding: 2px 4px;
-                  line-height: 1;
-                  border-radius: 3px;
-                  background: #dc3545;
-                  border: none;
-                  color: white;
-                  cursor: pointer;
-                  z-index: 1;
-                "
->
-                ❌
-              </button>
-            </div>
-          `
-        })
-
-        passengersHtml += "</div>"
-        return passengersHtml
       }
 
       // 根據路線ID分配對應的顏色類別
@@ -3104,6 +3181,14 @@
 
       async function assignPassengerToTrip(passengerId, tripId) {
         try {
+          const tripMeta = trips.find((t) => t.tripId === tripId)
+          if (
+            tripMeta &&
+            (tripMeta.status || "").toLowerCase() === "completed"
+          ) {
+            showNotification("此趟次已發車，不能再排入乘客", "info")
+            return { success: false, message: "completed trip" }
+          }
           const response = await fetch(`${BASE_URL}/Trip/assign-passenger`, {
             method: "POST",
             headers: {
@@ -3964,6 +4049,10 @@
       // 單個乘客自動排班
       async function autoAssignSinglePassenger(passengerId) {
         try {
+          if (showCompletedTrips) {
+            showVisualNotification("已發車檢視模式下不可排班", "error")
+            return
+          }
           const passenger = pendingPassengers.find((p) => p.id === passengerId)
           if (!passenger) {
             showError("找不到乘客資料")
@@ -4271,6 +4360,10 @@
 
       // 顯示手動排班模態框
       async function showManualAssignModal(passengerId) {
+        if (showCompletedTrips) {
+          showVisualNotification("已發車檢視模式下不可排班", "error")
+          return
+        }
         const passenger = pendingPassengers.find((p) => p.id === passengerId)
         if (!passenger) {
           showError("找不到乘客資料")
@@ -4734,13 +4827,32 @@
       }
 
       function handleDragOver(e) {
+        const status = (
+          e.currentTarget.getAttribute("data-status") || ""
+        ).toLowerCase()
+        if (status === "completed") {
+          // 改變游標與樣式提示不可放置
+          e.currentTarget.classList.add("drag-blocked")
+          e.dataTransfer.dropEffect = "none"
+          return
+        }
         e.preventDefault()
+        e.dataTransfer.dropEffect = "move"
         e.currentTarget.classList.add("drag-over")
       }
 
       async function handleDrop(e) {
         e.preventDefault()
         e.currentTarget.classList.remove("drag-over")
+        e.currentTarget.classList.remove("drag-blocked")
+
+        const status = (
+          e.currentTarget.getAttribute("data-status") || ""
+        ).toLowerCase()
+        if (status === "completed") {
+          showNotification("已發車趟次禁止再排入", "info")
+          return
+        }
 
         const passengerId = e.dataTransfer.getData("text/plain")
         const tripCard = e.currentTarget
