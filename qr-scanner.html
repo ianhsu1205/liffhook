@@ -271,6 +271,16 @@
       .status-message.error {
         background: rgba(231, 76, 60, 0.95);
         color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+
+      .status-message.error button {
+        margin-top: 12px !important;
+        padding: 8px 20px !important;
+        font-weight: bold !important;
       }
 
       /* 加載動畫 */
@@ -453,7 +463,7 @@
       const AUTO_CLOSE_COUNTDOWN = 20 // 20秒倒數
 
       const API_BASE_URL = "https://35.221.146.143.nip.io/linehook/KeepSeat"
-
+      //const API_BASE_URL = "http://localhost:5000/linehook/api/KeepSeat"
       // 更新狀態指示器
       function updateStatusIndicator(message, type = "info") {
         const indicator = document.getElementById("statusIndicator")
@@ -625,9 +635,27 @@
         }, 300)
       }
 
+      // LIFF 初始化標誌與進度追蹤
+      var liffInitialized = false
+      var initializationInProgress = false
+
       // LIFF 初始化
       async function initLiff() {
+        // 避免重複初始化
+        if (liffInitialized) {
+          if (DEBUG) console.log("🔍 LIFF 已經初始化過，跳過重複初始化")
+          return true
+        }
+
+        if (initializationInProgress) {
+          if (DEBUG) console.log("⏳ LIFF 初始化進行中，請等待...")
+          return false
+        }
+
         try {
+          // 標記初始化開始
+          initializationInProgress = true
+
           if (DEBUG) console.log("=== LIFF 初始化開始 ===")
           if (DEBUG) {
             console.log("當前環境:", {
@@ -653,7 +681,7 @@
                 closePage()
               }
             }, 2000)
-            return
+            return false
           }
 
           if (DEBUG)
@@ -666,6 +694,106 @@
           if (DEBUG) console.log("使用 LIFF ID:", liffId)
 
           updateStatusIndicator("🔄 連接到 LINE 平台...", "info")
+
+          // 使用 try-catch 明確捕獲 init 錯誤
+          try {
+            await liff.init({ liffId: liffId })
+          } catch (initError) {
+            console.error("🛑 LIFF 初始化錯誤:", initError)
+            updateStatusIndicator("❌ LINE 連接失敗", "error")
+            showStatusMessageWithClose(
+              "LINE 連接失敗，請稍後再試: " + (initError.message || "未知錯誤"),
+              "error",
+              true
+            )
+            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            return false
+          }
+
+          if (DEBUG) console.log("✅ LIFF初始化成功")
+          updateStatusIndicator("✅ 準備掃描...", "success")
+
+          // 只記錄最簡化的環境資訊
+          const liffInfo = {
+            isInClient: liff.isInClient(),
+            scanAvailable: liff.isApiAvailable
+              ? liff.isApiAvailable("scanCodeV2")
+              : false,
+          }
+          if (DEBUG) console.log("LIFF 環境資訊:", liffInfo)
+
+          // 檢查是否在 LINE 客戶端中
+          if (!liff.isInClient()) {
+            updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
+            showStatusMessageWithClose(
+              "請在LINE應用程式中開啟此頁面",
+              "error",
+              true
+            )
+            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            return false
+          }
+
+          // 檢查掃描功能是否可用
+          if (!liff.isApiAvailable("scanCodeV2")) {
+            updateStatusIndicator("❌ LINE版本不支援掃描", "error")
+            showStatusMessageWithClose(
+              "此LINE版本不支援掃描功能，請更新LINE",
+              "error",
+              true
+            )
+            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            return false
+          }
+
+          // 標記初始化完成
+          liffInitialized = true
+
+          // 初始化完成後立即開啟掃描器
+          startScanner()
+          return true
+        } catch (error) {
+          console.error("🛑 LIFF 整體初始化流程失敗:", error)
+          updateStatusIndicator("❌ LINE 連接失敗", "error")
+          showStatusMessageWithClose(
+            "LINE 功能初始化失敗: " + (error.message || "未知錯誤"),
+            "error",
+            true
+          )
+          setTimeout(closePage, AUTO_CLOSE_DELAY)
+          return false
+        } finally {
+          initializationInProgress = false
+        }
+      }
+      // LIFF 初始化標誌
+      let liffInitialized = false
+      let initializationInProgress = false
+
+      // 主初始化函數 - 增加防護機制避免重複呼叫
+      async function initializeLiff() {
+        if (liffInitialized) {
+          if (DEBUG) console.log("🔍 LIFF 已經初始化過，跳過重複初始化")
+          return true
+        }
+
+        if (initializationInProgress) {
+          if (DEBUG) console.log("⏳ LIFF 初始化進行中，請等待...")
+          return false
+        }
+
+        try {
+          initializationInProgress = true
+          updateStatusIndicator("🔄 連接到 LINE 平台...", "info")
+
+          if (DEBUG)
+            console.log(
+              "✅ LIFF SDK 已載入，版本:",
+              liff.getVersion ? liff.getVersion() : "無法獲取"
+            )
+
+          const liffId = "2007942695-y4qpaekB"
+          if (DEBUG) console.log("使用 LIFF ID:", liffId)
 
           await liff.init({ liffId: liffId })
 
@@ -690,7 +818,7 @@
               true
             )
             setTimeout(closePage, AUTO_CLOSE_DELAY)
-            return
+            return false
           }
 
           // 檢查掃描功能是否可用
@@ -702,55 +830,27 @@
               true
             )
             setTimeout(closePage, AUTO_CLOSE_DELAY)
-            return
+            return false
           }
 
-          // 初始化完成後立即開啟掃描器（移除延遲）
+          // 標記初始化完成
+          liffInitialized = true
+
+          // 初始化完成後立即開啟掃描器
           startScanner()
-
-          // 在掃描開始後才載入其他功能
-          setTimeout(() => {
-            loadDeferredFunctions()
-          }, 0)
+          return true
         } catch (error) {
-          console.error("❌ LIFF 初始化失敗:", error.message || error)
-
-          updateStatusIndicator("❌ LIFF初始化失敗", "error")
-
-          let errorMessage = "初始化失敗"
-          if (error.code) {
-            switch (error.code) {
-              case "INIT_FAILED":
-                errorMessage = "網路連線失敗或服務不可用"
-                break
-              case "INVALID_ARGUMENT":
-                errorMessage = "LIFF ID 設定錯誤"
-                break
-              case "FORBIDDEN":
-                errorMessage = "此LIFF應用程式無法使用"
-                break
-              case "UNAUTHORIZED":
-                errorMessage = "LIFF應用程式未授權"
-                break
-              default:
-                errorMessage = `初始化失敗 (${error.code})`
-            }
-          } else if (error.message) {
-            errorMessage = error.message
-          }
-
-          showStatusMessage(errorMessage, "error")
-
-          // 提供重試選項 (用 setTimeout 避免阻塞)
-          setTimeout(() => {
-            if (
-              confirm(`LIFF初始化失敗: ${errorMessage}\n\n是否要重新嘗試？`)
-            ) {
-              location.reload()
-            } else {
-              closePage()
-            }
-          }, 100)
+          console.error("🛑 LIFF 初始化失敗:", error)
+          updateStatusIndicator("❌ LINE 連接失敗", "error")
+          showStatusMessageWithClose(
+            "LINE 連接失敗，請稍後再試：" + (error.message || "未知錯誤"),
+            "error",
+            true
+          )
+          setTimeout(closePage, AUTO_CLOSE_DELAY)
+          return false
+        } finally {
+          initializationInProgress = false
         }
       }
 
@@ -760,9 +860,20 @@
         // 這裡可以放置掃描後才需要的功能初始化
       }
 
+      // 追蹤掃描器狀態
+      var scannerStarted = false
+
       // 開啟LIFF掃描器
       async function startScanner() {
+        // 避免重複啟動掃描器
+        if (scannerStarted) {
+          if (DEBUG) console.log("⚠️ 掃描器已啟動，避免重複啟動")
+          return
+        }
+
         try {
+          scannerStarted = true
+
           // 減少 DOM 改變以避免引發重排
           updateStatusIndicator("📱 開啟掃描中...", "info")
           showLoading("開啟相機...")
@@ -777,6 +888,7 @@
 
           if (!liff.isInClient()) {
             hideLoading()
+            scannerStarted = false
             updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
             showStatusMessage("請在LINE應用程式中開啟此頁面", "error")
             setTimeout(closePage, AUTO_CLOSE_DELAY)
@@ -786,6 +898,7 @@
           // 檢查LIFF是否支援掃描功能
           if (!liff.scanCodeV2) {
             hideLoading()
+            scannerStarted = false
             updateStatusIndicator("❌ LINE版本不支援掃描", "error")
             showStatusMessage("此版本LINE不支援掃描功能", "error")
             setTimeout(closePage, AUTO_CLOSE_DELAY)
@@ -801,6 +914,9 @@
             liff
               .scanCodeV2()
               .then((result) => {
+                // 重置掃描器狀態
+                scannerStarted = false
+
                 if (result) {
                   if (DEBUG) console.log("掃描結果:", result.value)
                   updateStatusIndicator("✅ 掃描成功", "success")
@@ -816,6 +932,9 @@
                 }
               })
               .catch((error) => {
+                // 重置掃描器狀態
+                scannerStarted = false
+
                 if (DEBUG) console.error("掃描失敗:", error)
                 hideLoading()
 
@@ -838,6 +957,8 @@
         } catch (error) {
           if (DEBUG) console.error("掃描失敗:", error)
           hideLoading()
+          // 重置掃描器狀態
+          scannerStarted = false
 
           updateStatusIndicator("❌ 掃描失敗", "error")
           showStatusMessage(
@@ -901,50 +1022,7 @@
               const tripStatus = (tripJson?.data?.status || "").toLowerCase()
               if (tripStatus !== "completed") {
                 hideLoading()
-                // 不在狀態指示器顯示
-                // updateStatusIndicator(
-                //   "ℹ️ 本趟次尚未發車，無法確認您是否搭乘",
-                //   "warning"
-                // )
-                const details = document.getElementById("reservationDetails")
-                details.innerHTML = `
-                  <div style="grid-column: 1 / -1; text-align: left; padding: 30px 20px;">
-                    <div style="font-size: 24px; font-weight: bold; color: #e74c3c; margin-bottom: 15px;">
-                      本趟次尚未發車，無法確認您是否搭乘
-                    </div>
-                    <div style="font-size: 18px; color: #2c3e50; margin-bottom: 20px;">
-                      請在發車後再進行掃描確認
-                    </div>
-                    <button 
-                      onclick="closePage()" 
-                      style="
-                        background: #e74c3c; 
-                        color: white; 
-                        border: none; 
-                        padding: 12px 25px; 
-                        border-radius: 25px; 
-                        font-size: 16px; 
-                        margin-top: 20px; 
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                      " 
-                      onmouseover="this.style.background='#c0392b'" 
-                      onmouseout="this.style.background='#e74c3c'"
-                    >
-                      立即關閉
-                    </button>
-                  </div>
-                `
-                const titleElement = document.querySelector(
-                  "#reservationInfo h3"
-                )
-                if (titleElement)
-                  titleElement.textContent = "⚠️ 無法進行搭乘確認"
-                document.getElementById("reservationInfo").style.display =
-                  "block"
-                // 不在掃描結果區域顯示訊息
-                // showScanResult("ℹ️ 本趟次尚未發車，無法確認您是否搭乘", "error")
-                startAutoCloseTimer()
+                showTripNotDepartedMessage()
                 return
               }
             }
@@ -1004,7 +1082,7 @@
                   onclick="closePage()" 
                   style="background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 8px; cursor: pointer;"
                 >
-                  關閉
+                  立即關閉
                 </button>
               </div>
             `
@@ -1204,6 +1282,44 @@
         showScanResult("✅ 您已搭乘本趟次", "success")
       }
 
+      // 顯示未發車訊息 (與上車確認使用相同的顯示方式)
+      function showTripNotDepartedMessage() {
+        updateStatusIndicator("⚠️ 本趟次尚未發車", "warning")
+
+        // 使用與上車確認相同的方式，只是改變顏色
+        showStatusMessageWithClose(
+          "本趟次尚未發車，無法確認您是否搭乘<br><small style='font-size:80%; opacity:0.8; margin-top:5px; display:block;'>請在發車後再進行掃描確認</small>",
+          "error",
+          true
+        )
+
+        // 添加聲音提示
+        const errorSound = new Audio(
+          "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAFAAAGUACFhYWFhYWFhYWFhYWFhYWFhYWFvb29vb29vb29vb29vb29vb29vb3T09PT09PT09PT09PT09PT09PT0+np6enp6enp6enp6enp6enp6enp//////////////////////////8AAAAKQkFNQQAAAAlDAAAAAACAAAAAACAAIBoKAAAABAAAgAuNXKuOAAAAAAAAAAAAAAAAAP/7kMQAAAesDVe0EQAo5mW788GJgAQMgGAAQJ/X8evf4Bj4nFDgMUOByiH/5c4HKIcuXOIeuUOIc+cQ5c4h7//+UQyiH/lziHLnEPX////buIezg5RD//lzgcohy5c4h+5Q4hz5xDlziHv//5RDKIR5dMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+        )
+        errorSound.play().catch((e) => console.log("無法播放聲音提示:", e))
+
+        // 啟動較短的自動關閉計時器 (15秒)
+        let countdown = 15 // 較短時間
+        const timerElement = document.getElementById("autoCloseTimer")
+
+        if (autoCloseTimer) {
+          clearInterval(autoCloseTimer)
+        }
+
+        autoCloseTimer = setInterval(() => {
+          countdown--
+          if (timerElement) {
+            timerElement.textContent = `${countdown}秒後自動關閉並返回聊天室...`
+          }
+
+          if (countdown <= 0) {
+            clearInterval(autoCloseTimer)
+            closePage()
+          }
+        }, 1000)
+      }
+
       // 已核銷情況的5秒倒數計時
       function startAlreadyBoardedTimer() {
         let countdown = 15
@@ -1248,18 +1364,32 @@
         type,
         showCloseButton = false
       ) {
-        // 掃描中避免創建太多 DOM 元素
+        // 避免重複顯示訊息
+        // 1. 掃描中避免創建太多 DOM 元素
         if (isScanning && !message.includes("錯誤")) return
 
-        // 移除現有的狀態消息
+        // 2. 檢查是否已經有相同訊息正在顯示
         const existingMessage = document.querySelector(".status-message")
         if (existingMessage) {
+          // 使用正則表達式移除所有HTML標籤進行比較
+          const stripHtml = (html) => html.replace(/<[^>]*>?/gm, "")
+          const existingText = stripHtml(existingMessage.innerHTML)
+          const newText = stripHtml(message)
+
+          // 如果已有相同訊息，則不重複顯示
+          if (
+            existingText.includes(newText) ||
+            newText.includes(existingText)
+          ) {
+            return
+          }
           existingMessage.remove()
         }
 
         // 創建新的狀態消息 (使用簡化的 HTML，減少渲染負擔)
         const messageElement = document.createElement("div")
         messageElement.className = `status-message ${type}`
+        messageElement.dataset.created = Date.now() // 添加時間戳記
 
         if (showCloseButton) {
           // 簡化按鈕樣式，使用基本樣式
@@ -1278,14 +1408,36 @@
 
         document.body.appendChild(messageElement)
 
-        // 使用統一的自動關閉時間（如果有關閉按鈕則延長時間）
-        setTimeout(
-          () => {
-            if (messageElement.parentNode) {
-              messageElement.remove()
-            }
-          },
-          showCloseButton ? AUTO_CLOSE_DELAY : 3000
+        // 設置唯一ID用於追蹤定時器
+        const messageId = `msg_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 5)}`
+        messageElement.id = messageId
+
+        // 清除可能存在的之前的定時器
+        if (window.messageTimers && window.messageTimers[messageId]) {
+          clearTimeout(window.messageTimers[messageId])
+        }
+
+        // 初始化定時器追蹤對象
+        if (!window.messageTimers) window.messageTimers = {}
+
+        // 自動移除消息（如果有關閉按鈕則延長時間）
+        const timeout = showCloseButton ? AUTO_CLOSE_DELAY : 3000
+        window.messageTimers[messageId] = setTimeout(() => {
+          if (messageElement && messageElement.parentNode) {
+            messageElement.remove()
+          }
+          // 清除定時器引用
+          delete window.messageTimers[messageId]
+        }, timeout)
+
+        // 調試輸出 (在控制台顯示訊息建立時間)
+        console.log(
+          `訊息已建立: ${message.substring(
+            0,
+            20
+          )}... (${type}), ID: ${messageId}, 將在 ${timeout / 1000}秒後關閉`
         )
       }
       function showStatusMessage(message, type) {
@@ -1315,7 +1467,20 @@
         })
       }
     </script>
-    <!-- 版本標記：v1.0.0.20250909-1 -->
-    <div style="display: none">版本: 20250909-1</div>
+    <!-- 版本標記：v1.0.0.20250909-3 -->
+    <div
+      style="
+        position: fixed;
+        bottom: 5px;
+        right: 5px;
+        font-size: 10px;
+        color: #999;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 2px 5px;
+        border-radius: 3px;
+      "
+    >
+      版本: 20250909-3
+    </div>
   </body>
 </html>
