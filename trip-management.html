@@ -1077,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.23 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.24 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1585,7 +1585,8 @@
                 showCompletedTrips ? "true" : "false"
               )
             } catch (_) {}
-            renderTripsSync()
+            // 勾選或取消都重新向後端取一次，以確保狀態最新
+            loadTrips().catch(() => renderTripsSync())
           })
         }
 
@@ -2241,10 +2242,24 @@
           return timeA.localeCompare(timeB)
         })
 
-        // 若未勾選顯示已發車，先過濾 completed
+        // 勾選：僅顯示已發車；未勾選：僅顯示未發車
         const displayTrips = showCompletedTrips
-          ? sortedTrips
+          ? sortedTrips.filter((t) => t.status === "completed")
           : sortedTrips.filter((t) => t.status !== "completed")
+
+        if (displayTrips.length === 0) {
+          const msg = showCompletedTrips
+            ? "目前沒有已發車的趟次"
+            : "目前沒有進行中的趟次 (可勾選顯示已發車)"
+          const finalHtmlEmpty = `
+            <div class="view-toggle">
+              <button class="btn btn-info" onclick="expandAllTrips()">📖 全部展開</button>
+              <button class="btn btn-info" onclick="collapseAllTrips()">📕 全部摺疊</button>
+            </div>
+            <p style=\"text-align:center;color:#666;padding:40px;\">${msg}</p>`
+          container.innerHTML = finalHtmlEmpty
+          return
+        }
 
         const tripsHtml = displayTrips
           .map((trip) => {
