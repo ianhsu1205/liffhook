@@ -1331,11 +1331,25 @@
           } else {
             const errorData = await response.json()
             hideLoading()
+            const rawMsg =
+              (errorData &&
+                (errorData.message ||
+                  errorData.msg ||
+                  errorData.error ||
+                  errorData.title)) ||
+              ""
+            const textMsg =
+              typeof rawMsg === "string" ? rawMsg : JSON.stringify(rawMsg)
+
+            // 特殊處理：本趟次尚未發車 => 使用中央提示樣式，不彈出舊 modal
+            if (textMsg.includes("尚未發車") || textMsg.includes("未發車")) {
+              updateStatusIndicator("⚠️ 本趟次尚未發車", "warning")
+              showTripNotDepartedMessage()
+              return
+            }
+
             updateStatusIndicator("❌ 搭乘確認失敗", "error")
-            showStatusMessage(
-              errorData.message || errorData || "搭乘確認失敗",
-              "error"
-            )
+            showStatusMessage(textMsg || "搭乘確認失敗", "error")
             setTimeout(closePage, AUTO_CLOSE_DELAY)
           }
         } catch (error) {
@@ -1716,7 +1730,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-6
+      版本: 20250909-5
     </div>
   </body>
 </html>
