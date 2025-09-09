@@ -446,6 +446,27 @@
             <div id="autoCloseTimer">20秒後自動關閉並返回聊天室...</div>
           </div>
         </div>
+
+        <!-- 緊急重啟按鈕，連點5次狀態指示器啟動 -->
+        <div
+          id="emergencyRestart"
+          style="
+            position: fixed;
+            bottom: 20px;
+            left: 15px;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          "
+          onclick="restartLiff()"
+        >
+          重新初始化
+        </div>
       </div>
     </div>
 
@@ -453,7 +474,7 @@
       // 全局變量
       let reservationData = null
       let autoCloseTimer = null
-      const DEBUG = false // 切換為 false 可大幅減少 console.log 輸出
+      const DEBUG = true // 開啟調試模式
       let isScanning = false // 是否正在掃描中
       let viewportMetaElement = null // 存儲視口元素以便動態調整
       let rafId = null // requestAnimationFrame ID
@@ -461,6 +482,24 @@
       // 統一的等待時間設定 (毫秒)
       const AUTO_CLOSE_DELAY = 20000 // 20秒
       const AUTO_CLOSE_COUNTDOWN = 20 // 20秒倒數
+
+      // 緊急重啟功能
+      function restartLiff() {
+        console.log("🔄 緊急重啟 LIFF...")
+        // 重置標記
+        liffInitialized = false
+        initializationInProgress = false
+        scannerStarted = false
+
+        // 顯示重啟訊息
+        updateStatusIndicator("🔄 重新初始化中...", "info")
+
+        // 延遲一點執行以確保 UI 更新
+        setTimeout(() => {
+          // 重新呼叫初始化函數
+          initLiff()
+        }, 300)
+      }
 
       const API_BASE_URL = "https://35.221.146.143.nip.io/linehook/KeepSeat"
       //const API_BASE_URL = "http://localhost:5000/linehook/api/KeepSeat"
@@ -530,6 +569,31 @@
 
       // 初始化LIFF
       document.addEventListener("DOMContentLoaded", function () {
+        // 狀態指示器點擊計數，連續點擊5次將顯示緊急重啟按鈕
+        let clickCount = 0
+        let clickTimer = null
+        const statusIndicator = document.getElementById("statusIndicator")
+
+        if (statusIndicator) {
+          statusIndicator.addEventListener("click", function () {
+            clickCount++
+
+            if (clickCount === 1) {
+              clickTimer = setTimeout(() => {
+                clickCount = 0
+              }, 3000) // 3秒內需完成5次點擊
+            }
+
+            if (clickCount >= 5) {
+              clearTimeout(clickTimer)
+              clickCount = 0
+              document.getElementById("emergencyRestart").style.display =
+                "block"
+              console.log("已啟用緊急重啟按鈕")
+            }
+          })
+        }
+
         // 先切換為簡易模式，提升相機啟動性能
         prepareForScan()
 
@@ -637,6 +701,8 @@
 
       // LIFF 初始化標誌與進度追蹤
       var liffInitialized = false
+      // LIFF 初始化標誌與進度追蹤
+      var liffInitialized = false
       var initializationInProgress = false
 
       // LIFF 初始化
@@ -697,9 +763,12 @@
 
           // 使用 try-catch 明確捕獲 init 錯誤
           try {
+            console.log("開始執行 liff.init...")
             await liff.init({ liffId: liffId })
+            console.log("liff.init 成功完成")
           } catch (initError) {
             console.error("🛑 LIFF 初始化錯誤:", initError)
+            initializationInProgress = false
             updateStatusIndicator("❌ LINE 連接失敗", "error")
             showStatusMessageWithClose(
               "LINE 連接失敗，請稍後再試: " + (initError.message || "未知錯誤"),
@@ -766,8 +835,6 @@
           initializationInProgress = false
         }
       }
-      // LIFF 初始化標誌
-      let liffInitialized = false
       let initializationInProgress = false
 
       // 主初始化函數 - 增加防護機制避免重複呼叫
@@ -872,6 +939,18 @@
         }
 
         try {
+          // 檢查 LIFF 是否初始化完成
+          if (!liffInitialized) {
+            console.warn("⚠️ LIFF尚未初始化完成，無法啟動掃描器")
+            showStatusMessageWithClose(
+              "LINE功能初始化尚未完成，請稍後再試",
+              "error",
+              true
+            )
+            return
+          }
+
+          console.log("開始啟動掃描器...")
           scannerStarted = true
 
           // 減少 DOM 改變以避免引發重排
@@ -896,11 +975,20 @@
           }
 
           // 檢查LIFF是否支援掃描功能
-          if (!liff.scanCodeV2) {
+          if (!liff.isApiAvailable || !liff.isApiAvailable("scanCodeV2")) {
             hideLoading()
             scannerStarted = false
+            console.error("❌ LINE版本不支援掃描功能", {
+              scanMethod: typeof liff.scanCodeV2,
+              isApiAvailable: typeof liff.isApiAvailable,
+              liffObject: typeof liff,
+            })
             updateStatusIndicator("❌ LINE版本不支援掃描", "error")
-            showStatusMessage("此版本LINE不支援掃描功能", "error")
+            showStatusMessageWithClose(
+              "此版本LINE不支援掃描功能，請更新LINE應用程式",
+              "error",
+              true
+            )
             setTimeout(closePage, AUTO_CLOSE_DELAY)
             return
           }
@@ -910,49 +998,64 @@
 
           // 使用 RAF 和 setTimeout 確保 UI 線程釋放
           setTimeout(() => {
-            // 使用LIFF掃描QR Code
-            liff
-              .scanCodeV2()
-              .then((result) => {
-                // 重置掃描器狀態
-                scannerStarted = false
+            try {
+              // 使用LIFF掃描QR Code
+              console.log("呼叫 liff.scanCodeV2...")
+              liff
+                .scanCodeV2()
+                .then((result) => {
+                  // 重置掃描器狀態
+                  scannerStarted = false
 
-                if (result) {
-                  if (DEBUG) console.log("掃描結果:", result.value)
-                  updateStatusIndicator("✅ 掃描成功", "success")
+                  if (result) {
+                    if (DEBUG) console.log("掃描結果:", result.value)
+                    updateStatusIndicator("✅ 掃描成功", "success")
+                    hideLoading()
+
+                    // 恢復完整 UI
+                    resumeAfterScan()
+
+                    // 處理掃描結果 (延遲一點執行以確保 UI 更新完成)
+                    setTimeout(() => {
+                      processScanResult(result.value)
+                    }, 100)
+                  }
+                })
+                .catch((error) => {
+                  // 重置掃描器狀態
+                  scannerStarted = false
+
+                  if (DEBUG) console.error("掃描失敗:", error)
                   hideLoading()
 
-                  // 恢復完整 UI
-                  resumeAfterScan()
+                  if (error.code === "USER_CANCEL") {
+                    updateStatusIndicator("⚠️ 掃描已取消", "warning")
+                    showStatusMessage("掃描已取消，即將關閉頁面", "warning")
+                    setTimeout(closePage, AUTO_CLOSE_DELAY)
+                    return
+                  }
 
-                  // 處理掃描結果 (延遲一點執行以確保 UI 更新完成)
-                  setTimeout(() => {
-                    processScanResult(result.value)
-                  }, 100)
-                }
-              })
-              .catch((error) => {
-                // 重置掃描器狀態
-                scannerStarted = false
-
-                if (DEBUG) console.error("掃描失敗:", error)
-                hideLoading()
-
-                if (error.code === "USER_CANCEL") {
-                  updateStatusIndicator("⚠️ 掃描已取消", "warning")
-                  showStatusMessage("掃描已取消，即將關閉頁面", "warning")
+                  // 其他錯誤
+                  updateStatusIndicator("❌ 掃描失敗", "error")
+                  showStatusMessage(
+                    `掃描失敗：${error.message || error.code || "未知錯誤"}`,
+                    "error"
+                  )
                   setTimeout(closePage, AUTO_CLOSE_DELAY)
-                  return
-                }
-
-                // 其他錯誤
-                updateStatusIndicator("❌ 掃描失敗", "error")
-                showStatusMessage(
-                  `掃描失敗：${error.message || error.code || "未知錯誤"}`,
-                  "error"
-                )
-                setTimeout(closePage, AUTO_CLOSE_DELAY)
-              })
+                })
+            } catch (scannerError) {
+              console.error("啟動掃描器錯誤:", scannerError)
+              hideLoading()
+              scannerStarted = false
+              updateStatusIndicator("❌ 掃描功能異常", "error")
+              showStatusMessageWithClose(
+                "掃描功能異常: " +
+                  (scannerError.message || "未知錯誤") +
+                  "<br><small>請確認您已授予相機權限，並使用最新版本的LINE應用程式</small>",
+                "error",
+                true
+              )
+            }
           }, 50) // 短暫延遲以讓 UI 更新
         } catch (error) {
           if (DEBUG) console.error("掃描失敗:", error)
@@ -1467,7 +1570,7 @@
         })
       }
     </script>
-    <!-- 版本標記：v1.0.0.20250909-3 -->
+    <!-- 版本標記：v1.0.0.20250909-4 -->
     <div
       style="
         position: fixed;
@@ -1480,7 +1583,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-3
+      版本: 20250909-4 (修復初始化問題)
     </div>
   </body>
 </html>
