@@ -895,21 +895,22 @@
               const tripStatus = (tripJson?.data?.status || "").toLowerCase()
               if (tripStatus !== "completed") {
                 hideLoading()
-                updateStatusIndicator(
-                  "ℹ️ 本趟次尚未發車，無法確認您是否搭乘",
-                  "warning"
-                )
+                // 不在狀態指示器顯示
+                // updateStatusIndicator(
+                //   "ℹ️ 本趟次尚未發車，無法確認您是否搭乘",
+                //   "warning"
+                // )
                 const details = document.getElementById("reservationDetails")
                 details.innerHTML = `
-                  <div style="grid-column: 1 / -1; text-align: left; padding: 24px 16px;">
-                    <div style="font-size: 20px; font-weight: 700; color: #c0392b; margin-bottom: 10px; line-height: 1.6;">
+                  <div style="grid-column: 1 / -1; text-align: center; padding: 30px 20px;">
+                    <div style="font-size: 24px; font-weight: 700; color: #e74c3c; margin-bottom: 20px; line-height: 1.6;">
                       本趟次尚未發車，無法確認您是否搭乘
                     </div>
                     <button 
                       onclick="closePage()" 
-                      style="background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 8px; cursor: pointer;"
+                      style="background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; margin-top: 15px; cursor: pointer; font-weight: 600;"
                     >
-                      關閉
+                      確認關閉
                     </button>
                   </div>
                 `
@@ -917,10 +918,11 @@
                   "#reservationInfo h3"
                 )
                 if (titleElement)
-                  titleElement.textContent = "ℹ️ 無法進行搭乘確認"
+                  titleElement.textContent = "⚠️ 無法進行搭乘確認"
                 document.getElementById("reservationInfo").style.display =
                   "block"
-                showScanResult("ℹ️ 本趟次尚未發車，無法確認您是否搭乘", "error")
+                // 不在掃描結果區域顯示訊息
+                // showScanResult("ℹ️ 本趟次尚未發車，無法確認您是否搭乘", "error")
                 startAutoCloseTimer()
                 return
               }
