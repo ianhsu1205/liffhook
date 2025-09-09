@@ -642,11 +642,75 @@
       }
 
       // 關閉頁面
-      function closePage() {
-        if (typeof liff !== "undefined" && liff.isInClient()) {
-          liff.closeWindow()
-        } else {
+      function closePage(force) {
+        if (window.__closingInProgress) {
+          console.log("[closePage] 已在處理關閉流程，略過本次呼叫")
+          // 若超過 1500ms 仍未離開，解除鎖定允許再次嘗試
+          if (!window.__closeRetryTimer) {
+            window.__closeRetryTimer = setTimeout(() => {
+              if (!document.hidden) {
+                console.log("[closePage] 解除鎖定，允許重試")
+                window.__closingInProgress = false
+                window.__closeRetryTimer = null
+              }
+            }, 1500)
+          }
+          return
+        }
+        window.__closingInProgress = true
+        console.log("[closePage] 嘗試關閉頁面, force=", !!force)
+
+        // 主要：LIFF 內關閉
+        try {
+          if (
+            typeof liff !== "undefined" &&
+            liff &&
+            typeof liff.isInClient === "function" &&
+            liff.isInClient()
+          ) {
+            if (typeof liff.closeWindow === "function") {
+              console.log("[closePage] 使用 liff.closeWindow()")
+              liff.closeWindow()
+              return
+            }
+          }
+        } catch (e) {
+          console.warn("[closePage] liff close 失敗", e)
+        }
+
+        // 次要：瀏覽器視窗 (可能被阻擋)
+        let windowCloseAttempted = false
+        try {
           window.close()
+          windowCloseAttempted = true
+        } catch (e) {
+          console.warn("[closePage] window.close() 失敗", e)
+        }
+
+        // 退回上一頁 (若是從 LINE 呼叫通常會無上一頁，可略過)
+        if (force || document.referrer) {
+          try {
+            history.back()
+            setTimeout(() => {
+              if (!document.hidden) {
+                console.log("[closePage] history.back() 無效，導向 line.me")
+                location.href = "https://line.me/"
+              }
+            }, 900)
+          } catch (e) {
+            console.warn("[closePage] history.back() 失敗", e)
+          }
+        } else {
+          // 顯示提示讓使用者手動關閉
+          console.log("[closePage] 無法自動關閉，提示使用者手動關閉頁面")
+          showStatusMessageWithClose(
+            "請手動關閉此視窗返回 LINE 聊天室",
+            "warning",
+            true
+          )
+          setTimeout(() => {
+            window.__closingInProgress = false
+          }, 1800)
         }
       }
 
@@ -697,11 +761,45 @@
 
         // 事件委派 - 一次性綁定事件以減少事件監聽器數量
         document.body.addEventListener("click", function (e) {
-          if (e.target && e.target.matches('[onclick*="closePage"]')) {
+          const t = e.target
+          if (!t) return
+          // 任一帶 data-close 或含有 closePage inline handler 的元素
+          if (
+            t.closest("[data-close]") ||
+            (t.getAttribute &&
+              (t.getAttribute("onclick") || "").includes("closePage"))
+          ) {
             e.preventDefault()
-            closePage()
+            closePage(true)
           }
         })
+
+        // 綁定中央提示按鈕（避免 inline handler 失效情況）
+        const inlineBtn = document.getElementById("inlineCenterAlertClose")
+        if (inlineBtn && !inlineBtn.__bound) {
+          inlineBtn.__bound = true
+          inlineBtn.addEventListener("click", function () {
+            console.log("[inlineCenterAlertClose] click")
+            if (this.dataset.clickedOnce) {
+              closePage(true)
+              return
+            }
+            this.dataset.clickedOnce = "1"
+            this.style.opacity = ".6"
+            if (typeof closeInlineCenterAlert === "function") {
+              try {
+                closeInlineCenterAlert(true)
+              } catch (e) {
+                console.warn(e)
+              }
+            }
+            setTimeout(() => {
+              if (!document.hidden) {
+                closePage(true)
+              }
+            }, 250)
+          })
+        }
       })
 
       // 掃描前的準備工作
@@ -1734,4 +1832,3 @@
     </div>
   </body>
 </html>
-
