@@ -487,6 +487,8 @@
                 id="inlineCenterAlertClose"
                 type="button"
                 data-close-inline="1"
+                data-close="1"
+                data-direct-close="1"
                 style="
                   margin-top: 18px;
                   background: #d32f2f;
@@ -798,7 +800,7 @@
           const t = e.target
           if (!t) return
           const trigger =
-            t.closest("[data-close]") ||
+            t.closest("[data-close],[data-close-inline]") ||
             (t.getAttribute &&
             (t.getAttribute("onclick") || "").includes("closePage")
               ? t
@@ -809,7 +811,10 @@
             trigger.__closing = true
             const originalOpacity = trigger.style.opacity
             trigger.style.opacity = "0.55"
-            if (trigger.hasAttribute("data-direct-close")) {
+            if (
+              trigger.hasAttribute("data-direct-close") ||
+              trigger.hasAttribute("data-close-inline")
+            ) {
               attemptDirectClose()
             } else {
               closePage(true)
@@ -825,20 +830,20 @@
         const inlineBtn = document.getElementById("inlineCenterAlertClose")
         if (inlineBtn && !inlineBtn.__bound) {
           inlineBtn.__bound = true
-          inlineBtn.addEventListener("click", function () {
+          inlineBtn.addEventListener("click", function (ev) {
+            ev.preventDefault()
             if (this.disabled) return
             this.disabled = true
             this.style.opacity = ".55"
             try {
-              if (typeof closeInlineCenterAlert === "function")
-                closeInlineCenterAlert(true)
+              attemptDirectClose()
             } catch (e) {
               console.warn(e)
+              closePage(true)
             }
-            // 若 400ms 後仍未離開，再嘗試一次 closePage(true)
             setTimeout(() => {
               if (!document.hidden) closePage(true)
-            }, 400)
+            }, 500)
           })
         }
       })
@@ -1793,7 +1798,7 @@
           messageElement.innerHTML = `
             <div>${message}</div>
             <button 
-              data-close="1" data-direct-close="1" 
+              data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
               style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-top: 8px; cursor: pointer;"
             >
               關閉
@@ -1877,7 +1882,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-8
+      版本: 20250909-9
     </div>
   </body>
 </html>
