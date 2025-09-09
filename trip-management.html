@@ -1077,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.24 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.25 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2243,13 +2243,29 @@
         })
 
         // 勾選：僅顯示已發車；未勾選：僅顯示未發車
-        const displayTrips = showCompletedTrips
-          ? sortedTrips.filter((t) => t.status === "completed")
-          : sortedTrips.filter((t) => t.status !== "completed")
+        const displayTrips = (function () {
+          return showCompletedTrips
+            ? sortedTrips.filter(
+                (t) => (t.status || "").toLowerCase().trim() === "completed"
+              )
+            : sortedTrips.filter(
+                (t) => (t.status || "").toLowerCase().trim() !== "completed"
+              )
+        })()
+
+        if (showCompletedTrips) {
+          console.log(
+            "[顯示已發車模式] 原始筆數:",
+            sortedTrips.length,
+            "符合 completed 筆數:",
+            displayTrips.length,
+            sortedTrips.map((t) => ({ id: t.tripId, status: t.status }))
+          )
+        }
 
         if (displayTrips.length === 0) {
           const msg = showCompletedTrips
-            ? "目前沒有已發車的趟次"
+            ? "目前沒有已發車的趟次 (請確認有無標記為已發車)"
             : "目前沒有進行中的趟次 (可勾選顯示已發車)"
           const finalHtmlEmpty = `
             <div class="view-toggle">
