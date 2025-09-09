@@ -1417,7 +1417,7 @@
                   本趟次未查到您的申請記錄，若您搭乘的非通知保留的班車，請記得在今日內取消保留，以免影響您的權益
                 </div>
         <button 
-          data-close="1" data-direct-close="1" 
+          data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
                   style="background: #7f8c8d; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 8px; cursor: pointer;"
                 >
                   立即關閉
@@ -1517,7 +1517,7 @@
               上車時間：${result.boardingTime}
             </div>
             <button 
-              data-close="1" data-direct-close="1" 
+              data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
               style="
                 background: #27ae60; 
                 color: white; 
@@ -1611,7 +1611,7 @@
               </div>
             </div>
             <button 
-              data-close="1" data-direct-close="1" 
+              data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
               style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; margin-top: 16px; cursor: pointer;"
             >
               立即關閉
@@ -1877,7 +1877,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-7
+      版本: 20250909-8
     </div>
   </body>
 </html>
