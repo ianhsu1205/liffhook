@@ -315,11 +315,13 @@
         /* 減少合成器負載 */
         -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
+        pointer-events: none; /* 隱藏時不阻擋點擊 */
       }
 
       .loading-overlay.visible {
         opacity: 1;
         transform: translateY(0);
+        pointer-events: auto; /* 顯示時才可互動（阻擋底層） */
       }
 
       .loading-spinner {
@@ -1882,7 +1884,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-9
+      版本: 20250909-10
     </div>
   </body>
 </html>
