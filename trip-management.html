@@ -1077,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.22 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.23 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1159,6 +1159,30 @@
             <button type="submit" class="btn btn-primary">🚌 建立趟次</button>
           </div>
         </form>
+        <!-- 顯示已發車開關 -->
+        <div
+          class="show-completed-wrapper"
+          style="display: flex; align-items: center; gap: 6px"
+        >
+          <label
+            for="showCompletedToggle"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              margin: 0;
+            "
+          >
+            <input
+              type="checkbox"
+              id="showCompletedToggle"
+              style="transform: scale(1.2); cursor: pointer"
+            />
+            顯示已發車趟次
+          </label>
+        </div>
       </div>
 
       <div class="main-content">
@@ -1484,6 +1508,8 @@
       let vehicles = []
       let trips = []
       let pendingPassengers = []
+      // 顯示已發車趟次的偏好
+      let showCompletedTrips = false
 
       // 車輛自動完成相關變數
       let vehicleData = []
@@ -1537,6 +1563,31 @@
         document
           .getElementById("newTripForm")
           .addEventListener("submit", createTrip)
+
+        // 顯示已發車開關
+        const showCompletedToggle = document.getElementById(
+          "showCompletedToggle"
+        )
+        if (showCompletedToggle) {
+          // 從 localStorage 還原
+          try {
+            const saved = localStorage.getItem("showCompletedTrips")
+            if (saved === "true") {
+              showCompletedTrips = true
+              showCompletedToggle.checked = true
+            }
+          } catch (_) {}
+          showCompletedToggle.addEventListener("change", () => {
+            showCompletedTrips = !!showCompletedToggle.checked
+            try {
+              localStorage.setItem(
+                "showCompletedTrips",
+                showCompletedTrips ? "true" : "false"
+              )
+            } catch (_) {}
+            renderTripsSync()
+          })
+        }
 
         // 編輯趟次表單
         document
@@ -2190,7 +2241,12 @@
           return timeA.localeCompare(timeB)
         })
 
-        const tripsHtml = sortedTrips
+        // 若未勾選顯示已發車，先過濾 completed
+        const displayTrips = showCompletedTrips
+          ? sortedTrips
+          : sortedTrips.filter((t) => t.status !== "completed")
+
+        const tripsHtml = displayTrips
           .map((trip) => {
             const currentSeats = getTripPassengerCount(trip.tripId)
             console.log(
@@ -2329,7 +2385,7 @@
         })
 
         // 異步加載所有趟次的乘客資料
-        const updatePromises = sortedTrips.map(async (trip) => {
+        const updatePromises = displayTrips.map(async (trip) => {
           console.log(
             `開始處理趟次 ${trip.tripId} (${trip.vehicleNumber}, 路線: ${trip.route})`
           )
