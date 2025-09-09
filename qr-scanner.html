@@ -2,7 +2,12 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>🎫 保留座位搭乘確認</title>
     <!-- 載入最新版本的 LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -28,6 +33,27 @@
     <style>
       * {
         box-sizing: border-box;
+        touch-action: manipulation; /* 避免雙擊縮放 */
+      }
+
+      /* 掃描時暫停所有動畫與過渡效果以減少 CPU/GPU 負擔 */
+      .suspend-transitions * {
+        transition: none !important;
+        animation: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        will-change: auto !important; /* 重設 will-change 以釋放 GPU 資源 */
+      }
+
+      /* 簡化掃描階段的背景，避免耗費資源 */
+      .scanning-mode {
+        background: #3b5998 !important;
+        -webkit-transform: translateZ(0); /* 啟用硬體加速但固定上下文 */
+        transform: translateZ(0);
+        image-rendering: optimizeSpeed; /* 最佳化影像效能 */
+      }
+      .scanning-mode .container {
+        box-shadow: none !important;
       }
 
       body {
@@ -228,8 +254,7 @@
         z-index: 1000;
         max-width: 90%;
         text-align: left;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
       .status-message.success {
@@ -255,7 +280,18 @@
         justify-content: center;
         align-items: center;
         z-index: 9999;
-        backdrop-filter: blur(5px);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.2s, transform 0.2s;
+        will-change: opacity, transform;
+        /* 減少合成器負載 */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+
+      .loading-overlay.visible {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .loading-spinner {
@@ -265,6 +301,7 @@
         border-top: 4px solid #3498db;
         border-radius: 50%;
         animation: spin 1s linear infinite;
+        will-change: transform;
       }
 
       .loading-text {
@@ -326,7 +363,7 @@
   </head>
   <body>
     <!-- 加載遮罩 -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
+    <div id="loadingOverlay" class="loading-overlay">
       <div class="loading-spinner"></div>
       <div class="loading-text">處理中...</div>
     </div>
@@ -400,6 +437,10 @@
       // 全局變量
       let reservationData = null
       let autoCloseTimer = null
+      const DEBUG = false // 切換為 false 可大幅減少 console.log 輸出
+      let isScanning = false // 是否正在掃描中
+      let viewportMetaElement = null // 存儲視口元素以便動態調整
+      let rafId = null // requestAnimationFrame ID
 
       // 統一的等待時間設定 (毫秒)
       const AUTO_CLOSE_DELAY = 20000 // 20秒
@@ -473,21 +514,124 @@
 
       // 初始化LIFF
       document.addEventListener("DOMContentLoaded", function () {
+        // 先切換為簡易模式，提升相機啟動性能
+        prepareForScan()
+
+        // 先只顯示最基本 UI 元素（減少初始渲染負擔）
+        document
+          .querySelectorAll(".container > *:not(#statusIndicator)")
+          .forEach((el) => {
+            if (el.id !== "statusIndicator") {
+              el.style.visibility = "hidden"
+            }
+          })
+
+        // 儲存viewport元素，以便動態調整縮放
+        viewportMetaElement = document.querySelector('meta[name="viewport"]')
+
         // 初始化 LIFF
         initLiff()
+
+        // 事件委派 - 一次性綁定事件以減少事件監聽器數量
+        document.body.addEventListener("click", function (e) {
+          if (e.target && e.target.matches('[onclick*="closePage"]')) {
+            e.preventDefault()
+            closePage()
+          }
+        })
       })
+
+      // 掃描前的準備工作
+      function prepareForScan() {
+        // 簡化掃描階段樣式 (移除複雜動畫和陰影)
+        document.body.classList.add("suspend-transitions", "scanning-mode")
+
+        // 動態降低解析度以提高相機性能
+        if (viewportMetaElement) {
+          viewportMetaElement.setAttribute(
+            "content",
+            "width=device-width, initial-scale=0.9, maximum-scale=0.9"
+          )
+        }
+
+        // 強制 GC (啟發式)
+        clearMemory()
+
+        // 暫停所有可能耗費資源的計時器，只保留必要功能
+        if (autoCloseTimer) {
+          clearInterval(autoCloseTimer)
+          autoCloseTimer = null
+        }
+
+        // 取消任何進行中的動畫
+        if (rafId) {
+          cancelAnimationFrame(rafId)
+          rafId = null
+        }
+
+        isScanning = true
+      }
+
+      // 強制釋放可能占用記憶體的對象
+      function clearMemory() {
+        // 釋放大型變數
+        if (reservationData) {
+          reservationData = null
+        }
+
+        // 移除不必要的事件監聽器（若有）
+        // ...
+
+        // 幫助 GC
+        if (window.gc) window.gc()
+
+        // 試著讓系統釋放一些記憶體
+        setTimeout(() => {
+          const arr = new Array(1000).fill("x")
+          arr.length = 0
+        }, 0)
+      }
+
+      // 掃描完成後，恢復完整 UI 體驗
+      function resumeAfterScan() {
+        // 延遲一點執行，讓掃描結果處理先完成
+        setTimeout(() => {
+          // 恢復正常解析度
+          if (viewportMetaElement) {
+            viewportMetaElement.setAttribute(
+              "content",
+              "width=device-width, initial-scale=1.0, maximum-scale=1.0"
+            )
+          }
+
+          document.body.classList.remove("suspend-transitions", "scanning-mode")
+
+          // 恢復完整 UI，使用 requestAnimationFrame 確保視覺流暢
+          rafId = requestAnimationFrame(() => {
+            document.querySelectorAll(".container > *").forEach((el) => {
+              el.style.visibility = ""
+            })
+
+            isScanning = false
+            // 恢復完整功能
+            loadDeferredFunctions()
+          })
+        }, 300)
+      }
 
       // LIFF 初始化
       async function initLiff() {
         try {
-          console.log("=== LIFF 初始化開始 ===")
-          console.log("當前環境:", {
-            userAgent: navigator.userAgent,
-            isLine: navigator.userAgent.includes("Line"),
-            url: window.location.href,
-            liffSDK: typeof liff !== "undefined",
-            timestamp: new Date().toISOString(),
-          })
+          if (DEBUG) console.log("=== LIFF 初始化開始 ===")
+          if (DEBUG) {
+            console.log("當前環境:", {
+              userAgent: navigator.userAgent,
+              isLine: navigator.userAgent.includes("Line"),
+              url: window.location.href,
+              liffSDK: typeof liff !== "undefined",
+              timestamp: new Date().toISOString(),
+            })
+          }
 
           updateStatusIndicator("🔄 正在初始化LIFF...", "info")
 
@@ -506,33 +650,30 @@
             return
           }
 
-          console.log(
-            "✅ LIFF SDK 已載入，版本:",
-            liff.getVersion ? liff.getVersion() : "無法獲取"
-          )
+          if (DEBUG)
+            console.log(
+              "✅ LIFF SDK 已載入，版本:",
+              liff.getVersion ? liff.getVersion() : "無法獲取"
+            )
 
           const liffId = "2007942695-y4qpaekB"
-          console.log("使用 LIFF ID:", liffId)
+          if (DEBUG) console.log("使用 LIFF ID:", liffId)
 
           updateStatusIndicator("🔄 連接到 LINE 平台...", "info")
 
           await liff.init({ liffId: liffId })
 
-          console.log("✅ LIFF初始化成功")
-          updateStatusIndicator("✅ LIFF初始化成功，準備掃描...", "success")
+          if (DEBUG) console.log("✅ LIFF初始化成功")
+          updateStatusIndicator("✅ 準備掃描...", "success")
 
-          // 顯示 LIFF 環境資訊
+          // 只記錄最簡化的環境資訊
           const liffInfo = {
             isInClient: liff.isInClient(),
-            isLoggedIn: liff.isLoggedIn(),
-            os: liff.getOS ? liff.getOS() : "N/A",
-            language: liff.getLanguage ? liff.getLanguage() : "N/A",
-            lineVersion: liff.getLineVersion ? liff.getLineVersion() : "N/A",
             scanAvailable: liff.isApiAvailable
               ? liff.isApiAvailable("scanCodeV2")
               : false,
           }
-          console.log("LIFF 環境資訊:", liffInfo)
+          if (DEBUG) console.log("LIFF 環境資訊:", liffInfo)
 
           // 檢查是否在 LINE 客戶端中
           if (!liff.isInClient()) {
@@ -558,17 +699,15 @@
             return
           }
 
-          // 初始化完成後立即開啟掃描器
+          // 初始化完成後立即開啟掃描器（移除延遲）
+          startScanner()
+
+          // 在掃描開始後才載入其他功能
           setTimeout(() => {
-            startScanner()
-          }, 1000)
+            loadDeferredFunctions()
+          }, 0)
         } catch (error) {
-          console.error("❌ LIFF 初始化失敗詳情:", {
-            error: error,
-            code: error.code,
-            message: error.message,
-            stack: error.stack,
-          })
+          console.error("❌ LIFF 初始化失敗:", error.message || error)
 
           updateStatusIndicator("❌ LIFF初始化失敗", "error")
 
@@ -588,9 +727,7 @@
                 errorMessage = "LIFF應用程式未授權"
                 break
               default:
-                errorMessage = `初始化失敗 (${error.code}): ${
-                  error.message || "未知錯誤"
-                }`
+                errorMessage = `初始化失敗 (${error.code})`
             }
           } else if (error.message) {
             errorMessage = error.message
@@ -598,7 +735,7 @@
 
           showStatusMessage(errorMessage, "error")
 
-          // 提供重試選項
+          // 提供重試選項 (用 setTimeout 避免阻塞)
           setTimeout(() => {
             if (
               confirm(`LIFF初始化失敗: ${errorMessage}\n\n是否要重新嘗試？`)
@@ -607,15 +744,30 @@
             } else {
               closePage()
             }
-          }, 2000)
+          }, 100)
         }
+      }
+
+      // 延遲載入非必要功能，避免阻塞掃描
+      function loadDeferredFunctions() {
+        if (DEBUG) console.log("載入延遲功能...")
+        // 這裡可以放置掃描後才需要的功能初始化
       }
 
       // 開啟LIFF掃描器
       async function startScanner() {
         try {
-          updateStatusIndicator("📱 正在開啟掃描器...", "info")
-          showLoading("開啟掃描器...")
+          // 減少 DOM 改變以避免引發重排
+          updateStatusIndicator("📱 開啟掃描中...", "info")
+          showLoading("開啟相機...")
+
+          // 確保低解析度模式
+          if (viewportMetaElement) {
+            viewportMetaElement.setAttribute(
+              "content",
+              "width=device-width, initial-scale=0.8, maximum-scale=0.8"
+            )
+          }
 
           if (!liff.isInClient()) {
             hideLoading()
@@ -634,32 +786,53 @@
             return
           }
 
-          updateStatusIndicator("📸 請對準QR Code掃描", "success")
-          console.log("開始掃描QR Code...")
+          updateStatusIndicator("📸 請對準QR Code", "success")
+          if (DEBUG) console.log("開始掃描QR Code...")
 
-          // 使用LIFF掃描QR Code
-          const result = await liff.scanCodeV2()
+          // 使用 RAF 和 setTimeout 確保 UI 線程釋放
+          setTimeout(() => {
+            // 使用LIFF掃描QR Code
+            liff
+              .scanCodeV2()
+              .then((result) => {
+                if (result) {
+                  if (DEBUG) console.log("掃描結果:", result.value)
+                  updateStatusIndicator("✅ 掃描成功", "success")
+                  hideLoading()
 
-          if (result) {
-            console.log("掃描結果:", result.value)
-            updateStatusIndicator("✅ 掃描成功，處理中...", "success")
-            hideLoading()
+                  // 恢復完整 UI
+                  resumeAfterScan()
 
-            // 處理掃描結果
-            await processScanResult(result.value)
-          }
+                  // 處理掃描結果 (延遲一點執行以確保 UI 更新完成)
+                  setTimeout(() => {
+                    processScanResult(result.value)
+                  }, 100)
+                }
+              })
+              .catch((error) => {
+                if (DEBUG) console.error("掃描失敗:", error)
+                hideLoading()
+
+                if (error.code === "USER_CANCEL") {
+                  updateStatusIndicator("⚠️ 掃描已取消", "warning")
+                  showStatusMessage("掃描已取消，即將關閉頁面", "warning")
+                  setTimeout(closePage, AUTO_CLOSE_DELAY)
+                  return
+                }
+
+                // 其他錯誤
+                updateStatusIndicator("❌ 掃描失敗", "error")
+                showStatusMessage(
+                  `掃描失敗：${error.message || error.code || "未知錯誤"}`,
+                  "error"
+                )
+                setTimeout(closePage, AUTO_CLOSE_DELAY)
+              })
+          }, 50) // 短暫延遲以讓 UI 更新
         } catch (error) {
-          console.error("掃描失敗:", error)
+          if (DEBUG) console.error("掃描失敗:", error)
           hideLoading()
 
-          if (error.code === "USER_CANCEL") {
-            updateStatusIndicator("⚠️ 掃描已取消", "warning")
-            showStatusMessage("掃描已取消，即將關閉頁面", "warning")
-            setTimeout(closePage, AUTO_CLOSE_DELAY)
-            return
-          }
-
-          // 其他錯誤
           updateStatusIndicator("❌ 掃描失敗", "error")
           showStatusMessage(
             `掃描失敗：${error.message || error.code || "未知錯誤"}`,
@@ -672,7 +845,7 @@
       // 處理掃描結果
       async function processScanResult(qrValue) {
         try {
-          updateStatusIndicator("🔍 正在查詢預約資訊...", "info")
+          updateStatusIndicator("🔍 查詢中...", "info")
           showLoading("查詢保留座位申請...")
 
           // QR Code 只包含 tripId 是正確的設計
@@ -681,10 +854,10 @@
           // 獲取當前用戶ID
           let userId
           try {
-            console.log("獲取當前用戶ID...")
+            if (DEBUG) console.log("獲取當前用戶ID...")
             const profile = await liff.getProfile()
             userId = profile.userId
-            console.log("成功獲取當前用戶ID:", userId)
+            if (DEBUG) console.log("成功獲取當前用戶ID:", userId)
           } catch (error) {
             console.error("獲取用戶資料失敗:", error)
             updateStatusIndicator("❌ 獲取用戶資料失敗", "error")
@@ -693,7 +866,8 @@
             return
           }
 
-          console.log("掃描結果 - TripId:", tripId, "UserId:", userId)
+          if (DEBUG)
+            console.log("掃描結果 - TripId:", tripId, "UserId:", userId)
 
           // 先查詢預約狀態
           await checkReservationStatus(tripId, userId)
@@ -1035,6 +1209,8 @@
 
       // 顯示掃描結果
       function showScanResult(message, type) {
+        if (isScanning) return // 掃描中不顯示結果，避免干擾
+
         const resultDiv = document.getElementById("scanResult")
         const contentDiv = document.getElementById("scanResultContent")
 
@@ -1049,34 +1225,28 @@
         type,
         showCloseButton = false
       ) {
+        // 掃描中避免創建太多 DOM 元素
+        if (isScanning && !message.includes("錯誤")) return
+
         // 移除現有的狀態消息
         const existingMessage = document.querySelector(".status-message")
         if (existingMessage) {
           existingMessage.remove()
         }
 
-        // 創建新的狀態消息
+        // 創建新的狀態消息 (使用簡化的 HTML，減少渲染負擔)
         const messageElement = document.createElement("div")
         messageElement.className = `status-message ${type}`
 
         if (showCloseButton) {
+          // 簡化按鈕樣式，使用基本樣式
           messageElement.innerHTML = `
             <div>${message}</div>
             <button 
               onclick="closePage()" 
-              style="
-                background: rgba(255,255,255,0.2); 
-                color: white; 
-                border: 1px solid rgba(255,255,255,0.3); 
-                padding: 5px 10px; 
-                border-radius: 15px; 
-                font-size: 12px; 
-                margin-top: 8px; 
-                cursor: pointer;
-                transition: all 0.3s ease;
-              "
+              style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-top: 8px; cursor: pointer;"
             >
-              立即關閉
+              關閉
             </button>
           `
         } else {
@@ -1102,13 +1272,24 @@
 
       // 顯示載入中
       function showLoading(text = "確認中...") {
-        document.getElementById("loadingOverlay").classList.remove("hidden")
+        const overlay = document.getElementById("loadingOverlay")
         document.querySelector(".loading-text").textContent = text
+
+        // 使用 RAF 更流暢地顯示
+        cancelAnimationFrame(rafId)
+        rafId = requestAnimationFrame(() => {
+          overlay.classList.add("visible")
+        })
       }
 
       // 隱藏載入中
       function hideLoading() {
-        document.getElementById("loadingOverlay").classList.add("hidden")
+        const overlay = document.getElementById("loadingOverlay")
+        // 使用 RAF 確保流暢過渡
+        cancelAnimationFrame(rafId)
+        rafId = requestAnimationFrame(() => {
+          overlay.classList.remove("visible")
+        })
       }
     </script>
   </body>
