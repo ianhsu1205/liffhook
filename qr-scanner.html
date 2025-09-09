@@ -439,6 +439,77 @@
           <div id="scanResult" class="scan-result">
             <div id="scanResultContent"></div>
           </div>
+
+          <!-- 中央提醒訊息（例如：本趟次尚未發車） -->
+          <div
+            id="inlineCenterAlert"
+            style="
+              display: none;
+              margin: 25px auto 0;
+              max-width: 480px;
+              text-align: center;
+            "
+          >
+            <div
+              id="inlineCenterAlertBox"
+              style="
+                background: #fff5f5;
+                border: 2px solid #e53935;
+                color: #b71c1c;
+                padding: 20px 18px 18px;
+                border-radius: 18px;
+                font-size: 18px;
+                font-weight: 600;
+                line-height: 1.5;
+                position: relative;
+                box-shadow: 0 6px 18px -4px rgba(229, 57, 53, 0.35),
+                  0 2px 6px rgba(0, 0, 0, 0.08);
+                animation: fadeInScale 0.35s ease;
+              "
+            >
+              <div id="inlineCenterAlertMessage">⚠️ 本趟次尚未發車</div>
+              <div
+                id="inlineCenterAlertSub"
+                style="
+                  margin-top: 8px;
+                  font-size: 13px;
+                  font-weight: 500;
+                  opacity: 0.8;
+                  letter-spacing: 0.5px;
+                "
+              >
+                請在發車後再進行掃描確認
+              </div>
+              <button
+                id="inlineCenterAlertClose"
+                type="button"
+                onclick="closeInlineCenterAlert()"
+                style="
+                  margin-top: 18px;
+                  background: #d32f2f;
+                  color: #fff;
+                  border: none;
+                  padding: 10px 22px;
+                  font-size: 15px;
+                  font-weight: 600;
+                  border-radius: 25px;
+                  cursor: pointer;
+                  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.35);
+                  transition: 0.25s;
+                "
+                onmouseover="this.style.background='#b71c1c'"
+                onmouseout="this.style.background='#d32f2f'"
+              >
+                我知道了 (返回)
+              </button>
+              <div
+                id="inlineCenterAlertCountdown"
+                style="margin-top: 10px; font-size: 12px; opacity: 0.7"
+              >
+                15 秒後自動關閉並返回聊天室...
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 預約資訊顯示區域 -->
@@ -1414,38 +1485,75 @@
       function showTripNotDepartedMessage() {
         updateStatusIndicator("⚠️ 本趟次尚未發車", "warning")
 
-        // 使用與上車確認相同的方式，只是改變顏色
-        showStatusMessageWithClose(
-          "本趟次尚未發車，無法確認您是否搭乘<br><small style='font-size:80%; opacity:0.8; margin-top:5px; display:block;'>請在發車後再進行掃描確認</small>",
-          "error",
-          true
-        )
-
-        // 添加聲音提示
-        const errorSound = new Audio(
-          "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAFAAAGUACFhYWFhYWFhYWFhYWFhYWFhYWFvb29vb29vb29vb29vb29vb29vb3T09PT09PT09PT09PT09PT09PT0+np6enp6enp6enp6enp6enp6enp//////////////////////////8AAAAKQkFNQQAAAAlDAAAAAACAAAAAACAAIBoKAAAABAAAgAuNXKuOAAAAAAAAAAAAAAAAAP/7kMQAAAesDVe0EQAo5mW788GJgAQMgGAAQJ/X8evf4Bj4nFDgMUOByiH/5c4HKIcuXOIeuUOIc+cQ5c4h7//+UQyiH/lziHLnEPX////buIezg5RD//lzgcohy5c4h+5Q4hz5xDlziHv//5RDKIR5dMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
-        )
-        errorSound.play().catch((e) => console.log("無法播放聲音提示:", e))
-
-        // 啟動較短的自動關閉計時器 (15秒)
-        let countdown = 15 // 較短時間
-        const timerElement = document.getElementById("autoCloseTimer")
-
+        // 若有正在倒數的其他計時先清掉
         if (autoCloseTimer) {
           clearInterval(autoCloseTimer)
+          autoCloseTimer = null
         }
 
+        // 隱藏其他 modal / overlay 類型訊息（若有公開函數可關閉的話）
+        if (typeof hideStatusMessage === "function") {
+          try {
+            hideStatusMessage()
+          } catch (e) {}
+        }
+
+        // 顯示中央訊息容器
+        const wrapper = document.getElementById("inlineCenterAlert")
+        const box = document.getElementById("inlineCenterAlertBox")
+        const msg = document.getElementById("inlineCenterAlertMessage")
+        const sub = document.getElementById("inlineCenterAlertSub")
+        const countdownEl = document.getElementById(
+          "inlineCenterAlertCountdown"
+        )
+        if (wrapper && box && msg) {
+          wrapper.style.display = "block"
+          msg.innerHTML = "⚠️ 本趟次尚未發車"
+          sub.innerHTML = "請在發車後再進行掃描確認"
+          box.style.borderColor = "#e53935"
+          box.style.background = "#fff5f5"
+          box.style.color = "#b71c1c"
+        }
+
+        // 播放警示聲（靜音環境忽略）
+        try {
+          const errorSound = new Audio(
+            "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAFAAAGUACFhYWFhYWFhYWFhYWFhYWFhYWFvb29vb29vb29vb29vb29vb29vb3T09PT09PT09PT09PT09PT09PT0+np6enp6enp6enp6enp6enp6enp//////////////////////////8AAAAKQkFNQQAAAAlDAAAAAACAAAAAACAAIBoKAAAABAAAgAuNXKuOAAAAAAAAAAAAAAAAAP/7kMQAAAesDVe0EQAo5mW788GJgAQMgGAAQJ/X8evf4Bj4nFDgMUOByiH/5c4HKIcuXOIeuUOIc+cQ5c4h7//+UQyiH/lziHLnEPX////buIezg5RD//lzgcohy5c4h+5Q4hz5xDlziHv//5RDKIR5dMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+          )
+          errorSound.play().catch(() => {})
+        } catch (e) {}
+
+        // 15 秒倒數並自動關閉
+        let countdown = 15
+        if (countdownEl) {
+          countdownEl.textContent = `${countdown} 秒後自動關閉並返回聊天室...`
+        }
         autoCloseTimer = setInterval(() => {
           countdown--
-          if (timerElement) {
-            timerElement.textContent = `${countdown}秒後自動關閉並返回聊天室...`
+          if (countdownEl) {
+            countdownEl.textContent = `${countdown} 秒後自動關閉並返回聊天室...`
           }
-
           if (countdown <= 0) {
             clearInterval(autoCloseTimer)
-            closePage()
+            autoCloseTimer = null
+            closeInlineCenterAlert(true)
           }
         }, 1000)
+      }
+
+      // 關閉中央提醒
+      function closeInlineCenterAlert(goBack) {
+        const wrapper = document.getElementById("inlineCenterAlert")
+        if (wrapper) {
+          wrapper.style.display = "none"
+        }
+        if (autoCloseTimer) {
+          clearInterval(autoCloseTimer)
+          autoCloseTimer = null
+        }
+        if (goBack) {
+          closePage()
+        }
       }
 
       // 已核銷情況的5秒倒數計時
@@ -1608,7 +1716,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-5
+      版本: 20250909-6
     </div>
   </body>
 </html>
