@@ -1077,7 +1077,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.21 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.22 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -3495,21 +3495,64 @@
       }
 
       async function markTripCompleted(tripId) {
-        // 若沒有任何已排入的乘客則禁止改為已發車
+        // 1. 沒有任何已排入的乘客禁止改為已發車
         try {
           const assignedSeats = getTripPassengerCount(tripId) || 0
           if (assignedSeats === 0) {
-            showNotification("沒有排入任何保留位，無法改為為已發車", "info")
+            showNotification("沒有排入任何保留位，無法改為已發車", "info")
             return
           }
-        } catch (_) {
-          // 如果計算失敗，保守處理：不阻擋流程
+        } catch (_) {}
+
+        // 2. 檢查是否仍有未通知(passenger.responseDateTime 為空) 的乘客
+        let unnotifiedCount = 0
+        try {
+          const tripData = await loadTripPassengers(tripId)
+          const passengers = (tripData && tripData.passengers) || []
+          unnotifiedCount = passengers.filter((p) => !p.responseDateTime).length
+          if (unnotifiedCount > 0) {
+            showNotification(
+              `尚有 ${unnotifiedCount} 位乘客未通知，請先按「通知」再標記已發車`,
+              "warning"
+            )
+            // 視覺提示通知按鈕
+            try {
+              const notifyBtn = document.querySelector(
+                `.trip-card[data-trip-id="${tripId}"] .trip-controls button.btn.btn-primary[onclick*="notifyPassengers('${tripId}')"]`
+              )
+              if (notifyBtn) {
+                const prevBoxShadow = notifyBtn.style.boxShadow
+                const prevTransform = notifyBtn.style.transform
+                notifyBtn.style.boxShadow =
+                  "0 0 0 3px rgba(255,152,0,0.65),0 0 12px rgba(255,152,0,0.9)"
+                notifyBtn.style.transform = "scale(1.08)"
+                let flash = true
+                let flashes = 0
+                const flashTimer = setInterval(() => {
+                  flash = !flash
+                  notifyBtn.style.boxShadow = flash
+                    ? "0 0 0 3px rgba(255,152,0,0.65),0 0 12px rgba(255,152,0,0.9)"
+                    : "0 0 0 3px rgba(255,152,0,0.35),0 0 6px rgba(255,152,0,0.55)"
+                  flashes++
+                  if (flashes >= 6) {
+                    clearInterval(flashTimer)
+                    notifyBtn.style.boxShadow = prevBoxShadow
+                    notifyBtn.style.transform = prevTransform
+                  }
+                }, 260)
+              }
+            } catch (e) {}
+            return
+          }
+        } catch (e) {
+          // 若乘客資料取得失敗，保守：仍允許後續流程，但可以提示
+          console.warn("檢查未通知乘客失敗，將允許繼續", e)
         }
 
-        if (!confirm("確定要將此趟次標記為已發車嗎？")) {
-          return
-        }
+        // 3. 二次確認
+        if (!confirm("確定要將此趟次標記為已發車嗎？")) return
 
+        // 4. 執行更新
         try {
           await updateTripStatus(tripId, "completed")
           showSuccess("趟次已標記為已發車！")
