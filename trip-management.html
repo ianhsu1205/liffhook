@@ -2976,6 +2976,7 @@
 
       // 選擇函數
       function selectRoute(routeId, routeName) {
+        console.log("選擇路線:", routeId, routeName || "")
         const all = document.querySelectorAll("#routeSelector .route-option")
         // 清除所有按鈕的選取與顏色類別
         all.forEach((el) => {
@@ -2996,11 +2997,22 @@
           const colorClass = getRouteColorClass(routeId) || "route-default"
           target.classList.add(colorClass)
         }
-        document.getElementById("selectedRoute").value = routeId
+        // 更新隱藏欄位值
+        const hidden = document.getElementById("selectedRoute")
+        if (hidden) {
+          hidden.value = routeId
+          console.log("已設定隱藏欄位值:", routeId)
+        } else {
+          console.warn("找不到隱藏欄位 #selectedRoute")
+        }
+
         // 持久化選擇，讓刷新後可還原
         try {
           localStorage.setItem("tm.selectedRoute", String(routeId || ""))
-        } catch (_) {}
+          console.log("已儲存路線選擇到localStorage:", routeId)
+        } catch (err) {
+          console.error("儲存路線到localStorage失敗:", err)
+        }
       }
 
       function selectEditRoute(routeId, routeName) {
@@ -3031,19 +3043,27 @@
 
       // 渲染後自動還原路線選擇（優先取隱藏欄位，其次取 localStorage）
       function restoreSelectedRoute() {
-        const hiddenVal = (
-          document.getElementById("selectedRoute")?.value || ""
-        ).trim()
+        console.log("還原路線選擇開始...")
+        const hiddenEl = document.getElementById("selectedRoute")
+        const hiddenVal = hiddenEl ? hiddenEl.value.trim() : ""
+        console.log("還原路線 - 隱藏欄位值:", hiddenVal)
+
         let toRestore = hiddenVal
         if (!toRestore) {
           try {
             const saved = localStorage.getItem("tm.selectedRoute")
+            console.log("還原路線 - localStorage值:", saved)
             if (saved) toRestore = saved
-          } catch (_) {}
+          } catch (err) {
+            console.error("讀取localStorage路線失敗:", err)
+          }
         }
         if (toRestore) {
           // 第二個參數 routeName 無用於樣式，傳空字串即可
+          console.log("還原選擇路線:", toRestore)
           selectRoute(toRestore, "")
+        } else {
+          console.log("無路線可還原")
         }
       }
 
