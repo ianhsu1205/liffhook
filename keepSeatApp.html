@@ -1005,7 +1005,7 @@
         <div class="notice-content">
           <p><strong>敬告乘客：</strong></p>
           <ol>
-             <li>本功能目前僅開放2088路線使用。</li>
+            <li>本功能目前僅開放2088路線使用。</li>
             <li>保留座位請依排定的車號及站牌上車。</li>
             <li>
               上車後請使用LINE選單的「搭乘確認」掃描QRCode確認搭乘，若非保留的趟次則無法確認。
@@ -1183,12 +1183,24 @@
             <h3>👤 乘客資訊</h3>
             <div class="input-group">
               <label for="passengerName" class="required">稱呼</label>
-              <input
-                type="text"
-                id="passengerName"
-                placeholder="請輸入您的稱呼"
-                maxlength="20"
-              />
+              <div style="display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="passengerName"
+                  placeholder="請輸入您的稱呼"
+                  maxlength="20"
+                  style="flex: 1"
+                />
+                <select
+                  id="passengerTitle"
+                  aria-label="稱謂"
+                  style="width: 100px"
+                >
+                  <option value="">(無)</option>
+                  <option value="先生">先生</option>
+                  <option value="小姐">小姐</option>
+                </select>
+              </div>
               <div id="nameError" class="error-message"></div>
             </div>
 
@@ -1279,11 +1291,12 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.5
+      保留座位申請 v1.0.0.8
     </footer>
 
     <script>
       // 全域變數
+      //const API_BASE_URL = "http://localhost:5000/api"
       const API_BASE_URL = "https://35.221.146.143.nip.io/linehook/keepseat"
       let keepStops = []
       let destStops = []
@@ -1944,6 +1957,12 @@
         document
           .getElementById("passengerName")
           .addEventListener("blur", validateName)
+        // 稱謂改變時也更新摘要
+        const titleEl = document.getElementById("passengerTitle")
+        if (titleEl) {
+          titleEl.addEventListener("change", updateSummary)
+          titleEl.addEventListener("input", updateSummary)
+        }
         document
           .getElementById("passengerPhone")
           .addEventListener("blur", validatePhone)
@@ -2147,6 +2166,9 @@
       // 更新預約摘要
       function updateSummary() {
         const name = document.getElementById("passengerName").value.trim()
+        const title = (
+          document.getElementById("passengerTitle")?.value || ""
+        ).trim()
         const phone = document.getElementById("passengerPhone").value.trim()
         const keepStopName = document
           .getElementById("keepStopDisplayText")
@@ -2164,7 +2186,8 @@
           destStopName && destStopName !== "點擊選擇下車站牌"
             ? destStopName
             : "-"
-        document.getElementById("summaryName").textContent = name || "-"
+        const combinedName = name ? `${name}${title}` : ""
+        document.getElementById("summaryName").textContent = combinedName || "-"
         document.getElementById("summaryPhone").textContent = phone || "-"
         document.getElementById("summarySeatCount").textContent = seatCount
 
@@ -2225,7 +2248,13 @@
             userId: currentUser.userId,
             keepStop: keepStopName,
             destStop: destStopName,
-            name: document.getElementById("passengerName").value.trim(),
+            name: (function () {
+              const base = document.getElementById("passengerName").value.trim()
+              const title = (
+                document.getElementById("passengerTitle")?.value || ""
+              ).trim()
+              return title ? `${base}${title}` : base
+            })(),
             phone: document.getElementById("passengerPhone").value.trim(),
             requestDateTime: getCurrentDateTime(),
             seatCount: seatCount,
@@ -2290,6 +2319,8 @@
           "請選擇上車站牌"
         document.getElementById("destStopDisplay").textContent =
           "請選擇下車站牌"
+        const titleEl = document.getElementById("passengerTitle")
+        if (titleEl) titleEl.selectedIndex = 0
         seatCount = 1
         updateSeatDisplay()
         updateSummary()
@@ -2393,4 +2424,3 @@
     </div>
   </body>
 </html>
-
