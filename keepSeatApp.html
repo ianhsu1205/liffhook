@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.15
+      保留座位申請 v1.0.0.16
     </footer>
 
     <script>
@@ -1497,12 +1497,13 @@
 
         if (reservation.tripId) {
           // 已安排的預約
-          statusText = "待安排車輛"
+
           backgroundColor = "#d1ecf1"
           borderColor = "#bee5eb"
         } else {
-          // 未安排的預約
-          statusText = "待安排車輛"
+          // 尚未安排的預約
+          backgroundColor = "#fff3cd"
+          borderColor = "#ffc107"
         }
 
         // 檢查是否有特殊狀態標記
