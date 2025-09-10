@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.9
+      保留座位申請 v1.0.0.10
     </footer>
 
     <script>
@@ -1673,7 +1673,7 @@
           }
 
           // 排序站牌
-          currentStops = stopsToShow // sortStopsByRoute(stopsToShow)
+          currentStops = sortStopsByRoute(stopsToShow)
 
           showLoading(false)
 
@@ -1711,60 +1711,30 @@
         }
       }
 
-      // 根據路線排序站牌
+      // 根據站牌 seq 直接排序（由小到大）
       function sortStopsByRoute(stops) {
         return stops.sort((a, b) => {
-          // 定義路線優先順序
-          const getRoutePriority = (stop) => {
-            if (stop.routes.some((route) => route === "208802")) return 1
-            if (stop.routes.some((route) => route === "2088A2")) return 2
-            if (stop.routes.some((route) => route === "2088B2")) return 3
-            return 999 // 其他路線排在最後
-          }
+          // 主要使用 seq，若缺少則以 minSequence 或 stopSequence 後援，皆轉為數字比較
+          const sa = Number(
+            a?.seq ??
+              a?.minSequence ??
+              a?.stopSequence ??
+              Number.POSITIVE_INFINITY
+          )
+          const sb = Number(
+            b?.seq ??
+              b?.minSequence ??
+              b?.stopSequence ??
+              Number.POSITIVE_INFINITY
+          )
 
-          // 檢查是否包含特定路線
-          const hasRoute2088B2 = (stop) =>
-            stop.routes.some((route) => route === "2088B2")
+          if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb)
+            return sa - sb
 
-          const priorityA = getRoutePriority(a)
-          const priorityB = getRoutePriority(b)
-
-          // 1. 首先按路線優先順序排序
-          if (priorityA !== priorityB) {
-            return priorityA - priorityB
-          }
-
-          // 2. 相同優先順序內的排序
-          if (priorityA === priorityB) {
-            // 特殊處理：只有一條路線的站牌排在最後
-            const isOnlyOneRouteA = a.routes.length === 1
-            const isOnlyOneRouteB = b.routes.length === 1
-
-            if (isOnlyOneRouteA && !isOnlyOneRouteB) {
-              return 1 // A 排在後面
-            }
-            if (!isOnlyOneRouteA && isOnlyOneRouteB) {
-              return -1 // B 排在後面
-            }
-
-            // 根據路線類型選擇排序方式
-            if (hasRoute2088B2(a) || hasRoute2088B2(b)) {
-              // 2088B2 路線使用 minSequence 排序
-              if (a.minSequence !== b.minSequence) {
-                return a.minSequence - b.minSequence
-              }
-            } else {
-              // 其他路線使用 stopUID 排序
-              if (a.stopUID !== b.stopUID) {
-                return (a.stopUID || "").localeCompare(b.stopUID || "")
-              }
-            }
-
-            // 最後按站牌名稱排序
-            return a.stopName.localeCompare(b.stopName, "zh-TW")
-          }
-
-          return 0
+          // 若數值相同或無法比較，退回以站名排序，確保穩定輸出
+          const nameA = a?.stopName || ""
+          const nameB = b?.stopName || ""
+          return nameA.localeCompare(nameB, "zh-TW")
         })
       }
 
@@ -2292,6 +2262,15 @@
           } else {
             // 失敗 - 檢查是否為預約衝突
             const errorMessage = result.message || result || "預約失敗"
+            // 指定情境：相同手機的待排預約 -> 顯示於手機欄位的驗證錯誤，不顯示一般網路錯誤
+            if (String(errorMessage).includes("已有相同手機的待排預約")) {
+              showError(String(errorMessage), "phoneError", "passengerPhone")
+              // 聚焦到手機欄位，提升可用性
+              try {
+                document.getElementById("passengerPhone").focus()
+              } catch (_) {}
+              return
+            }
             if (
               errorMessage.includes("未搭乘") ||
               errorMessage.includes("已有預約")
