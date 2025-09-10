@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.35| <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.36| <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2505,7 +2505,7 @@
                           trip.status !== "completed"
                             ? `
                         <button class="btn btn-info" onclick="autoAssignTrip('${trip.tripId}')">
-                            🤖 自動排班
+                            🤖 自動保留
                         </button>
                         <button class="btn btn-warning" onclick="editTrip('${trip.tripId}')">
                             ✏️ 編輯
@@ -2520,7 +2520,7 @@
                             📱 通知
                         </button>
                         <button class="btn btn-secondary" onclick="markTripCompleted('${trip.tripId}')">
-                            ✅ 已發車
+                            ✅ 發車
                         </button>`
                             : `
                         <button class="btn btn-primary" onclick="printReservation('${trip.tripId}', window.enableBrowserFallback)">
