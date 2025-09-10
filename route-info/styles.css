@@ -33,10 +33,17 @@
 .badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:2px 6px;border-radius:999px;font-size:12px;margin-left:6px}
 .app-footer{color:#64748b;text-align:center;margin:20px 0 40px}
 
+/* 放大查詢結果的字級（僅影響結果區塊） */
+.result-card .route-title{font-size:26px}
+.result-card .route-sub{font-size:16px}
+.result-card .route-card h3{font-size:18px}
+.result-card .meta,.result-card .kv{font-size:16px;line-height:1.65}
+.result-card .badge{font-size:13px}
+
 /* Tablet 調整 */
 @media (max-width: 768px){
 	.container{padding:0 12px}
-	.route-title{font-size:20px}
+	.route-title{font-size:22px}
 	.route-list{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 }
 
@@ -49,5 +56,9 @@
 	.actions{flex-direction:column}
 	.primary{width:100%}
 	.route-list{grid-template-columns:1fr}
-	.kv{grid-template-columns:84px 1fr;font-size:15px}
+	.kv{grid-template-columns:84px 1fr;font-size:16px}
+	/* 手機上適度縮小放大倍率，避免爆版 */
+	.result-card .route-title{font-size:22px}
+	.result-card .route-card h3{font-size:17px}
+	.result-card .meta,.result-card .kv{font-size:15.5px}
 }
