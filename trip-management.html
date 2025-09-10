@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.32 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.33| <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2321,6 +2321,8 @@
         )
         // 渲染後還原先前選擇
         restoreSelectedRoute()
+        // 再次保險同步隱藏欄位與視覺狀態
+        ensureRouteSelectedSync()
       }
 
       function renderVehicleSelector() {
@@ -3045,6 +3047,53 @@
         }
       }
 
+      // 確保隱藏欄位與視覺選取、localStorage 同步（避免看起來已選但值為空）
+      function ensureRouteSelectedSync() {
+        try {
+          const hidden = document.getElementById("selectedRoute")
+          const selectedEl = document.querySelector(
+            "#routeSelector .route-option.selected"
+          )
+          const saved = localStorage.getItem("tm.selectedRoute") || ""
+
+          // 1) 若有選取按鈕但 hidden 為空，補上 data-route
+          if (selectedEl && hidden && !hidden.value) {
+            const rid = selectedEl.getAttribute("data-route") || ""
+            if (rid) hidden.value = rid
+          }
+
+          // 2) 若沒有選取按鈕但 hidden 有值，補上樣式
+          if (!selectedEl && hidden && hidden.value) {
+            const target = document.querySelector(
+              `#routeSelector [data-route="${hidden.value}"]`
+            )
+            if (target) {
+              const all = document.querySelectorAll(
+                "#routeSelector .route-option"
+              )
+              all.forEach((el) =>
+                el.classList.remove(
+                  "selected",
+                  "route-208802",
+                  "route-2088A2",
+                  "route-2088B2",
+                  "route-default"
+                )
+              )
+              target.classList.add("selected")
+              const colorClass =
+                getRouteColorClass(hidden.value) || "route-default"
+              target.classList.add(colorClass)
+            }
+          }
+
+          // 3) 若兩者皆空，但 localStorage 有值，走一次 selectRoute 流程
+          if (!selectedEl && (!hidden || !hidden.value) && saved) {
+            selectRoute(saved, "")
+          }
+        } catch (_) {}
+      }
+
       function selectVehicleFromList(plateNumber) {
         document
           .querySelectorAll("#vehicleSelector .vehicle-option")
@@ -3117,7 +3166,8 @@
       // 主要操作函數
       async function createTrip(event) {
         event.preventDefault()
-
+        // 提交前再次同步一次，避免顯示已選但 hidden 空白
+        ensureRouteSelectedSync()
         const route = document.getElementById("selectedRoute").value
         const vehicleNumber = document.getElementById("vehicleNumber").value
         const hour = document.getElementById("hourInput").value
