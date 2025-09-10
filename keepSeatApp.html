@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.13
+      保留座位申請 v1.0.0.14
     </footer>
 
     <script>
@@ -1712,13 +1712,17 @@
       }
 
       // 站牌排序規則：
-      // 1) 所有「2088B2」路線的站牌整組排在最後
+      // 1) 依路線分組，順序：208802 -> 2088A2 -> 2088B2 -> 其他
       // 2) 各組內以站序 seq（若缺則用 minSequence/stopSequence）由小到大
-      // 3) 站序相同時維持原本順序（穩定排序，不以名稱或路線再打散）
+      // 3) 若有重覆的站名，依前組（較高優先路線）為主，後續不再顯示
       function sortStopsByRoute(stops) {
-        const is2088B = (stop) => {
-          const routes = Array.isArray(stop?.routes) ? stop.routes : []
-          return routes.includes("2088B2")
+        const ROUTE_ORDER = ["208802", "2088A2", "2088B2"]
+
+        const getRoutes = (s) => (Array.isArray(s?.routes) ? s.routes : [])
+        const inRoute = (s, route) => {
+          const rs = getRoutes(s)
+          if (route === "OTHER") return !ROUTE_ORDER.some((r) => rs.includes(r))
+          return rs.includes(route)
         }
 
         const getSeq = (s) =>
@@ -1729,18 +1733,31 @@
               Number.POSITIVE_INFINITY
           )
 
-        return stops.sort((a, b) => {
-          const aIsB = is2088B(a)
-          const bIsB = is2088B(b)
-          if (aIsB !== bIsB) return aIsB ? 1 : -1 // 先排非 2088B2，再排 2088B2
+        const seenNames = new Set()
+        const result = []
 
-          const sa = getSeq(a)
-          const sb = getSeq(b)
-          if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb) {
-            return sa - sb
+        // 依指定路線順序分組，再加上其他
+        const groups = [...ROUTE_ORDER, "OTHER"]
+        for (const route of groups) {
+          const group = stops.filter((s) => inRoute(s, route))
+          group.sort((a, b) => {
+            const sa = getSeq(a)
+            const sb = getSeq(b)
+            if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb)
+              return sa - sb
+            return 0 // 保持穩定
+          })
+
+          for (const s of group) {
+            const name = (s?.stopName || "").trim()
+            if (!name) continue
+            if (seenNames.has(name)) continue // 站名已出現於前組，略過
+            seenNames.add(name)
+            result.push(s)
           }
-          return 0 // 相同序維持原順序
-        })
+        }
+
+        return result
       }
 
       // 顯示站牌選取視窗
