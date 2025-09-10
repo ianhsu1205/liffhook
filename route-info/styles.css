@@ -34,11 +34,13 @@
 .app-footer{color:#64748b;text-align:center;margin:20px 0 40px}
 
 /* 放大查詢結果的字級（僅影響結果區塊） */
-.result-card .route-title{font-size:26px}
-.result-card .route-sub{font-size:16px}
-.result-card .route-card h3{font-size:18px}
-.result-card .meta,.result-card .kv{font-size:16px;line-height:1.65}
-.result-card .badge{font-size:13px}
+.result-card .route-title{font-size:30px}
+.result-card .route-sub{font-size:18px}
+.result-card .route-card h3{font-size:20px}
+.result-card .meta,.result-card .kv{font-size:17px;line-height:1.7}
+.result-card .badge{font-size:14px}
+/* 增加鍵值欄位的標籤寬度，避免換行 */
+.result-card .kv{grid-template-columns:96px 1fr}
 
 /* Tablet 調整 */
 @media (max-width: 768px){
@@ -58,7 +60,8 @@
 	.route-list{grid-template-columns:1fr}
 	.kv{grid-template-columns:84px 1fr;font-size:16px}
 	/* 手機上適度縮小放大倍率，避免爆版 */
-	.result-card .route-title{font-size:22px}
-	.result-card .route-card h3{font-size:17px}
-	.result-card .meta,.result-card .kv{font-size:15.5px}
+	.result-card .route-title{font-size:24px}
+	.result-card .route-card h3{font-size:19px}
+	.result-card .meta,.result-card .kv{font-size:16.5px}
+	.result-card .kv{grid-template-columns:90px 1fr}
 }
