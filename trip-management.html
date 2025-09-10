@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.29 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.30 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -3898,8 +3898,13 @@
           @media print {
             /* 強制單頁列印，最小化邊距 */
             @page {
-              margin: 2mm !important;
+              margin: 0 !important;
               size: 79mm auto !important; /* 自動高度 */
+              padding: 0 !important;
+            }
+            /* 移除根節點的預設邊距，避免頂部空白 */
+            html, body {
+              margin: 0 !important;
               padding: 0 !important;
             }
             
@@ -3921,7 +3926,7 @@
               line-height: 1.2 !important;
               color: black !important;
               background: white !important;
-              padding: 0 2mm 2mm !important;
+              padding: 0 1mm 1mm !important;
               text-align: center !important;
               margin: 0 auto !important;
               box-sizing: border-box !important;
