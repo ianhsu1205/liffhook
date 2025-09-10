@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.28 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.29 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1384,7 +1384,7 @@
 
     <script>
       // 與 keepSeatApp.html 一致的 API 基底網址
-       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
+      const BASE_URL = "https://35.221.146.143.nip.io/linehook"
       //const BASE_URL = "http://localhost:5000/api"
       // ======= 修正 showLoading 未定義，並加上通知/音效功能 =======
       function showLoading(show) {
@@ -3866,18 +3866,18 @@
 
         return `
           <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;">
-            <div style="font-size:16pt;font-weight:700;margin:0 0 3mm;">大都會客運保留座位清單</div>
+            <div style="font-size:16pt;font-weight:700;margin:0 0 1mm;">大都會客運保留座位清單</div>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div>路線: ${route}</div>
-            <div>車號: ${car}</div>
-            <div>發車時間: ${time}</div>
+            <div style="font-size:13pt;">路線: ${route}</div>
+            <div style="font-size:13pt;">車號: ${car}</div>
+            <div style="font-size:13pt;">發車時間: ${time}</div>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div style="text-align:left;display:inline-block;width:90%;font-size:14pt;">${list}</div>
+            <div style="text-align:left;display:inline-block;width:90%;font-size:12pt;">${list}</div>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div style="font-size:14pt;">總計: ${totalSeats} 位乘客</div>
+            <div style="font-size:13pt;">總計: ${totalSeats} 位乘客</div>
             <div class="qr-code" style="margin:2mm 0;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
             <div>列印時間: ${now}</div>
-            <div style="height:8mm;"></div>
+            <div style="height:12mm;"></div>
           </div>
         `
       }
@@ -5215,4 +5215,3 @@
     </script>
   </body>
 </html>
-
