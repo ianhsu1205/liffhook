@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.12
+      保留座位申請 v1.0.0.13
     </footer>
 
     <script>
@@ -1711,46 +1711,35 @@
         }
       }
 
-      // 根據站牌排序：先依 seq（由小到大），再依路線優先順序，最後以名稱穩定排序
+      // 站牌排序規則：
+      // 1) 所有「2088B2」路線的站牌整組排在最後
+      // 2) 各組內以站序 seq（若缺則用 minSequence/stopSequence）由小到大
+      // 3) 站序相同時維持原本順序（穩定排序，不以名稱或路線再打散）
       function sortStopsByRoute(stops) {
-        const ROUTE_ORDER = ["208802", "2088A2", "2088B2"]
-
-        const getRoutePriority = (stop) => {
+        const is2088B = (stop) => {
           const routes = Array.isArray(stop?.routes) ? stop.routes : []
-          if (routes.length === 0) return 999
-          let minIdx = 999
-          for (const r of routes) {
-            const idx = ROUTE_ORDER.indexOf(String(r))
-            if (idx !== -1 && idx < minIdx) minIdx = idx
-          }
-          return minIdx === 999 ? 999 : minIdx // 未命名路線排最後
+          return routes.includes("2088B2")
         }
 
+        const getSeq = (s) =>
+          Number(
+            s?.seq ??
+              s?.minSequence ??
+              s?.stopSequence ??
+              Number.POSITIVE_INFINITY
+          )
+
         return stops.sort((a, b) => {
-          // 1) 主要使用 seq（缺少則以 minSequence 或 stopSequence 後援）
-          const sa = Number(
-            a?.seq ??
-              a?.minSequence ??
-              a?.stopSequence ??
-              Number.POSITIVE_INFINITY
-          )
-          const sb = Number(
-            b?.seq ??
-              b?.minSequence ??
-              b?.stopSequence ??
-              Number.POSITIVE_INFINITY
-          )
+          const aIsB = is2088B(a)
+          const bIsB = is2088B(b)
+          if (aIsB !== bIsB) return aIsB ? 1 : -1 // 先排非 2088B2，再排 2088B2
+
+          const sa = getSeq(a)
+          const sb = getSeq(b)
           if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb) {
             return sa - sb
           }
-
-          // 2) seq 相同，再依路線優先順序排序（208802 -> 2088A2 -> 2088B2 -> 其他）
-          const pa = getRoutePriority(a)
-          const pb = getRoutePriority(b)
-          if (pa !== pb) return pa - pb
-
-          // 3) 不再依名稱排序；維持原本順序
-          return 0
+          return 0 // 相同序維持原順序
         })
       }
 
@@ -2257,14 +2246,13 @@
             body: JSON.stringify(formData),
           })
 
+          // 先以文字讀取回應，再嘗試解析 JSON；避免重複讀取造成例外
+          const responseText = await response.text()
           let result = null
           try {
-            result = await response.json()
-          } catch (parseError) {
-            // 如果不是JSON格式，嘗試讀取文字內容
-            console.warn("回應不是JSON格式:", parseError)
-            const textResult = await response.text()
-            result = { message: textResult }
+            result = responseText ? JSON.parse(responseText) : null
+          } catch (_) {
+            result = null
           }
 
           if (response.ok) {
@@ -2277,7 +2265,10 @@
             }, 3000)
           } else {
             // 失敗 - 檢查是否為預約衝突
-            const errorMessage = result.message || result || "預約失敗"
+            const errorMessage =
+              (result && (result.message || result.error || result.title)) ||
+              responseText ||
+              "預約失敗"
             // 指定情境：相同手機的待排預約 -> 顯示於手機欄位的驗證錯誤，不顯示一般網路錯誤
             if (String(errorMessage).includes("已有相同手機的待排預約")) {
               showError(String(errorMessage), "phoneError", "passengerPhone")
