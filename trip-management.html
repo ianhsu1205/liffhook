@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.30 | <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.31 | <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2319,6 +2319,8 @@
           /selectRoute/g,
           "selectEditRoute"
         )
+        // 渲染後還原先前選擇
+        restoreSelectedRoute()
       }
 
       function renderVehicleSelector() {
@@ -2957,7 +2959,7 @@
           if (hms) {
             const h = hms[1].padStart(2, "0")
             const m = hms[2].padStart(2, "0")
-            return `${h}:${m}}`
+            return `${h}:${m}`
           }
           // 再嘗試 Date 解析
           const dt = new Date(dateTimeStr)
@@ -2993,6 +2995,10 @@
           target.classList.add(colorClass)
         }
         document.getElementById("selectedRoute").value = routeId
+        // 持久化選擇，讓刷新後可還原
+        try {
+          localStorage.setItem("tm.selectedRoute", String(routeId || ""))
+        } catch (_) {}
       }
 
       function selectEditRoute(routeId, routeName) {
@@ -3019,6 +3025,24 @@
           target.classList.add(colorClass)
         }
         document.getElementById("editSelectedRoute").value = routeId
+      }
+
+      // 渲染後自動還原路線選擇（優先取隱藏欄位，其次取 localStorage）
+      function restoreSelectedRoute() {
+        const hiddenVal = (
+          document.getElementById("selectedRoute")?.value || ""
+        ).trim()
+        let toRestore = hiddenVal
+        if (!toRestore) {
+          try {
+            const saved = localStorage.getItem("tm.selectedRoute")
+            if (saved) toRestore = saved
+          } catch (_) {}
+        }
+        if (toRestore) {
+          // 第二個參數 routeName 無用於樣式，傳空字串即可
+          selectRoute(toRestore, "")
+        }
       }
 
       function selectVehicleFromList(plateNumber) {
@@ -4526,6 +4550,9 @@
         document.getElementById("hourInput").value = ""
         document.getElementById("minuteInput").value = ""
         document.getElementById("keepCountInput").value = "4"
+        try {
+          localStorage.removeItem("tm.selectedRoute")
+        } catch (_) {}
       }
 
       function getTripPassengerCount(tripId) {
