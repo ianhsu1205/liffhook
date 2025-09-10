@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.10
+      保留座位申請 v1.0.0.11
     </footer>
 
     <script>
@@ -1711,10 +1711,23 @@
         }
       }
 
-      // 根據站牌 seq 直接排序（由小到大）
+      // 根據站牌排序：先依 seq（由小到大），再依路線優先順序，最後以名稱穩定排序
       function sortStopsByRoute(stops) {
+        const ROUTE_ORDER = ["208802", "2088A2", "2088B2"]
+
+        const getRoutePriority = (stop) => {
+          const routes = Array.isArray(stop?.routes) ? stop.routes : []
+          if (routes.length === 0) return 999
+          let minIdx = 999
+          for (const r of routes) {
+            const idx = ROUTE_ORDER.indexOf(String(r))
+            if (idx !== -1 && idx < minIdx) minIdx = idx
+          }
+          return minIdx === 999 ? 999 : minIdx // 未命名路線排最後
+        }
+
         return stops.sort((a, b) => {
-          // 主要使用 seq，若缺少則以 minSequence 或 stopSequence 後援，皆轉為數字比較
+          // 1) 主要使用 seq（缺少則以 minSequence 或 stopSequence 後援）
           const sa = Number(
             a?.seq ??
               a?.minSequence ??
@@ -1727,14 +1740,17 @@
               b?.stopSequence ??
               Number.POSITIVE_INFINITY
           )
-
-          if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb)
+          if (!Number.isNaN(sa) && !Number.isNaN(sb) && sa !== sb) {
             return sa - sb
+          }
 
-          // 若數值相同或無法比較，退回以站名排序，確保穩定輸出
-          const nameA = a?.stopName || ""
-          const nameB = b?.stopName || ""
-          return nameA.localeCompare(nameB, "zh-TW")
+          // 2) seq 相同，再依路線優先順序排序（208802 -> 2088A2 -> 2088B2 -> 其他）
+          const pa = getRoutePriority(a)
+          const pb = getRoutePriority(b)
+          if (pa !== pb) return pa - pb
+
+          // 3) 不再依名稱排序；維持原本順序
+          return 0
         })
       }
 
@@ -2284,7 +2300,21 @@
           }
         } catch (error) {
           console.error("提交預約失敗:", error)
-          showError("網路錯誤，請稍後再試")
+          // 若錯誤是在 catch 中被攔截，也嘗試判斷是否為相同手機的待排預約情境
+          let errMsg = ""
+          try {
+            errMsg = (error && (error.message || String(error))) || ""
+          } catch (_) {
+            errMsg = ""
+          }
+          if (errMsg && errMsg.includes("已有相同手機的待排預約")) {
+            showError(errMsg, "phoneError", "passengerPhone")
+            try {
+              document.getElementById("passengerPhone").focus()
+            } catch (_) {}
+          } else {
+            showError("網路錯誤，請稍後再試")
+          }
         } finally {
           showLoading(false)
           document.getElementById("submitBtn").disabled = false
