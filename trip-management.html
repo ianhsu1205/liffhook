@@ -3051,19 +3051,36 @@
       function ensureRouteSelectedSync() {
         try {
           const hidden = document.getElementById("selectedRoute")
+          if (!hidden) {
+            console.warn("找不到路線隱藏欄位元素 #selectedRoute")
+            return
+          }
+
           const selectedEl = document.querySelector(
             "#routeSelector .route-option.selected"
           )
           const saved = localStorage.getItem("tm.selectedRoute") || ""
 
+          console.log(
+            "路線同步檢查 - 隱藏值:",
+            hidden.value,
+            "localStorage值:",
+            saved,
+            "有按鈕選中:",
+            !!selectedEl
+          )
+
           // 1) 若有選取按鈕但 hidden 為空，補上 data-route
-          if (selectedEl && hidden && !hidden.value) {
+          if (selectedEl && !hidden.value) {
             const rid = selectedEl.getAttribute("data-route") || ""
-            if (rid) hidden.value = rid
+            if (rid) {
+              hidden.value = rid
+              console.log("已同步視覺選擇到隱藏欄位:", rid)
+            }
           }
 
           // 2) 若沒有選取按鈕但 hidden 有值，補上樣式
-          if (!selectedEl && hidden && hidden.value) {
+          if (!selectedEl && hidden.value) {
             const target = document.querySelector(
               `#routeSelector [data-route="${hidden.value}"]`
             )
@@ -3084,14 +3101,18 @@
               const colorClass =
                 getRouteColorClass(hidden.value) || "route-default"
               target.classList.add(colorClass)
+              console.log("已同步隱藏欄位到視覺選擇:", hidden.value)
             }
           }
 
           // 3) 若兩者皆空，但 localStorage 有值，走一次 selectRoute 流程
-          if (!selectedEl && (!hidden || !hidden.value) && saved) {
+          if (!selectedEl && !hidden.value && saved) {
             selectRoute(saved, "")
+            console.log("已從localStorage還原路線選擇:", saved)
           }
-        } catch (_) {}
+        } catch (err) {
+          console.error("同步路線選擇狀態時出錯:", err)
+        }
       }
 
       function selectVehicleFromList(plateNumber) {
