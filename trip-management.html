@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.34| <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.35| <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -3200,12 +3200,26 @@
           })
 
           if (response.ok) {
+            // 先保存目前選擇的路線ID
+            const currentRouteId =
+              document.getElementById("selectedRoute").value
+
             showSuccess(`趟次已建立！`)
+            // 重設表單（會清空所有欄位，包括隱藏欄位）
             document.getElementById("newTripForm").reset()
-            // 保留既有路線選擇，方便連續新增
-            clearSelections({ preserveRoute: true })
-            // 重新同步一次隱藏欄位，避免 reset 後遺失值
-            ensureRouteSelectedSync()
+
+            // 直接重新設定路線選擇值
+            if (currentRouteId) {
+              document.getElementById("selectedRoute").value = currentRouteId
+              // 重新選取對應按鈕
+              selectRoute(currentRouteId, "")
+
+              // 儲存到localStorage中
+              try {
+                localStorage.setItem("tm.selectedRoute", currentRouteId)
+              } catch (_) {}
+            }
+
             await loadTrips()
             // 統計區已移除
           } else {
