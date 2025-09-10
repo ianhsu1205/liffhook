@@ -1117,7 +1117,7 @@
     <div class="container">
       <div class="header">
         <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.33| <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <p>v1.0.0.34| <span id="currentDate"></span> | 僅顯示當日資料</p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -3202,7 +3202,10 @@
           if (response.ok) {
             showSuccess(`趟次已建立！`)
             document.getElementById("newTripForm").reset()
-            clearSelections()
+            // 保留既有路線選擇，方便連續新增
+            clearSelections({ preserveRoute: true })
+            // 重新同步一次隱藏欄位，避免 reset 後遺失值
+            ensureRouteSelectedSync()
             await loadTrips()
             // 統計區已移除
           } else {
@@ -4588,21 +4591,30 @@
         document.getElementById("editTripModal").style.display = "none"
       }
 
-      function clearSelections() {
-        document
-          .querySelectorAll(".route-option.selected")
-          .forEach((el) => el.classList.remove("selected"))
+      function clearSelections(options) {
+        options = options || {}
+        const preserveRoute = options.preserveRoute !== false // 預設保留路線
+
+        // 車輛與時間欄位清空
         document
           .querySelectorAll(".vehicle-option.selected")
           .forEach((el) => el.classList.remove("selected"))
-        document.getElementById("selectedRoute").value = ""
         document.getElementById("vehicleNumber").value = ""
         document.getElementById("hourInput").value = ""
         document.getElementById("minuteInput").value = ""
         document.getElementById("keepCountInput").value = "4"
-        try {
-          localStorage.removeItem("tm.selectedRoute")
-        } catch (_) {}
+
+        // 視需要是否清除路線選擇與儲存
+        if (!preserveRoute) {
+          document
+            .querySelectorAll(".route-option.selected")
+            .forEach((el) => el.classList.remove("selected"))
+          const sr = document.getElementById("selectedRoute")
+          if (sr) sr.value = ""
+          try {
+            localStorage.removeItem("tm.selectedRoute")
+          } catch (_) {}
+        }
       }
 
       function getTripPassengerCount(tripId) {
