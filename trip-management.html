@@ -636,6 +636,8 @@
       .passenger-actions {
         display: flex;
         gap: 5px;
+        justify-content: center;
+        margin-top: 8px;
       }
 
       .btn-xs {
@@ -1206,8 +1208,8 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統</h1>
-        <p>v1.0.0.37 | <span id="currentDate"></span></p>
+        <h1>都會之星座位保留系統 v1.0.0.38</h1>
+        <p><span id="currentDate"></span></p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -2807,19 +2809,19 @@
                       <div class="passenger-notify" style="margin:4px 0;">${notifyBadge}</div>
                   <div class="passenger-route">
                       📍 ${passenger.keepStop} → ${passenger.destStop}
-                      <br><small>🚌 可搭路線: ${routeInfo}</small>
+                      <br><small>${routeInfo}</small>
                   </div>
-                  <div class="passenger-contact" style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ffc107;">
-                      📞 <strong style="color: #856404; font-size: 14px;">${
-                        passenger.phone || "無電話資料"
-                      }</strong>
+          <div class="passenger-contact" style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ffc107;">
+            📞 <strong style="color: #856404; font-size: 16px; font-weight: 800;">${
+              passenger.phone || "無電話資料"
+            }</strong>
                   </div>
                   <div class="passenger-actions">
                       ${
                         showCompletedTrips
                           ? `<button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">手動分配</button>
                              <button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">自動分配</button>`
-                          : `<button class=\"btn btn-primary btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動分配</button>
+                          : `<button class=\"btn btn-info btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動分配</button>
                              <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動分配</button>`
                       }
                   </div>
@@ -2987,17 +2989,19 @@
                   <div>${statusChip}</div>
                 </div>
                 <div class="passenger-route">
-                  📍 ${passenger.keepStop} → ${passenger.destStop}
+                  📍 ${passenger.keepStop} → ${
+              passenger.destStop
+            }                  <span style="background:#eef5ff;border:1px solid #cfe2ff;color:#0a58ca;padding:1px 6px;border-radius:12px;font-weight:700;font-size:16px;white-space:nowrap;">🧍 ${
+              passenger.seatCount || 1
+            }</span>
                 </div>
                 <div class="passenger-contact" style="background:#fff3cd;padding:4px 8px;border-radius:4px;border-left:3px solid #ffc107;display:inline-block;">
-                  📞 <strong style="color:#856404;">${
+                  📞 <strong style="color:#856404;font-size:16px;font-weight:800;">${
                     passenger.phone || "無電話資料"
                   }</strong>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
-                  <span style="background:#eef5ff;border:1px solid #cfe2ff;color:#0a58ca;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">🧍 ${
-                    passenger.seatCount || 1
-                  }位</span>
+
                   ${boardedBadge}
                 </div>
                 ${
@@ -4527,7 +4531,7 @@
             if (result.passengerInfo) {
               detailMessage += `\n\n乘客資訊：`
               detailMessage += `\n• 姓名：${result.passengerInfo.name}`
-              detailMessage += `\n• 需要座位：${result.passengerInfo.requiredSeats} 個`
+              detailMessage += `\n• 搭乘人數：${result.passengerInfo.requiredSeats} `
               if (
                 result.passengerInfo.routes &&
                 result.passengerInfo.routes.length > 0
@@ -4682,7 +4686,9 @@
           passenger.destStop
         }</p>
               <p><strong>座位需求:</strong> ${passenger.seatCount || 1} 位</p>
-              <p><strong>電話:</strong> ${passenger.phone || "無"}</p>
+              <p><strong>電話:</strong> <span style="font-size:16px;font-weight:800;">${
+                passenger.phone || "無"
+              }</span></p>
               <hr>
               <h4>選擇趟次:</h4>
               <div style="max-height: 300px; overflow-y: auto;">
@@ -4705,7 +4711,7 @@
                   ? "準備發車"
                   : trip.status === "notified"
                   ? "已通知"
-                  : "待分配保留位中"
+                  : "待分配..."
               }
             </div>
           `
