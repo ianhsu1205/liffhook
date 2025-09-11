@@ -1182,7 +1182,7 @@
           <div class="form-section">
             <h3>👤 乘客資訊</h3>
             <div class="input-group">
-              <label for="passengerName" class="required">稱呼</label>
+              <label for="passengerName" class="required">姓名或稱呼</label>
               <div style="display: flex; gap: 8px; align-items: center">
                 <input
                   type="text"
@@ -1196,7 +1196,7 @@
                   aria-label="稱謂"
                   style="width: 100px"
                 >
-                  <option value="">(無)</option>
+                  <option value="">空白</option>
                   <option value="先生">先生</option>
                   <option value="小姐">小姐</option>
                 </select>
@@ -1218,9 +1218,9 @@
 
           <!-- 座位數量 -->
           <div class="form-section">
-            <h3>🪑 座位數量</h3>
+            <h3>🧍搭乘人數：</h3>
             <div class="input-group">
-              <label>需要保留的座位數</label>
+              <label>需要保留的座位數量</label>
               <div class="seat-counter">
                 <button
                   type="button"
@@ -1274,7 +1274,7 @@
 
           <!-- 提交按鈕 -->
           <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
-            確認送出保留申請
+            送出保留申請
           </button>
         </form>
       </div>
@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.17
+      保留座位申請 v1.0.0.18
     </footer>
 
     <script>
@@ -1973,7 +1973,7 @@
       function validateName() {
         const name = document.getElementById("passengerName").value.trim()
         if (name.length === 0) {
-          showError("請輸入稱呼", "nameError", "passengerName")
+          showError("您的大名或稱呼", "nameError", "passengerName")
           return false
         }
         if (name.length > 20) {
