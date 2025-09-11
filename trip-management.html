@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>都會之星保留座位管理系統</title>
+    <title>都會之星座位保留系統</title>
     <script>
       // 靜音非必要的 console 輸出（保留 error），可透過 window.__ENABLE_DEBUG__ = true 重新開啟
       ;(function () {
@@ -211,6 +211,17 @@
       .no-anim * {
         transition: none !important;
         animation: none !important;
+      }
+
+      /* 若系統偏好減少動態，全面停用動畫/轉場 */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
       }
 
       /* 遊戲化元素 */
@@ -476,6 +487,85 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         transition: box-shadow 0.25s ease, border-color 0.25s ease;
         cursor: grab;
+      }
+
+      /* 乘客卡片：狀態強化（色帶 + 淡底 + 晶片） */
+      .passenger-card {
+        position: relative;
+        overflow: hidden;
+      }
+      .passenger-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        opacity: 0.9;
+      }
+      .passenger-card.is-unnotified {
+        background: #ffffff; /* 改為白底 */
+        border-color: #e5e7eb; /* gray-200 */
+        /* animation: none; 取消動畫 */
+      }
+      .passenger-card.is-unnotified::before {
+        background: #d1d5db; /* gray-300，改為中性灰色條 */
+      }
+      .passenger-card.is-notified {
+        background: #ecfdf5; /* emerald-50 */
+        border-color: #6ee7b7; /* emerald-300 */
+      }
+      .passenger-card.is-notified::before {
+        background: #10b981;
+      } /* emerald-500 */
+      .passenger-card.assigned {
+        cursor: default;
+      }
+
+      /* 狀態晶片（統一樣式） */
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        line-height: 1;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .status-chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .passenger-card.is-unnotified .status-chip {
+        background: #f3f4f6; /* gray-100 */
+        color: #374151; /* gray-700 */
+        border-color: #d1d5db; /* gray-300 */
+      }
+      .passenger-card.is-unnotified .status-chip .dot {
+        background: #6b7280; /* gray-500 */
+      }
+      .passenger-card.is-notified .status-chip {
+        background: #ecfdf5; /* emerald-50 */
+        color: #065f46; /* emerald-800 */
+        border-color: #6ee7b7; /* emerald-300 */
+      }
+      .passenger-card.is-notified .status-chip .dot {
+        background: #10b981;
+      } /* emerald-500 */
+
+      /* 柔和呼吸動畫（僅未通知） */
+      @keyframes gentlePulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.25);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(249, 115, 22, 0);
+        }
       }
 
       .passenger-card:hover {
@@ -1116,8 +1206,8 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星車輛座位保留系統</h1>
-        <p>v1.0.0.36| <span id="currentDate"></span> | 僅顯示當日資料</p>
+        <h1>都會之星座位保留系統</h1>
+        <p>v1.0.0.37 | <span id="currentDate"></span></p>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1414,29 +1504,41 @@
       }
 
       // 載入音效檔並預先播放（靜音）來避免第一次播放失敗
-      function preloadAudio() {
+      async function preloadAudio() {
         const sound = document.getElementById("notifySound")
-        if (sound) {
-          // 先將音量設為0
-          const originalVolume = sound.volume
-          sound.volume = 0
-          // 播放然後立即暫停，強制瀏覽器載入音效
-          sound
-            .play()
-            .then(() => {
-              sound.pause()
-              sound.currentTime = 0
-              sound.volume = originalVolume
-              console.log("音效已預先載入，第一次播放應該可以正常運作")
-            })
-            .catch((error) => {
-              console.warn("預先載入音效失敗，可能仍需要用戶互動:", error)
-            })
+        if (!sound) return
+        // HTMLAudio 預熱（靜音播放再暫停）
+        const originalVolume = sound.volume
+        sound.volume = 0
+        try {
+          await sound.play()
+          sound.pause()
+          sound.currentTime = 0
+          sound.volume = originalVolume
+          console.log("音效已預先載入(HTMLAudio)")
+        } catch (e) {
+          console.warn("HTMLAudio 預載失敗(可忽略):", e)
+        }
+
+        // WebAudio Buffer 預熱
+        try {
+          if (window.audioContext && window.audioContext.state === "running") {
+            const res = await fetch(sound.src, { cache: "force-cache" })
+            const arrayBuf = await res.arrayBuffer()
+            cachedAudioBuffer = await window.audioContext.decodeAudioData(
+              arrayBuf
+            )
+            console.log("音效已預先載入(WebAudio Buffer)")
+          }
+        } catch (e) {
+          console.warn("WebAudio Buffer 預載失敗(可忽略):", e)
         }
       }
 
       // 頁面加載後立即預先載入音效
       document.addEventListener("DOMContentLoaded", () => {
+        // 預設停用動畫，降低抖動與資源消耗
+        document.body.classList.add("no-anim")
         const AudioContext = window.AudioContext || window.webkitAudioContext
         if (AudioContext && !window.globalAudioContext) {
           window.globalAudioContext = new AudioContext()
@@ -1566,6 +1668,15 @@
         initializePage()
         setupEventListeners()
       })
+
+      // 供日後擴充：可切換動畫開關
+      function setAnimationsEnabled(enabled) {
+        if (enabled) {
+          document.body.classList.remove("no-anim")
+        } else {
+          document.body.classList.add("no-anim")
+        }
+      }
 
       function initializePage() {
         // 顯示當前日期
@@ -2408,8 +2519,8 @@
             : "目前沒有進行中的趟次 (可勾選顯示已發車)"
           const finalHtmlEmpty = `
             <div class="view-toggle">
-              <button class="btn btn-info" onclick="expandAllTrips()">📖 全部展開</button>
-              <button class="btn btn-info" onclick="collapseAllTrips()">📕 全部摺疊</button>
+              <button class="btn btn-info" onclick="expandAllTrips()">🗁 展開</button>
+              <button class="btn btn-info" onclick="collapseAllTrips()">🗀 摺疊</button>
             </div>
             <p style=\"text-align:center;color:#666;padding:40px;\">${msg}</p>`
           container.innerHTML = finalHtmlEmpty
@@ -2469,7 +2580,7 @@
                                         ? "#007bff"
                                         : trip.status === "completed"
                                         ? "#6c757d"
-                                        : "#ffc107"
+                                        : "#000000"
                                     }">
                                         ${
                                           trip.status === "ready"
@@ -2478,7 +2589,7 @@
                                             ? "已通知乘客"
                                             : trip.status === "completed"
                                             ? "已發車"
-                                            : "分配保留位中…"
+                                            : "分配中…"
                                         }
                                     </span>
                                 </div>
@@ -2505,7 +2616,7 @@
                           trip.status !== "completed"
                             ? `
                         <button class="btn btn-info" onclick="autoAssignTrip('${trip.tripId}')">
-                            🤖 自動保留
+                            🤖 自動分配
                         </button>
                         <button class="btn btn-warning" onclick="editTrip('${trip.tripId}')">
                             ✏️ 編輯
@@ -2541,10 +2652,10 @@
         const finalHtml = `
           <div class="view-toggle">
             <button class="btn btn-info" onclick="expandAllTrips()">
-              📖 全部展開
+              🗁 展開
             </button>
             <button class="btn btn-info" onclick="collapseAllTrips()">
-              📕 全部摺疊
+              🗀 摺疊
             </button>
           </div>
           ${tripsHtml}
@@ -2679,7 +2790,7 @@
             : null
           const notifyBadge = passenger.responseDateTime
             ? `<span style="background:#e8f5e9;border:1px solid #c3e6cb;color:#1e7e34;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;">📣 已通知 ${notifiedTime}</span>`
-            : `<span style="background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;">未通知</span>`
+            : `<span style=\"background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;\">未通知</span>`
 
           const passengerHtml = `
               <div class="passenger-card" data-passenger-id="${
@@ -2706,10 +2817,10 @@
                   <div class="passenger-actions">
                       ${
                         showCompletedTrips
-                          ? `<button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">手動排班</button>
-                             <button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">自動排班</button>`
-                          : `<button class=\"btn btn-primary btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動排班</button>
-                             <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動排班</button>`
+                          ? `<button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">手動分配</button>
+                             <button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">自動分配</button>`
+                          : `<button class=\"btn btn-primary btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動分配</button>
+                             <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動分配</button>`
                       }
                   </div>
               </div>
@@ -2835,54 +2946,59 @@
             return timeA.localeCompare(timeB)
           })
 
-          // 創建2列佈局的容器
+          // 創建自適應柵格容器
           let passengersHtml =
-            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 8px;">'
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:8px;">'
 
           sortedPassengers.forEach((passenger) => {
             const keepTime = extractTimeFromDateTime(passenger.requestDateTime)
             const notifiedTime = passenger.responseDateTime
               ? extractHmsFromDateTime(passenger.responseDateTime)
               : null
-            const notifyBadge = passenger.responseDateTime
-              ? `<span style="background:#e8f5e9;border:1px solid #c3e6cb;color:#1e7e34;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">📣 已通知 ${notifiedTime}</span>`
-              : `<span style="background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">未通知</span>`
+            const statusClass = passenger.responseDateTime
+              ? "is-notified"
+              : "is-unnotified"
+            const statusChip = passenger.responseDateTime
+              ? `<span class="status-chip" title="乘客已被通知">
+                    <span class="dot"></span>
+                    已通知 ${notifiedTime}
+                 </span>`
+              : `<span class="status-chip" title="尚未通知乘客">
+                    <span class="dot"></span>
+                    未通知
+                 </span>`
             const boardedBadge =
               passenger.isBoarded || passenger.boardedDateTime
-                ? `<span style='background:#d1ecf1;border:1px solid #bee5eb;color:#0c5460;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;margin-left:4px;'>已搭乘${
+                ? `<span style='background:#d1ecf1;border:1px solid #bee5eb;color:#0c5460;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;'>已搭乘${
                     passenger.boardedDateTime
                       ? " " + extractTimeFromDateTime(passenger.boardedDateTime)
                       : ""
                   }</span>`
                 : ""
+
             passengersHtml += `
-              <div class="assigned-passenger-compact" style="
-                background: #e8f5e8;
-                border: 1px solid #c3e6cb;
-                border-radius: 5px;
-                padding: 6px 8px;
-                font-size: 12px;
-                position: relative;
-              ">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
-                  <strong style="font-size: 13px;">${passenger.name}</strong>
-                  <span style="color: #007bff; font-weight: bold; font-size: 13px;">⏰ ${keepTime}</span>
+              <div class="passenger-card assigned ${statusClass}" data-passenger-id="${
+              passenger.id
+            }">
+                <div class="passenger-header">
+                  <div class="passenger-name">${
+                    passenger.name
+                  } <span style="color:#007bff;font-weight:700;">⏰ ${keepTime}</span></div>
+                  <div>${statusChip}</div>
                 </div>
-                <div style="font-size: 13px; line-height: 1.3;">
-                  <div style="margin: 0 0 4px 0;">${notifyBadge} ${boardedBadge}</div>
-                  <div style="background: #fff3cd; padding: 1px 4px; border-radius: 2px; border-left: 2px solid #ffc107; display: inline-block; margin-bottom: 2px;">
-                    📞 <strong style="color: #856404;">${
-                      passenger.phone || "無電話"
-                    }</strong>
-                  </div>
-                  <div style="color: #666; margin-top: 2px;">
-                    📍 ${passenger.keepStop} → ${passenger.destStop}
-                  </div>
-                  <div style="margin-top: 2px;">
-                    🪑 <span style="font-weight: bold; color: #007bff;">${
-                      passenger.seatCount || 1
-                    }位</span>
-                  </div>
+                <div class="passenger-route">
+                  📍 ${passenger.keepStop} → ${passenger.destStop}
+                </div>
+                <div class="passenger-contact" style="background:#fff3cd;padding:4px 8px;border-radius:4px;border-left:3px solid #ffc107;display:inline-block;">
+                  📞 <strong style="color:#856404;">${
+                    passenger.phone || "無電話資料"
+                  }</strong>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+                  <span style="background:#eef5ff;border:1px solid #cfe2ff;color:#0a58ca;padding:1px 6px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;">🧍 ${
+                    passenger.seatCount || 1
+                  }位</span>
+                  ${boardedBadge}
                 </div>
                 ${
                   isCompletedView
@@ -2891,7 +3007,7 @@
                         passenger.id
                       }', '${tripId}', ${
                         passenger.seatCount || passenger.SeatCount || 1
-                      })" style="position:absolute;bottom:3px;right:3px;font-size:10px;padding:2px 4px;line-height:1;border-radius:3px;background:#dc3545;border:none;color:white;cursor:pointer;z-index:1;">❌</button>`
+                      })" style="position:absolute;bottom:8px;right:8px;font-size:11px;padding:2px 6px;line-height:1;border-radius:4px;">移除</button>`
                 }
               </div>
             `
@@ -4709,7 +4825,7 @@
         )
 
         if (seatIndicator) {
-          seatIndicator.textContent = `🪑 ${currentSeats}/${effectiveKeep}`
+          seatIndicator.textContent = `💺 ${currentSeats}/${effectiveKeep}`
           seatIndicator.className = `seat-indicator ${
             currentSeats >= effectiveKeep
               ? "full"
@@ -4905,7 +5021,7 @@
         const tripCards = document.querySelectorAll(".trip-card")
 
         passengerCards.forEach((card) => {
-          card.draggable = true
+          card.setAttribute("draggable", "true")
           card.addEventListener("dragstart", handleDragStart)
           card.addEventListener("dragend", handleDragEnd)
         })
@@ -4918,60 +5034,15 @@
       }
 
       function handleDragStart(e) {
-        e.target.classList.add("dragging")
-        e.dataTransfer.setData("text/plain", e.target.dataset.passengerId)
+        const el = e.currentTarget
+        const pid = el.getAttribute("data-passenger-id") || ""
+        e.dataTransfer.setData("text/plain", pid)
+        e.dataTransfer.effectAllowed = "move"
+        el.classList.add("dragging")
       }
 
       function handleDragEnd(e) {
-        e.target.classList.remove("dragging")
-      }
-
-      // 檢查乘客是否可以搭乘指定路線
-      async function canPassengerTakeRoute(passengerId, routeId) {
-        try {
-          // 找到乘客資料
-          const passenger = pendingPassengers.find((p) => p.id === passengerId)
-          if (!passenger || !passenger.destStop) {
-            console.log("找不到乘客或乘客沒有目的地站牌")
-            return false
-          }
-
-          // 獲取路線的站牌資料
-          const response = await fetch(`${BASE_URL}/KeepStop/route/${routeId}`)
-          if (!response.ok) {
-            console.log("無法獲取路線站牌資料")
-            return false
-          }
-
-          const stops = await response.json()
-          if (!stops || stops.length === 0) {
-            console.log("路線沒有站牌資料")
-            return false
-          }
-
-          const destStop = passenger.destStop || ""
-          const cleanDestStop = destStop.replace(/\s+/g, "").toUpperCase()
-
-          // 檢查目的地站牌是否在該路線的站牌列表中
-          const hasDestStop = stops.some((stop) => {
-            const stopName = stop.stopNameZh || ""
-            const cleanStopName = stopName.replace(/\s+/g, "").toUpperCase()
-            return (
-              cleanStopName.includes(cleanDestStop) ||
-              cleanDestStop.includes(cleanStopName)
-            )
-          })
-
-          console.log(
-            `乘客 ${passenger.name} (目的地: ${destStop}) ${
-              hasDestStop ? "可以" : "不可以"
-            } 搭乘路線 ${routeId}`
-          )
-          return hasDestStop
-        } catch (error) {
-          console.error("檢查乘客路線匹配失敗:", error)
-          return false
-        }
+        e.currentTarget.classList.remove("dragging")
       }
 
       function handleDragOver(e) {
@@ -5177,52 +5248,56 @@
           })
       }
 
-      // 安全播放通知音效
-      function playNotificationSound() {
+      // 使用 WebAudio 播放，避免 HTMLAudio 可能的分段/延遲；並加上節流避免短時間連續播放卡頓
+      let lastNotifyPlay = 0
+      let cachedAudioBuffer = null
+      async function playNotificationSound() {
         try {
-          const sound = document.getElementById("notifySound")
-          if (sound) {
-            // 檢查 AudioContext 是否存在並且是否已啟用
-            if (
-              window.audioContext &&
-              window.audioContext.state === "running"
-            ) {
-              // 重置播放位置
-              sound.currentTime = 0
-
-              // 播放聲音
-              const playPromise = sound.play()
-
-              // 處理播放 Promise
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    console.log("通知音效播放成功")
-                  })
-                  .catch((error) => {
-                    console.error("通知音效播放失敗:", error)
-
-                    // 如果是因為用戶互動限制，提示用戶
-                    if (error.name === "NotAllowedError") {
-                      showVisualNotification(
-                        "請點擊「啟用音效通知」按鈕來啟用音效",
-                        "warning"
-                      )
-                    }
-                  })
-              }
-            } else {
-              console.warn("AudioContext 未啟用，無法播放音效")
-              showVisualNotification(
-                "請點擊「啟用音效通知」按鈕來啟用音效",
-                "warning"
-              )
-            }
-          } else {
-            console.error("找不到音效元素")
+          const now = Date.now()
+          if (now - lastNotifyPlay < 800) {
+            // 800ms 以內重複觸發則忽略，避免重疊造成 lag
+            return
           }
+          lastNotifyPlay = now
+
+          const ctx = window.audioContext
+          if (!ctx || ctx.state !== "running") {
+            console.warn("AudioContext 未啟用，無法播放音效")
+            showVisualNotification(
+              "請點擊「啟用音效通知」按鈕來啟用音效",
+              "warning"
+            )
+            return
+          }
+
+          // 先嘗試使用快取的 AudioBuffer
+          if (!cachedAudioBuffer) {
+            const audioEl = document.getElementById("notifySound")
+            if (!audioEl) {
+              console.error("找不到音效元素 notifySound")
+              return
+            }
+            // 以 fetch 取得音訊資料並 decode 成 AudioBuffer
+            const res = await fetch(audioEl.src, { cache: "force-cache" })
+            const arrayBuf = await res.arrayBuffer()
+            cachedAudioBuffer = await ctx.decodeAudioData(arrayBuf)
+          }
+
+          const source = ctx.createBufferSource()
+          source.buffer = cachedAudioBuffer
+          source.connect(ctx.destination)
+          source.start(0)
         } catch (error) {
-          console.error("播放通知音效時發生錯誤:", error)
+          console.warn("WebAudio 播放失敗，回退至 HTMLAudio:", error)
+          try {
+            const audioEl = document.getElementById("notifySound")
+            if (audioEl) {
+              audioEl.currentTime = 0
+              await audioEl.play()
+            }
+          } catch (e) {
+            console.error("回退播放也失敗:", e)
+          }
         }
       }
       setInterval(pollPendingPassengers, 5000) // 每5秒自動偵測
