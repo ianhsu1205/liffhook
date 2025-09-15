@@ -374,8 +374,8 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <button id="tabPending" class="btn sm primary">待排</button>
-      <button id="tabTrips" class="btn sm ghost">趟次</button>
+      <button id="tabPending" class="btn sm">待排</button>
+      <button id="tabTrips" class="btn sm">趟次</button>
     </div>
 
     <!-- Views -->
@@ -408,7 +408,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.3
+        v1.0.0.4
       </div>
     </div>
 
@@ -1202,6 +1202,8 @@
         const _btnCreate = $("#btnCreate")
         if (_btnCreate) _btnCreate.addEventListener("click", openCreateTrip)
         setupVehicleAutocomplete()
+        // 確保初始只高亮「待排」分頁，避免與舊的 primary/ghost 類別衝突
+        switchTab("pending")
         reloadAll()
         startAutoRefresh()
       })
