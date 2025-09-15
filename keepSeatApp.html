@@ -1006,7 +1006,7 @@
           <p><strong>敬告乘客：</strong></p>
           <ol>
             <li>本功能目前僅開放2088路線使用。</li>
-            <li>若已保留座位請依保留的車號及站牌上車。</li>
+            <li>1個帳號限保留2位，已保留座位請依保留的車號上車。</li>
             <li>
               搭乘後請使用LINE選單的「搭乘確認」掃描QRCode確認搭乘，若非保留的車號則無法確認。
             </li>
@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.18
+      保留座位申請 v1.0.0.19
     </footer>
 
     <script>
@@ -2039,7 +2039,7 @@
 
       // 座位數量控制
       function increaseSeatCount() {
-        if (seatCount < 4) {
+        if (seatCount < 2) {
           seatCount++
           updateSeatDisplay()
           updateSummary()
@@ -2057,7 +2057,7 @@
       function updateSeatDisplay() {
         document.getElementById("seatCount").textContent = seatCount
         document.getElementById("decreaseBtn").disabled = seatCount <= 1
-        document.getElementById("increaseBtn").disabled = seatCount >= 4
+        document.getElementById("increaseBtn").disabled = seatCount >= 2
       }
 
       // 表單驗證
