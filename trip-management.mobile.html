@@ -102,6 +102,13 @@
         color: #fff;
         border-color: var(--primary);
       }
+      /* Bigger tabs buttons */
+      .tabs .btn,
+      .tabs .btn.sm {
+        padding: 12px 14px;
+        font-size: 15px;
+        border-radius: 10px;
+      }
 
       /* cards */
       .card {
@@ -196,10 +203,50 @@
         border-radius: 999px;
         cursor: pointer;
         background: #fff;
+        position: relative;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
       }
       .pill.active {
         border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+        transform: scale(1.05);
+      }
+      .pill.active::after {
+        content: "✓";
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #10b981;
+        color: #fff;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      }
+      /* Route-colored chips for route picker */
+      .pill.route-208802 {
+        background: #007bff;
+        color: #fff;
+        border-color: #007bff;
+      }
+      .pill.route-2088A2 {
+        background: #28a745;
+        color: #fff;
+        border-color: #28a745;
+      }
+      .pill.route-2088B2 {
+        background: #fd7e14;
+        color: #fff;
+        border-color: #fd7e14;
+      }
+      .pill.route-default {
+        background: #6b7280;
+        color: #fff;
+        border-color: #6b7280;
       }
 
       /* toast */
@@ -253,6 +300,39 @@
         width: 100%;
         max-width: 560px;
         padding: 12px;
+      }
+      /* Larger inputs in Trip modal */
+      .modal .sheet .field label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+        color: #333;
+      }
+      .modal .sheet input[type="text"],
+      .modal .sheet input[type="number"],
+      .modal .sheet input[type="time"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .modal .sheet input:focus {
+        outline: none;
+        border-color: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.25);
+      }
+
+      /* Larger/green button variants */
+      .btn.lg {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 8px;
+      }
+      .btn.success {
+        background: #10b981;
+        color: #fff;
+        border-color: #10b981;
       }
 
       /* suggestions dropdown */
@@ -328,7 +408,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.2
+        v1.0.0.3
       </div>
     </div>
 
@@ -431,8 +511,8 @@
     </div>
 
     <script>
-      //const BASE_URL = "http://localhost:5000/api"
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
+      //const BASE_URL = "http://localhost:5000/api"
       let showCompleted = false
       let trips = []
       let pending = []
@@ -921,6 +1001,18 @@
             const req = (p.requestDateTime || "").slice(11, 16) || "-"
             const phoneFull = p.phone || ""
             const dest = p.destStop || p.DestStop || "-"
+            const include = p.includeRoutes || p.IncludeRoutes || ""
+            const includeChips = String(include)
+              .split(",")
+              .map((r) => r.trim())
+              .filter(Boolean)
+              .map(
+                (r) =>
+                  `<span class="route-badge route-${routeToClass(
+                    r
+                  )}">${r}</span>`
+              )
+              .join(" ")
             return `
             <div class="card">
               <div class="row" style="justify-content:space-between;align-items:center">
@@ -930,9 +1022,10 @@
                 ${badge}
               </div>
               <div class="sub">申請 ${req}　電話 ${phoneFull}</div>
-              <div class="chips"><span class="chip">${dest}</span></div>
+              <div class="chips"><span class="chip">${dest}</span> ${includeChips}
+              </div>
               <div class="row" style="margin-top:6px"> 
-                <button class="btn sm primary" data-action="open-assign" data-id="${escAttr(
+                <button class="btn lg success" data-action="open-assign" data-id="${escAttr(
                   p.id
                 )}" data-count="${escAttr(
               p.seatCount || 1
@@ -1143,9 +1236,9 @@
             selectedRoute === r.id ? "active" : ""
           } route-${routeToClass(
                 r.id
-              )}" data-action="select-route" data-id="${escAttr(r.id)}">${
+              )}" data-action="select-route" data-id="${escAttr(
                 r.id
-              }</span>
+              )}" aria-selected="${selectedRoute === r.id}">${r.id}</span>
         `
             )
             .join("") || '<div class="sub">無可選路線</div>'
@@ -1688,4 +1781,3 @@
     </script>
   </body>
 </html>
-
