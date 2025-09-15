@@ -322,6 +322,16 @@
         border-color: #4caf50;
         box-shadow: 0 0 5px rgba(76, 175, 80, 0.25);
       }
+      /* Time input live validation */
+      .modal .sheet input.invalid {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+      }
+      .error {
+        color: #b91c1c;
+        font-size: 12px;
+        margin-top: 4px;
+      }
 
       /* Larger/green button variants */
       .btn.lg {
@@ -408,7 +418,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.4
+        v1.0.0.5
       </div>
     </div>
 
@@ -483,9 +493,13 @@
             id="timeInput"
             type="text"
             inputmode="numeric"
+            maxlength="5"
             placeholder="08:30"
             style="width: 100%"
           />
+          <div id="timeError" class="error" style="display: none">
+            時間需為 00:00 - 23:59
+          </div>
         </div>
         <div class="field" style="margin-bottom: 12px">
           <label>保留座位數</label>
@@ -1202,6 +1216,7 @@
         const _btnCreate = $("#btnCreate")
         if (_btnCreate) _btnCreate.addEventListener("click", openCreateTrip)
         setupVehicleAutocomplete()
+        setupTimeInputFormatting()
         // 確保初始只高亮「待排」分頁，避免與舊的 primary/ghost 類別衝突
         switchTab("pending")
         reloadAll()
@@ -1262,7 +1277,7 @@
         document.getElementById("editingTripId").value = ""
         document.getElementById("tripModalTitle").textContent = "新增趟次"
         document.getElementById("vehicleInput").value = ""
-        document.getElementById("timeInput").value = ""
+        setTimeField("")
         document.getElementById("keepCountInput").value = "4"
         renderRouteChips()
         document.getElementById("tripModal").style.display = "flex"
@@ -1277,7 +1292,7 @@
         selectedRoute = t.route || selectedRoute
         renderRouteChips()
         document.getElementById("vehicleInput").value = t.vehicleNumber || ""
-        document.getElementById("timeInput").value = t.departureTime || ""
+        setTimeField(t.departureTime || "")
         document.getElementById("keepCountInput").value =
           t.keepCount ?? t.KeepCount ?? 4
         document.getElementById("tripModal").style.display = "flex"
@@ -1288,6 +1303,60 @@
         return v.slice(0, 5)
       }
 
+      // 時間輸入輔助：將純數字即時轉成 HH:mm，並驗證 00:00–23:59
+      function toHHmmFromDigits(val) {
+        const d = String(val || "")
+          .replace(/\D/g, "")
+          .slice(0, 4)
+        if (d.length <= 2) return d
+        return d.slice(0, 2) + ":" + d.slice(2)
+      }
+      function isValidTimeHHmm(v) {
+        if (!/^\d{2}:\d{2}$/.test(v)) return false
+        const h = parseInt(v.slice(0, 2), 10)
+        const m = parseInt(v.slice(3, 5), 10)
+        return h >= 0 && h <= 23 && m >= 0 && m <= 59
+      }
+      function setTimeField(v) {
+        const el = document.getElementById("timeInput")
+        const err = document.getElementById("timeError")
+        if (!el) return
+        el.value = normTime(v)
+        if (err) err.style.display = "none"
+        el.classList.remove("invalid")
+      }
+      function setupTimeInputFormatting() {
+        const el = document.getElementById("timeInput")
+        const err = document.getElementById("timeError")
+        if (!el) return
+        const update = () => {
+          const formatted = toHHmmFromDigits(el.value)
+          el.value = formatted
+          if (formatted.length === 5) {
+            const ok = isValidTimeHHmm(formatted)
+            if (err) err.style.display = ok ? "none" : "block"
+            el.classList.toggle("invalid", !ok)
+          } else {
+            if (err) err.style.display = "none"
+            el.classList.remove("invalid")
+          }
+        }
+        el.addEventListener("input", update)
+        el.addEventListener("paste", (e) => {
+          e.preventDefault()
+          const text = (e.clipboardData || window.clipboardData).getData("text")
+          el.value = toHHmmFromDigits(text)
+          update()
+        })
+        el.addEventListener("blur", () => {
+          const v = el.value
+          if (v.length === 5 && !isValidTimeHHmm(v)) {
+            if (err) err.style.display = "block"
+            el.classList.add("invalid")
+          }
+        })
+      }
+
       async function saveTrip() {
         const id = document.getElementById("editingTripId").value.trim()
         const route = selectedRoute
@@ -1295,7 +1364,8 @@
           .getElementById("vehicleInput")
           .value.trim()
           .toUpperCase()
-        const time = normTime(document.getElementById("timeInput").value)
+        const timeRaw = document.getElementById("timeInput").value
+        const time = normTime(timeRaw)
         const keep = Math.max(
           0,
           Math.min(
@@ -1311,8 +1381,15 @@
           toast("請輸入車號")
           return
         }
-        if (!/^\d{2}:\d{2}$/.test(time)) {
-          toast("請輸入時間 HH:mm")
+        if (!isValidTimeHHmm(time)) {
+          const err = document.getElementById("timeError")
+          if (err) err.style.display = "block"
+          const el = document.getElementById("timeInput")
+          if (el) {
+            el.classList.add("invalid")
+            el.focus()
+          }
+          toast("請輸入有效時間 00:00 - 23:59")
           return
         }
         try {
