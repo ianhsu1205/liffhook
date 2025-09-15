@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trip Management Mobile</title>
+    <style>
+      :root {
+        --text: #222;
+        --muted: #666;
+        --border: #e5e7eb;
+        --primary: #2563eb;
+        --ok: #10b981;
+        --bg: #f9fafb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+        line-height: 1.4;
+      }
+      .header {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        z-index: 5;
+      }
+      .tabs {
+        position: sticky;
+        top: 48px;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        z-index: 5;
+        display: flex;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      .view {
+        padding: 10px 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .gap-8 {
+        gap: 8px;
+      }
+      .title {
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      /* buttons */
+      .btn {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .btn.sm {
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .btn.primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+      .btn.ghost {
+        background: #fff;
+        color: var(--text);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .tabs .btn {
+        flex: 1 1 50%;
+        text-align: center;
+      }
+      .tabs .btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+
+      /* cards */
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+        margin: 10px 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .card.full {
+        border-color: #fecaca;
+        background: #fff1f2;
+      }
+      .route-title {
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      .vehicle-line {
+        font-size: 14px;
+        margin: 2px 0 6px;
+      }
+      .time-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-weight: 600;
+      }
+
+      /* chips */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+        align-items: center;
+      }
+      .chip {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid var(--border);
+      }
+      .chip.ok {
+        background: #ecfdf5;
+        color: #065f46;
+        border-color: #a7f3d0;
+      }
+      .chip.warn {
+        background: #fffbeb;
+        color: #92400e;
+        border-color: #fde68a;
+      }
+      .chip.bad {
+        background: #fef2f2;
+        color: #991b1b;
+        border-color: #fecaca;
+      }
+
+      /* route badges */
+      .route-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .route-208802 {
+        background: #007bff;
+      }
+      .route-2088A2 {
+        background: #28a745;
+      }
+      .route-2088B2 {
+        background: #fd7e14;
+      }
+      .route-default {
+        background: #6b7280;
+      }
+
+      /* route chips picker */
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        cursor: pointer;
+        background: #fff;
+      }
+      .pill.active {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+      }
+
+      /* toast */
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s, transform 0.2s;
+        z-index: 1000;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* bottom bar */
+      .bottom {
+        background: #fff;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 12px;
+        position: sticky;
+        bottom: 0;
+      }
+      .bottom .btn {
+        flex: 0 1 auto;
+      }
+
+      /* modals */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        align-items: center;
+        justify-content: center;
+      }
+      .modal .sheet {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
+        background: #fff;
+        width: 100%;
+        max-width: 560px;
+        padding: 12px;
+      }
+
+      /* suggestions dropdown */
+      .field {
+        position: relative;
+      }
+      .dropdown {
+        width: 100%;
+      }
+      .sugg-item {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+      }
+      .sugg-item:hover {
+        background: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body>
+    <audio id="notifySound" src="audio/2456.wav" preload="auto"></audio>
+    <div id="toast" class="toast"></div>
+    <div id="print-content" style="display: none"></div>
+
+    <!-- Header -->
+    <div
+      class="header"
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+      "
+    >
+      <div style="font-weight: 600">保留座位管理</div>
+      <div id="today" class="sub" style="opacity: 0.8"></div>
+      <button id="btnCreate" class="btn sm primary">新增趟次</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button id="tabPending" class="btn sm primary">待排</button>
+      <button id="tabTrips" class="btn sm ghost">趟次</button>
+    </div>
+
+    <!-- Views -->
+    <div id="pendingView" class="view" style="padding: 8px 12px"></div>
+    <div
+      id="tripsView"
+      class="view"
+      style="padding: 8px 12px; display: none"
+    ></div>
+
+    <!-- Bottom bar -->
+    <div
+      class="bottom"
+      style="
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #eee;
+      "
+    >
+      <div class="row" style="gap: 8px">
+        <button id="btnRefresh" class="btn primary" style="flex: 1 1 50%">
+          重新整理
+        </button>
+        <button id="btnToggleCompleted" class="btn ghost" style="flex: 1 1 50%">
+          顯示已發車：關
+        </button>
+      </div>
+      <div
+        class="sub"
+        style="text-align: center; font-size: 11px; color: var(--muted)"
+      >
+        v1.0.0.2
+      </div>
+    </div>
+
+    <!-- Assign Modal -->
+    <div id="assignModal" class="modal" style="display: none">
+      <div class="sheet">
+        <div
+          class="row"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
+          <div class="title" style="font-weight: 600">指派到趟次</div>
+          <button class="btn sm ghost" data-action="close-assign">關閉</button>
+        </div>
+        <div id="assignList"></div>
+      </div>
+    </div>
+
+    <!-- Trip Modal -->
+    <div id="tripModal" class="modal" style="display: none">
+      <div class="sheet">
+        <div
+          class="row"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
+          <div id="tripModalTitle" class="title" style="font-weight: 600">
+            趟次
+          </div>
+          <button class="btn sm ghost" data-action="close-trip">關閉</button>
+        </div>
+        <input type="hidden" id="editingTripId" />
+        <div
+          id="routeList"
+          class="chips"
+          style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px"
+        ></div>
+        <div class="field" style="margin-bottom: 8px">
+          <label>車號</label>
+          <input
+            id="vehicleInput"
+            type="text"
+            placeholder="例如 ABC-123"
+            style="width: 100%"
+          />
+          <div
+            id="vehicleSugg"
+            class="dropdown"
+            style="
+              display: none;
+              position: absolute;
+              z-index: 10;
+              background: #fff;
+              border: 1px solid #ddd;
+              border-radius: 6px;
+              max-height: 180px;
+              overflow: auto;
+            "
+          ></div>
+        </div>
+        <div class="field" style="margin-bottom: 8px">
+          <label>發車時間 (HH:mm)</label>
+          <input
+            id="timeInput"
+            type="text"
+            inputmode="numeric"
+            placeholder="08:30"
+            style="width: 100%"
+          />
+        </div>
+        <div class="field" style="margin-bottom: 12px">
+          <label>保留座位數</label>
+          <input
+            id="keepCountInput"
+            type="number"
+            min="0"
+            max="40"
+            step="1"
+            style="width: 100%"
+          />
+        </div>
+        <div
+          class="row"
+          style="display: flex; gap: 8px; justify-content: flex-end"
+        >
+          <button class="btn ghost" data-action="close-trip">取消</button>
+          <button id="btnSaveTrip" class="btn primary" data-action="save-trip">
+            儲存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const BASE_URL = "http://localhost:5000/api"
+      let showCompleted = false
+      let trips = []
+      let pending = []
+      let selectedPassenger = null
+      let routes = []
+      let vehicleData = []
+      let selectedRoute = ""
+      let autoTimer = null
+
+      // UI helpers
+      const $ = (sel) => document.querySelector(sel)
+      function fmt(n) {
+        return (n ?? "").toString().padStart(2, "0")
+      }
+      function toast(msg) {
+        const t = $("#toast")
+        t.textContent = msg
+        t.classList.add("show")
+        setTimeout(() => t.classList.remove("show"), 2200)
+      }
+      let lastPlay = 0
+      async function playNotify() {
+        try {
+          const now = Date.now()
+          if (now - lastPlay < 1200) return
+          lastPlay = now
+          const a = $("#notifySound")
+          a.currentTime = 0
+          await a.play()
+        } catch {}
+      }
+      // 轉義：供舊 inline 用，仍保留但不再使用
+      function escJsArg(v) {
+        return String(v ?? "")
+          .replace(/\\/g, "\\\\")
+          .replace(/'/g, "\\'")
+      }
+      // 轉義：放入 HTML 屬性值
+      function escAttr(v) {
+        return String(v ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+      }
+
+      // 全域事件代理，取代所有 inline onclick
+      document.addEventListener("click", (e) => {
+        const el = e.target.closest("[data-action]")
+        if (!el) return
+        const action = el.getAttribute("data-action")
+        switch (action) {
+          case "edit-trip":
+            openEditTrip(el.dataset.id)
+            break
+          case "confirm-trip":
+            confirmDeparture(el.dataset.id)
+            break
+          case "auto-assign-trip":
+            autoAssignTrip(el.dataset.id)
+            break
+          case "view-pax":
+            viewTripPassengers(el.dataset.id)
+            break
+          case "print-trip":
+            printTrip(el.dataset.id)
+            break
+          case "delete-trip":
+            deleteTrip(el.dataset.id)
+            break
+          case "open-assign":
+            openAssign(
+              el.dataset.id,
+              parseInt(el.dataset.count || "1", 10) || 1
+            )
+            break
+          case "assign-to-trip":
+            assignToTrip(el.dataset.id)
+            break
+          case "select-route":
+            selectRoute(el.dataset.id)
+            break
+          case "pick-vehicle":
+            pickVehicle(el.dataset.value || "")
+            break
+          case "close-trip-pax":
+            closeTripPassengersModal()
+            break
+          case "close-assign":
+            closeAssignModal()
+            break
+          case "close-trip":
+            closeTripModal()
+            break
+          case "save-trip":
+            saveTrip()
+            break
+          case "show-pax-detail":
+            openPassengerDetail(
+              el.getAttribute("data-trip-id"),
+              parseInt(el.getAttribute("data-idx") || "0", 10) || 0
+            )
+            break
+          case "close-passenger-detail":
+            closePassengerDetail()
+            break
+          case "remove-from-trip": {
+            const pid = el.getAttribute("data-passenger-id")
+            const tid = el.getAttribute("data-trip-id")
+            const seats =
+              parseInt(el.getAttribute("data-seat-count") || "1", 10) || 1
+            removePassengerFromTrip(pid, tid, seats)
+            break
+          }
+        }
+      })
+
+      // Tabs
+      const _tabPending = $("#tabPending")
+      if (_tabPending)
+        _tabPending.addEventListener("click", () => switchTab("pending"))
+      const _tabTrips = $("#tabTrips")
+      if (_tabTrips)
+        _tabTrips.addEventListener("click", () => switchTab("trips"))
+      function switchTab(name) {
+        const a = document.querySelectorAll(".tabs .btn")
+        a.forEach((el) => el.classList.remove("active"))
+        if (name === "pending")
+          document.getElementById("tabPending")?.classList.add("active")
+        if (name === "trips")
+          document.getElementById("tabTrips")?.classList.add("active")
+        document.getElementById("pendingView").style.display =
+          name === "pending" ? "" : "none"
+        document.getElementById("tripsView").style.display =
+          name === "trips" ? "" : "none"
+      }
+
+      // Bottom bar
+      const _btnRefresh = $("#btnRefresh")
+      if (_btnRefresh) _btnRefresh.addEventListener("click", reloadAll)
+      const _btnToggleCompleted = $("#btnToggleCompleted")
+      if (_btnToggleCompleted)
+        _btnToggleCompleted.addEventListener("click", async () => {
+          showCompleted = !showCompleted
+          $("#btnToggleCompleted").textContent = `顯示已發車：${
+            showCompleted ? "開" : "關"
+          }`
+          await loadTrips()
+          renderTrips()
+        })
+
+      // Date label
+      function updateToday() {
+        const host = document.querySelector("#today")
+        if (!host) return
+        const d = new Date()
+        host.textContent = d.toLocaleDateString("zh-TW", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          weekday: "short",
+        })
+      }
+
+      async function loadRoutes() {
+        try {
+          const res = await fetch(`${BASE_URL}/KeepStop`)
+          const stops = await res.json()
+          const routeMap = new Map()
+          ;(stops || [])
+            .filter((s) => s.openKeep)
+            .forEach((s) => {
+              if (!routeMap.has(s.subRouteId)) {
+                routeMap.set(s.subRouteId, {
+                  id: s.subRouteId,
+                  operatorName: s.operatorName || "未知營運商",
+                })
+              }
+            })
+          routes = Array.from(routeMap.values())
+          if (!selectedRoute && routes.length) selectedRoute = routes[0].id
+          renderRouteChips()
+        } catch {}
+      }
+
+      async function loadVehicleData() {
+        try {
+          const url = `${BASE_URL}/BusVehicle/for-trips?operatorName=${encodeURIComponent(
+            "大都會客運"
+          )}`
+          const response = await fetch(url)
+          const result = await response.json()
+          vehicleData = result.success && result.data ? result.data : []
+        } catch {
+          vehicleData = []
+        }
+      }
+
+      async function loadTrips() {
+        const mode = showCompleted ? "completed" : "active"
+        let url = `${BASE_URL}/Trip${mode ? `?status=${mode}` : ""}`
+        try {
+          let res = await fetch(url)
+          if (!res.ok) res = await fetch(`${BASE_URL}/Trip`)
+          const data = await res.json()
+          if (data.success) {
+            trips = Array.isArray(data.data) ? data.data : []
+            if (mode === "completed")
+              trips = trips.filter(
+                (t) =>
+                  (t.status || t.Status || "").toLowerCase() === "completed"
+              )
+            if (mode === "active")
+              trips = trips.filter(
+                (t) =>
+                  (t.status || t.Status || "").toLowerCase() !== "completed"
+              )
+          } else {
+            trips = []
+          }
+        } catch {
+          trips = []
+        }
+      }
+
+      async function loadPending() {
+        try {
+          const res = await fetch(`${BASE_URL}/Trip/pending-passengers`)
+          const data = await res.json()
+          if (data.success) {
+            const before = pending.length
+            pending = data.data || []
+            if (pending.length > before) {
+              toast("有新的預約進入待排！")
+              playNotify()
+            }
+            if (pending.length < before) {
+              toast("有乘客取消預約，列表已更新")
+            }
+          }
+        } catch {}
+      }
+
+      // Trips view render
+      function renderTrips() {
+        const root = $("#tripsView")
+        if (!Array.isArray(trips) || trips.length === 0) {
+          root.innerHTML =
+            '<div class="sub" style="text-align:center;padding:20px">目前沒有趟次</div>'
+          return
+        }
+        root.innerHTML = (trips || [])
+          .map((t) => {
+            const s = (t.status || t.Status || "").toLowerCase()
+            const statusChip =
+              s === "completed"
+                ? '<span class="chip ok">已發車</span>'
+                : '<span class="chip">未發車</span>'
+            const assigned = t.assignedSeats ?? t.AssignedSeats ?? 0
+            const cap = t.keepCount ?? t.KeepCount ?? 0
+            const isFull = cap > 0 && assigned === cap
+            const id = t.tripId || t.TripId
+            const rid = t.route || t.Route || "-"
+            const rcls = "route-" + routeToClass(rid)
+            const seatChip = `<span class="chip ${
+              isFull ? "bad" : "ok"
+            }">${assigned}/${cap}</span>`
+            return `
+    <div class="card ${isFull ? "full" : ""}">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+                <div class="row" style="gap:8px;flex-wrap:wrap">
+                  <span class="route-badge ${rcls}">${rid}</span>
+                  <span class="time-badge">${
+                    t.departureTime || t.DepartureTime || "-"
+                  }</span>
+      ${statusChip}
+      ${seatChip}
+                </div>
+                <div class="row gap-8" style="justify-content:flex-end;flex-wrap:wrap">
+                  ${
+                    s !== "completed"
+                      ? `<button class=\"btn sm ghost\" data-action=\"auto-assign-trip\" data-id=\"${escAttr(
+                          id
+                        )}\">自動分配</button>`
+                      : ""
+                  }
+                  ${
+                    s !== "completed"
+                      ? `<button class="btn sm ghost" data-action="edit-trip" data-id="${escAttr(
+                          id
+                        )}">編輯</button>`
+                      : ""
+                  }
+                  ${
+                    s !== "completed"
+                      ? `<button class="btn sm ghost" data-action="confirm-trip" data-id="${escAttr(
+                          id
+                        )}">通知乘客</button>`
+                      : ""
+                  }
+                  <button class="btn sm ghost" data-action="view-pax" data-id="${escAttr(
+                    id
+                  )}">乘客</button>
+                  <button class="btn sm ghost" data-action="print-trip" data-id="${escAttr(
+                    id
+                  )}">列印</button>
+                  <button class="btn sm ghost" data-action="delete-trip" data-id="${escAttr(
+                    id
+                  )}">刪除</button>
+                </div>
+              </div>
+              <div class="vehicle-line">車號：${
+                t.vehicleNumber || t.VehicleNumber || "-"
+              }</div>
+              <div class="chips" id="pax-${id}"><span class="sub">載入中…</span></div>
+            </div>`
+          })
+          .join("")
+        ;(trips || []).forEach((t) => {
+          const id = t.tripId || t.TripId
+          ensurePassengers(id)
+        })
+      }
+
+      // 趟次內自動分配（FIFO），僅分配到指定趟次
+      async function autoAssignTrip(tripId) {
+        try {
+          // 先刷新待排，確保使用最新資料
+          await loadPending()
+          const trip = (trips || []).find(
+            (t) => String(t.tripId || t.TripId) === String(tripId)
+          )
+          if (!trip) {
+            toast("找不到指定趟次")
+            return
+          }
+
+          // 取得目前已佔用座位數（以實際乘客列表為準）
+          let used = 0
+          try {
+            const list = await getTripPassengers(tripId)
+            used = (list || []).reduce(
+              (sum, p) => sum + (p.seatCount || p.SeatCount || 1),
+              0
+            )
+          } catch {}
+          const cap = trip.keepCount ?? trip.KeepCount ?? 0
+          let remaining = Math.max(0, (cap || 0) - (used || 0))
+          if (remaining <= 0) {
+            toast("此趟次座位已滿，無法自動分配")
+            return
+          }
+
+          // 以申請時間先後（FIFO）挑選待排乘客
+          const candidates = (pending || [])
+            .filter((p) => !(p.tripId || p.TripId))
+            .sort((a, b) => {
+              const ta = new Date(a.requestDateTime || 0).getTime() || 0
+              const tb = new Date(b.requestDateTime || 0).getTime() || 0
+              return ta - tb
+            })
+
+          if (!candidates.length) {
+            toast("目前沒有待保留乘客可分配")
+            return
+          }
+
+          const routeId = trip.route || trip.Route || ""
+          let assignedSeats = 0
+
+          for (const p of candidates) {
+            if (remaining <= 0) break
+
+            // 若提供 includeRoutes，就必須包含該趟次路線
+            let canTake = true
+            const inc = p.includeRoutes || p.IncludeRoutes || ""
+            if (inc && String(inc).trim()) {
+              const routesCsv = String(inc)
+                .split(",")
+                .map((r) => r.trim())
+                .filter(Boolean)
+              canTake = routesCsv.includes(routeId)
+            }
+            if (!canTake) continue
+
+            const need = p.seatCount || p.SeatCount || 1
+            if (need > remaining) continue
+
+            const keepSeatId = p.id || p.Id || p.keepSeatId || p.KeepSeatId
+            if (!keepSeatId) continue
+
+            try {
+              const res = await fetch(`${BASE_URL}/KeepSeat/assign-trip`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ keepSeatIds: [keepSeatId], tripId }),
+              })
+              if (!res.ok) {
+                // 失敗則略過此乘客，繼續嘗試下一位
+                continue
+              }
+              await res.json().catch(() => ({}))
+              remaining -= need
+              assignedSeats += need
+            } catch {}
+          }
+
+          if (assignedSeats > 0) {
+            toast(`自動分配完成，已指派 ${assignedSeats} 個座位到此趟次`)
+            // 使該趟次乘客快取失效，並重載資料
+            try {
+              tripPassengersCache.delete(tripId)
+            } catch {}
+            await loadTrips()
+            renderTrips()
+            await loadPending()
+            renderPending()
+            try {
+              await ensurePassengers(tripId)
+            } catch {}
+          } else {
+            toast("沒有符合條件或座位的乘客可分配到此趟次")
+          }
+        } catch (e) {
+          toast("自動分配失敗，請稍後再試")
+        }
+      }
+
+      // Inline passengers chips (cached)
+      const tripPassengersCache = window.tripPassengersCache || new Map()
+      window.tripPassengersCache = tripPassengersCache
+      async function ensurePassengers(tripId) {
+        const host = document.getElementById(`pax-${tripId}`)
+        if (!host) return
+        const cached = tripPassengersCache.get(tripId)
+        const now = Date.now()
+        if (cached && now - cached.ts < 15000) {
+          host.innerHTML = renderPaxChips(cached.list, tripId)
+          return
+        }
+        try {
+          const list = await getTripPassengers(tripId)
+          tripPassengersCache.set(tripId, { list, ts: now })
+          host.innerHTML = renderPaxChips(list, tripId)
+        } catch {
+          host.innerHTML = '<span class="sub">讀取乘客失敗</span>'
+        }
+      }
+      function renderPaxChips(list, tripId) {
+        if (!list || !list.length)
+          return '<span class="sub">尚無已分配乘客</span>'
+        return list
+          .map((p, i) => {
+            const notified = !!(p.responseDateTime || p.ResponseDateTime)
+            const when = p.responseDateTime || p.ResponseDateTime || ""
+            const cls = notified ? "ok" : "warn"
+            const title = notified ? `已通知 ${when}` : "未通知"
+            return `<span class="chip ${cls}" title="${escAttr(
+              title
+            )}" data-action="show-pax-detail" data-trip-id="${escAttr(
+              tripId
+            )}" data-idx="${i}">${p.name || "-"} ${
+              (p.seatCount || 1) > 1 ? `×${p.seatCount}` : ""
+            }</span>`
+          })
+          .join(" ")
+      }
+
+      // Pending view render
+      function renderPending() {
+        const root = $("#pendingView")
+        const unassigned = (pending || []).filter(
+          (p) => !(p.tripId || p.TripId)
+        )
+        if (!unassigned.length) {
+          root.innerHTML =
+            '<div class="sub" style="text-align:center;padding:20px">暫無待保留乘客</div>'
+          return
+        }
+        root.innerHTML = unassigned
+          .map((p) => {
+            const notified = !!(p.responseDateTime && p.responseDateTime.length)
+            const badge = notified
+              ? '<span class="chip ok">已通知</span>'
+              : '<span class="chip warn">未通知</span>'
+            const req = (p.requestDateTime || "").slice(11, 16) || "-"
+            const phoneFull = p.phone || ""
+            const dest = p.destStop || p.DestStop || "-"
+            return `
+            <div class="card">
+              <div class="row" style="justify-content:space-between;align-items:center">
+                <div class="title">${p.name || "-"}（${
+              p.seatCount || 1
+            }位）</div>
+                ${badge}
+              </div>
+              <div class="sub">申請 ${req}　電話 ${phoneFull}</div>
+              <div class="chips"><span class="chip">${dest}</span></div>
+              <div class="row" style="margin-top:6px"> 
+                <button class="btn sm primary" data-action="open-assign" data-id="${escAttr(
+                  p.id
+                )}" data-count="${escAttr(
+              p.seatCount || 1
+            )}">指派到趟次</button>
+              </div>
+            </div>`
+          })
+          .join("")
+      }
+      // 已移除顯示可搭路線功能
+
+      // Assign flow
+      async function openAssign(passengerId, seatCount) {
+        selectedPassenger = { id: passengerId, seatCount: seatCount }
+        await ensureTripSeatStats()
+        const list = $("#assignList")
+        if (!trips.length) {
+          list.innerHTML =
+            '<div class="sub" style="text-align:center;padding:16px">尚無可用趟次</div>'
+        } else {
+          list.innerHTML = trips
+            .map((t) => {
+              const stat = t.__seatStat || { used: 0, cap: t.keepCount || 0 }
+              const remain = Math.max(0, (stat.cap || 0) - (stat.used || 0))
+              const ok = remain >= seatCount
+              const capChip = ok
+                ? `<span class="chip ok">可再指派 ${remain} 位</span>`
+                : `<span class="chip bad">剩餘 ${remain} 位</span>`
+              return `
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <div class="title">${t.route || "-"}｜${
+                t.vehicleNumber || "-"
+              }</div>
+                    <div class="sub">發車 ${t.departureTime || "-"}</div>
+                  </div>
+                  <button class="btn sm ${ok ? "primary" : "ghost"}" ${
+                ok ? "" : "disabled"
+              } data-action="assign-to-trip" data-id="${escAttr(t.tripId)}">${
+                ok ? "指派" : ""
+              }</button>
+                </div>
+                <div class="chips">${capChip} <span class="chip">容量 ${
+                stat.cap || 0
+              }</span></div>
+              </div>`
+            })
+            .join("")
+        }
+        $("#assignModal").style.display = "flex"
+      }
+      function closeAssignModal() {
+        $("#assignModal").style.display = "none"
+      }
+      async function ensureTripSeatStats() {
+        const jobs = (trips || []).map(async (t) => {
+          try {
+            const res = await fetch(`${BASE_URL}/Trip/${t.tripId}/passengers`)
+            if (!res.ok) {
+              t.__seatStat = { used: 0, cap: t.keepCount || 0 }
+              return
+            }
+            const data = await res.json()
+            if (!data.success) {
+              t.__seatStat = { used: 0, cap: t.keepCount || 0 }
+              return
+            }
+            const arr = Array.isArray(data.data)
+              ? data.data
+              : data.data?.passengers || []
+            const used = (arr || []).reduce(
+              (sum, p) => sum + (p.seatCount || 0),
+              0
+            )
+            t.__seatStat = { used, cap: t.keepCount || 0 }
+          } catch {
+            t.__seatStat = { used: 0, cap: t.keepCount || 0 }
+          }
+        })
+        await Promise.all(jobs)
+      }
+      async function assignToTrip(tripId) {
+        if (!selectedPassenger) return
+        try {
+          // 最新容量檢查：避免超過保留數
+          await ensureTripSeatStats()
+          const trip = (trips || []).find(
+            (t) => String(t.tripId) === String(tripId)
+          )
+          const used = trip?.__seatStat?.used || 0
+          const cap = trip?.__seatStat?.cap || 0
+          const remain = Math.max(0, cap - used)
+          const need = selectedPassenger.seatCount || 1
+          if (cap > 0 && need > remain) {
+            toast(`超過保留座位（剩餘 ${remain}），無法指派`)
+            // 重新渲染指派清單，讓容量提示更新
+            openAssign(selectedPassenger.id, need)
+            return
+          }
+
+          const res = await fetch(`${BASE_URL}/KeepSeat/assign-trip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              keepSeatIds: [selectedPassenger.id],
+              tripId,
+            }),
+          })
+          if (!res.ok) throw 0
+          await res.json()
+          toast("指派成功")
+          closeAssignModal()
+          await reloadAll()
+        } catch {
+          toast("指派失敗，請稍後再試")
+        } finally {
+          selectedPassenger = null
+        }
+      }
+
+      async function confirmDeparture(tripId) {
+        try {
+          const res = await fetch(
+            `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
+            { method: "POST" }
+          )
+          if (!res.ok) throw 0
+          const data = await res.json()
+          toast(`已通知 ${data.notifiedCount || 0} 位乘客`)
+          // 清除該趟次乘客快取，讓回覆狀態顏色可以立即更新
+          if (tripPassengersCache && tripPassengersCache.delete) {
+            try {
+              tripPassengersCache.delete(tripId)
+            } catch {}
+          }
+          await loadTrips()
+          renderTrips()
+          // 立即刷新該趟次的乘客籌碼顏色
+          try {
+            await ensurePassengers(tripId)
+          } catch {}
+          // 若後端寫入回覆時間有延遲，再補一次刷新
+          setTimeout(() => {
+            try {
+              ensurePassengers(tripId)
+            } catch {}
+          }, 1500)
+        } catch {
+          toast("通知失敗")
+        }
+      }
+
+      async function reloadAll() {
+        updateToday()
+        await Promise.all([
+          loadRoutes(),
+          loadVehicleData(),
+          loadTrips(),
+          loadPending(),
+        ])
+        renderTrips()
+        renderPending()
+      }
+
+      function closeTripModal() {
+        const m = document.getElementById("tripModal")
+        if (m) m.style.display = "none"
+      }
+
+      // init
+      document.addEventListener("DOMContentLoaded", () => {
+        updateToday()
+        const _btnCreate = $("#btnCreate")
+        if (_btnCreate) _btnCreate.addEventListener("click", openCreateTrip)
+        setupVehicleAutocomplete()
+        reloadAll()
+        startAutoRefresh()
+      })
+
+      function startAutoRefresh() {
+        if (autoTimer) clearInterval(autoTimer)
+        let tick = 0
+        autoTimer = setInterval(async () => {
+          try {
+            tick++
+            await loadPending()
+            renderPending()
+            const onTrips =
+              document.getElementById("tripsView").style.display !== "none"
+            if (onTrips || tick % 2 === 0) {
+              await loadTrips()
+              renderTrips()
+            }
+          } catch {}
+        }, 10000)
+      }
+
+      // Trip modal logic
+      function renderRouteChips() {
+        const host = document.getElementById("routeList")
+        if (!host) return
+        host.innerHTML =
+          (routes || [])
+            .map(
+              (r) => `
+          <span class="pill ${
+            selectedRoute === r.id ? "active" : ""
+          } route-${routeToClass(
+                r.id
+              )}" data-action="select-route" data-id="${escAttr(r.id)}">${
+                r.id
+              }</span>
+        `
+            )
+            .join("") || '<div class="sub">無可選路線</div>'
+      }
+      function routeToClass(id) {
+        if (!id) return "default"
+        const key = String(id).toUpperCase()
+        if (key === "208802") return "208802"
+        if (key === "2088A2") return "2088A2"
+        if (key === "2088B2") return "2088B2"
+        return "default"
+      }
+      function selectRoute(id) {
+        selectedRoute = id
+        renderRouteChips()
+      }
+
+      function openCreateTrip() {
+        document.getElementById("editingTripId").value = ""
+        document.getElementById("tripModalTitle").textContent = "新增趟次"
+        document.getElementById("vehicleInput").value = ""
+        document.getElementById("timeInput").value = ""
+        document.getElementById("keepCountInput").value = "4"
+        renderRouteChips()
+        document.getElementById("tripModal").style.display = "flex"
+      }
+      function openEditTrip(tripId) {
+        const t = (trips || []).find(
+          (x) => String(x.tripId || x.TripId) === String(tripId)
+        )
+        if (!t) return
+        document.getElementById("editingTripId").value = tripId
+        document.getElementById("tripModalTitle").textContent = "編輯趟次"
+        selectedRoute = t.route || selectedRoute
+        renderRouteChips()
+        document.getElementById("vehicleInput").value = t.vehicleNumber || ""
+        document.getElementById("timeInput").value = t.departureTime || ""
+        document.getElementById("keepCountInput").value =
+          t.keepCount ?? t.KeepCount ?? 4
+        document.getElementById("tripModal").style.display = "flex"
+      }
+      function normTime(v) {
+        v = (v || "").replace(/[^0-9]/g, "")
+        if (v.length >= 3) v = v.slice(0, 2) + ":" + v.slice(2, 4)
+        return v.slice(0, 5)
+      }
+
+      async function saveTrip() {
+        const id = document.getElementById("editingTripId").value.trim()
+        const route = selectedRoute
+        const vehicle = document
+          .getElementById("vehicleInput")
+          .value.trim()
+          .toUpperCase()
+        const time = normTime(document.getElementById("timeInput").value)
+        const keep = Math.max(
+          0,
+          Math.min(
+            40,
+            parseInt(document.getElementById("keepCountInput").value || "0", 10)
+          )
+        )
+        if (!route) {
+          toast("請選擇路線")
+          return
+        }
+        if (!vehicle) {
+          toast("請輸入車號")
+          return
+        }
+        if (!/^\d{2}:\d{2}$/.test(time)) {
+          toast("請輸入時間 HH:mm")
+          return
+        }
+        try {
+          if (id) {
+            // 編輯時限制：不得小於已排座位；若無已排，最小為 4 且不得低於原始值（只能往上加）
+            const t = (trips || []).find(
+              (x) => String(x.tripId || x.TripId) === String(id)
+            )
+            const originalKeep = t?.keepCount ?? t?.KeepCount ?? 4
+            let assignedSeats = 0
+            try {
+              const list = await getTripPassengers(id)
+              assignedSeats = (list || []).reduce(
+                (sum, p) => sum + (p.seatCount || p.SeatCount || 0),
+                0
+              )
+            } catch {}
+            const minAllowed =
+              assignedSeats > 0 ? assignedSeats : Math.max(4, originalKeep)
+            if (keep < minAllowed) {
+              toast(
+                `座位數不得小於 ${minAllowed}${
+                  assignedSeats > 0
+                    ? `（已排：${assignedSeats}）`
+                    : "（最小為 4，且不得低於原始值）"
+                }`
+              )
+              return
+            }
+            const res = await fetch(`${BASE_URL}/Trip/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                route,
+                vehicleNumber: vehicle,
+                departureTime: time,
+                keepCount: keep,
+              }),
+            })
+            if (!res.ok) throw 0
+            toast("已更新趟次")
+          } else {
+            // 新增：最小為 4
+            if (keep < 4) {
+              toast("座位數不得小於 4")
+              return
+            }
+            const res = await fetch(`${BASE_URL}/Trip`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                route,
+                vehicleNumber: vehicle,
+                departureTime: time,
+                keepCount: keep,
+              }),
+            })
+            if (!res.ok) {
+              const t = await res.text().catch(() => "")
+              const m = (t || "").slice(0, 120)
+              throw new Error(m || "新增失敗")
+            }
+            toast("已新增趟次")
+          }
+          closeTripModal()
+          await loadTrips()
+          renderTrips()
+          await loadPending()
+          renderPending()
+        } catch {
+          toast("儲存失敗")
+        }
+      }
+
+      // Vehicle autocomplete
+      function setupVehicleAutocomplete() {
+        const input = document.getElementById("vehicleInput")
+        const list = document.getElementById("vehicleSugg")
+        if (!input || !list) return
+        input.addEventListener("input", () => {
+          const q = input.value.trim().toUpperCase()
+          if (!q) {
+            list.style.display = "none"
+            list.innerHTML = ""
+            return
+          }
+          const matches = (vehicleData || [])
+            .filter((v) => (v.plateNumber || "").toUpperCase().includes(q))
+            .slice(0, 8)
+          if (!matches.length) {
+            list.style.display = "none"
+            list.innerHTML = ""
+            return
+          }
+          list.innerHTML = matches
+            .map((v) => {
+              const pn = escAttr(v.plateNumber || "")
+              const label = `${v.plateNumber} - ${v.operatorName || ""}`
+              return `<div class="sugg-item" data-action="pick-vehicle" data-value="${pn}">${label}</div>`
+            })
+            .join("")
+          list.style.display = "block"
+        })
+        input.addEventListener("blur", () =>
+          setTimeout(() => {
+            list.style.display = "none"
+          }, 150)
+        )
+      }
+      function pickVehicle(val) {
+        document.getElementById("vehicleInput").value = val
+        document.getElementById("vehicleSugg").style.display = "none"
+      }
+
+      // Trip passengers modal and helpers
+      function viewTripPassengers(tripId) {
+        openTripPassengersModal(tripId)
+      }
+      function openTripPassengersModal(tripId) {
+        getTripPassengers(tripId)
+          .then((list) => {
+            const host = ensurePassengersModal()
+            host.list.innerHTML = list.length
+              ? list
+                  .map(
+                    (p) =>
+                      `<div class="card"><div class="row"><div class="title">${
+                        p.name || "-"
+                      }（${
+                        p.seatCount || 1
+                      }位）</div></div><div class="sub">上 ${
+                        p.keepStop || "-"
+                      } ｜ 下 ${p.destStop || "-"}</div></div>`
+                  )
+                  .join("")
+              : '<div class="sub" style="text-align:center;padding:16px">目前無已分配乘客</div>'
+            host.modal.style.display = "flex"
+          })
+          .catch(() => toast("讀取乘客失敗"))
+      }
+      function ensurePassengersModal() {
+        let modal = document.getElementById("tripPassengersModal")
+        if (!modal) {
+          const html = `
+          <div class="modal" id="tripPassengersModal" role="dialog" aria-modal="true"> 
+            <div class="sheet"> 
+              <div class="row" style="margin-bottom:8px"> 
+                <div class="title">趟次乘客</div> 
+                <button class="btn sm ghost" data-action="close-trip-pax">關閉</button> 
+              </div> 
+              <div id="tripPassengersList" class="list"></div> 
+            </div> 
+          </div>`
+          document.body.insertAdjacentHTML("beforeend", html)
+          modal = document.getElementById("tripPassengersModal")
+        }
+        return { modal, list: document.getElementById("tripPassengersList") }
+      }
+      function closeTripPassengersModal() {
+        const m = document.getElementById("tripPassengersModal")
+        if (m) m.style.display = "none"
+      }
+      async function getTripPassengers(tripId) {
+        const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+        if (!res.ok) throw 0
+        const data = await res.json()
+        if (!data.success) throw 0
+        const arr =
+          data.data?.passengers || data.data?.Passengers || data.data || []
+        return Array.isArray(arr) ? arr : []
+      }
+
+      // Passenger detail modal helpers
+      function ensurePassengerDetailModal() {
+        let modal = document.getElementById("passengerDetailModal")
+        if (!modal) {
+          const html = `
+          <div class="modal" id="passengerDetailModal" role="dialog" aria-modal="true">
+            <div class="sheet">
+              <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div class="title">預約詳情</div>
+                <button class="btn sm ghost" data-action="close-passenger-detail">關閉</button>
+              </div>
+              <div id="passengerDetailContent"></div>
+            </div>
+          </div>`
+          document.body.insertAdjacentHTML("beforeend", html)
+          modal = document.getElementById("passengerDetailModal")
+        }
+        return {
+          modal,
+          content: document.getElementById("passengerDetailContent"),
+        }
+      }
+      async function openPassengerDetail(tripId, idx) {
+        try {
+          let list = tripPassengersCache.get(tripId)?.list
+          if (!Array.isArray(list)) {
+            list = await getTripPassengers(tripId)
+            tripPassengersCache.set(tripId, { list, ts: Date.now() })
+          }
+          const p = list[idx]
+          if (!p) {
+            toast("找不到乘客資料，已重新載入")
+            await ensurePassengers(tripId)
+            return
+          }
+          const { modal, content } = ensurePassengerDetailModal()
+          const passengerId = p.id || p.Id || p.keepSeatId || p.KeepSeatId || ""
+          const seatCount = p.seatCount || p.SeatCount || 1
+          const lines = [
+            `<div class="card"><div class="title">${escAttr(p.name || "-")}${
+              (seatCount || 1) > 1 ? ` ×${seatCount}` : ""
+            }</div>`,
+            `<div class="sub">電話：${escAttr(p.phone || "-")}</div>`,
+            `<div class="sub">上車：${escAttr(
+              p.keepStop || "-"
+            )}　｜　下車：${escAttr(p.destStop || "-")}</div>`,
+            p.requestDateTime
+              ? `<div class="sub">申請時間：${escAttr(p.requestDateTime)}</div>`
+              : "",
+            p.responseDateTime
+              ? `<div class="sub">回覆時間：${escAttr(
+                  p.responseDateTime
+                )}</div>`
+              : "",
+            `</div>`,
+            passengerId
+              ? `<div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
+                   <button class="btn sm ghost" data-action="close-passenger-detail">關閉</button>
+                   <button class="btn sm primary" data-action="remove-from-trip" data-passenger-id="${escAttr(
+                     passengerId
+                   )}" data-trip-id="${escAttr(
+                  tripId
+                )}" data-seat-count="${escAttr(seatCount)}">移除此趟次</button>
+                 </div>`
+              : `<div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
+                   <button class="btn sm ghost" data-action="close-passenger-detail">關閉</button>
+                 </div>`,
+          ].filter(Boolean)
+          content.innerHTML = lines.join("")
+          modal.style.display = "flex"
+        } catch {
+          toast("顯示詳情失敗")
+        }
+      }
+      function closePassengerDetail() {
+        const m = document.getElementById("passengerDetailModal")
+        if (m) m.style.display = "none"
+      }
+
+      // 將乘客從趟次中移除（回到未排）
+      async function unassignPassenger(passengerId) {
+        const url = `${BASE_URL}/Trip/unassign-passenger`
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ PassengerId: passengerId }),
+        })
+        if (!res.ok) {
+          const t = await res.text().catch(() => "")
+          throw new Error(t || "取消分配失敗")
+        }
+        const data = await res.json().catch(() => ({ success: false }))
+        if (!data.success) throw new Error(data.message || "取消分配失敗")
+        return data
+      }
+      async function removePassengerFromTrip(passengerId, tripId, seatCount) {
+        try {
+          if (!passengerId) return toast("缺少乘客識別，無法移除")
+          if (!confirm("確定要將此乘客從趟次中移除並回到待排嗎？")) return
+          await unassignPassenger(passengerId)
+          // 關閉詳情視窗
+          closePassengerDetail()
+          // 使快取失效，避免舊資料殘留
+          if (tripId) tripPassengersCache.delete(tripId)
+          // 重新載入資料
+          await loadTrips()
+          renderTrips()
+          await loadPending()
+          renderPending()
+          toast("已移除，乘客已回到未排")
+        } catch (e) {
+          toast(`移除失敗：${e?.message || "發生錯誤"}`)
+        }
+      }
+
+      // Delete trip
+      async function deleteTrip(tripId) {
+        try {
+          if (!confirm("確定刪除此趟次？相關已分配乘客將回到待保留。")) return
+          const res = await fetch(`${BASE_URL}/Trip/${tripId}`, {
+            method: "DELETE",
+          })
+          if (!res.ok) throw 0
+          toast("已刪除趟次")
+          await reloadAll()
+        } catch {
+          toast("刪除失敗")
+        }
+      }
+
+      // Print trip（與桌面版一致：含 QRCode 與同版式）
+      async function printTrip(tripId) {
+        try {
+          const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+          if (!res.ok) throw new Error("讀取趟次資料失敗")
+          const data = await res.json()
+          if (!data.success) throw new Error("後端回應失敗")
+          const trip = data.data?.trip || data.data?.Trip || null
+          const list =
+            data.data?.passengers || data.data?.Passengers || data.data || []
+          if (!list || !list.length) {
+            toast("此趟次沒有已分配乘客")
+            return
+          }
+          const totalSeats = list.reduce(
+            (sum, p) => sum + (p.seatCount || p.SeatCount || 1),
+            0
+          )
+          const qrCodeUrl = await generateQRCodeURL(tripId)
+          const html = buildReservationHtml(
+            { trip, passengers: list },
+            qrCodeUrl,
+            totalSeats
+          )
+
+          const printContent = ensurePrintContentElement()
+          printContent.innerHTML = html
+
+          await waitForQRCodeLoading()
+
+          printContent.style.display = "block"
+          const beforePrintHandler = () => {}
+          const afterPrintHandler = () => {
+            printContent.style.display = "none"
+            window.removeEventListener("beforeprint", beforePrintHandler)
+            window.removeEventListener("afterprint", afterPrintHandler)
+            toast(
+              `${trip?.departureTime || ""}發車的${
+                trip?.vehicleNumber || ""
+              } 列印完成`
+            )
+          }
+          window.addEventListener("beforeprint", beforePrintHandler)
+          window.addEventListener("afterprint", afterPrintHandler)
+          window.print()
+          setTimeout(() => {
+            if (printContent.style.display !== "none") {
+              printContent.style.display = "none"
+              window.removeEventListener("beforeprint", beforePrintHandler)
+              window.removeEventListener("afterprint", afterPrintHandler)
+            }
+          }, 1000)
+        } catch (e) {
+          toast(`列印失敗：${e?.message || "發生錯誤"}`)
+        }
+      }
+
+      // 列印 HTML（對齊桌面版）
+      function buildReservationHtml(tripData, qrCodeUrl, totalSeats) {
+        const list = (tripData.passengers || [])
+          .map((p, i) => {
+            const name = p.name || p.Name || "未知"
+            const seats = p.seatCount || p.SeatCount || 1
+            const to = p.destStop || p.DestStop || "未知"
+            const rawPhone = p.phone || p.Phone || ""
+            const digitsOnly = String(rawPhone).replace(/\D/g, "")
+            const tail3 = digitsOnly ? digitsOnly.slice(-3) : ""
+            return `${i + 1}. ${name} (${seats}位 ) → ${to}  ${tail3}`
+          })
+          .join("<br/>")
+
+        const route = tripData.trip?.route || "未知"
+        const car = tripData.trip?.vehicleNumber || "未知"
+        const time = tripData.trip?.departureTime || "未知"
+        const now = new Date().toLocaleString()
+
+        return `
+          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;">
+            <div style="font-size:16pt;font-weight:700;margin:0 0 1mm;">大都會客運保留座位清單</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div style="font-size:13pt;">路線: ${route}</div>
+            <div style="font-size:13pt;">車號: ${car}</div>
+            <div style="font-size:13pt;">發車時間: ${time}</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div style="text-align:left;display:inline-block;width:90%;font-size:12pt;">${list}</div>
+            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
+            <div style="font-size:13pt;">總計: ${totalSeats} 位乘客</div>
+            <div class="qr-code" style="margin:2mm 0;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
+            <div>列印時間: ${now}</div>
+            <div style="height:12mm;"></div>
+          </div>
+        `
+      }
+
+      function createPrintContentElement() {
+        const el = document.createElement("div")
+        el.id = "print-content"
+        el.style.display = "none"
+        el.style.position = "absolute"
+        el.style.left = "-9999px"
+        el.style.top = "-9999px"
+        document.body.appendChild(el)
+
+        const style = document.createElement("style")
+        style.id = "print-content-style"
+        style.textContent = `
+          @media print {
+            @page { margin: 0 !important; size: 79mm auto !important; padding: 0 !important; }
+            html, body { margin: 0 !important; padding: 0 !important; }
+            body > *:not(#print-content) { display: none !important; }
+            #print-content { display:block !important; position:static !important; left:auto !important; top:auto !important; width:75mm !important; height:auto !important; font-family:'Microsoft JhengHei','Courier New',monospace !important; font-size:10pt !important; line-height:1.2 !important; color:black !important; background:white !important; padding:0 1mm 1mm !important; text-align:center !important; margin:0 auto !important; box-sizing:border-box !important; overflow:visible !important; page-break-inside:avoid !important; }
+            #print-content * { background:transparent !important; color:black !important; text-align:center !important; page-break-inside:avoid !important; }
+            #print-content .qr-code { page-break-inside: avoid !important; margin: 2mm 0 !important; }
+            #print-content .qr-code img { width: 30mm !important; height: 30mm !important; display:block !important; margin:0 auto !important; }
+          }
+        `
+        document.head.appendChild(style)
+        return el
+      }
+
+      // 確保存在列印容器與樣式（即使容器已先存在，也會補上樣式）
+      function ensurePrintContentElement() {
+        let el = document.getElementById("print-content")
+        if (!el) {
+          el = createPrintContentElement()
+        } else {
+          // 若缺少樣式則補上
+          if (!document.getElementById("print-content-style")) {
+            const style = document.createElement("style")
+            style.id = "print-content-style"
+            style.textContent = `
+              @media print {
+                @page { margin: 0 !important; size: 79mm auto !important; padding: 0 !important; }
+                html, body { margin: 0 !important; padding: 0 !important; }
+                body > *:not(#print-content) { display: none !important; }
+                #print-content { display:block !important; position:static !important; left:auto !important; top:auto !important; width:75mm !important; height:auto !important; font-family:'Microsoft JhengHei','Courier New',monospace !important; font-size:10pt !important; line-height:1.2 !important; color:black !important; background:white !important; padding:0 1mm 1mm !important; text-align:center !important; margin:0 auto !important; box-sizing:border-box !important; overflow:visible !important; page-break-inside:avoid !important; }
+                #print-content * { background:transparent !important; color:black !important; text-align:center !important; page-break-inside:avoid !important; }
+                #print-content .qr-code { page-break-inside: avoid !important; margin: 2mm 0 !important; }
+                #print-content .qr-code img { width: 30mm !important; height: 30mm !important; display:block !important; margin:0 auto !important; }
+              }
+            `
+            document.head.appendChild(style)
+          }
+        }
+        return el
+      }
+
+      function waitForQRCodeLoading() {
+        return new Promise((resolve) => {
+          const img = document.querySelector("#print-content .qr-code img")
+          if (!img) return resolve()
+          if (img.complete) return resolve()
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+        })
+      }
+
+      async function generateQRCodeURL(text) {
+        try {
+          const encodedText = encodeURIComponent(String(text ?? ""))
+          return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedText}`
+        } catch {
+          return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Date.now()}`
+        }
+      }
+    </script>
+  </body>
+</html>
