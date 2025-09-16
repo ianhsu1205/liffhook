@@ -123,6 +123,18 @@
         border-color: #fecaca;
         background: #fff1f2;
       }
+      .card.completed {
+        position: relative;
+        opacity: 0.95;
+      }
+      .card.completed::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        pointer-events: none;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) inset;
+      }
       .route-title {
         font-size: 14px;
         margin-bottom: 4px;
@@ -433,7 +445,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.6
+        v1.0.0.7
       </div>
     </div>
 
@@ -563,7 +575,7 @@
         setTimeout(() => t.classList.remove("show"), 2200)
       }
       // 行動裝置震動與通知
-      function vibrate(ms = 200) {
+      function vibrate(ms = 400) {
         try {
           if (navigator.vibrate) navigator.vibrate(ms)
         } catch {}
@@ -800,12 +812,12 @@
             if (pending.length > before) {
               toast("有新的預約進入待排！")
               playNotify()
-              vibrate(200)
+              vibrate(400)
               trySystemNotification("新預約", "有乘客進入待排名單")
             }
             if (pending.length < before) {
               toast("有乘客取消預約，列表已更新")
-              vibrate(120)
+              vibrate(400)
               trySystemNotification("預約變更", "有乘客取消或被移除預約")
             }
           }
@@ -825,8 +837,8 @@
             const s = (t.status || t.Status || "").toLowerCase()
             const statusChip =
               s === "completed"
-                ? '<span class="chip ok">已發車</span>'
-                : '<span class="chip">未發車</span>'
+                ? '<span class="chip ok" title="此趟次已發車，僅可列印">已發車</span>'
+                : '<span class="chip" title="尚未發車，可編輯/指派/通知">未發車</span>'
             const assigned = t.assignedSeats ?? t.AssignedSeats ?? 0
             const cap = t.keepCount ?? t.KeepCount ?? 0
             const isFull = cap > 0 && assigned === cap
@@ -836,8 +848,9 @@
             const seatChip = `<span class="chip ${
               isFull ? "bad" : "ok"
             }">${assigned}/${cap}</span>`
+            const readOnly = s === "completed"
             return `
-    <div class="card ${isFull ? "full" : ""}">
+    <div class="card ${isFull ? "full" : ""} ${readOnly ? "completed" : ""}">
               <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
                 <div class="row" style="gap:8px;flex-wrap:wrap">
                   <span class="route-badge ${rcls}">${rid}</span>
@@ -849,35 +862,43 @@
                 </div>
                 <div class="row gap-8" style="justify-content:flex-end;flex-wrap:wrap">
                   ${
-                    s !== "completed"
+                    !readOnly
                       ? `<button class=\"btn sm info\" data-action=\"auto-assign-trip\" data-id=\"${escAttr(
                           id
                         )}\">自動分配</button>`
                       : ""
                   }
                   ${
-                    s !== "completed"
+                    !readOnly
                       ? `<button class="btn sm warning" data-action="edit-trip" data-id="${escAttr(
                           id
                         )}">編輯</button>`
                       : ""
                   }
                   ${
-                    s !== "completed"
+                    !readOnly
                       ? `<button class="btn sm primary" data-action="confirm-trip" data-id="${escAttr(
                           id
                         )}">通知乘客</button>`
                       : ""
                   }
-                  <button class="btn sm ghost" data-action="view-pax" data-id="${escAttr(
-                    id
-                  )}">乘客</button>
+                  ${
+                    !readOnly
+                      ? `<button class="btn sm ghost" data-action="view-pax" data-id="${escAttr(
+                          id
+                        )}">乘客</button>`
+                      : ""
+                  }
                   <button class="btn sm ghost" data-action="print-trip" data-id="${escAttr(
                     id
-                  )}">列印</button>
-                  <button class="btn sm danger" data-action="delete-trip" data-id="${escAttr(
-                    id
-                  )}">刪除</button>
+                  )}" title="列印清單">列印</button>
+                  ${
+                    !readOnly
+                      ? `<button class="btn sm danger" data-action="delete-trip" data-id="${escAttr(
+                          id
+                        )}">刪除</button>`
+                      : ""
+                  }
                 </div>
               </div>
               <div class="vehicle-line">車號：${
@@ -889,7 +910,9 @@
           .join("")
         ;(trips || []).forEach((t) => {
           const id = t.tripId || t.TripId
-          ensurePassengers(id)
+          const s = (t.status || t.Status || "").toLowerCase()
+          const readOnly = s === "completed"
+          ensurePassengers(id, readOnly)
         })
       }
 
@@ -1000,13 +1023,13 @@
       // Inline passengers chips (cached)
       const tripPassengersCache = window.tripPassengersCache || new Map()
       window.tripPassengersCache = tripPassengersCache
-      async function ensurePassengers(tripId) {
+      async function ensurePassengers(tripId, readOnly = false) {
         const host = document.getElementById(`pax-${tripId}`)
         if (!host) return
         const cached = tripPassengersCache.get(tripId)
         const now = Date.now()
         if (cached && now - cached.ts < 15000) {
-          host.innerHTML = renderPaxChips(cached.list, tripId)
+          host.innerHTML = renderPaxChips(cached.list, tripId, readOnly)
           return
         }
         try {
@@ -1015,16 +1038,16 @@
           const prev = Array.isArray(cached?.list) ? cached.list : []
           if (prev.length > list.length) {
             playNotify()
-            vibrate(120)
+            vibrate(400)
             trySystemNotification("預約移除", "已排乘客有取消或被移除")
           }
           tripPassengersCache.set(tripId, { list, ts: now })
-          host.innerHTML = renderPaxChips(list, tripId)
+          host.innerHTML = renderPaxChips(list, tripId, readOnly)
         } catch {
           host.innerHTML = '<span class="sub">讀取乘客失敗</span>'
         }
       }
-      function renderPaxChips(list, tripId) {
+      function renderPaxChips(list, tripId, readOnly = false) {
         if (!list || !list.length)
           return '<span class="sub">尚無已分配乘客</span>'
         return list
@@ -1033,11 +1056,14 @@
             const when = p.responseDateTime || p.ResponseDateTime || ""
             const cls = notified ? "ok" : "warn"
             const title = notified ? `已通知 ${when}` : "未通知"
-            return `<span class="chip ${cls}" title="${escAttr(
+            const dataAttrs = readOnly
+              ? ""
+              : ` data-action=\"show-pax-detail\" data-trip-id=\"${escAttr(
+                  tripId
+                )}\" data-idx=\"${i}\"`
+            return `<span class=\"chip ${cls}\" title=\"${escAttr(
               title
-            )}" data-action="show-pax-detail" data-trip-id="${escAttr(
-              tripId
-            )}" data-idx="${i}">${p.name || "-"} ${
+            )}\"${dataAttrs}>${p.name || "-"} ${
               (p.seatCount || 1) > 1 ? `×${p.seatCount}` : ""
             }</span>`
           })
@@ -1640,6 +1666,11 @@
             list = await getTripPassengers(tripId)
             tripPassengersCache.set(tripId, { list, ts: Date.now() })
           }
+          const trip = (trips || []).find(
+            (t) => String(t.tripId || t.TripId) === String(tripId)
+          )
+          const readOnly =
+            (trip?.status || trip?.Status || "").toLowerCase() === "completed"
           const p = list[idx]
           if (!p) {
             toast("找不到乘客資料，已重新載入")
@@ -1666,7 +1697,7 @@
                 )}</div>`
               : "",
             `</div>`,
-            passengerId
+            !readOnly && passengerId
               ? `<div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
                    <button class="btn sm ghost" data-action="close-passenger-detail">關閉</button>
                    <button class="btn sm danger" data-action="remove-from-trip" data-passenger-id="${escAttr(
