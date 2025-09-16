@@ -344,6 +344,21 @@
         color: #fff;
         border-color: #10b981;
       }
+      .btn.info {
+        background: #3b82f6;
+        color: #fff;
+        border-color: #3b82f6;
+      }
+      .btn.warning {
+        background: #f59e0b;
+        color: #fff;
+        border-color: #f59e0b;
+      }
+      .btn.danger {
+        background: #ef4444;
+        color: #fff;
+        border-color: #ef4444;
+      }
 
       /* suggestions dropdown */
       .field {
@@ -418,7 +433,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.5
+        v1.0.0.6
       </div>
     </div>
 
@@ -526,7 +541,7 @@
 
     <script>
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
-      //const BASE_URL = "http://localhost:5000/api"
+     // const BASE_URL = "http://localhost:5000/api"
       let showCompleted = false
       let trips = []
       let pending = []
@@ -546,6 +561,29 @@
         t.textContent = msg
         t.classList.add("show")
         setTimeout(() => t.classList.remove("show"), 2200)
+      }
+      // 行動裝置震動與通知
+      function vibrate(ms = 200) {
+        try {
+          if (navigator.vibrate) navigator.vibrate(ms)
+        } catch {}
+      }
+      async function trySystemNotification(title, body) {
+        try {
+          if (!("Notification" in window)) return false
+          if (Notification.permission === "granted") {
+            new Notification(title, { body })
+            return true
+          }
+          if (Notification.permission !== "denied") {
+            const perm = await Notification.requestPermission()
+            if (perm === "granted") {
+              new Notification(title, { body })
+              return true
+            }
+          }
+        } catch {}
+        return false
       }
       let lastPlay = 0
       async function playNotify() {
@@ -762,9 +800,13 @@
             if (pending.length > before) {
               toast("有新的預約進入待排！")
               playNotify()
+              vibrate(200)
+              trySystemNotification("新預約", "有乘客進入待排名單")
             }
             if (pending.length < before) {
               toast("有乘客取消預約，列表已更新")
+              vibrate(120)
+              trySystemNotification("預約變更", "有乘客取消或被移除預約")
             }
           }
         } catch {}
@@ -808,21 +850,21 @@
                 <div class="row gap-8" style="justify-content:flex-end;flex-wrap:wrap">
                   ${
                     s !== "completed"
-                      ? `<button class=\"btn sm ghost\" data-action=\"auto-assign-trip\" data-id=\"${escAttr(
+                      ? `<button class=\"btn sm info\" data-action=\"auto-assign-trip\" data-id=\"${escAttr(
                           id
                         )}\">自動分配</button>`
                       : ""
                   }
                   ${
                     s !== "completed"
-                      ? `<button class="btn sm ghost" data-action="edit-trip" data-id="${escAttr(
+                      ? `<button class="btn sm warning" data-action="edit-trip" data-id="${escAttr(
                           id
                         )}">編輯</button>`
                       : ""
                   }
                   ${
                     s !== "completed"
-                      ? `<button class="btn sm ghost" data-action="confirm-trip" data-id="${escAttr(
+                      ? `<button class="btn sm primary" data-action="confirm-trip" data-id="${escAttr(
                           id
                         )}">通知乘客</button>`
                       : ""
@@ -833,7 +875,7 @@
                   <button class="btn sm ghost" data-action="print-trip" data-id="${escAttr(
                     id
                   )}">列印</button>
-                  <button class="btn sm ghost" data-action="delete-trip" data-id="${escAttr(
+                  <button class="btn sm danger" data-action="delete-trip" data-id="${escAttr(
                     id
                   )}">刪除</button>
                 </div>
@@ -969,6 +1011,13 @@
         }
         try {
           const list = await getTripPassengers(tripId)
+          // 若新資料比快取少，代表有已排乘客被取消/移除 → 發出提示
+          const prev = Array.isArray(cached?.list) ? cached.list : []
+          if (prev.length > list.length) {
+            playNotify()
+            vibrate(120)
+            trySystemNotification("預約移除", "已排乘客有取消或被移除")
+          }
           tripPassengersCache.set(tripId, { list, ts: now })
           host.innerHTML = renderPaxChips(list, tripId)
         } catch {
@@ -1555,14 +1604,14 @@
       async function getTripPassengers(tripId) {
         const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
         if (!res.ok) throw 0
-        const data = await res.json()
-        if (!data.success) throw 0
+        const data = await res.json().catch(() => ({ success: false }))
+        if (!data?.success) throw 0
         const arr =
           data.data?.passengers || data.data?.Passengers || data.data || []
         return Array.isArray(arr) ? arr : []
       }
 
-      // Passenger detail modal helpers
+      // 乘客詳情 Modal（提供 openPassengerDetail 使用）
       function ensurePassengerDetailModal() {
         let modal = document.getElementById("passengerDetailModal")
         if (!modal) {
@@ -1620,7 +1669,7 @@
             passengerId
               ? `<div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
                    <button class="btn sm ghost" data-action="close-passenger-detail">關閉</button>
-                   <button class="btn sm primary" data-action="remove-from-trip" data-passenger-id="${escAttr(
+                   <button class="btn sm danger" data-action="remove-from-trip" data-passenger-id="${escAttr(
                      passengerId
                    )}" data-trip-id="${escAttr(
                   tripId
