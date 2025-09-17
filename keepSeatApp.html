@@ -1006,7 +1006,7 @@
           <p><strong>敬告乘客：</strong></p>
           <ol>
             <li>本功能目前僅開放2088路線使用。</li>
-            <li>1個帳號限保留2位，已保留座位請依保留的車號上車。</li>
+            <li>1個帳號限保留1位，已保留座位請依保留的車號上車。</li>
             <li>
               搭乘後請使用LINE選單的「搭乘確認」掃描QRCode確認搭乘，若非保留的車號則無法確認。
             </li>
@@ -1216,8 +1216,8 @@
             </div>
           </div>
 
-          <!-- 座位數量 -->
-          <div class="form-section">
+          <!-- 座位數量（隱藏） -->
+          <div class="form-section hidden">
             <h3>🧍搭乘人數：</h3>
             <div class="input-group">
               <label>需要保留的座位數量</label>
@@ -1291,7 +1291,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.19
+      保留座位申請 v1.0.0.20
     </footer>
 
     <script>
@@ -2182,7 +2182,7 @@
         const combinedName = name ? `${name}${title}` : ""
         document.getElementById("summaryName").textContent = combinedName || "-"
         document.getElementById("summaryPhone").textContent = phone || "-"
-        document.getElementById("summarySeatCount").textContent = seatCount
+        document.getElementById("summarySeatCount").textContent = 1
 
         // 顯示當前時間
         document.getElementById("summaryDateTime").textContent =
@@ -2250,7 +2250,7 @@
             })(),
             phone: document.getElementById("passengerPhone").value.trim(),
             requestDateTime: getCurrentDateTime(),
-            seatCount: seatCount,
+            seatCount: 1,
           }
 
           console.log("提交預約資料:", formData)
