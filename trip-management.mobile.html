@@ -13,9 +13,6 @@
         --ok: #10b981;
         --bg: #f9fafb;
       }
-      * {
-        box-sizing: border-box;
-      }
       html,
       body {
         height: 100%;
@@ -445,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.7
+        v1.0.0.8
       </div>
     </div>
 
@@ -553,7 +550,7 @@
 
     <script>
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
-     // const BASE_URL = "http://localhost:5000/api"
+      //const BASE_URL = "http://localhost:5000/api"
       let showCompleted = false
       let trips = []
       let pending = []
@@ -621,6 +618,15 @@
           .replace(/"/g, "&quot;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
+      }
+
+      // 路線代碼對應 CSS 類別
+      function routeToClass(r) {
+        const v = String(r || "").toUpperCase()
+        if (v === "208802") return "208802"
+        if (v === "2088A2") return "2088A2"
+        if (v === "2088B2") return "2088B2"
+        return "default"
       }
 
       // 全域事件代理，取代所有 inline onclick
@@ -762,6 +768,41 @@
         } catch {}
       }
 
+      // 在趟次編輯/新增 Modal 內渲染路線籤
+      function renderRouteChips() {
+        const host = document.getElementById("routeList")
+        if (!host) return
+        const chips = (routes || [])
+          .map((r) => {
+            const id = r.id || r.Id || r.subRouteId || r.SubRouteId || ""
+            const cls = "pill route-" + routeToClass(id)
+            const active = String(id) === String(selectedRoute) ? " active" : ""
+            const label = `${id}`
+            return `<span class="${cls}${active}" role="button" aria-selected="${
+              active ? "true" : "false"
+            }" data-action="select-route" data-id="${escAttr(
+              id
+            )}">${label}</span>`
+          })
+          .join(" ")
+        host.innerHTML = chips || '<span class="sub">無可用路線</span>'
+      }
+      function selectRoute(id) {
+        selectedRoute = id
+        renderRouteChips()
+      }
+      function openCreateTrip() {
+        document.getElementById("editingTripId").value = ""
+        document.getElementById("tripModalTitle").textContent = "新增趟次"
+        if (!selectedRoute && routes.length)
+          selectedRoute = routes[0].id || routes[0].Id || ""
+        renderRouteChips()
+        document.getElementById("vehicleInput").value = ""
+        setTimeField("")
+        document.getElementById("keepCountInput").value = 4
+        document.getElementById("tripModal").style.display = "flex"
+      }
+
       async function loadVehicleData() {
         try {
           const url = `${BASE_URL}/BusVehicle/for-trips?operatorName=${encodeURIComponent(
@@ -814,9 +855,11 @@
               playNotify()
               vibrate(400)
               trySystemNotification("新預約", "有乘客進入待排名單")
+              refreshVisibleTripPassengers(true)
             }
             if (pending.length < before) {
               toast("有乘客取消預約，列表已更新")
+              playNotify()
               vibrate(400)
               trySystemNotification("預約變更", "有乘客取消或被移除預約")
             }
@@ -1023,12 +1066,12 @@
       // Inline passengers chips (cached)
       const tripPassengersCache = window.tripPassengersCache || new Map()
       window.tripPassengersCache = tripPassengersCache
-      async function ensurePassengers(tripId, readOnly = false) {
+      async function ensurePassengers(tripId, readOnly = false, force = false) {
         const host = document.getElementById(`pax-${tripId}`)
         if (!host) return
         const cached = tripPassengersCache.get(tripId)
         const now = Date.now()
-        if (cached && now - cached.ts < 15000) {
+        if (!force && cached && now - cached.ts < 15000) {
           host.innerHTML = renderPaxChips(cached.list, tripId, readOnly)
           return
         }
@@ -1046,6 +1089,18 @@
         } catch {
           host.innerHTML = '<span class="sub">讀取乘客失敗</span>'
         }
+      }
+
+      // 針對目前已載入的趟次，刷新乘客條列（可選擇是否強制忽略快取）
+      function refreshVisibleTripPassengers(force = false) {
+        try {
+          ;(trips || []).forEach((t) => {
+            const id = t.tripId || t.TripId
+            const s = (t.status || t.Status || "").toLowerCase()
+            const readOnly = s === "completed"
+            ensurePassengers(id, readOnly, force)
+          })
+        } catch {}
       }
       function renderPaxChips(list, tripId, readOnly = false) {
         if (!list || !list.length)
@@ -1197,76 +1252,6 @@
         })
         await Promise.all(jobs)
       }
-      async function assignToTrip(tripId) {
-        if (!selectedPassenger) return
-        try {
-          // 最新容量檢查：避免超過保留數
-          await ensureTripSeatStats()
-          const trip = (trips || []).find(
-            (t) => String(t.tripId) === String(tripId)
-          )
-          const used = trip?.__seatStat?.used || 0
-          const cap = trip?.__seatStat?.cap || 0
-          const remain = Math.max(0, cap - used)
-          const need = selectedPassenger.seatCount || 1
-          if (cap > 0 && need > remain) {
-            toast(`超過保留座位（剩餘 ${remain}），無法指派`)
-            // 重新渲染指派清單，讓容量提示更新
-            openAssign(selectedPassenger.id, need)
-            return
-          }
-
-          const res = await fetch(`${BASE_URL}/KeepSeat/assign-trip`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              keepSeatIds: [selectedPassenger.id],
-              tripId,
-            }),
-          })
-          if (!res.ok) throw 0
-          await res.json()
-          toast("指派成功")
-          closeAssignModal()
-          await reloadAll()
-        } catch {
-          toast("指派失敗，請稍後再試")
-        } finally {
-          selectedPassenger = null
-        }
-      }
-
-      async function confirmDeparture(tripId) {
-        try {
-          const res = await fetch(
-            `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
-            { method: "POST" }
-          )
-          if (!res.ok) throw 0
-          const data = await res.json()
-          toast(`已通知 ${data.notifiedCount || 0} 位乘客`)
-          // 清除該趟次乘客快取，讓回覆狀態顏色可以立即更新
-          if (tripPassengersCache && tripPassengersCache.delete) {
-            try {
-              tripPassengersCache.delete(tripId)
-            } catch {}
-          }
-          await loadTrips()
-          renderTrips()
-          // 立即刷新該趟次的乘客籌碼顏色
-          try {
-            await ensurePassengers(tripId)
-          } catch {}
-          // 若後端寫入回覆時間有延遲，再補一次刷新
-          setTimeout(() => {
-            try {
-              ensurePassengers(tripId)
-            } catch {}
-          }, 1500)
-        } catch {
-          toast("通知失敗")
-        }
-      }
 
       async function reloadAll() {
         updateToday()
@@ -1304,59 +1289,19 @@
         autoTimer = setInterval(async () => {
           try {
             tick++
+            // 輕量輪詢：常態更新待排、定期更新趟次
             await loadPending()
             renderPending()
-            const onTrips =
-              document.getElementById("tripsView").style.display !== "none"
-            if (onTrips || tick % 2 === 0) {
+            if (tick % 3 === 0) {
               await loadTrips()
               renderTrips()
+            } else {
+              refreshVisibleTripPassengers()
             }
           } catch {}
-        }, 10000)
+        }, 8000)
       }
 
-      // Trip modal logic
-      function renderRouteChips() {
-        const host = document.getElementById("routeList")
-        if (!host) return
-        host.innerHTML =
-          (routes || [])
-            .map(
-              (r) => `
-          <span class="pill ${
-            selectedRoute === r.id ? "active" : ""
-          } route-${routeToClass(
-                r.id
-              )}" data-action="select-route" data-id="${escAttr(
-                r.id
-              )}" aria-selected="${selectedRoute === r.id}">${r.id}</span>
-        `
-            )
-            .join("") || '<div class="sub">無可選路線</div>'
-      }
-      function routeToClass(id) {
-        if (!id) return "default"
-        const key = String(id).toUpperCase()
-        if (key === "208802") return "208802"
-        if (key === "2088A2") return "2088A2"
-        if (key === "2088B2") return "2088B2"
-        return "default"
-      }
-      function selectRoute(id) {
-        selectedRoute = id
-        renderRouteChips()
-      }
-
-      function openCreateTrip() {
-        document.getElementById("editingTripId").value = ""
-        document.getElementById("tripModalTitle").textContent = "新增趟次"
-        document.getElementById("vehicleInput").value = ""
-        setTimeField("")
-        document.getElementById("keepCountInput").value = "4"
-        renderRouteChips()
-        document.getElementById("tripModal").style.display = "flex"
-      }
       function openEditTrip(tripId) {
         const t = (trips || []).find(
           (x) => String(x.tripId || x.TripId) === String(tripId)
@@ -1583,6 +1528,49 @@
       function viewTripPassengers(tripId) {
         openTripPassengersModal(tripId)
       }
+      async function assignToTrip(tripId) {
+        try {
+          if (!selectedPassenger?.id) return toast("未選擇乘客")
+          const keepSeatId = selectedPassenger.id
+          const payload = { keepSeatIds: [keepSeatId], tripId }
+          const res = await fetch(`${BASE_URL}/KeepSeat/assign-trip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+          if (!res.ok) throw 0
+          await res.json().catch(() => ({}))
+          toast("已指派到趟次")
+          closeAssignModal()
+          // 使快取失效並刷新
+          try {
+            tripPassengersCache.delete(tripId)
+          } catch {}
+          await loadTrips()
+          renderTrips()
+          await loadPending()
+          renderPending()
+        } catch {
+          toast("指派失敗，請稍後再試")
+        }
+      }
+      async function confirmDeparture(tripId) {
+        try {
+          if (!confirm("通知乘客並標記為已發車？")) return
+          const res = await fetch(
+            `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
+            {
+              method: "POST",
+            }
+          )
+          if (!res.ok) throw 0
+          toast("已通知乘客，趟次設為已發車")
+          await loadTrips()
+          renderTrips()
+        } catch {
+          toast("通知失敗")
+        }
+      }
       function openTripPassengersModal(tripId) {
         getTripPassengers(tripId)
           .then((list) => {
@@ -1680,6 +1668,16 @@
           const { modal, content } = ensurePassengerDetailModal()
           const passengerId = p.id || p.Id || p.keepSeatId || p.KeepSeatId || ""
           const seatCount = p.seatCount || p.SeatCount || 1
+          const include = p.includeRoutes || p.IncludeRoutes || ""
+          const includeChips = String(include)
+            .split(",")
+            .map((r) => r.trim())
+            .filter(Boolean)
+            .map(
+              (r) =>
+                `<span class="route-badge route-${routeToClass(r)}">${r}</span>`
+            )
+            .join(" ")
           const lines = [
             `<div class="card"><div class="title">${escAttr(p.name || "-")}${
               (seatCount || 1) > 1 ? ` ×${seatCount}` : ""
@@ -1688,6 +1686,9 @@
             `<div class="sub">上車：${escAttr(
               p.keepStop || "-"
             )}　｜　下車：${escAttr(p.destStop || "-")}</div>`,
+            `<div class="chips"><span class="chip">可搭路線：</span> ${
+              includeChips || "-"
+            }</div>`,
             p.requestDateTime
               ? `<div class="sub">申請時間：${escAttr(p.requestDateTime)}</div>`
               : "",
@@ -1726,7 +1727,6 @@
         const url = `${BASE_URL}/Trip/unassign-passenger`
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ PassengerId: passengerId }),
         })
         if (!res.ok) {
@@ -1750,7 +1750,6 @@
           await loadTrips()
           renderTrips()
           await loadPending()
-          renderPending()
           toast("已移除，乘客已回到未排")
         } catch (e) {
           toast(`移除失敗：${e?.message || "發生錯誤"}`)
