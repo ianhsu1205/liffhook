@@ -442,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.8
+        v1.0.0.9
       </div>
     </div>
 
@@ -550,7 +550,7 @@
 
     <script>
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
-      //const BASE_URL = "http://localhost:5000/api"
+     // const BASE_URL = "http://localhost:5000/api"
       let showCompleted = false
       let trips = []
       let pending = []
@@ -1727,6 +1727,9 @@
         const url = `${BASE_URL}/Trip/unassign-passenger`
         const res = await fetch(url, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ PassengerId: passengerId }),
         })
         if (!res.ok) {
