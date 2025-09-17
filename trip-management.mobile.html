@@ -442,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.9
+        v1.0.0.10
       </div>
     </div>
 
@@ -550,7 +550,7 @@
 
     <script>
       const BASE_URL = "https://35.221.146.143.nip.io/linehook"
-     // const BASE_URL = "http://localhost:5000/api"
+      //const BASE_URL = "http://localhost:5000/api"
       let showCompleted = false
       let trips = []
       let pending = []
@@ -1116,11 +1116,13 @@
               : ` data-action=\"show-pax-detail\" data-trip-id=\"${escAttr(
                   tripId
                 )}\" data-idx=\"${i}\"`
+            const icon = notified
+              ? '<span aria-label="已通知" title="已通知" style="margin-left:4px">🔔</span>'
+              : '<span aria-label="未通知" title="未通知" style="margin-left:4px">⏳</span>'
+            const count = (p.seatCount || 1) > 1 ? `×${p.seatCount}` : ""
             return `<span class=\"chip ${cls}\" title=\"${escAttr(
               title
-            )}\"${dataAttrs}>${p.name || "-"} ${
-              (p.seatCount || 1) > 1 ? `×${p.seatCount}` : ""
-            }</span>`
+            )}\"${dataAttrs}>${p.name || "-"} ${count} ${icon}</span>`
           })
           .join(" ")
       }
