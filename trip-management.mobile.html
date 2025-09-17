@@ -442,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.10
+        v1.0.0.11
       </div>
     </div>
 
@@ -1661,12 +1661,24 @@
           )
           const readOnly =
             (trip?.status || trip?.Status || "").toLowerCase() === "completed"
-          const p = list[idx]
+          let p = list[idx]
           if (!p) {
             toast("找不到乘客資料，已重新載入")
             await ensurePassengers(tripId)
             return
           }
+
+          // 若缺少 includeRoutes，嘗試重新抓取後端資料以補齊（避免舊快取）
+          try {
+            const hasInclude = !!(p.includeRoutes || p.IncludeRoutes)
+            if (!hasInclude) {
+              const fresh = await getTripPassengers(tripId)
+              if (Array.isArray(fresh) && fresh.length) {
+                tripPassengersCache.set(tripId, { list: fresh, ts: Date.now() })
+                p = fresh[idx] || p
+              }
+            }
+          } catch {}
           const { modal, content } = ensurePassengerDetailModal()
           const passengerId = p.id || p.Id || p.keepSeatId || p.KeepSeatId || ""
           const seatCount = p.seatCount || p.SeatCount || 1
@@ -1695,7 +1707,7 @@
               ? `<div class="sub">申請時間：${escAttr(p.requestDateTime)}</div>`
               : "",
             p.responseDateTime
-              ? `<div class="sub">回覆時間：${escAttr(
+              ? `<div class="sub">通知時間：${escAttr(
                   p.responseDateTime
                 )}</div>`
               : "",
