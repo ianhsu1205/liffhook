@@ -442,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.11
+        v1.0.0.12
       </div>
     </div>
 
@@ -1667,6 +1667,8 @@
             await ensurePassengers(tripId)
             return
           }
+          // 先取得當前乘客ID，供重新抓取後精準比對
+          const currentPid = p.id || p.Id || p.keepSeatId || p.KeepSeatId || ""
 
           // 若缺少 includeRoutes，嘗試重新抓取後端資料以補齊（避免舊快取）
           try {
@@ -1675,7 +1677,14 @@
               const fresh = await getTripPassengers(tripId)
               if (Array.isArray(fresh) && fresh.length) {
                 tripPassengersCache.set(tripId, { list: fresh, ts: Date.now() })
-                p = fresh[idx] || p
+                // 以ID匹配同一位乘客，避免序列順序變動導致取錯人
+                const matched = fresh.find(
+                  (x) =>
+                    String(
+                      x.id || x.Id || x.keepSeatId || x.KeepSeatId || ""
+                    ) === String(currentPid)
+                )
+                p = matched || fresh[idx] || p
               }
             }
           } catch {}
