@@ -843,6 +843,26 @@
         border-bottom: 6px solid #6c757d !important; /* 灰色 - 其他 */
       }
 
+      /* 時段未開放時的站牌樣式（不可選） */
+      .stop-item.disabled {
+        opacity: 0.45;
+        filter: grayscale(0.3);
+        cursor: not-allowed;
+        position: relative;
+      }
+      .stop-item.disabled::after {
+        content: "17:30–17:50 開放";
+        position: absolute;
+        right: 8px;
+        bottom: 6px;
+        font-size: 12px;
+        color: #ff5722;
+        background: rgba(255, 255, 255, 0.85);
+        padding: 2px 6px;
+        border-radius: 10px;
+        border: 1px solid #ffbda7;
+      }
+
       /* 手機響應式 */
       @media (max-width: 768px) {
         .stop-modal {
@@ -1291,7 +1311,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.20
+      保留座位申請 v1.0.0.21
     </footer>
 
     <script>
@@ -1637,6 +1657,37 @@
       // 站牌選取器相關功能
       let currentStops = [] // 儲存目前的站牌資料
       let currentSelector = null // 記錄目前選取的選取器類型
+      // 追蹤已選取之站牌物件（供提交與驗證使用）
+      let selectedKeepStop = null
+      let selectedDestStop = null
+
+      // 工具：取得當天 00:00 起的分鐘數
+      function minutesSinceMidnight(date = new Date()) {
+        return date.getHours() * 60 + date.getMinutes()
+      }
+
+      // 工具：判斷是否在每日固定時段內（含邊界）
+      // startHHmm / endHHmm 格式如 "17:30"、"17:50"
+      function isWithinDailyWindow(startHHmm, endHHmm) {
+        const toMinutes = (hhmm) => {
+          const [h, m] = String(hhmm)
+            .split(":")
+            .map((v) => parseInt(v, 10))
+          return (
+            (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
+          )
+        }
+        const nowM = minutesSinceMidnight()
+        const startM = toMinutes(startHHmm)
+        const endM = toMinutes(endHHmm)
+        return nowM >= startM && nowM <= endM
+      }
+
+      // 工具：此站牌是否包含 2088B2 路線
+      function isStopServedBy2088B2(stop) {
+        const routes = Array.isArray(stop?.routes) ? stop.routes : []
+        return routes.includes("2088B2")
+      }
 
       // 開啟上車站牌選取器
       function openKeepStopSelector() {
@@ -1682,6 +1733,15 @@
           if (currentStops.length === 1) {
             const onlyStop = currentStops[0]
 
+            // 若唯一站牌為 2088B2 且不在開放時段，改為顯示視窗（讓使用者看到禁用提示）
+            if (
+              isStopServedBy2088B2(onlyStop) &&
+              !isWithinDailyWindow("17:30", "17:50")
+            ) {
+              showStopModal(title)
+              return
+            }
+
             // 更新對應的顯示欄位
             if (currentSelector === "keep") {
               document.getElementById("keepStopDisplayText").textContent =
@@ -1689,12 +1749,14 @@
               document
                 .getElementById("keepStopDisplay")
                 .classList.add("selected")
+              selectedKeepStop = onlyStop
             } else if (currentSelector === "dest") {
               document.getElementById("destStopDisplayText").textContent =
                 onlyStop.stopName
               document
                 .getElementById("destStopDisplay")
                 .classList.add("selected")
+              selectedDestStop = onlyStop
             }
 
             // 更新摘要
@@ -1847,6 +1909,15 @@
           <div class="stop-name">${stop.stopName}</div>
         `
 
+        // 2088B2 站牌之時段限制：非 17:30–17:50 時加上禁用樣式
+        const is2088B2 = isStopServedBy2088B2(stop)
+        const isOpenNow = isWithinDailyWindow("17:30", "17:50")
+        if (is2088B2 && !isOpenNow) {
+          div.classList.add("disabled")
+          div.setAttribute("aria-disabled", "true")
+          div.title = "此站牌僅於每日 17:30–17:50 開放選擇"
+        }
+
         // 加入點擊事件
         div.addEventListener("click", () => selectStop(stop, div))
 
@@ -1869,6 +1940,15 @@
 
       // 選取站牌
       function selectStop(stop, element) {
+        // 時段限制防呆：2088B2 僅於 17:30–17:50 可選
+        if (
+          isStopServedBy2088B2(stop) &&
+          !isWithinDailyWindow("17:30", "17:50")
+        ) {
+          showError("此站牌僅於每日 17:30–17:50 開放選擇")
+          return
+        }
+
         // 移除其他選取狀態
         document.querySelectorAll(".stop-item.selected").forEach((item) => {
           item.classList.remove("selected")
@@ -1882,10 +1962,12 @@
           document.getElementById("keepStopDisplayText").textContent =
             stop.stopName
           document.getElementById("keepStopDisplay").classList.add("selected")
+          selectedKeepStop = stop
         } else if (currentSelector === "dest") {
           document.getElementById("destStopDisplayText").textContent =
             stop.stopName
           document.getElementById("destStopDisplay").classList.add("selected")
+          selectedDestStop = stop
         }
 
         // 更新摘要
@@ -2219,6 +2301,32 @@
           return
         }
 
+        // 送出前再次檢查 2088B2 時段限制
+        if (
+          selectedKeepStop &&
+          isStopServedBy2088B2(selectedKeepStop) &&
+          !isWithinDailyWindow("17:30", "17:50")
+        ) {
+          showError(
+            "乘車站牌僅於每日 17:30–17:50 開放選擇",
+            "keepStopError",
+            "keepStopDisplay"
+          )
+          return
+        }
+        if (
+          selectedDestStop &&
+          isStopServedBy2088B2(selectedDestStop) &&
+          !isWithinDailyWindow("17:30", "17:50")
+        ) {
+          showError(
+            "下車站牌僅於每日 17:30–17:50 開放選擇",
+            "destStopError",
+            "destStopDisplay"
+          )
+          return
+        }
+
         if (!currentUser) {
           showError("用戶資訊載入失敗，請重新整理頁面")
           return
@@ -2337,6 +2445,8 @@
           "請選擇上車站牌"
         document.getElementById("destStopDisplay").textContent =
           "請選擇下車站牌"
+        selectedKeepStop = null
+        selectedDestStop = null
         const titleEl = document.getElementById("passengerTitle")
         if (titleEl) titleEl.selectedIndex = 0
         seatCount = 1
