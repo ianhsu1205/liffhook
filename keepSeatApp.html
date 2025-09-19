@@ -1311,7 +1311,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.21
+      保留座位申請 v1.0.0.22
     </footer>
 
     <script>
@@ -1683,10 +1683,10 @@
         return nowM >= startM && nowM <= endM
       }
 
-      // 工具：此站牌是否包含 2088B2 路線
+      // 工具：此站牌是否「僅」屬於 2088B2 路線（單一路線）
       function isStopServedBy2088B2(stop) {
         const routes = Array.isArray(stop?.routes) ? stop.routes : []
-        return routes.includes("2088B2")
+        return routes.includes("2088B2") && routes.length === 1
       }
 
       // 開啟上車站牌選取器
