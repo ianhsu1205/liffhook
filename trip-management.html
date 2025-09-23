@@ -656,6 +656,23 @@
         overflow-y: auto;
       }
 
+      /* 待保留乘客勾選樣式 */
+      .pending-select-checkbox {
+        transform: scale(1.2);
+        cursor: pointer;
+        margin-right: 8px;
+      }
+      .passenger-card.pending-selected {
+        border-color: #4caf50 !important;
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.25) !important;
+        background: linear-gradient(
+            0deg,
+            rgba(76, 175, 80, 0.06),
+            rgba(76, 175, 80, 0.06)
+          ),
+          #ffffff !important;
+      }
+
       .trip-controls {
         display: flex;
         gap: 10px;
@@ -1208,7 +1225,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.38</h1>
+        <h1>都會之星座位保留系統 v1.0.0.40</h1>
         <p><span id="currentDate"></span></p>
       </div>
 
@@ -1319,7 +1336,55 @@
 
       <div class="main-content">
         <div class="passenger-area">
-          <div class="section-title">👥 待保留乘客</div>
+          <div
+            class="section-title"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+            "
+          >
+            <span>👥 待保留乘客</span>
+            <div
+              id="pendingSelectToolbar"
+              class="pending-select-toolbar"
+              style="
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+                align-items: center;
+              "
+            >
+              <button
+                type="button"
+                class="btn btn-secondary btn-xs"
+                id="btnSelectAllPending"
+              >
+                全選
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary btn-xs"
+                id="btnClearAllPending"
+              >
+                取消全選
+              </button>
+              <button
+                type="button"
+                class="btn btn-warning btn-xs"
+                id="btnSendDelayed"
+                disabled
+              >
+                傳送久候通知
+              </button>
+              <span
+                id="pendingSelectedCount"
+                style="font-size: 12px; color: #555"
+                >已選 0 筆</span
+              >
+            </div>
+          </div>
           <div class="pending-passengers" id="pendingPassengersList">
             <!-- 動態載入待排筆數的乘客 -->
           </div>
@@ -1791,6 +1856,16 @@
         //     closeEditModal()
         //   }
         // })
+
+        // 待保留工具列：全選/取消全選/傳送久候通知
+        const btnSelectAll = document.getElementById("btnSelectAllPending")
+        const btnClearAll = document.getElementById("btnClearAllPending")
+        const btnSendDelayed = document.getElementById("btnSendDelayed")
+        if (btnSelectAll)
+          btnSelectAll.addEventListener("click", selectAllPending)
+        if (btnClearAll) btnClearAll.addEventListener("click", clearAllPending)
+        if (btnSendDelayed)
+          btnSendDelayed.addEventListener("click", sendDelayedForSelected)
       }
 
       // 顯示 / 隱藏模式提示橫幅
@@ -1831,6 +1906,95 @@
             banner.style.transform = "translateY(-100%)"
             setTimeout(() => banner.remove(), 600)
           }, 1800)
+        }
+      }
+
+      // 全選待保留乘客
+      function selectAllPending() {
+        const set =
+          window._pendingSelectedUserIds ||
+          (window._pendingSelectedUserIds = new Set())
+        document
+          .querySelectorAll("#pendingPassengersList .passenger-card")
+          .forEach((card) => {
+            const userId = card.getAttribute("data-user-id")
+            const checkbox = card.querySelector(".pending-select-checkbox")
+            if (userId && checkbox) {
+              set.add(userId)
+              checkbox.checked = true
+              card.classList.add("pending-selected")
+            }
+          })
+        updatePendingToolbarState()
+      }
+
+      // 取消全選
+      function clearAllPending() {
+        const set =
+          window._pendingSelectedUserIds ||
+          (window._pendingSelectedUserIds = new Set())
+        set.clear()
+        document
+          .querySelectorAll("#pendingPassengersList .passenger-card")
+          .forEach((card) => {
+            const checkbox = card.querySelector(".pending-select-checkbox")
+            if (checkbox) checkbox.checked = false
+            card.classList.remove("pending-selected")
+          })
+        updatePendingToolbarState()
+      }
+
+      // 傳送久候通知（僅對未排定且未通知的今日預約才會由後端發送）
+      async function sendDelayedForSelected() {
+        // 僅取目前畫面上已勾選的卡片
+        const cards = Array.from(
+          document.querySelectorAll(
+            "#pendingPassengersList .passenger-card.pending-selected"
+          )
+        )
+        const userIds = cards
+          .map((c) => c.getAttribute("data-user-id"))
+          .filter(Boolean)
+        if (!userIds.length) return
+        try {
+          showLoading(true)
+          const res = await fetch(`${BASE_URL}/KeepSeat/notify-delayed`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ UserIds: userIds }),
+          })
+          const text = await res.text()
+          let json = null
+          try {
+            json = text ? JSON.parse(text) : null
+          } catch (_) {}
+
+          if (res.ok) {
+            const sent = (json && (json.sentCount ?? 0)) || 0
+            const notFound = (json && json.notFound) || []
+            showVisualNotification(
+              `已發送久候通知 ${sent} 筆${
+                notFound.length ? `，找不到 ${notFound.length} 筆` : ""
+              }`,
+              "success"
+            )
+            // 發送後保留選取，避免重複操作混淆；如需清除可改為 clearAllPending()
+          } else {
+            const msg =
+              (json && (json.message || json.error)) ||
+              text ||
+              "久候通知發送失敗"
+            showVisualNotification(msg, "error")
+          }
+        } catch (e) {
+          console.error("sendDelayedForSelected error", e)
+          showVisualNotification("久候通知發送失敗（網路錯誤）", "error")
+        } finally {
+          showLoading(false)
+          // 送出後刷新待保留清單，避免資料不同步；保留既有選取集合以便重繪時套用
+          try {
+            await loadPendingPassengers()
+          } catch (_) {}
         }
       }
 
@@ -2714,6 +2878,10 @@
 
       async function renderPendingPassengers() {
         const container = document.getElementById("pendingPassengersList")
+        // 追蹤當前勾選 UserId 集合（放在 window 以跨函數使用）
+        if (!window._pendingSelectedUserIds)
+          window._pendingSelectedUserIds = new Set()
+        const selectedSet = window._pendingSelectedUserIds
 
         // 只顯示未分配的乘客（tripId 為 null 或 undefined），並以請求時間先進先出排序（早→晚）
         const unassignedPassengers = pendingPassengers
@@ -2795,13 +2963,20 @@
             : `<span style=\"background:#f0f0f0;border:1px solid #ddd;color:#6c757d;padding:2px 6px;border-radius:12px;font-weight:700;font-size:12px;white-space:nowrap;\">未通知</span>`
 
           const passengerHtml = `
-              <div class="passenger-card" data-passenger-id="${
-                passenger.id
-              }" draggable="true">
+              <div class="passenger-card ${
+                selectedSet.has(passenger.userId) ? "pending-selected" : ""
+              }" data-passenger-id="${passenger.id}" data-user-id="${
+            passenger.userId
+          }" draggable="true">
                   <div class="passenger-header">
-                      <div class="passenger-name">${
-                        passenger.name
-                      } <span style="color: #007bff; font-weight: bold;">⏰ ${requestTime}</span></div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <input type="checkbox" class="pending-select-checkbox" ${
+                          selectedSet.has(passenger.userId) ? "checked" : ""
+                        } onclick="togglePendingSelection(this,event)"/>
+                        <div class="passenger-name">${
+                          passenger.name
+                        } <span style="color: #007bff; font-weight: bold;">⏰ ${requestTime}</span></div>
+                      </div>
                       <div class="passenger-seats">${
                         passenger.seatCount || 1
                       }位</div>
@@ -2840,10 +3015,74 @@
         container.style.gap = "8px"
         container.innerHTML = passengersHtml
 
+        // 綁定卡片點擊切換勾選（避免與拖拽衝突，僅標題區域生效）
+        container.querySelectorAll(".passenger-card").forEach((card) => {
+          const header = card.querySelector(".passenger-header")
+          const checkbox = card.querySelector(".pending-select-checkbox")
+          header.addEventListener("click", (e) => {
+            // 避免點到按鈕/連結
+            if (
+              e.target &&
+              (e.target.tagName === "BUTTON" || e.target.closest("button"))
+            )
+              return
+            if (e.target && e.target.tagName === "INPUT") return
+            if (checkbox) {
+              checkbox.checked = !checkbox.checked
+              togglePendingSelection(checkbox, e)
+            }
+          })
+        })
+
+        // 重新套用既有選取狀態（避免刷新造成清空）
+        container.querySelectorAll(".passenger-card").forEach((card) => {
+          const userId = card.getAttribute("data-user-id")
+          const checkbox = card.querySelector(".pending-select-checkbox")
+          if (userId && selectedSet.has(userId)) {
+            card.classList.add("pending-selected")
+            if (checkbox) checkbox.checked = true
+          }
+        })
+
+        updatePendingToolbarState(true)
+
         // 重新初始化拖拽功能
         setTimeout(() => {
           makeDraggable()
         }, 100)
+      }
+
+      // 勾選切換處理
+      function togglePendingSelection(checkbox, evt) {
+        evt && evt.stopPropagation()
+        const card = checkbox.closest(".passenger-card")
+        const userId = card?.getAttribute("data-user-id")
+        if (!userId) return
+        const set =
+          window._pendingSelectedUserIds ||
+          (window._pendingSelectedUserIds = new Set())
+        if (checkbox.checked) {
+          set.add(userId)
+          card.classList.add("pending-selected")
+        } else {
+          set.delete(userId)
+          card.classList.remove("pending-selected")
+        }
+        updatePendingToolbarState()
+      }
+
+      // 工具列按鈕狀態
+      function updatePendingToolbarState(isAfterRender = false) {
+        // 僅統計目前畫面上存在的卡片之選取數，避免統計已不在清單中的 userId
+        const container = document.getElementById("pendingPassengersList")
+        const visibleSelected = container
+          ? container.querySelectorAll(".passenger-card.pending-selected")
+              .length
+          : 0
+        const btn = document.getElementById("btnSendDelayed")
+        if (btn) btn.disabled = visibleSelected === 0
+        const counter = document.getElementById("pendingSelectedCount")
+        if (counter) counter.textContent = `已選 ${visibleSelected} 筆`
       }
 
       // 從API獲取趟次乘客資料
