@@ -653,6 +653,34 @@
         text-align: center;
       }
 
+      /* 稱謂點選籤 */
+      .title-chips {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .title-chip {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #334155;
+        border-radius: 999px;
+        font-size: 14px;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.15s ease;
+      }
+      .title-chip:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+      .title-chip.active {
+        background: #e6f9ef;
+        border-color: #06c755;
+        color: #047857;
+        box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.12);
+      }
+
       /* 預約摘要 */
       .reservation-summary {
         background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
@@ -1026,11 +1054,11 @@
           <p><strong>敬告乘客：</strong></p>
           <ol>
             <li>本功能目前僅開放2088路線使用。</li>
-            <li>1個帳號限保留1位，已保留座位請依保留的車號上車。</li>
+            <li>已保留座位請依保留的車號上車。</li>
             <li>
-              搭乘後請使用LINE選單的「搭乘確認」掃描QRCode確認搭乘，若非保留的車號則無法確認。
+              已保留座位請依保留的車號搭乘，上車後請用LINE選單的「搭乘確認」掃描QRCode確認搭乘。
             </li>
-            <li>若您已搭乘非保留的趟次，請記得於當日取消保留。</li>
+            <li>若您搭乘的非保留的車號，請記得於當日取消保留。</li>
             <li>
               目前2088B為試辦路線，每日18:00固定班次，並於每日17:30至17:50開放保留。
             </li>
@@ -1205,15 +1233,20 @@
                   maxlength="20"
                   style="flex: 1"
                 />
-                <select
-                  id="passengerTitle"
-                  aria-label="稱謂"
-                  style="width: 100px"
+                <div
+                  id="titleChips"
+                  class="title-chips"
+                  role="group"
+                  aria-label="稱謂選擇"
                 >
-                  <option value="">空白</option>
-                  <option value="先生">先生</option>
-                  <option value="小姐">小姐</option>
-                </select>
+                  <button type="button" class="title-chip" data-value="先生">
+                    先生
+                  </button>
+                  <button type="button" class="title-chip" data-value="小姐">
+                    小姐
+                  </button>
+                </div>
+                <input type="hidden" id="passengerTitle" value="" />
               </div>
               <div id="nameError" class="error-message"></div>
             </div>
@@ -1305,7 +1338,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.26
+      保留座位申請 v1.0.0.27
     </footer>
 
     <script>
@@ -2026,12 +2059,8 @@
         document
           .getElementById("passengerName")
           .addEventListener("blur", validateName)
-        // 稱謂改變時也更新摘要
-        const titleEl = document.getElementById("passengerTitle")
-        if (titleEl) {
-          titleEl.addEventListener("change", updateSummary)
-          titleEl.addEventListener("input", updateSummary)
-        }
+        // 稱謂點選籤事件
+        setupTitleChips()
         document
           .getElementById("passengerPhone")
           .addEventListener("blur", validatePhone)
@@ -2230,6 +2259,33 @@
         }
 
         return valid
+      }
+
+      // 稱謂點選籤初始化與處理
+      function setupTitleChips() {
+        const chipsHost = document.getElementById("titleChips")
+        const hidden = document.getElementById("passengerTitle")
+        if (!chipsHost || !hidden) return
+        // 點擊事件（互斥選取；再次點擊同一籤則取消選取）
+        chipsHost.addEventListener("click", (e) => {
+          const btn = e.target.closest(".title-chip")
+          if (!btn) return
+          const val = btn.getAttribute("data-value") || ""
+          const isActive = btn.classList.contains("active")
+          // 先清空所有 active
+          chipsHost
+            .querySelectorAll(".title-chip")
+            .forEach((el) => el.classList.remove("active"))
+          if (isActive) {
+            // 取消選取 → 空白
+            hidden.value = ""
+          } else {
+            // 設定為選取
+            btn.classList.add("active")
+            hidden.value = val
+          }
+          updateSummary()
+        })
       }
 
       // 更新預約摘要
@@ -2441,8 +2497,14 @@
           "請選擇下車站牌"
         selectedKeepStop = null
         selectedDestStop = null
-        const titleEl = document.getElementById("passengerTitle")
-        if (titleEl) titleEl.selectedIndex = 0
+        // 清空稱謂點選籤與隱藏欄位
+        const titleHidden = document.getElementById("passengerTitle")
+        if (titleHidden) titleHidden.value = ""
+        const chipsHost = document.getElementById("titleChips")
+        if (chipsHost)
+          chipsHost
+            .querySelectorAll(".title-chip")
+            .forEach((el) => el.classList.remove("active"))
         seatCount = 1
         updateSeatDisplay()
         updateSummary()
