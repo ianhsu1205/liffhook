@@ -157,6 +157,35 @@
         margin-top: 6px;
         align-items: center;
       }
+      /* Pending selection styles */
+      .pending-toolbar {
+        position: sticky;
+        top: 96px; /* below header + tabs */
+        z-index: 4;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .pending-toolbar .spacer {
+        flex: 1 1 auto;
+      }
+      .pending-selected-count {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .pending-card.selected {
+        outline: 2px solid rgba(37, 99, 235, 0.35);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) inset;
+      }
+      .pending-select-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
       .chip {
         display: inline-block;
         padding: 2px 8px;
@@ -413,7 +442,22 @@
     </div>
 
     <!-- Views -->
-    <div id="pendingView" class="view" style="padding: 8px 12px"></div>
+    <div id="pendingView" class="view" style="padding: 0 0 8px">
+      <div class="pending-toolbar" id="pendingToolbar" style="display: none">
+        <button id="btnSelectAllPendingMobile" class="btn sm">全選</button>
+        <button id="btnClearAllPendingMobile" class="btn sm ghost">
+          取消全選
+        </button>
+        <div class="spacer"></div>
+        <span class="pending-selected-count"
+          >已選 <span id="pendingSelectedCountMobile">0</span> 筆</span
+        >
+        <button id="btnSendDelayedMobile" class="btn sm warning" disabled>
+          傳送久候通知
+        </button>
+      </div>
+      <div id="pendingListHost" style="padding: 8px 12px"></div>
+    </div>
     <div
       id="tripsView"
       class="view"
@@ -442,7 +486,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.13
+        v1.0.0.14
       </div>
     </div>
 
@@ -559,6 +603,9 @@
       let vehicleData = []
       let selectedRoute = ""
       let autoTimer = null
+      // pending selection state (persist across renders)
+      const pendingSelectedUserIds = window._pendingSelectedUserIds || new Set()
+      window._pendingSelectedUserIds = pendingSelectedUserIds
 
       // UI helpers
       const $ = (sel) => document.querySelector(sel)
@@ -1139,16 +1186,22 @@
 
       // Pending view render
       function renderPending() {
-        const root = $("#pendingView")
+        const listHost = document.getElementById("pendingListHost")
+        const toolbar = document.getElementById("pendingToolbar")
         const unassigned = (pending || []).filter(
           (p) => !(p.tripId || p.TripId)
         )
         if (!unassigned.length) {
-          root.innerHTML =
-            '<div class="sub" style="text-align:center;padding:20px">暫無待保留乘客</div>'
+          if (listHost)
+            listHost.innerHTML =
+              '<div class="sub" style="text-align:center;padding:20px">暫無待保留乘客</div>'
+          if (toolbar) toolbar.style.display = "none"
+          updatePendingToolbarStateMobile()
           return
         }
-        root.innerHTML = unassigned
+        if (toolbar) toolbar.style.display = "flex"
+        if (!listHost) return
+        listHost.innerHTML = unassigned
           .map((p) => {
             const notified = !!(p.responseDateTime && p.responseDateTime.length)
             const badge = notified
@@ -1158,6 +1211,7 @@
             const phoneFull = p.phone || ""
             const dest = p.destStop || p.DestStop || "-"
             const include = p.includeRoutes || p.IncludeRoutes || ""
+            const userId = p.userId || p.UserId || ""
             const includeChips = String(include)
               .split(",")
               .map((r) => r.trim())
@@ -1170,7 +1224,7 @@
               )
               .join(" ")
             return `
-            <div class="card">
+            <div class="card pending-card" data-user-id="${escAttr(userId)}">
               <div class="row" style="justify-content:space-between;align-items:center">
                 <div class="title">${p.name || "-"}（${
               p.seatCount || 1
@@ -1181,6 +1235,11 @@
               <div class="chips"><span class="chip">${dest}</span> ${includeChips}
               </div>
               <div class="row" style="margin-top:6px"> 
+                <label class="pending-select-box" title="選取此乘客以進行批次通知">
+                  <input type="checkbox" class="pending-select" data-user-id="${escAttr(
+                    userId
+                  )}" /> 勾選
+                </label>
                 <button class="btn lg success" data-action="open-assign" data-id="${escAttr(
                   p.id
                 )}" data-count="${escAttr(
@@ -1190,8 +1249,137 @@
             </div>`
           })
           .join("")
+        // Re-apply selection state and bind events
+        applyPendingSelectionsMobile()
+        bindPendingSelectionEventsMobile()
+        updatePendingToolbarStateMobile()
       }
       // 已移除顯示可搭路線功能
+
+      function bindPendingSelectionEventsMobile() {
+        const checkboxes = document.querySelectorAll(
+          "#pendingListHost input.pending-select"
+        )
+        checkboxes.forEach((cb) => {
+          cb.addEventListener("change", (e) => {
+            const uid = cb.getAttribute("data-user-id") || ""
+            togglePendingSelectionMobile(uid, cb.checked)
+          })
+        })
+        const btnAll = document.getElementById("btnSelectAllPendingMobile")
+        const btnClear = document.getElementById("btnClearAllPendingMobile")
+        const btnSend = document.getElementById("btnSendDelayedMobile")
+        if (btnAll && !btnAll.__bound) {
+          btnAll.__bound = true
+          btnAll.addEventListener("click", selectAllPendingMobile)
+        }
+        if (btnClear && !btnClear.__bound) {
+          btnClear.__bound = true
+          btnClear.addEventListener("click", clearAllPendingMobile)
+        }
+        if (btnSend && !btnSend.__bound) {
+          btnSend.__bound = true
+          btnSend.addEventListener("click", sendDelayedForSelectedMobile)
+        }
+      }
+
+      function applyPendingSelectionsMobile() {
+        const cards = document.querySelectorAll(
+          "#pendingListHost .pending-card"
+        )
+        cards.forEach((card) => {
+          const uid = card.getAttribute("data-user-id") || ""
+          const checked = pendingSelectedUserIds.has(uid)
+          card.classList.toggle("selected", checked)
+          const cb = card.querySelector("input.pending-select")
+          if (cb) cb.checked = checked
+        })
+      }
+
+      function togglePendingSelectionMobile(userId, checked) {
+        const uid = String(userId || "")
+        if (!uid) return
+        if (checked) pendingSelectedUserIds.add(uid)
+        else pendingSelectedUserIds.delete(uid)
+        const card = document.querySelector(
+          `.pending-card[data-user-id="${CSS.escape(uid)}"]`
+        )
+        if (card) card.classList.toggle("selected", checked)
+        updatePendingToolbarStateMobile()
+      }
+
+      function updatePendingToolbarStateMobile() {
+        const visibleCards = Array.from(
+          document.querySelectorAll("#pendingListHost .pending-card") || []
+        )
+        const visibleSelected = visibleCards.filter((c) =>
+          pendingSelectedUserIds.has(c.getAttribute("data-user-id") || "")
+        )
+        const countEl = document.getElementById("pendingSelectedCountMobile")
+        const btnSend = document.getElementById("btnSendDelayedMobile")
+        if (countEl) countEl.textContent = String(visibleSelected.length)
+        if (btnSend) btnSend.disabled = visibleSelected.length === 0
+      }
+
+      function selectAllPendingMobile() {
+        const checkboxes = document.querySelectorAll(
+          "#pendingListHost input.pending-select"
+        )
+        checkboxes.forEach((cb) => {
+          const uid = cb.getAttribute("data-user-id") || ""
+          if (!uid) return
+          cb.checked = true
+          pendingSelectedUserIds.add(uid)
+        })
+        applyPendingSelectionsMobile()
+        updatePendingToolbarStateMobile()
+      }
+
+      function clearAllPendingMobile() {
+        const checkboxes = document.querySelectorAll(
+          "#pendingListHost input.pending-select"
+        )
+        checkboxes.forEach((cb) => (cb.checked = false))
+        // 僅清除目前畫面上看得到的卡片所對應的 selection
+        const visibleCards = document.querySelectorAll(
+          "#pendingListHost .pending-card"
+        )
+        visibleCards.forEach((card) => {
+          const uid = card.getAttribute("data-user-id") || ""
+          if (uid) pendingSelectedUserIds.delete(uid)
+        })
+        applyPendingSelectionsMobile()
+        updatePendingToolbarStateMobile()
+      }
+
+      async function sendDelayedForSelectedMobile() {
+        try {
+          const visibleCards = Array.from(
+            document.querySelectorAll("#pendingListHost .pending-card") || []
+          )
+          const userIds = visibleCards
+            .map((c) => c.getAttribute("data-user-id") || "")
+            .filter((uid) => uid && pendingSelectedUserIds.has(uid))
+          if (!userIds.length) {
+            toast("請先勾選至少一位乘客")
+            return
+          }
+          const res = await fetch(`${BASE_URL}/KeepSeat/notify-delayed`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userIds }),
+          })
+          if (!res.ok) throw 0
+          const data = await res.json().catch(() => ({}))
+          const sent = data?.sentCount ?? data?.SentCount ?? 0
+          const notFound = (data?.notFound ?? data?.NotFound ?? []).length
+          toast(`久候通知已送出 ${sent} 筆，略過 ${notFound} 筆`)
+          await loadPending()
+          renderPending()
+        } catch {
+          toast("傳送久候通知失敗，請稍後再試")
+        }
+      }
 
       // Assign flow
       async function openAssign(passengerId, seatCount) {
