@@ -442,7 +442,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.12
+        v1.0.0.13
       </div>
     </div>
 
@@ -640,6 +640,9 @@
             break
           case "confirm-trip":
             confirmDeparture(el.dataset.id)
+            break
+          case "mark-departed":
+            markTripDeparted(el.dataset.id)
             break
           case "auto-assign-trip":
             autoAssignTrip(el.dataset.id)
@@ -925,6 +928,13 @@
                         )}">通知乘客</button>`
                       : ""
                   }
+                    ${
+                      !readOnly
+                        ? `<button class="btn sm success" data-action="mark-departed" data-id="${escAttr(
+                            id
+                          )}">發車</button>`
+                        : ""
+                    }
                   ${
                     !readOnly
                       ? `<button class="btn sm ghost" data-action="view-pax" data-id="${escAttr(
@@ -1558,7 +1568,7 @@
       }
       async function confirmDeparture(tripId) {
         try {
-          if (!confirm("通知乘客並標記為已發車？")) return
+          if (!confirm("通知乘客？")) return
           const res = await fetch(
             `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
             {
@@ -1566,11 +1576,30 @@
             }
           )
           if (!res.ok) throw 0
-          toast("已通知乘客，趟次設為已發車")
+          toast("已通知乘客")
           await loadTrips()
           renderTrips()
         } catch {
           toast("通知失敗")
+        }
+      }
+
+      // 標記趟次為已發車（不發送通知）
+      async function markTripDeparted(tripId) {
+        try {
+          if (!confirm("確認將此趟次標記為已發車？")) return
+          const res = await fetch(`${BASE_URL}/Trip/${tripId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Status: "completed" }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok || data?.success === false) throw 0
+          toast("已標記為已發車")
+          await loadTrips()
+          renderTrips()
+        } catch {
+          toast("標記失敗")
         }
       }
       function openTripPassengersModal(tripId) {
