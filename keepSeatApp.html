@@ -1001,14 +1001,14 @@
     <div id="successAnimation" class="success-animation hidden">
       <div class="success-checkmark"></div>
       <div class="success-message-text">送出成功！</div>
-      <div class="success-details">我們已收到您的保留座位通知</div>
+      <div class="success-details">我們已收到您的保留座位</div>
     </div>
 
     <!-- 取消成功動畫 -->
     <div id="cancelSuccessAnimation" class="cancel-success-animation hidden">
       <div class="cancel-checkmark"></div>
       <div class="cancel-message-text">取消成功！</div>
-      <div class="cancel-details">您的保留座位需求已取消</div>
+      <div class="cancel-details">您已取消保留座位申請</div>
     </div>
 
     <div class="container">
@@ -1097,13 +1097,7 @@
                   justify-content: space-between;
                   margin-bottom: 10px;
                 "
-              >
-                <span style="color: #856404; font-weight: 500">座位數量：</span>
-                <span
-                  id="existingSeatCount"
-                  style="color: #856404; font-weight: 600"
-                ></span>
-              </div>
+              ></div>
               <div
                 style="
                   display: flex;
@@ -1311,7 +1305,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.24
+      保留座位申請 v1.0.0.25
     </footer>
 
     <script>
@@ -1505,8 +1499,8 @@
           reservation.destStop || "未知"
         document.getElementById("existingName").textContent =
           currentUser?.displayName || "未知"
-        document.getElementById("existingSeatCount").textContent =
-          reservation.seatCount || "未知"
+        // document.getElementById("existingSeatCount").textContent =
+        //   reservation.seatCount || "未知"
         document.getElementById("existingDateTime").textContent =
           reservation.requestDateTime || "未知"
 
