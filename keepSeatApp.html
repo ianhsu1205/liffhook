@@ -717,6 +717,11 @@
         color: #495057;
       }
 
+      /* 隱藏摘要中的座位數量（保留 DOM 以便未來啟用） */
+      #summarySeatCountItem {
+        display: none !important;
+      }
+
       /* 新的站牌選取器樣式 */
       .stop-selector-button {
         border: 2px solid #dee2e6;
@@ -1312,7 +1317,7 @@
               <span class="summary-label">預約時間：</span>
               <span class="summary-value" id="summaryDateTime">-</span>
             </div>
-            <div class="summary-item" hidden>
+            <div class="summary-item" id="summarySeatCountItem" hidden>
               <span class="summary-label">座位數量：</span>
               <span class="summary-value" id="summarySeatCount">1</span>
             </div>
@@ -1337,7 +1342,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.28
+      保留座位申請 v1.0.0.29
     </footer>
 
     <script>
