@@ -1225,7 +1225,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.40</h1>
+        <h1>都會之星座位保留系統 v1.0.0.41</h1>
         <p><span id="currentDate"></span></p>
       </div>
 
@@ -1383,6 +1383,11 @@
                 style="font-size: 12px; color: #555"
                 >已選 0 筆</span
               >
+              <!-- 模擬列印區 (已隱藏，如需再啟用移除此 style display:none) -->
+              <div id="simulatePrintPanel" style="display: none">
+                <input type="number" id="simulatePrintCount" />
+                <button type="button" id="btnSimulatePrint">模擬列印</button>
+              </div>
             </div>
           </div>
           <div class="pending-passengers" id="pendingPassengersList">
@@ -1866,6 +1871,12 @@
         if (btnClearAll) btnClearAll.addEventListener("click", clearAllPending)
         if (btnSendDelayed)
           btnSendDelayed.addEventListener("click", sendDelayedForSelected)
+
+        // 模擬列印功能已停用（UI 隱藏 & 事件未綁定）。如需啟用：
+        // 1. 將 #simulatePrintPanel 的 display:none 移除
+        // 2. 解除以下註解即可
+        // const btnSimulatePrint = document.getElementById("btnSimulatePrint")
+        // if (btnSimulatePrint) btnSimulatePrint.addEventListener("click", simulatePrint)
       }
 
       // 顯示 / 隱藏模式提示橫幅
@@ -4244,6 +4255,7 @@
 
       // 列印趟次預約單
       async function printReservation(tripId, useBrowserFallback = false) {
+        // (buildReservationHtml 與 isPrinting 會在下方重新定義搬到前面以避免未定義)
         try {
           console.log("🖨️ 開始列印趟次預約單，趟次ID:", tripId)
 
@@ -4302,12 +4314,28 @@
           printContent.innerHTML = html
           await waitForQRCodeLoading()
           try {
+            if (isPrinting) {
+              console.warn("[PRINT] 上一次列印尚未完成，忽略本次呼叫。")
+              return
+            }
+            isPrinting = true
             printContent.style.display = "block"
+            // Debug 高度以確認是否超出單頁
+            requestAnimationFrame(() => {
+              const hPx = printContent.scrollHeight
+              const hMm = (hPx * 25.4) / 96
+              console.log(
+                `[PRINT-DEBUG] reservation content height=${hPx}px (~${hMm.toFixed(
+                  1
+                )}mm)`
+              )
+            })
             const beforePrintHandler = () => {}
             const afterPrintHandler = () => {
               printContent.style.display = "none"
               window.removeEventListener("beforeprint", beforePrintHandler)
               window.removeEventListener("afterprint", afterPrintHandler)
+              isPrinting = false
               showSuccess(
                 `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`
               )
@@ -4321,12 +4349,14 @@
                 printContent.style.display = "none"
                 window.removeEventListener("beforeprint", beforePrintHandler)
                 window.removeEventListener("afterprint", afterPrintHandler)
+                isPrinting = false
               }
             }, 8000)
           } catch (printError) {
             console.error("列印過程錯誤:", printError)
             const el = document.getElementById("print-content")
             if (el) el.style.display = "none"
+            isPrinting = false
             showError(`列印過程發生錯誤: ${printError.message}`)
           }
         } catch (error) {
@@ -4335,18 +4365,21 @@
         }
       }
 
-      // 建立 QZ 列印的 HTML（含內嵌樣式，適配 80mm 小票寬度）
+      // ================= 列印輔助函式區（重新補回） =================
+      // 全域列印旗標，避免重複呼叫造成多印或空白頁
+      let isPrinting = false
+
+      // 建立列印 HTML（80mm 寬紙張，內容高度自適應）
       function buildReservationHtml(tripData, qrCodeUrl, totalSeats) {
         const list = (tripData.passengers || [])
           .map((p, i) => {
             const name = p.name || p.Name || "未知"
             const seats = p.seatCount || p.SeatCount || 1
-            const from = p.keepStop || p.KeepStop || "未知"
             const to = p.destStop || p.DestStop || "未知"
             const rawPhone = p.phone || p.Phone || ""
             const digitsOnly = String(rawPhone).replace(/\D/g, "")
             const tail3 = digitsOnly ? digitsOnly.slice(-3) : ""
-            return `${i + 1}. ${name} (${seats}位 ) → ${to}  ${tail3}`
+            return `${i + 1}. ${name} (${seats}位) → ${to}  ${tail3}`
           })
           .join("<br/>")
 
@@ -4355,124 +4388,7 @@
         const time = tripData.trip.departureTime || "未知"
         const now = new Date().toLocaleString()
 
-        return `
-          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;">
-            <div style="font-size:16pt;font-weight:700;margin:0 0 1mm;">大都會客運保留座位清單</div>
-            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div style="font-size:13pt;">路線: ${route}</div>
-            <div style="font-size:13pt;">車號: ${car}</div>
-            <div style="font-size:13pt;">發車時間: ${time}</div>
-            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div style="text-align:left;display:inline-block;width:90%;font-size:12pt;">${list}</div>
-            <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
-            <div style="font-size:13pt;">總計: ${totalSeats} 位乘客</div>
-            <div class="qr-code" style="margin:2mm 0;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
-            <div>列印時間: ${now}</div>
-            <div style="height:12mm;"></div>
-          </div>
-        `
-      }
-
-      // 創建列印內容元素
-      function createPrintContentElement() {
-        const printContent = document.createElement("div")
-        printContent.id = "print-content"
-        printContent.style.display = "none"
-        printContent.style.position = "absolute"
-        printContent.style.left = "-9999px"
-        printContent.style.top = "-9999px"
-        document.body.appendChild(printContent)
-
-        // 添加列印樣式
-        const printStyle = document.createElement("style")
-        printStyle.textContent = `
-          @media print {
-            /* 強制單頁列印，最小化邊距 */
-            @page {
-              margin: 0 !important;
-              size: 79mm auto !important; /* 自動高度 */
-              padding: 0 !important;
-            }
-            /* 移除根節點的預設邊距，避免頂部空白 */
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            
-            /* 隱藏所有非列印內容 */
-            body > *:not(#print-content) {
-              display: none !important;
-            }
-            
-            /* 確保列印內容可見且樣式正確 */
-            #print-content {
-              display: block !important;
-              position: static !important;
-              left: auto !important;
-              top: auto !important;
-              width: 75mm !important;
-              height: auto !important;
-              font-family: "Microsoft JhengHei", "Courier New", monospace !important;
-              font-size: 10pt !important;
-              line-height: 1.2 !important;
-              color: black !important;
-              background: white !important;
-              padding: 0 1mm 1mm !important;
-              text-align: center !important;
-              margin: 0 auto !important;
-              box-sizing: border-box !important;
-              overflow: visible !important;
-              page-break-inside: avoid !important;
-            }
-            
-            /* 列印內容的所有子元素樣式 */
-            #print-content * {
-              background: transparent !important;
-              color: black !important;
-              text-align: center !important;
-              page-break-inside: avoid !important;
-            }
-            
-            /* 標題樣式 */
-            #print-content .print-header {
-              font-size: 12pt !important;
-              font-weight: bold !important;
-              margin: 2mm 0 !important;
-            }
-            
-            #print-content .print-title {
-              font-size: 16pt !important;
-              font-weight: bold !important;
-              margin: 0 0 3mm 0 !important;
-            }
-            
-            /* QR碼樣式 */
-            #print-content .qr-code {
-              page-break-inside: avoid !important;
-              margin: 2mm 0 !important;
-            }
-            
-            #print-content .qr-code img {
-              width: 30mm !important;
-              height: 30mm !important;
-              display: block !important;
-              margin: 0 auto !important;
-            }
-            
-            /* 乘客列表樣式 */
-            #print-content .passenger-list {
-              font-size: 9pt !important;
-              line-height: 1.1 !important;
-              margin: 2mm auto !important;
-              text-align: left !important;
-              width: 90% !important;
-              display: inline-block !important;
-            }
-          }
-        `
-        document.head.appendChild(printStyle)
-
-        return printContent
+        return `\n          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;page-break-after:avoid;page-break-before:avoid;">\n            <div style=\"font-size:16pt;font-weight:700;margin:0 0 1mm;\">大都會客運保留座位清單</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">路線: ${route}</div>\n            <div style=\"font-size:13pt;\">車號: ${car}</div>\n            <div style=\"font-size:13pt;\">發車時間: ${time}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"text-align:left;display:inline-block;width:90%;font-size:12pt;\">${list}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">總計: ${totalSeats} 位乘客</div>\n            <div class=\"qr-code\" style=\"margin:2mm 0;min-height:32mm;display:flex;align-items:center;justify-content:center;\"><img src=\"${qrCodeUrl}\" style=\"width:30mm;height:30mm;\"/></div>\n            <div>列印時間: ${now}</div>\n            <div style=\"height:2mm;\"></div>\n          </div>\n        `
       }
 
       // 等待 QR 碼圖片載入
@@ -5233,7 +5149,8 @@
             <p>時間: ${new Date().toLocaleString()}</p>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
             <p>如果您看到此頁面，列印設定正確</p>
-            <div style="height:8mm;"></div>
+            <!-- 減少底部空白，避免高度接近換頁界線 -->
+            <div style="height:2mm;"></div>
           </div>`
 
         const printContent =
@@ -5371,6 +5288,97 @@
 
       function handleDragLeave(e) {
         e.currentTarget.classList.remove("drag-over")
+      }
+
+      // 模擬列印（不依賴後端資料）
+      async function simulatePrint() {
+        try {
+          const input = document.getElementById("simulatePrintCount")
+          let count = parseInt(input && input.value ? input.value : "0", 10)
+          if (isNaN(count) || count <= 0) {
+            showNotification("請輸入大於 0 的數字", "warning")
+            return
+          }
+          if (count > 300) {
+            showNotification("筆數過大，已限制為 300", "info")
+            count = 300
+          }
+
+          // 建立模擬資料
+          const passengers = []
+          for (let i = 0; i < count; i++) {
+            passengers.push({
+              name: `乘客${i + 1}`,
+              seatCount: 1,
+              destStop: "測試站",
+              phone: `09${(Math.random() * 1e8).toFixed(0).padStart(8, "0")}`,
+            })
+          }
+
+          // 模擬 tripData 結構
+          const tripData = {
+            trip: {
+              route: "測試路線",
+              vehicleNumber: "TEST-000",
+              departureTime: new Date().toLocaleTimeString("zh-TW", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }),
+            },
+            passengers: passengers,
+          }
+
+          const totalSeats = passengers.reduce(
+            (a, p) => a + (p.seatCount || 1),
+            0
+          )
+          const qrCodeUrl = await generateQRCodeURL("SIMULATE-PRINT")
+          const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
+          const printContent =
+            document.getElementById("print-content") ||
+            createPrintContentElement()
+          printContent.innerHTML = html
+          await waitForQRCodeLoading()
+          if (isPrinting) {
+            showNotification("上一份列印尚未完成", "info")
+            return
+          }
+          isPrinting = true
+          printContent.style.display = "block"
+          requestAnimationFrame(() => {
+            const hPx = printContent.scrollHeight
+            const hMm = (hPx * 25.4) / 96
+            console.log(
+              `[PRINT-DEBUG] simulate content height=${hPx}px (~${hMm.toFixed(
+                1
+              )}mm)  count=${count}`
+            )
+          })
+          const beforePrintHandler = () => {}
+          const afterPrintHandler = () => {
+            printContent.style.display = "none"
+            window.removeEventListener("beforeprint", beforePrintHandler)
+            window.removeEventListener("afterprint", afterPrintHandler)
+            isPrinting = false
+            showSuccess(`模擬列印完成 (共 ${count} 筆)`)
+          }
+          window.addEventListener("beforeprint", beforePrintHandler)
+          window.addEventListener("afterprint", afterPrintHandler)
+          window.print()
+          setTimeout(() => {
+            if (printContent.style.display !== "none") {
+              printContent.style.display = "none"
+              window.removeEventListener("beforeprint", beforePrintHandler)
+              window.removeEventListener("afterprint", afterPrintHandler)
+              isPrinting = false
+            }
+          }, 8000)
+        } catch (e) {
+          console.error("simulatePrint 發生錯誤", e)
+          isPrinting = false
+          showError("模擬列印失敗: " + e.message)
+        }
       }
 
       // 切換趟次詳細資訊
@@ -5641,9 +5649,9 @@
 
       /* 列印時的樣式 */
       @media print {
-        /* 強制單頁列印，最小化邊距 */
+        /* 強制單頁列印，最小化邊距 (統一與動態樣式相同的 0 邊距，避免重複定義造成高度重新計算) */
         @page {
-          margin: 2mm !important;
+          margin: 0 !important;
           size: 79mm auto !important; /* 自動高度 */
           padding: 0 !important;
         }
