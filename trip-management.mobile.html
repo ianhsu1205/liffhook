@@ -482,11 +482,23 @@
           顯示已發車：關
         </button>
       </div>
+      <!-- 模擬列印區 (已隱藏; 若需啟用：移除 display:none 並在 DOMContentLoaded 中綁定事件) -->
+      <div
+        id="simulatePrintMobilePanel"
+        class="row"
+        style="display: none; gap: 6px; margin-top: 4px; flex-wrap: wrap"
+      >
+        <input id="simulatePrintCountMobile" type="number" />
+        <button id="btnSimulatePrintMobile" class="btn sm primary">
+          模擬列印
+        </button>
+        <span class="sub" style="font-size: 11px">(測試專用)</span>
+      </div>
       <div
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.14
+        v1.0.0.15
       </div>
     </div>
 
@@ -1481,6 +1493,9 @@
         switchTab("pending")
         reloadAll()
         startAutoRefresh()
+        // 綁定模擬列印
+        const spmBtn = document.getElementById("btnSimulatePrintMobile")
+        if (spmBtn) spmBtn.addEventListener("click", simulatePrintMobile)
       })
 
       function startAutoRefresh() {
@@ -2014,7 +2029,11 @@
         }
       }
 
-      // Print trip（與桌面版一致：含 QRCode 與同版式）
+      // ================= 列印相關（同步桌面版） =================
+      // 防止同時觸發重複列印
+      let isPrinting = false
+
+      // Print trip（與桌面版同步：含 QRCode 與同版式 + 防重複列印 + 高度 debug）
       async function printTrip(tripId) {
         try {
           const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
@@ -2044,12 +2063,30 @@
 
           await waitForQRCodeLoading()
 
+          if (isPrinting) {
+            toast("上一份列印尚未完成")
+            return
+          }
+          isPrinting = true
           printContent.style.display = "block"
+
+          // Debug：量測實際高度（確認是否超出單頁）
+          requestAnimationFrame(() => {
+            const hPx = printContent.scrollHeight
+            const hMm = (hPx * 25.4) / 96
+            console.log(
+              `[PRINT-DEBUG] reservation content height=${hPx}px (~${hMm.toFixed(
+                1
+              )}mm)`
+            )
+          })
+
           const beforePrintHandler = () => {}
           const afterPrintHandler = () => {
             printContent.style.display = "none"
             window.removeEventListener("beforeprint", beforePrintHandler)
             window.removeEventListener("afterprint", afterPrintHandler)
+            isPrinting = false
             toast(
               `${trip?.departureTime || ""}發車的${
                 trip?.vehicleNumber || ""
@@ -2064,10 +2101,12 @@
               printContent.style.display = "none"
               window.removeEventListener("beforeprint", beforePrintHandler)
               window.removeEventListener("afterprint", afterPrintHandler)
+              isPrinting = false
             }
-          }, 1000)
+          }, 8000)
         } catch (e) {
           toast(`列印失敗：${e?.message || "發生錯誤"}`)
+          isPrinting = false
         }
       }
 
@@ -2091,7 +2130,7 @@
         const now = new Date().toLocaleString()
 
         return `
-          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;">
+          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;page-break-after:avoid;page-break-before:avoid;">
             <div style="font-size:16pt;font-weight:700;margin:0 0 1mm;">大都會客運保留座位清單</div>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
             <div style="font-size:13pt;">路線: ${route}</div>
@@ -2101,9 +2140,9 @@
             <div style="text-align:left;display:inline-block;width:90%;font-size:12pt;">${list}</div>
             <div style="border-top:1px dashed #000;margin:2mm 0;"></div>
             <div style="font-size:13pt;">總計: ${totalSeats} 位乘客</div>
-            <div class="qr-code" style="margin:2mm 0;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
+            <div class="qr-code" style="margin:2mm 0;min-height:32mm;display:flex;align-items:center;justify-content:center;"><img src="${qrCodeUrl}" style="width:30mm;height:30mm;"/></div>
             <div>列印時間: ${now}</div>
-            <div style="height:12mm;"></div>
+            <div style="height:2mm;"></div>
           </div>
         `
       }
@@ -2177,6 +2216,88 @@
           return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedText}`
         } catch {
           return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Date.now()}`
+        }
+      }
+
+      // ========= 模擬列印 (與桌面版邏輯一致) =========
+      async function simulatePrintMobile() {
+        try {
+          const input = document.getElementById("simulatePrintCountMobile")
+          let count = parseInt(input && input.value ? input.value : "0", 10)
+          if (isNaN(count) || count <= 0) {
+            toast("請輸入大於 0 的數字")
+            return
+          }
+          if (count > 300) {
+            toast("筆數過大，已限制為 300")
+            count = 300
+          }
+          // 建立模擬資料
+          const passengers = []
+          for (let i = 0; i < count; i++) {
+            passengers.push({
+              name: `乘客${i + 1}`,
+              seatCount: 1,
+              destStop: "測試站",
+              phone: `09${(Math.random() * 1e8).toFixed(0).padStart(8, "0")}`,
+            })
+          }
+          const tripData = {
+            trip: {
+              route: "測試路線",
+              vehicleNumber: "TEST-000",
+              departureTime: new Date().toLocaleTimeString("zh-TW", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }),
+            },
+            passengers,
+          }
+          const totalSeats = passengers.length
+          const qrCodeUrl = await generateQRCodeURL("SIMULATE-PRINT-MOBILE")
+          const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
+          const printContent = ensurePrintContentElement()
+          printContent.innerHTML = html
+          await waitForQRCodeLoading()
+          if (isPrinting) {
+            toast("上一份列印尚未完成")
+            return
+          }
+          isPrinting = true
+          printContent.style.display = "block"
+          requestAnimationFrame(() => {
+            const hPx = printContent.scrollHeight
+            const hMm = (hPx * 25.4) / 96
+            console.log(
+              `[PRINT-DEBUG] simulate mobile content height=${hPx}px (~${hMm.toFixed(
+                1
+              )}mm)  count=${count}`
+            )
+          })
+          const beforePrintHandler = () => {}
+          const afterPrintHandler = () => {
+            printContent.style.display = "none"
+            window.removeEventListener("beforeprint", beforePrintHandler)
+            window.removeEventListener("afterprint", afterPrintHandler)
+            isPrinting = false
+            toast(`模擬列印完成 (共 ${count} 筆)`)
+          }
+          window.addEventListener("beforeprint", beforePrintHandler)
+          window.addEventListener("afterprint", afterPrintHandler)
+          window.print()
+          setTimeout(() => {
+            if (printContent.style.display !== "none") {
+              printContent.style.display = "none"
+              window.removeEventListener("beforeprint", beforePrintHandler)
+              window.removeEventListener("afterprint", afterPrintHandler)
+              isPrinting = false
+            }
+          }, 8000)
+        } catch (e) {
+          console.error("simulatePrintMobile 發生錯誤", e)
+          isPrinting = false
+          toast("模擬列印失敗: " + (e?.message || "錯誤"))
         }
       }
     </script>
