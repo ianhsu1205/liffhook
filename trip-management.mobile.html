@@ -498,7 +498,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.15
+        v1.0.0.16
       </div>
     </div>
 
@@ -2299,6 +2299,268 @@
           isPrinting = false
           toast("模擬列印失敗: " + (e?.message || "錯誤"))
         }
+      }
+
+      // ========= Android 藍牙熱敏列印 (RawBT 方案) =========
+      // 說明：若系統列印對話框找不到藍牙熱感印表機，可安裝 RawBT App，利用其 URL Scheme 傳送 ESC/POS 指令。
+      // 1. 於 Android 裝置安裝 RawBT (Google Play) 並配對藍牙印表機
+      // 2. 本功能會將票據轉為 ESC/POS base64 並透過 rawbt:base64,<data> 方式呼叫 App
+      // 3. 由於是透過跳轉 URL，列印後需自行返回瀏覽器
+
+      // 啟動：在 DOMContentLoaded 之後加上一個補助按鈕到每張趟次卡（或底部）
+      document.addEventListener("DOMContentLoaded", () => {
+        try {
+          if (/Android/i.test(navigator.userAgent)) {
+            // 為避免汙染原本 UI，採用延遲方式在 renderTrips 後補上
+            const originalRenderTrips = renderTrips
+            renderTrips = function () {
+              originalRenderTrips()
+              try {
+                addRawBtButtons()
+              } catch {}
+            }
+          }
+        } catch {}
+      })
+
+      function addRawBtButtons() {
+        if (!/Android/i.test(navigator.userAgent)) return
+        const cards = document.querySelectorAll("#tripsView .card")
+        cards.forEach((card) => {
+          if (card.querySelector(".btn-rawbt")) return
+          const idMatch = /pax-(\d+)/.exec(card.innerHTML)
+          // 嘗試從現有按鈕 data-id 取得
+          let tripId = null
+          const printBtn = card.querySelector('[data-action="print-trip"]')
+          if (printBtn) tripId = printBtn.getAttribute("data-id")
+          if (!tripId) return
+          const btn = document.createElement("button")
+          btn.className = "btn sm primary btn-rawbt"
+          btn.textContent = "熱敏列印"
+          btn.style.marginLeft = "4px"
+          btn.title = "使用 RawBT 藍牙熱感列印"
+          btn.addEventListener("click", () => rawBtPrintTrip(tripId))
+          const webBtn = document.createElement("button")
+          webBtn.className = "btn sm ghost btn-rawbt"
+          webBtn.textContent = "Web藍牙"
+          webBtn.style.marginLeft = "4px"
+          webBtn.title = "直接透過 Web Bluetooth 連線熱感機"
+          webBtn.addEventListener("click", () => webBluetoothPrintTrip(tripId))
+          // 插入到列印按鈕後
+          printBtn.parentNode.insertBefore(btn, printBtn.nextSibling)
+          printBtn.parentNode.insertBefore(webBtn, btn.nextSibling)
+        })
+      }
+
+      async function rawBtPrintTrip(tripId) {
+        try {
+          if (isPrinting) {
+            toast("上一份列印尚未完成")
+            return
+          }
+          const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+          if (!res.ok) throw new Error("讀取資料失敗")
+          const data = await res.json()
+          if (!data.success) throw new Error("後端回應失敗")
+          const trip = data.data?.trip || data.data?.Trip || {}
+          const list = data.data?.passengers || data.data?.Passengers || []
+          if (!list.length) {
+            toast("無乘客資料")
+            return
+          }
+          const bytes = buildEscPosTicket(trip, list)
+          launchRawBt(bytes)
+        } catch (e) {
+          console.error("[RAWBT] 列印失敗", e)
+          toast("藍芽列印失敗: " + (e?.message || "錯誤"))
+        }
+      }
+
+      function buildEscPosTicket(trip, passengers) {
+        // 基本 ESC/POS 指令
+        const ESC = "\x1B"
+        const GS = "\x1D"
+        const cmds = []
+        function push(txt) {
+          cmds.push(txt)
+        }
+        // 初始化
+        push(ESC + "@")
+        // 標題加粗放大
+        push(ESC + "!" + "\x38") // 2 倍寬高 + 粗體 (可能視機型而異)
+        push("保留座位清單\n")
+        push(ESC + "!" + "\x00") // 還原
+        const route = trip.route || trip.Route || "未知"
+        const car = trip.vehicleNumber || trip.VehicleNumber || "未知"
+        const time = trip.departureTime || trip.DepartureTime || "未知"
+        push(`路線: ${route}\n`)
+        push(`車號: ${car}\n`)
+        push(`發車: ${time}\n`)
+        push("------------------------------\n")
+        // 58mm 常見字元寬度 32（取決於字型，這裡做簡易切行）
+        const width = 32
+        passengers.forEach((p, i) => {
+          const idx = (i + 1).toString().padStart(2, "0")
+          const name = (p.name || p.Name || "未知").slice(0, 10)
+          const seats = p.seatCount || p.SeatCount || 1
+          const dest = (p.destStop || p.DestStop || "").slice(0, 6)
+          const phoneTail = String(p.phone || p.Phone || "")
+            .replace(/\D/g, "")
+            .slice(-3)
+          let line = `${idx} ${name}`
+          line += seats > 1 ? `x${seats}` : ""
+          line += dest ? `>${dest}` : ""
+          if (phoneTail) line += ` ${phoneTail}`
+          wrapAndPush(line, width, push)
+        })
+        push("------------------------------\n")
+        const total = passengers.reduce(
+          (a, p) => a + (p.seatCount || p.SeatCount || 1),
+          0
+        )
+        push(`總計: ${total} 位\n`)
+        push(new Date().toLocaleString() + "\n")
+        push("\n\n")
+        // (部分熱敏機不支援強制切紙，下列指令視機型可留)：GS V 0
+        push(GS + "V" + "\x00")
+        const full = cmds.join("")
+        // 轉成位元組陣列
+        const bytes = new Uint8Array(full.split("").map((c) => c.charCodeAt(0)))
+        return bytes
+      }
+
+      function wrapAndPush(text, width, pushFn) {
+        let buf = ""
+        for (let ch of text) {
+          const code = ch.charCodeAt(0)
+          // 粗略判斷中日韓寬字：給 2 欄位
+          const chWidth = code > 255 ? 2 : 1
+          if (visibleLength(buf) + chWidth > width) {
+            pushFn(buf + "\n")
+            buf = ""
+          }
+          buf += ch
+        }
+        if (buf) pushFn(buf + "\n")
+      }
+      function visibleLength(str) {
+        let len = 0
+        for (let ch of str) len += ch.charCodeAt(0) > 255 ? 2 : 1
+        return len
+      }
+
+      function launchRawBt(bytes) {
+        try {
+          const binary = Array.from(bytes)
+            .map((b) => String.fromCharCode(b))
+            .join("")
+          const b64 = btoa(binary)
+          // 透過 RawBT scheme 送出
+          location.href = "rawbt:base64," + b64
+          toast("已送出至 RawBT")
+        } catch (e) {
+          console.error("[RAWBT] 轉換失敗", e)
+          toast("轉換列印資料失敗")
+        }
+      }
+
+      // ========= Web Bluetooth 直接列印 =========
+      // 注意：需在 HTTPS 或 localhost、且瀏覽器支援 (Chrome Android)。
+      // 典型熱感藍牙機多為 Serial Port Profile，Web Bluetooth 僅支援 GATT，若設備不支援會失敗。
+      // 這裡實作一個常見的 GATT Service UUID + Characteristic UUID 嘗試（僅示範，實際需依機型調整）。
+      const WEB_BT_CONFIG = {
+        // 某些藍牙列印機可能宣告自訂 Service，以下 UUID 僅示意；若失敗需查詢設備規格。
+        serviceUUIDs: [
+          "000018f0-0000-1000-8000-00805f9b34fb",
+          "0000fff0-0000-1000-8000-00805f9b34fb",
+          "0000ae30-0000-1000-8000-00805f9b34fb",
+        ],
+        characteristicUUIDs: [
+          "00002af1-0000-1000-8000-00805f9b34fb",
+          "0000fff2-0000-1000-8000-00805f9b34fb",
+          "0000ae01-0000-1000-8000-00805f9b34fb",
+        ],
+      }
+      let _btPrinter = null
+      let _btChar = null
+
+      async function webBluetoothPrintTrip(tripId) {
+        try {
+          if (isPrinting) {
+            toast("上一份列印尚未完成")
+            return
+          }
+          const res = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
+          if (!res.ok) throw new Error("讀取資料失敗")
+          const data = await res.json()
+          if (!data.success) throw new Error("後端回應失敗")
+          const trip = data.data?.trip || data.data?.Trip || {}
+          const list = data.data?.passengers || data.data?.Passengers || []
+          if (!list.length) {
+            toast("無乘客資料")
+            return
+          }
+          const bytes = buildEscPosTicket(trip, list)
+          await ensureBtConnection()
+          await btChunkedWrite(bytes)
+          toast("Web Bluetooth 已送出")
+        } catch (e) {
+          console.error("[WEB-BT] 列印失敗", e)
+          toast("Web 藍牙列印失敗: " + (e?.message || "錯誤"))
+        }
+      }
+
+      async function ensureBtConnection() {
+        if (_btPrinter && _btChar) return
+        // 使用 acceptAllDevices 以兼容多數設備；可改用 filters 指定名稱或廠商
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: WEB_BT_CONFIG.serviceUUIDs,
+        })
+        _btPrinter = device
+        device.addEventListener("gattserverdisconnected", () => {
+          _btPrinter = null
+          _btChar = null
+          toast("藍牙斷線")
+        })
+        const server = await device.gatt.connect()
+        let foundChar = null
+        for (const svcUUID of WEB_BT_CONFIG.serviceUUIDs) {
+          try {
+            const service = await server
+              .getPrimaryService(svcUUID)
+              .catch(() => null)
+            if (!service) continue
+            for (const chUUID of WEB_BT_CONFIG.characteristicUUIDs) {
+              const ch = await service
+                .getCharacteristic(chUUID)
+                .catch(() => null)
+              if (ch) {
+                foundChar = ch
+                break
+              }
+            }
+            if (foundChar) break
+          } catch {}
+        }
+        if (!foundChar) throw new Error("找不到可寫入的列印特徵值")
+        _btChar = foundChar
+      }
+
+      async function btChunkedWrite(bytes) {
+        // GATT 一次可寫入的大小有限 (常見 20~244 bytes)，切塊傳送
+        const MTU = 180
+        for (let offset = 0; offset < bytes.length; offset += MTU) {
+          const slice = bytes.slice(offset, offset + MTU)
+          await _btChar.writeValueWithoutResponse(slice).catch(async () => {
+            await _btChar.writeValue(slice) // 回退有回應寫入
+          })
+          await delay(30)
+        }
+      }
+
+      function delay(ms) {
+        return new Promise((r) => setTimeout(r, ms))
       }
     </script>
   </body>
