@@ -482,23 +482,40 @@
           顯示已發車：關
         </button>
       </div>
-      <!-- 模擬列印區 (已隱藏; 若需啟用：移除 display:none 並在 DOMContentLoaded 中綁定事件) -->
+      <!-- 模擬列印區 (重新啟用) -->
       <div
         id="simulatePrintMobilePanel"
         class="row"
-        style="display: none; gap: 6px; margin-top: 4px; flex-wrap: wrap"
+        style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap"
       >
-        <input id="simulatePrintCountMobile" type="number" />
-        <button id="btnSimulatePrintMobile" class="btn sm primary">
+        <input
+          id="simulatePrintCountMobile"
+          type="number"
+          min="1"
+          max="300"
+          placeholder="乘客筆數 (<=300)"
+          style="width: 110px"
+        />
+        <div class="row" style="gap: 4px; flex-wrap: wrap">
+          <button class="btn sm ghost quick-sim" data-count="30">30</button>
+          <button class="btn sm ghost quick-sim" data-count="60">60</button>
+          <button class="btn sm ghost quick-sim" data-count="100">100</button>
+          <button class="btn sm ghost quick-sim" data-count="150">150</button>
+        </div>
+        <button
+          id="btnSimulatePrintMobile"
+          class="btn sm primary"
+          title="依輸入筆數生成假資料並列印票據"
+        >
           模擬列印
         </button>
-        <span class="sub" style="font-size: 11px">(測試專用)</span>
+        <span class="sub" style="font-size: 11px">(壓力測試)</span>
       </div>
       <div
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.17
+        v1.0.0.18
       </div>
     </div>
 
@@ -1496,6 +1513,29 @@
         // 綁定模擬列印
         const spmBtn = document.getElementById("btnSimulatePrintMobile")
         if (spmBtn) spmBtn.addEventListener("click", simulatePrintMobile)
+        // 快速筆數按鈕
+        document
+          .querySelectorAll("#simulatePrintMobilePanel .quick-sim")
+          .forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const c = btn.getAttribute("data-count")
+              const inp = document.getElementById("simulatePrintCountMobile")
+              if (inp) {
+                inp.value = c
+                try {
+                  localStorage.setItem("simPrintCountMobile", c)
+                } catch {}
+              }
+            })
+          })
+        // 還原上次輸入值
+        try {
+          const last = localStorage.getItem("simPrintCountMobile")
+          if (last) {
+            const inp = document.getElementById("simulatePrintCountMobile")
+            if (inp) inp.value = last
+          }
+        } catch {}
       })
 
       function startAutoRefresh() {
@@ -2303,4 +2343,3 @@
     </script>
   </body>
 </html>
-
