@@ -2198,13 +2198,23 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.4</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.5</div>
     </div>
 
     <!-- JavaScript -->
     <script>
       // 全局變數
-      const base_url = "https://35.221.146.143.nip.io/linehook/" // API 基礎 URL
+      const base_url = (() => {
+        // 檢查是否為本地開發環境
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/"
+        }
+        // 生產環境使用指定的後端地址
+        return "https://35.221.146.143.nip.io/linehook/"
+      })() // API 基礎 URL
       const channelId = "2006992891" // 服務 ID
       const liffId = "2006993665-xkeLlPeW".trim() // LIFF ID
 
