@@ -2119,7 +2119,14 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
   <script>
 // 全局變數
-const base_url = "https://35.221.146.143.nip.io/linehook/";
+const base_url = (() => {
+  // 檢查是否為本地開發環境
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return window.location.origin + '/';
+  }
+  // 生產環境使用指定的後端地址
+  return 'https://35.221.146.143.nip.io/linehook/';
+})();
 const channelId = "2006992891";
 let currentLatitude = 0;
 let currentLongitude = 0;

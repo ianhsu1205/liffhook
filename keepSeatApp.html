@@ -1348,7 +1348,17 @@
     <script>
       // 全域變數
       //const API_BASE_URL = "http://localhost:5000/api"
-      const API_BASE_URL = "https://35.221.146.143.nip.io/linehook/keepseat"
+      const API_BASE_URL = (() => {
+        // 檢查是否為本地開發環境
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/api"
+        }
+        // 生產環境使用指定的後端地址
+        return "https://35.221.146.143.nip.io/linehook/keepseat"
+      })()
       let keepStops = []
       let destStops = []
       let seatCount = 1
