@@ -1,13 +1,43 @@
 (() => {
     // API 基礎 URL - 支援分離式部署
-    const API_BASE = (() => {
+    let API_BASE = (() => {
         // 檢查是否為本地開發環境
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return window.location.origin + '/api';
         }
-        // 生產環境使用指定的後端 API 地址
+        // 生產環境使用指定的後端地址（包含 /api）
         return 'https://35.221.146.143.nip.io/linehook/api';
     })();
+    
+    // 自動偵測可用的 API 路徑（僅生產環境）
+    async function detectApiBase() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return; // 本地環境不需要偵測
+        }
+        
+        const possiblePaths = [
+            'https://35.221.146.143.nip.io/linehook/api',
+            'https://35.221.146.143.nip.io/api',
+            'https://35.221.146.143.nip.io/linehook',
+            'https://35.221.146.143.nip.io'
+        ];
+        
+        for (const basePath of possiblePaths) {
+            try {
+                const testUrl = `${basePath}/TdxRouteInfo/names?take=1`;
+                const response = await fetch(testUrl);
+                if (response.ok) {
+                    console.log(`✅ 找到可用的 API 路徑: ${basePath}`);
+                    API_BASE = basePath;
+                    return;
+                }
+            } catch (error) {
+                console.log(`❌ 無法連接: ${basePath}`);
+            }
+        }
+        
+        console.warn('⚠️ 無法找到可用的 API 路徑，使用預設路徑');
+    }
     
     // DOM 元素
     const form = document.getElementById('satisfactionForm');
@@ -28,6 +58,9 @@
 
     async function initializePage() {
         try {
+            // 自動偵測 API 路徑（生產環境）
+            await detectApiBase();
+            
             // 設置預設日期為今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('searchDate').value = today;
@@ -35,7 +68,7 @@
             // 初始化時間選項
             initializeTimeOptions();
 
-            // 載入路線資料
+            // 載入路線
             await loadRoutes();
 
             // 載入選項資料
@@ -102,7 +135,10 @@
         try {
             routeLoading.style.display = 'block';
             
-            const response = await fetch(`${API_BASE}/TdxRouteInfo/names?operatorNameZh=大都會客運&take=100`);
+            // 使用統一的 API 路徑
+            const apiPath = `${API_BASE}/TdxRouteInfo/names?operatorNameZh=大都會客運&take=100`;
+                
+            const response = await fetch(apiPath);
             const data = await response.json();
 
             if (data.success && data.data) {
@@ -127,7 +163,10 @@
 
     async function loadOptions() {
         try {
-            const response = await fetch(`${API_BASE}/PassengerSatisfaction/options`);
+            // 使用統一的 API 路徑
+            const apiPath = `${API_BASE}/PassengerSatisfaction/options`;
+                
+            const response = await fetch(apiPath);
             const data = await response.json();
 
             // 載入優良行為選項
@@ -401,131 +440,6 @@
             submitLoading.style.display = 'none';
             form.style.display = 'block';
         }
-    }
-
-    function validateForm() {
-        const errors = [];
-        let firstErrorField = null;
-
-        // 檢查基本資訊
-        const requiredFields = [
-            { name: '搭車日期', element: document.querySelector('input[name="搭車日期"]'), label: '搭車日期' },
-            { name: '搭車時間_時', element: document.querySelector('select[name="搭車時間_時"]'), label: '搭車時間-時' },
-            { name: '搭車時間_分', element: document.querySelector('select[name="搭車時間_分"]'), label: '搭車時間-分' },
-            { name: '搭乘路線', element: document.querySelector('select[name="搭乘路線"]'), label: '搭乘路線' },
-            { name: '駕駛長', element: document.querySelector('input[name="駕駛長"]'), label: '駕駛長' },
-            { name: '車號', element: document.querySelector('input[name="車號"]'), label: '車號' },
-            { name: '驗證碼', element: document.querySelector('input[name="驗證碼"]'), label: '驗證碼' }
-        ];
-
-        // 檢查所有必填的基本欄位
-        requiredFields.forEach(field => {
-            if (!field.element.value || field.element.value.trim() === '') {
-                errors.push(`請填寫「${field.label}」`);
-                if (!firstErrorField) {
-                    firstErrorField = field.element;
-                }
-            }
-        });
-
-        // 檢查所有必填的評分項目
-        const ratingFields = [
-            '車身整潔', 'LED路線牌', '座椅', '地板', '玻璃', '拉環',
-            '駕駛長名牌', '路線圖', '站名播報器', '驗票機刷卡機', 
-            '冷氣空調', '燈光亮度', '車內噪音', '行車間距', '候車時間', 
-            '站牌標示', '本次乘車體驗', '是否願意等待本公司班車'
-        ];
-
-        ratingFields.forEach(fieldName => {
-            const radioButtons = document.querySelectorAll(`input[name="${fieldName}"]:checked`);
-            if (radioButtons.length === 0) {
-                errors.push(`請選擇「${fieldName}」的評分`);
-                if (!firstErrorField) {
-                    const fieldGroup = document.querySelector(`input[name="${fieldName}"]`);
-                    if (fieldGroup) {
-                        firstErrorField = fieldGroup.closest('.rating-group') || fieldGroup.closest('.form-group') || fieldGroup;
-                    }
-                }
-            }
-        });
-
-        // 檢查不良行為是否至少選擇一個選項（包括「無」）
-        const poorBehaviorChecked = document.querySelectorAll('input[name="不良行為"]:checked');
-        if (poorBehaviorChecked.length === 0) {
-            errors.push('請在「不良行為」中至少選擇一個選項（若無不良行為請選擇「無」）');
-            if (!firstErrorField) {
-                firstErrorField = document.querySelector('input[name="不良行為"]');
-            }
-        }
-
-        if (errors.length > 0) {
-            return {
-                isValid: false,
-                message: '請完整填寫以下必填項目：\n• ' + errors.join('\n• '),
-                firstErrorField: firstErrorField
-            };
-        }
-
-        return { isValid: true };
-    }
-
-    function highlightErrorField(field) {
-        // 移除之前的高亮
-        const previousHighlights = document.querySelectorAll('.error-highlight');
-        previousHighlights.forEach(el => el.classList.remove('error-highlight'));
-
-        // 添加錯誤高亮樣式
-        let targetElement = field;
-        if (field.closest('.rating-group')) {
-            targetElement = field.closest('.rating-group');
-        } else if (field.closest('.checkbox-group')) {
-            targetElement = field.closest('.checkbox-group');
-        }
-
-        targetElement.classList.add('error-highlight');
-        
-        // 3秒後移除高亮
-        setTimeout(() => {
-            targetElement.classList.remove('error-highlight');
-        }, 3000);
-    }
-
-    function resetFormToDefault() {
-        // 重置所有單選按鈕為未選擇狀態
-        const radioButtons = form.querySelectorAll('input[type="radio"]');
-        radioButtons.forEach(radio => {
-            radio.checked = false;
-        });
-
-        // 重置所有複選框為未選擇狀態
-        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-            checkbox.disabled = false; // 確保啟用所有選項
-        });
-
-        // 重置下拉選單為預設選項
-        const selects = form.querySelectorAll('select');
-        selects.forEach(select => {
-            select.selectedIndex = 0;
-        });
-
-        // 重置文字輸入欄位
-        const textInputs = form.querySelectorAll('input[type="text"], input[type="date"]');
-        textInputs.forEach(input => {
-            if (input.name === '搭車日期') {
-                // 搭車日期重設為今天
-                input.value = new Date().toISOString().split('T')[0];
-            } else {
-                input.value = '';
-            }
-        });
-
-        // 移除所有驗證狀態樣式
-        const validationElements = form.querySelectorAll('.is-valid, .is-invalid, .error-highlight');
-        validationElements.forEach(el => {
-            el.classList.remove('is-valid', 'is-invalid', 'error-highlight');
-        });
     }
 
     function collectFormData() {
