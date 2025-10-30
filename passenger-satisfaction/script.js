@@ -251,6 +251,7 @@
                 captchaQuestion.textContent = data.question;
                 // 可以將 sessionId 存儲起來供後續驗證使用
                 captchaQuestion.dataset.sessionId = data.sessionId;
+                console.log('驗證碼載入成功:', data.question, 'SessionId:', data.sessionId);
             }
         } catch (error) {
             console.error('載入驗證碼時發生錯誤:', error);
@@ -409,6 +410,7 @@
 
             // 收集表單資料
             const formData = collectFormData();
+            console.log('提交的表單資料:', formData);
 
             // 提交資料
             const response = await fetch(`${API_BASE}/PassengerSatisfaction`, {
@@ -468,6 +470,12 @@
         
         data.不良行為 = Array.from(form.querySelectorAll('input[name="不良行為"]:checked'))
             .map(cb => cb.value);
+
+        // 添加驗證碼的 SessionId
+        const sessionId = captchaQuestion.dataset.sessionId;
+        if (sessionId) {
+            data.SessionId = sessionId;
+        }
 
         return data;
     }
