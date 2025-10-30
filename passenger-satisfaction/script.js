@@ -346,6 +346,23 @@
         }, 3000);
     }
 
+    function clearAllErrors() {
+        // 清除所有錯誤高亮
+        const errorHighlights = document.querySelectorAll('.error-highlight');
+        errorHighlights.forEach(el => el.classList.remove('error-highlight'));
+        
+        // 清除所有驗證狀態樣式
+        const validationElements = form.querySelectorAll('.is-valid, .is-invalid');
+        validationElements.forEach(el => {
+            el.classList.remove('is-valid', 'is-invalid');
+        });
+        
+        // 清除之前的警告訊息
+        if (alertContainer) {
+            alertContainer.innerHTML = '';
+        }
+    }
+
     function resetFormToDefault() {
         // 重置所有單選按鈕為未選擇狀態
         const radioButtons = form.querySelectorAll('input[type="radio"]');
@@ -390,6 +407,12 @@
         // 執行表單驗證
         const validationResult = validateForm();
         if (!validationResult.isValid) {
+            // 清除之前的成功訊息
+            if (alertContainer) {
+                const successAlerts = alertContainer.querySelectorAll('.alert-success');
+                successAlerts.forEach(alert => alert.remove());
+            }
+            
             showAlert(validationResult.message, 'warning');
             // 滾動到第一個錯誤字段
             if (validationResult.firstErrorField) {
@@ -424,12 +447,33 @@
             const result = await response.json();
 
             if (result.success) {
+                // 清除所有錯誤高亮
+                clearAllErrors();
+                
+                // 在頁面頂部顯示成功訊息
                 showAlert(result.message || '問卷提交成功，感謝您的寶貴意見！', 'success');
+                
+                // 重置表單
                 form.reset();
-                // 重置所有選項為未選取狀態
                 resetFormToDefault();
+                
                 // 重新載入驗證碼
                 await loadCaptcha();
+                
+                // 滾動到頂部讓用戶看到成功訊息
+                window.scrollTo({ 
+                    top: 0, 
+                    behavior: 'smooth' 
+                });
+                
+                // 3秒後滾動到表單開始處，方便用戶再次填寫
+                setTimeout(() => {
+                    const formStart = document.querySelector('.survey-header') || form;
+                    formStart.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 3000);
             } else {
                 throw new Error(result.message || '提交失敗');
             }
@@ -483,22 +527,63 @@
     function showAlert(message, type) {
         type = type || 'info';
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        
+        // 為成功訊息添加特殊樣式
+        const extraClasses = type === 'success' ? ' alert-success-enhanced' : '';
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show${extraClasses}`;
+        
+        const icon = type === 'success' ? '🎉' : type === 'danger' ? '❌' : '💡';
         alertDiv.innerHTML = `
-            <strong>${type === 'success' ? '成功！' : type === 'danger' ? '錯誤！' : '提示：'}</strong> ${message}
+            <div class="d-flex align-items-center">
+                <span class="me-2" style="font-size: 1.2em;">${icon}</span>
+                <div>
+                    <strong>${type === 'success' ? '提交成功！' : type === 'danger' ? '發生錯誤！' : '提示：'}</strong>
+                    <div>${message}</div>
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         
+        // 清空容器並加入新訊息
         alertContainer.innerHTML = '';
         alertContainer.appendChild(alertDiv);
 
-        // 滾動到提示訊息
-        alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // 如果是成功訊息，5秒後自動消失
+        // 如果是成功訊息，延長顯示時間並添加動畫
         if (type === 'success') {
+            // 添加成功訊息的特殊樣式
+            if (!document.getElementById('success-styles')) {
+                const style = document.createElement('style');
+                style.id = 'success-styles';
+                style.textContent = `
+                    .alert-success-enhanced {
+                        border: 2px solid #28a745;
+                        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                        animation: successPulse 0.6s ease-in-out;
+                    }
+                    @keyframes successPulse {
+                        0% { transform: scale(0.95); opacity: 0.8; }
+                        50% { transform: scale(1.02); }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // 8秒後自動消失
             setTimeout(() => {
-                alertDiv.remove();
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 8000);
+        } else if (type === 'warning') {
+            // 警告訊息不自動消失，需要用戶手動關閉
+        } else {
+            // 其他類型訊息 5秒後消失
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
             }, 5000);
         }
     }
