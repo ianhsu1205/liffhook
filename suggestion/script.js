@@ -3,7 +3,7 @@
   const base_url = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return window.location.origin + '/';
+      return window.location.origin + '/api/';
     }
     // 生產環境使用指定的後端地址
     return 'https://35.221.146.143.nip.io/linehook/';
