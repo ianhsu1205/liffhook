@@ -2,10 +2,10 @@
   const API_URL = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return window.location.origin + '/SuggestionProxy/proxy';
+      return window.location.origin + '/api/SuggestionProxy/proxy';
     }
     // 生產環境使用指定的後端地址
-    return 'https://35.221.146.143.nip.io/linehook/SuggestionProxy/proxy';
+    return 'https://35.221.146.143.nip.io/linehook/api/SuggestionProxy/proxy';
   })();
   const LIFF_ID = (new URL(location.href).searchParams.get('liffId') || window.SUGGESTION_LIFF_ID || ''); // 可在部署時以環境注入，或以 ?liffId= 帶入
 
@@ -30,6 +30,14 @@
   const btnCloseSuccess = $('btn-close-success');
   const countdownEl = $('countdown');
   const msg = $('msg');
+
+  // 驗證碼相關元素
+  const captchaImage = $('captchaImage');
+  const captchaInput = $('captcha_answer');
+  const captchaToken = $('captcha_token');
+  const refreshCaptchaBtn = $('refreshCaptcha');
+  const devTools = $('devTools');
+  const resetRateLimitBtn = $('resetRateLimitBtn');
 
   let liffReady = false;
   let userId = '';
@@ -87,6 +95,12 @@
     if (!dateI.value){ showMsg('發生時間為必填'); markInvalid(dateI, true); return; }
     markInvalid(dateI, false);
 
+    // 驗證驗證碼
+    const captchaAnswer = (captchaInput.value || '').trim();
+    if (!captchaAnswer){ showMsg('請輸入驗證碼'); markInvalid(captchaInput, true); return; }
+    if (!/^\d{4}$/.test(captchaAnswer)){ showMsg('驗證碼應為4位數字'); markInvalid(captchaInput, true); return; }
+    markInvalid(captchaInput, false);
+
     // 填入預覽值
     pvName.textContent = name;
     pvEmail.textContent = email;
@@ -125,15 +139,6 @@
     }
   }
 
-  // 即時過濾 emoji
-  [nameI, emailI, telI, detailI].forEach(el => {
-    el.addEventListener('input', () => {
-      const cur = el.value;
-      const cleaned = removeEmoji(cur);
-      if (cur !== cleaned) el.value = cleaned;
-    });
-  });
-
   // 原送出按鈕：仍保留直接送出，但成功時顯示成功對話框
   btn.addEventListener('click', async () => {
     hideMsg();
@@ -152,13 +157,21 @@
     if (!dateI.value){ showMsg('發生時間為必填'); markInvalid(dateI, true); return; }
     markInvalid(dateI, false);
 
+    // 驗證驗證碼
+    const captchaAnswer = (captchaInput.value || '').trim();
+    if (!captchaAnswer){ showMsg('請輸入驗證碼'); markInvalid(captchaInput, true); return; }
+    if (!/^\d{4}$/.test(captchaAnswer)){ showMsg('驗證碼應為4位數字'); markInvalid(captchaInput, true); return; }
+    markInvalid(captchaInput, false);
+
     const payload = {
       svr_name: name,
-  email: email,
+      email: email,
       svr_tel: (telI.value||'').trim(),
       svr_date: dateI.value.replace('T',' '), // 轉成 yyyy-MM-dd HH:mm
       svr_detail: detail,
-      svr_userip: userId || ''
+      svr_userip: userId || '',
+      captcha_token: captchaToken.value,
+      captcha_answer: captchaAnswer
     };
 
     btn.disabled = true; btn.classList.add('loading');
@@ -171,12 +184,14 @@
       const text = await resp.text();
       if (!resp.ok) throw new Error(text || '提交失敗');
       form.reset();
+      loadCaptcha(); // 重新載入驗證碼
       // 顯示成功對話框並啟動倒數
       openModal(dlgSuccess);
       startCountdownAndMaybeClose();
       userId && (payload.svr_userip = userId); // no-op, just keep reference
     }catch(e){
       showMsg(e.message || '送出發生錯誤');
+      loadCaptcha(); // 失敗時也重新載入驗證碼
     }finally{
       btn.disabled = false; btn.classList.remove('loading');
     }
@@ -210,7 +225,76 @@
     closeModal(dlgSuccess);
   });
 
+  // 驗證碼功能
+  async function loadCaptcha() {
+    try {
+      const response = await fetch('/api/SuggestionProxy/captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge: Date.now().toString() })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        captchaImage.src = `data:image/svg+xml;base64,${data.image_base64}`;
+        captchaToken.value = data.token;
+        captchaInput.value = '';
+      } else {
+        showMsg('驗證碼載入失敗');
+      }
+    } catch (error) {
+      console.error('載入驗證碼失敗:', error);
+      showMsg('驗證碼載入失敗');
+    }
+  }
+
+  // 重置速率限制（開發用）
+  async function resetRateLimit() {
+    try {
+      const response = await fetch('/api/SuggestionProxy/reset-rate-limit', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        showMsg(`✅ ${data.message}`, true);
+      } else {
+        throw new Error('重置失敗');
+      }
+    } catch (error) {
+      console.error('重置速率限制失敗:', error);
+      showMsg('重置速率限制失敗');
+    }
+  }
+
+  // 初始化開發者工具
+  function initDevTools() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      devTools.classList.add('show');
+      resetRateLimitBtn.addEventListener('click', resetRateLimit);
+    }
+  }
+
+  // 驗證碼事件監聽
+  refreshCaptchaBtn.addEventListener('click', loadCaptcha);
+
+  // 即時過濾 emoji（包括驗證碼輸入）
+  [nameI, emailI, telI, detailI, captchaInput].forEach(el => {
+    el.addEventListener('input', () => {
+      const cur = el.value;
+      const cleaned = removeEmoji(cur);
+      if (cur !== cleaned) el.value = cleaned;
+    });
+  });
+
+  // 驗證碼輸入限制（只允許數字）
+  captchaInput.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  });
+
   // 初始化
   setNowIfEmpty();
   initLiff();
+  loadCaptcha(); // 載入驗證碼
+  initDevTools(); // 初始化開發者工具
 })();

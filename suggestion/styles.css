@@ -120,3 +120,93 @@ body.modal-open{overflow:hidden}
 	.grid{grid-template-columns:1fr}
 	.primary{width:100%}
 }
+
+/* 驗證碼樣式 */
+.captcha-field {
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 16px;
+}
+
+.captcha-container {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.captcha-image-container {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.refresh-btn {
+	background: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 4px;
+	padding: 4px 8px;
+	cursor: pointer;
+	font-size: 14px;
+	transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+	background: #e9ecef;
+}
+
+#captcha_answer {
+	flex: 0 0 120px;
+	padding: 8px;
+	border: 1px solid #dee2e6;
+	border-radius: 4px;
+	font-size: 16px;
+	text-align: center;
+	letter-spacing: 2px;
+}
+
+/* 安全提示樣式 */
+.security-notice {
+	background: #e7f3ff;
+	border-left: 4px solid #0d6efd;
+	padding: 12px;
+	margin-bottom: 16px;
+	border-radius: 4px;
+	font-size: 14px;
+	color: #0c63e4;
+}
+
+/* 開發者工具樣式 */
+.dev-tools {
+	background: #fff3cd;
+	border: 1px solid #ffeaa7;
+	border-radius: 8px;
+	padding: 12px;
+	margin-top: 16px;
+	display: none;
+}
+
+.dev-tools.show {
+	display: block;
+}
+
+.dev-tools h6 {
+	margin: 0 0 8px;
+	color: #856404;
+}
+
+.dev-tools button {
+	background: #ffc107;
+	border: 1px solid #f0b90b;
+	border-radius: 4px;
+	padding: 6px 12px;
+	color: #000;
+	cursor: pointer;
+	font-size: 12px;
+}
+
+.dev-tools button:hover {
+	background: #f0b90b;
+}

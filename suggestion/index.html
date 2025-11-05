@@ -15,8 +15,14 @@
   </head>
   <body>
     <main class="container">
-      <h1>大都會意見信箱</h1>
+      <h1>大都會意見信箱 🛡️</h1>
       <p class="hint">此表單禁止使用 emoji，若輸入包含 emoji 會自動移除。</p>
+
+      <!-- 安全提示 -->
+      <div class="security-notice">
+        <strong>🛡️ 安全保護措施：</strong>
+        速率限制 (每分鐘10次，每小時50次) • 內容過濾 • IP追蹤 • 驗證碼保護
+      </div>
 
       <form id="form" class="card" novalidate>
         <div class="grid">
@@ -52,6 +58,40 @@
           ></textarea>
         </label>
 
+        <!-- 驗證碼區域 -->
+        <div class="field captcha-field">
+          <span>安全驗證（必填）</span>
+          <div class="captcha-container">
+            <div class="captcha-image-container">
+              <img
+                id="captchaImage"
+                src=""
+                alt="驗證碼圖片"
+                style="
+                  max-width: 120px;
+                  height: 40px;
+                  border: 1px solid #ddd;
+                  border-radius: 4px;
+                  background: #f9f9f9;
+                "
+              />
+              <button type="button" id="refreshCaptcha" class="refresh-btn">
+                🔄
+              </button>
+            </div>
+            <input
+              type="text"
+              id="captcha_answer"
+              placeholder="請輸入4位數字"
+              maxlength="4"
+              pattern="[0-9]{4}"
+              required
+              style="width: 120px; margin-left: 10px"
+            />
+            <input type="hidden" id="captcha_token" />
+          </div>
+        </div>
+
         <div class="actions">
           <button type="button" id="btn-preview" class="secondary">預覽</button>
           <button type="button" id="btn-submit" class="primary">送出</button>
@@ -59,6 +99,15 @@
 
         <div id="msg" class="msg hidden"></div>
       </form>
+
+      <!-- 開發者工具 -->
+      <div class="dev-tools" id="devTools">
+        <h6>🔧 開發者工具</h6>
+        <button type="button" id="resetRateLimitBtn">重置速率限制</button>
+        <span style="margin-left: 10px; font-size: 12px; color: #856404">
+          僅在 localhost 環境顯示
+        </span>
+      </div>
 
       <!-- 預覽對話框 -->
       <section
