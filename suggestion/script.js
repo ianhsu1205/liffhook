@@ -9,7 +9,7 @@
     return 'https://35.221.146.143.nip.io/linehook/';
   })();
 
-  const API_URL = base_url + 'api/SuggestionProxy/proxy';
+  const API_URL = base_url + 'SuggestionProxy/proxy';
   const LIFF_ID = (new URL(location.href).searchParams.get('liffId') || window.SUGGESTION_LIFF_ID || ''); // 可在部署時以環境注入，或以 ?liffId= 帶入
 
   const $ = (id) => document.getElementById(id);
@@ -242,8 +242,10 @@
   // 驗證碼功能
   async function loadCaptcha() {
     console.log('🔄 載入驗證碼...');
+    console.log('🔗 Base URL:', base_url);
+    
     try {
-      const captchaUrl = base_url + 'api/SuggestionProxy/captcha';
+      const captchaUrl = base_url + 'SuggestionProxy/captcha';
       console.log('📡 驗證碼 API URL:', captchaUrl);
       
       const response = await fetch(captchaUrl, {
@@ -266,7 +268,7 @@
         captchaInput.value = '';
       } else {
         console.error('❌ 驗證碼載入失敗，狀態:', response.status);
-        showMsg('驗證碼載入失敗');
+        showMsg(`驗證碼載入失敗 (${response.status})`);
       }
     } catch (error) {
       console.error('❌ 載入驗證碼失敗:', error);
@@ -277,7 +279,7 @@
   // 重置速率限制（開發用）
   async function resetRateLimit() {
     try {
-      const resetUrl = base_url + 'api/SuggestionProxy/reset-rate-limit';
+      const resetUrl = base_url + 'SuggestionProxy/reset-rate-limit';
       const response = await fetch(resetUrl, {
         method: 'POST'
       });
