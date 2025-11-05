@@ -1,12 +1,15 @@
 (() => {
-  const API_URL = (() => {
+  // 全局變數
+  const base_url = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return window.location.origin + '/api/SuggestionProxy/proxy';
+      return window.location.origin + '/';
     }
     // 生產環境使用指定的後端地址
-    return 'https://35.221.146.143.nip.io/linehook/api/SuggestionProxy/proxy';
+    return 'https://35.221.146.143.nip.io/linehook/';
   })();
+
+  const API_URL = base_url + 'api/SuggestionProxy/proxy';
   const LIFF_ID = (new URL(location.href).searchParams.get('liffId') || window.SUGGESTION_LIFF_ID || ''); // 可在部署時以環境注入，或以 ?liffId= 帶入
 
   const $ = (id) => document.getElementById(id);
@@ -240,7 +243,10 @@
   async function loadCaptcha() {
     console.log('🔄 載入驗證碼...');
     try {
-      const response = await fetch('/api/SuggestionProxy/captcha', {
+      const captchaUrl = base_url + 'api/SuggestionProxy/captcha';
+      console.log('📡 驗證碼 API URL:', captchaUrl);
+      
+      const response = await fetch(captchaUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge: Date.now().toString() })
@@ -271,7 +277,8 @@
   // 重置速率限制（開發用）
   async function resetRateLimit() {
     try {
-      const response = await fetch('/api/SuggestionProxy/reset-rate-limit', {
+      const resetUrl = base_url + 'api/SuggestionProxy/reset-rate-limit';
+      const response = await fetch(resetUrl, {
         method: 'POST'
       });
       
