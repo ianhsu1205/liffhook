@@ -66,10 +66,10 @@
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1"
         ) {
-          return window.location.origin + "/"
+          return window.location.origin
         }
         // 生產環境使用指定的後端地址
-        return "https://35.221.146.143.nip.io/linehook/"
+        return "https://35.221.146.143.nip.io/linehook"
       })()
 
       // 顯示 API Base URL
