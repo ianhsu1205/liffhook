@@ -1,5 +1,12 @@
 // 全域變數
-let API_BASE = '';
+const API_BASE = (() => {
+    // 檢查是否為本地開發環境
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return window.location.origin + '/';
+    }
+    // 生產環境使用指定的後端地址
+    return 'https://35.221.146.143.nip.io/linehook/';
+})();
 let announcementId = '';
 let currentPage = 1;
 let totalPages = 1;
@@ -8,24 +15,9 @@ let filteredRecords = [];
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    detectApiBase();
+    console.log('API Base URL:', API_BASE);
     initializePage();
 });
-
-// 自動偵測 API 基礎路徑
-function detectApiBase() {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    const port = window.location.port;
-    
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        API_BASE = `${protocol}//${hostname}${port ? `:${port}` : ''}`;
-    } else {
-        API_BASE = `${protocol}//${hostname}`;
-    }
-    
-    console.log('API Base URL:', API_BASE);
-}
 
 // 初始化頁面
 async function initializePage() {

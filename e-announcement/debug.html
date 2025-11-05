@@ -59,24 +59,26 @@
     </div>
 
     <script>
-      // 自動偵測 API 基礎路徑
-      let API_BASE = ""
-      function detectApiBase() {
-        const hostname = window.location.hostname
-        const protocol = window.location.protocol
-        const port = window.location.port
-
-        if (hostname === "localhost" || hostname === "127.0.0.1") {
-          API_BASE = `${protocol}//${hostname}${port ? `:${port}` : ""}`
-        } else {
-          API_BASE = `${protocol}//${hostname}`
+      // API 基礎路徑設定
+      const API_BASE = (() => {
+        // 檢查是否為本地開發環境
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/"
         }
+        // 生產環境使用指定的後端地址
+        return "https://35.221.146.143.nip.io/linehook/"
+      })()
 
+      // 顯示 API Base URL
+      document.addEventListener("DOMContentLoaded", function () {
         console.log("API Base URL:", API_BASE)
         document.getElementById(
           "apiResult"
         ).innerHTML = `<strong>API Base URL:</strong> ${API_BASE}`
-      }
+      })
 
       // 測試 API 連接
       async function testApiConnection() {
@@ -152,11 +154,6 @@
                 `
         }
       }
-
-      // 初始化
-      document.addEventListener("DOMContentLoaded", function () {
-        detectApiBase()
-      })
     </script>
   </body>
 </html>
