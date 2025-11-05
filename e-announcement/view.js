@@ -80,7 +80,7 @@ async function loadUserInfo() {
 // 載入宣導內容
 async function loadAnnouncement() {
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${announcementId}`);
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}`);
         const result = await response.json();
         
         if (result.success) {
@@ -298,7 +298,7 @@ async function submitSignature() {
         };
         
         // 提交簽名
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/signature`, {
+        const response = await fetch(`${API_BASE}/EAnnouncement/signature`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

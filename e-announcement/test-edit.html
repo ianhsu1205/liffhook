@@ -137,7 +137,7 @@
         }
 
         try {
-          const response = await fetch(`${API_BASE}/api/EAnnouncement`, {
+          const response = await fetch(`${API_BASE}/EAnnouncement`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -185,7 +185,7 @@
 
         try {
           // 1. 先獲取資料
-          const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`)
+          const response = await fetch(`${API_BASE}/EAnnouncement/${id}`)
           const result = await response.json()
 
           console.log("📡 API 回應:", result)

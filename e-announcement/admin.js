@@ -71,7 +71,7 @@ function setupEventListeners() {
 // 載入公司部門資料
 async function loadCompanyDepartments() {
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/company-departments`);
+        const response = await fetch(`${API_BASE}/EAnnouncement/company-departments`);
         const result = await response.json();
         
         if (result.success) {
@@ -348,7 +348,7 @@ async function loadAnnouncements() {
             params.append('company', company);
         }
         
-        const response = await fetch(`${API_BASE}/api/EAnnouncement?${params}`);
+        const response = await fetch(`${API_BASE}/EAnnouncement?${params}`);
         const result = await response.json();
         
         if (result.success) {
@@ -645,7 +645,7 @@ function formatDateTimeString(dateTimeInput) {
 
 // 建立宣導專案
 async function createAnnouncement(data) {
-    const response = await fetch(`${API_BASE}/api/EAnnouncement`, {
+    const response = await fetch(`${API_BASE}/EAnnouncement`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -662,7 +662,7 @@ async function createAnnouncement(data) {
 // 更新宣導專案
 async function updateAnnouncement(data) {
     const id = document.getElementById('announcementId').value;
-    const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`, {
+    const response = await fetch(`${API_BASE}/EAnnouncement/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
@@ -680,7 +680,7 @@ async function updateAnnouncement(data) {
 async function editAnnouncement(id) {
     try {
         console.log('🔍 開始編輯宣導專案，ID:', id);
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`);
+        const response = await fetch(`${API_BASE}/EAnnouncement/${id}`);
         console.log('📡 API 回應狀態:', response.status);
         
         const result = await response.json();
@@ -874,7 +874,7 @@ function populateFormWithData(data) {
 function deleteAnnouncement(id, title) {
     document.getElementById('confirmDeleteBtn').onclick = async function() {
         try {
-            const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`, {
+            const response = await fetch(`${API_BASE}/EAnnouncement/${id}`, {
                 method: 'DELETE'
             });
             
@@ -899,7 +899,7 @@ function deleteAnnouncement(id, title) {
 // 發佈宣導
 async function publishAnnouncement(id) {
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}/publish`, {
+        const response = await fetch(`${API_BASE}/EAnnouncement/${id}/publish`, {
             method: 'POST'
         });
         
@@ -988,7 +988,7 @@ async function executeTestPublish() {
     }
     
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${currentTestPublishId}/test-publish`, {
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentTestPublishId}/test-publish`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1022,7 +1022,7 @@ function viewRecords(id) {
 // 匯出 PDF
 async function exportPdf(id) {
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}/export-pdf`);
+        const response = await fetch(`${API_BASE}/EAnnouncement/${id}/export-pdf`);
         
         if (response.headers.get('content-type')?.includes('application/pdf')) {
             // 實際 PDF 檔案

@@ -81,7 +81,7 @@
       // 測試 API 連接
       async function testApiConnection() {
         try {
-          const response = await fetch(`${API_BASE}/api/EAnnouncement/options`)
+          const response = await fetch(`${API_BASE}/EAnnouncement/options`)
           const result = await response.json()
           document.getElementById("apiResult").innerHTML = `
                     <strong>連接成功！</strong><br>
@@ -98,7 +98,7 @@
       async function testGetAnnouncements() {
         try {
           const response = await fetch(
-            `${API_BASE}/api/EAnnouncement?page=1&pageSize=5`
+            `${API_BASE}/EAnnouncement?page=1&pageSize=5`
           )
           const result = await response.json()
           document.getElementById("announcementsResult").innerHTML = `
@@ -122,7 +122,7 @@
         }
 
         try {
-          const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`)
+          const response = await fetch(`${API_BASE}/EAnnouncement/${id}`)
           const result = await response.json()
           document.getElementById("singleResult").innerHTML = `
                     <strong>獲取成功！</strong><br>
@@ -139,7 +139,7 @@
       async function testGetCompanyDepartments() {
         try {
           const response = await fetch(
-            `${API_BASE}/api/EAnnouncement/company-departments`
+            `${API_BASE}/EAnnouncement/company-departments`
           )
           const result = await response.json()
           document.getElementById("companyResult").innerHTML = `

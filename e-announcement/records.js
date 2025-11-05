@@ -65,7 +65,7 @@ async function initializePage() {
 // 載入宣導資訊
 async function loadAnnouncementInfo() {
     try {
-        const response = await fetch(`${API_BASE}/api/EAnnouncement/${announcementId}`);
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}`);
         const result = await response.json();
         
         if (result.success) {
@@ -84,7 +84,7 @@ async function loadAnnouncementInfo() {
 async function loadRecords() {
     try {
         console.log(`正在載入記錄，宣導ID: ${announcementId}, 頁面: ${currentPage}`);
-        const url = `${API_BASE}/api/EAnnouncement/${announcementId}/records?page=${currentPage}&pageSize=50`;
+        const url = `${API_BASE}/EAnnouncement/${announcementId}/records?page=${currentPage}&pageSize=50`;
         console.log('API URL:', url);
         
         const response = await fetch(url);
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 查看簽名
 window.viewSignature = function(recordId, employeeName) {
-    fetch(`/api/eannouncementrecords/${recordId}/signature`)
+    fetch(`/eannouncementrecords/${recordId}/signature`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('無法取得簽名圖片');
