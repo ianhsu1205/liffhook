@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E宣導系統</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 80px 0;
+      }
+      .feature-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+      }
+      .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      }
+      .feature-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .btn-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 25px;
+        padding: 12px 30px;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+      .btn-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-4 fw-bold mb-4">
+              <i class="fas fa-bullhorn me-3"></i>
+              E宣導系統
+            </h1>
+            <p class="lead mb-4">
+              現代化的電子宣導平台，支援多元內容發佈、電子簽名確認及完整記錄管理
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+              <a href="admin.html" class="btn btn-light btn-lg">
+                <i class="fas fa-cog me-2"></i>管理系統
+              </a>
+              <a href="#features" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-info-circle me-2"></i>了解更多
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5">
+      <div class="container">
+        <div class="row mb-5">
+          <div class="col-lg-8 mx-auto text-center">
+            <h2 class="display-5 fw-bold mb-3">系統功能特色</h2>
+            <p class="lead text-muted">
+              提供完整的宣導管理解決方案，從內容建立到簽名確認，全流程數位化管理
+            </p>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-plus-circle feature-icon mb-3"></i>
+                <h5 class="card-title">宣導專案管理</h5>
+                <p class="card-text text-muted">
+                  新增、修改、刪除宣導專案，支援多種文件類型和豐富內容格式
+                </p>
+                <a href="admin.html" class="btn btn-custom">
+                  <i class="fas fa-arrow-right me-1"></i>進入管理
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-signature feature-icon mb-3"></i>
+                <h5 class="card-title">電子簽名確認</h5>
+                <p class="card-text text-muted">
+                  支援手繪簽名、觸控簽名，確保宣導內容的有效傳達和確認
+                </p>
+                <a href="#" class="btn btn-custom" onclick="showSignDemo()">
+                  <i class="fas fa-eye me-1"></i>功能展示
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-chart-line feature-icon mb-3"></i>
+                <h5 class="card-title">記錄與統計</h5>
+                <p class="card-text text-muted">
+                  完整的簽名記錄追蹤，統計分析，支援PDF匯出和資料視覺化
+                </p>
+                <a href="#" class="btn btn-custom" onclick="showRecordsDemo()">
+                  <i class="fas fa-chart-bar me-1"></i>查看統計
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-share-alt feature-icon mb-3"></i>
+                <h5 class="card-title">LINE整合通知</h5>
+                <p class="card-text text-muted">
+                  與LINE Bot整合，自動發送宣導通知到指定部門和人員
+                </p>
+                <span class="badge bg-success">整合完成</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-mobile-alt feature-icon mb-3"></i>
+                <h5 class="card-title">行動裝置支援</h5>
+                <p class="card-text text-muted">
+                  響應式設計，支援手機、平板等各種裝置，隨時隨地完成簽名確認
+                </p>
+                <span class="badge bg-info">RWD設計</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="card feature-card h-100 p-4">
+              <div class="card-body text-center">
+                <i class="fas fa-shield-alt feature-icon mb-3"></i>
+                <h5 class="card-title">安全性保障</h5>
+                <p class="card-text text-muted">
+                  LIFF身份驗證，資料加密傳輸，確保簽名記錄的安全性和完整性
+                </p>
+                <span class="badge bg-warning text-dark">高安全性</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="py-5 bg-light">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 mx-auto text-center">
+            <h2 class="display-6 fw-bold mb-4">快速入門</h2>
+            <p class="lead text-muted mb-4">
+              體驗完整的宣導流程，從建立專案到簽名確認
+            </p>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="d-flex flex-column align-items-center">
+                  <div
+                    class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-3"
+                    style="width: 60px; height: 60px"
+                  >
+                    <span class="fw-bold">1</span>
+                  </div>
+                  <h6>建立宣導專案</h6>
+                  <p class="text-muted small">建立新的宣導內容</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column align-items-center">
+                  <div
+                    class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mb-3"
+                    style="width: 60px; height: 60px"
+                  >
+                    <span class="fw-bold">2</span>
+                  </div>
+                  <h6>發送通知</h6>
+                  <p class="text-muted small">LINE自動推播通知</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column align-items-center">
+                  <div
+                    class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center mb-3"
+                    style="width: 60px; height: 60px"
+                  >
+                    <span class="fw-bold">3</span>
+                  </div>
+                  <h6>完成簽名</h6>
+                  <p class="text-muted small">電子簽名確認閱讀</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h6 class="mb-0"><i class="fas fa-bullhorn me-2"></i>E宣導系統</h6>
+            <small class="text-muted">現代化電子宣導管理平台</small>
+          </div>
+          <div class="col-md-6 text-end">
+            <small class="text-muted"> © 2024 E宣導系統. 版本 1.0.0 </small>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function showSignDemo() {
+        alert(
+          "簽名功能展示：\n\n1. 支援滑鼠和觸控簽名\n2. 即時預覽功能\n3. 高清圖片儲存\n4. 防重複簽名機制"
+        )
+      }
+
+      function showRecordsDemo() {
+        alert(
+          "記錄統計功能：\n\n1. 即時簽名統計\n2. 部門別分析\n3. 完成率追蹤\n4. CSV/PDF匯出"
+        )
+      }
+
+      // 平滑滾動
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault()
+          const target = document.querySelector(this.getAttribute("href"))
+          if (target) {
+            target.scrollIntoView({
+              behavior: "smooth",
+            })
+          }
+        })
+      })
+    </script>
+  </body>
+</html>

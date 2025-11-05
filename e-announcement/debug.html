@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>編輯功能調試</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .debug-section {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .debug-result {
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 5px 0;
+      }
+      button {
+        padding: 8px 15px;
+        margin: 5px;
+      }
+      pre {
+        background: #f0f0f0;
+        padding: 10px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>E-announcement 編輯功能調試</h1>
+
+    <div class="debug-section">
+      <h3>1. 測試 API 連接</h3>
+      <button onclick="testApiConnection()">測試 API 連接</button>
+      <div id="apiResult" class="debug-result"></div>
+    </div>
+
+    <div class="debug-section">
+      <h3>2. 測試獲取宣導專案列表</h3>
+      <button onclick="testGetAnnouncements()">獲取宣導專案列表</button>
+      <div id="announcementsResult" class="debug-result"></div>
+    </div>
+
+    <div class="debug-section">
+      <h3>3. 測試單一宣導專案獲取</h3>
+      <input type="text" id="announcementId" placeholder="輸入專案 ID" />
+      <button onclick="testGetSingleAnnouncement()">獲取單一專案資料</button>
+      <div id="singleResult" class="debug-result"></div>
+    </div>
+
+    <div class="debug-section">
+      <h3>4. 測試公司部門資料</h3>
+      <button onclick="testGetCompanyDepartments()">獲取公司部門資料</button>
+      <div id="companyResult" class="debug-result"></div>
+    </div>
+
+    <script>
+      // 自動偵測 API 基礎路徑
+      let API_BASE = ""
+      function detectApiBase() {
+        const hostname = window.location.hostname
+        const protocol = window.location.protocol
+        const port = window.location.port
+
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+          API_BASE = `${protocol}//${hostname}${port ? `:${port}` : ""}`
+        } else {
+          API_BASE = `${protocol}//${hostname}`
+        }
+
+        console.log("API Base URL:", API_BASE)
+        document.getElementById(
+          "apiResult"
+        ).innerHTML = `<strong>API Base URL:</strong> ${API_BASE}`
+      }
+
+      // 測試 API 連接
+      async function testApiConnection() {
+        try {
+          const response = await fetch(`${API_BASE}/api/EAnnouncement/options`)
+          const result = await response.json()
+          document.getElementById("apiResult").innerHTML = `
+                    <strong>連接成功！</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `
+        } catch (error) {
+          document.getElementById("apiResult").innerHTML = `
+                    <strong>連接失敗：</strong>${error.message}
+                `
+        }
+      }
+
+      // 測試獲取宣導專案列表
+      async function testGetAnnouncements() {
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/EAnnouncement?page=1&pageSize=5`
+          )
+          const result = await response.json()
+          document.getElementById("announcementsResult").innerHTML = `
+                    <strong>獲取成功！</strong><br>
+                    <strong>總數：</strong>${result.totalCount}<br>
+                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                `
+        } catch (error) {
+          document.getElementById("announcementsResult").innerHTML = `
+                    <strong>獲取失敗：</strong>${error.message}
+                `
+        }
+      }
+
+      // 測試單一宣導專案獲取
+      async function testGetSingleAnnouncement() {
+        const id = document.getElementById("announcementId").value
+        if (!id) {
+          alert("請輸入專案 ID")
+          return
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`)
+          const result = await response.json()
+          document.getElementById("singleResult").innerHTML = `
+                    <strong>獲取成功！</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `
+        } catch (error) {
+          document.getElementById("singleResult").innerHTML = `
+                    <strong>獲取失敗：</strong>${error.message}
+                `
+        }
+      }
+
+      // 測試公司部門資料
+      async function testGetCompanyDepartments() {
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/EAnnouncement/company-departments`
+          )
+          const result = await response.json()
+          document.getElementById("companyResult").innerHTML = `
+                    <strong>獲取成功！</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `
+        } catch (error) {
+          document.getElementById("companyResult").innerHTML = `
+                    <strong>獲取失敗：</strong>${error.message}
+                `
+        }
+      }
+
+      // 初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        detectApiBase()
+      })
+    </script>
+  </body>
+</html>

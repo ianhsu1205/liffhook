@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>編輯功能測試</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .test-section {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      button {
+        padding: 8px 15px;
+        margin: 5px;
+      }
+      .result {
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 5px 0;
+      }
+      pre {
+        background: #f0f0f0;
+        padding: 10px;
+        overflow-x: auto;
+      }
+      .form-field {
+        margin: 10px 0;
+      }
+      label {
+        display: inline-block;
+        width: 120px;
+      }
+      input,
+      select,
+      textarea {
+        width: 300px;
+        padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>編輯功能測試</h1>
+
+    <div class="test-section">
+      <h3>1. 創建測試資料</h3>
+      <button onclick="createTestData()">創建測試宣導專案</button>
+      <div id="createResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>2. 測試編輯功能</h3>
+      <input
+        type="text"
+        id="testId"
+        placeholder="輸入專案 ID"
+        style="width: 100px"
+      />
+      <button onclick="testEditFunction()">測試編輯</button>
+      <div id="editResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>3. 手動表單測試</h3>
+      <div class="form-field">
+        <label>標題:</label>
+        <input type="text" id="title" />
+      </div>
+      <div class="form-field">
+        <label>文件類型:</label>
+        <select id="documentType">
+          <option value="">請選擇</option>
+          <option value="公告">公告</option>
+          <option value="通知">通知</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>發佈單位:</label>
+        <select id="publishUnit">
+          <option value="">請選擇</option>
+          <option value="資訊中心">資訊中心</option>
+          <option value="其它">其它</option>
+        </select>
+      </div>
+      <div class="form-field" id="customPublishUnitDiv" style="display: none">
+        <label>自訂發佈單位:</label>
+        <input type="text" id="customPublishUnit" />
+      </div>
+      <div class="form-field">
+        <label>發佈日期:</label>
+        <input type="date" id="publishDate" />
+      </div>
+      <div class="form-field">
+        <label>目標公司:</label>
+        <input type="text" id="targetCompany" />
+      </div>
+      <button onclick="testFormPopulation()">測試表單填入</button>
+    </div>
+
+    <script>
+      // API 基礎路徑
+      const API_BASE = window.location.origin
+
+      // 監聽發佈單位變更
+      document
+        .getElementById("publishUnit")
+        .addEventListener("change", function () {
+          const customDiv = document.getElementById("customPublishUnitDiv")
+          if (this.value === "其它") {
+            customDiv.style.display = "block"
+          } else {
+            customDiv.style.display = "none"
+          }
+        })
+
+      // 創建測試資料
+      async function createTestData() {
+        const testData = {
+          title: "測試編輯專案 " + new Date().getTime(),
+          documentType: "公告",
+          publishUnit: "其它",
+          customPublishUnit: "測試自訂單位",
+          targetCompany: "測試公司",
+          targetDepartments: ["IT部門", "行政部門"],
+          publishDate: "2024-11-05 10:00",
+          contentBlocks: [
+            {
+              type: "text",
+              content: "這是測試內容，用來驗證編輯功能。",
+              order: 1,
+            },
+          ],
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/api/EAnnouncement`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(testData),
+          })
+
+          const result = await response.json()
+          console.log("創建結果:", result)
+
+          if (result.success) {
+            document.getElementById("createResult").innerHTML = `
+                        <strong>✅ 測試資料創建成功！</strong><br>
+                        <strong>專案 ID:</strong> ${result.data.id}<br>
+                        <input type="text" value="${
+                          result.data.id
+                        }" onclick="this.select()" readonly style="width: 80px;">
+                        <button onclick="document.getElementById('testId').value='${
+                          result.data.id
+                        }'">使用此 ID 測試</button>
+                        <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                    `
+          } else {
+            document.getElementById("createResult").innerHTML = `
+                        <strong>❌ 創建失敗:</strong> ${result.message}
+                    `
+          }
+        } catch (error) {
+          console.error("創建錯誤:", error)
+          document.getElementById("createResult").innerHTML = `
+                    <strong>❌ 創建錯誤:</strong> ${error.message}
+                `
+        }
+      }
+
+      // 測試編輯功能
+      async function testEditFunction() {
+        const id = document.getElementById("testId").value
+        if (!id) {
+          alert("請輸入專案 ID")
+          return
+        }
+
+        console.log("🔍 開始測試編輯功能，ID:", id)
+
+        try {
+          // 1. 先獲取資料
+          const response = await fetch(`${API_BASE}/api/EAnnouncement/${id}`)
+          const result = await response.json()
+
+          console.log("📡 API 回應:", result)
+
+          if (result.success) {
+            // 2. 測試表單填入
+            populateFormWithData(result.data)
+
+            document.getElementById("editResult").innerHTML = `
+                        <strong>✅ 編輯測試成功！</strong><br>
+                        請檢查下方表單是否正確填入資料。<br>
+                        <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                    `
+          } else {
+            document.getElementById("editResult").innerHTML = `
+                        <strong>❌ 獲取資料失敗:</strong> ${result.message}
+                    `
+          }
+        } catch (error) {
+          console.error("編輯錯誤:", error)
+          document.getElementById("editResult").innerHTML = `
+                    <strong>❌ 編輯錯誤:</strong> ${error.message}
+                `
+        }
+      }
+
+      // 填入表單資料（簡化版）
+      function populateFormWithData(data) {
+        console.log("🎯 開始填入表單資料:", data)
+
+        // 基本欄位
+        document.getElementById("title").value = data.title || ""
+        document.getElementById("documentType").value = data.documentType || ""
+        document.getElementById("publishUnit").value = data.publishUnit || ""
+        document.getElementById("targetCompany").value =
+          data.targetCompany || ""
+
+        console.log("📝 基本欄位已填入")
+
+        // 處理日期
+        let publishDate = ""
+        if (data.publishDate) {
+          if (data.publishDate.includes("T")) {
+            publishDate = data.publishDate.split("T")[0]
+          } else if (data.publishDate.includes(" ")) {
+            publishDate = data.publishDate.split(" ")[0]
+          } else {
+            publishDate = data.publishDate
+          }
+        }
+        document.getElementById("publishDate").value = publishDate
+        console.log("📅 日期已填入:", publishDate)
+
+        // 處理自訂發佈單位
+        if (data.publishUnit === "其它") {
+          document.getElementById("customPublishUnit").value =
+            data.customPublishUnit || ""
+          document.getElementById("customPublishUnitDiv").style.display =
+            "block"
+          console.log("🔧 自訂發佈單位已顯示:", data.customPublishUnit)
+        } else {
+          document.getElementById("customPublishUnit").value = ""
+          document.getElementById("customPublishUnitDiv").style.display = "none"
+          console.log("🔧 自訂發佈單位已隱藏")
+        }
+
+        console.log("✅ 表單填入完成")
+      }
+
+      // 測試表單填入
+      function testFormPopulation() {
+        const testData = {
+          title: "測試標題",
+          documentType: "公告",
+          publishUnit: "其它",
+          customPublishUnit: "測試自訂單位",
+          targetCompany: "測試公司",
+          publishDate: "2024-11-05T10:00:00",
+        }
+
+        populateFormWithData(testData)
+        console.log("手動測試資料已填入")
+      }
+    </script>
+  </body>
+</html>
