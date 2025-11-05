@@ -159,6 +159,12 @@
 
     // 驗證驗證碼
     const captchaAnswer = (captchaInput.value || '').trim();
+    console.log('🔐 驗證碼驗證:', {
+      captchaToken: captchaToken.value ? captchaToken.value.substring(0, 8) + '...' : 'empty',
+      captchaAnswer: captchaAnswer,
+      captchaAnswerLength: captchaAnswer.length
+    });
+    
     if (!captchaAnswer){ showMsg('請輸入驗證碼'); markInvalid(captchaInput, true); return; }
     if (!/^\d{4}$/.test(captchaAnswer)){ showMsg('驗證碼應為4位數字'); markInvalid(captchaInput, true); return; }
     markInvalid(captchaInput, false);
@@ -173,6 +179,11 @@
       captcha_token: captchaToken.value,
       captcha_answer: captchaAnswer
     };
+    
+    console.log('📤 提交數據:', {
+      ...payload,
+      captcha_token: payload.captcha_token ? payload.captcha_token.substring(0, 8) + '...' : 'empty'
+    });
 
     btn.disabled = true; btn.classList.add('loading');
     try{
@@ -227,6 +238,7 @@
 
   // 驗證碼功能
   async function loadCaptcha() {
+    console.log('🔄 載入驗證碼...');
     try {
       const response = await fetch('/api/SuggestionProxy/captcha', {
         method: 'POST',
@@ -234,16 +246,24 @@
         body: JSON.stringify({ challenge: Date.now().toString() })
       });
 
+      console.log('📡 驗證碼 API 回應狀態:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ 驗證碼載入成功:', {
+          token: data.token ? data.token.substring(0, 8) + '...' : 'empty',
+          hasImage: !!data.image_base64
+        });
+        
         captchaImage.src = `data:image/svg+xml;base64,${data.image_base64}`;
         captchaToken.value = data.token;
         captchaInput.value = '';
       } else {
+        console.error('❌ 驗證碼載入失敗，狀態:', response.status);
         showMsg('驗證碼載入失敗');
       }
     } catch (error) {
-      console.error('載入驗證碼失敗:', error);
+      console.error('❌ 載入驗證碼失敗:', error);
       showMsg('驗證碼載入失敗');
     }
   }
