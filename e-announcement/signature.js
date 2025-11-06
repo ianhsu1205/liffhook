@@ -56,7 +56,7 @@ async function getUserInfo() {
     try {
         // 這裡可以整合 LINE LIFF SDK 來獲取用戶資訊
         // 目前先使用測試資料
-        const testUserId = 'test_user_' + Math.random().toString(36).substr(2, 9);
+        const testUserId = 'U7847e47596af60b761523637f41d19c9';
         
         // 從後端獲取用戶資訊（如果有的話）
         currentUserInfo = {
@@ -379,12 +379,9 @@ async function confirmSignature() {
             
             showAlert('簽名確認完成！', 'success');
             
-            // 10秒後關閉視窗
+            // 1.5秒後顯示已簽名狀態
             setTimeout(() => {
                 showSignedState();
-                setTimeout(() => {
-                    window.close();
-                }, 10000);
             }, 1500);
         } else {
             throw new Error(result.message || '簽名提交失敗');
@@ -449,4 +446,69 @@ function showAlert(message, type = 'info') {
     // 顯示 Toast
     const bsToast = new bootstrap.Toast(toast);
     bsToast.show();
+}
+
+// 關閉視窗函數
+function closeWindow() {
+    try {
+        // 嘗試關閉視窗
+        if (window.opener) {
+            window.close();
+        } else {
+            // 如果不是彈出視窗，導向到主頁或歷史記錄上一頁
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                // 嘗試導向到記錄頁面
+                window.location.href = 'records.html';
+            }
+        }
+    } catch (error) {
+        console.error('關閉視窗失敗:', error);
+        // 備用方案：導向到記錄頁面
+        window.location.href = 'records.html';
+    }
+}
+
+// PDF匯出功能
+async function exportToPDF() {
+    try {
+        if (!announcementId) {
+            showAlert('匯出資料不完整，請重新整理頁面', 'error');
+            return;
+        }
+        
+        showAlert('正在產生PDF文件...', 'info');
+        
+        // 呼叫後端API生成PDF
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/export-pdf`);
+        
+        if (response.ok) {
+            // 取得PDF Blob
+            const pdfBlob = await response.blob();
+            
+            // 建立下載連結
+            const downloadUrl = window.URL.createObjectURL(pdfBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = downloadUrl;
+            downloadLink.download = `${currentAnnouncement ? currentAnnouncement.title : '宣導內容'}_記錄.pdf`;
+            
+            // 觸發下載
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // 清理URL物件
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            showAlert('PDF已下載完成', 'success');
+        } else {
+            const errorResult = await response.json();
+            throw new Error(errorResult.message || 'PDF產生失敗');
+        }
+        
+    } catch (error) {
+        console.error('匯出PDF失敗:', error);
+        showAlert(`匯出 PDF 失敗: ${error.message}`, 'error');
+    }
 }

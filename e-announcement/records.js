@@ -257,24 +257,85 @@ function applyFilters() {
     updatePagination(1, 1, filteredRecords.length);
 }
 
-// 檢視簽名
-function viewSignature(recordId, employeeName, signatureData) {
-    if (!signatureData) {
-        showAlert('此記錄沒有簽名圖片', 'warning');
-        return;
+// 檢視詳情
+async function viewDetail(recordId) {
+    try {
+        const record = filteredRecords.find(r => r.id === recordId);
+        if (!record) {
+            showAlert('找不到該記錄', 'error');
+            return;
+        }
+        
+        // 顯示詳情 Modal
+        showDetailModal(record);
+        
+    } catch (error) {
+        console.error('檢視詳情失敗:', error);
+        showAlert('檢視詳情失敗', 'error');
     }
-    
-    document.getElementById('signerInfo').textContent = `${employeeName} 的簽名`;
-    document.getElementById('signatureImage').src = `data:image/png;base64,${signatureData}`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('signatureModal'));
-    modal.show();
 }
 
-// 檢視詳情
-function viewDetail(recordId) {
-    // 可以開啟新視窗顯示詳細資訊
-    window.open(`detail.html?recordId=${recordId}`, '_blank');
+// 顯示詳情 Modal
+function showDetailModal(record) {
+    const modalHtml = `
+        <div class="modal fade" id="detailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">簽名記錄詳情</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>基本資訊</h6>
+                                <table class="table table-borderless">
+                                    <tr><td><strong>員工姓名：</strong></td><td>${record.employeeName}</td></tr>
+                                    <tr><td><strong>員工編號：</strong></td><td>${record.employeeId}</td></tr>
+                                    <tr><td><strong>公司：</strong></td><td>${record.company}</td></tr>
+                                    <tr><td><strong>部門：</strong></td><td>${record.department}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>簽名資訊</h6>
+                                <table class="table table-borderless">
+                                    <tr><td><strong>簽名時間：</strong></td><td>${record.signedAt || '未知時間'}</td></tr>
+                                    <tr><td><strong>有簽名圖片：</strong></td><td>${record.hasSignature ? '是' : '否'}</td></tr>
+                                    <tr><td><strong>記錄ID：</strong></td><td>${record.id}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        ${record.hasSignature ? `
+                            <div class="mt-3">
+                                <h6>簽名圖片</h6>
+                                <div class="text-center">
+                                    <button class="btn btn-outline-primary" onclick="viewSignature('${record.id}', '${record.employeeName}')">
+                                        <i class="fas fa-signature"></i> 查看簽名
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除舊的 Modal（如果存在）
+    const existingModal = document.getElementById('detailModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 加入新的 Modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // 顯示 Modal
+    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+    modal.show();
 }
 
 // 匯出資料
@@ -443,28 +504,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 查看簽名
 window.viewSignature = function(recordId, employeeName) {
-    fetch(`/eannouncementrecords/${recordId}/signature`)
+    fetch(`${API_BASE}/EAnnouncement/records/${recordId}/signature`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('無法取得簽名圖片');
             }
-            return response.blob();
+            return response.json();
         })
-        .then(blob => {
-            const imageUrl = URL.createObjectURL(blob);
-            
-            // 建立簽名查看對話框
-            const modal = new bootstrap.Modal(document.getElementById('signatureModal') || createSignatureModal());
-            document.getElementById('signatureModalLabel').textContent = `${employeeName}的簽名`;
-            document.getElementById('signatureImage').src = imageUrl;
-            document.getElementById('signatureImage').onload = function() {
-                URL.revokeObjectURL(imageUrl);
-            };
-            modal.show();
+        .then(result => {
+            if (result.success && result.data.signatureData) {
+                // 建立簽名查看對話框
+                const modal = new bootstrap.Modal(document.getElementById('signatureModal') || createSignatureModal());
+                document.getElementById('signatureModalLabel').textContent = `${employeeName}的簽名`;
+                document.getElementById('signatureImage').src = result.data.signatureData;
+                modal.show();
+            } else {
+                throw new Error('無法取得簽名資料');
+            }
         })
         .catch(error => {
             console.error('Error loading signature:', error);
-            alert('無法載入簽名圖片：' + error.message);
+            showAlert('無法載入簽名圖片：' + error.message, 'error');
         });
 };
 

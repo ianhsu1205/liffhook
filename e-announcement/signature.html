@@ -231,7 +231,7 @@
             class="btn btn-success btn-sign-action"
             onclick="openSignatureModal()"
           >
-            <i class="fas fa-signature me-2"></i>簽名表示我已閱覽
+            <i class="fas fa-signature me-2"></i>我已閱覽
           </button>
         </div>
       </div>
@@ -242,13 +242,22 @@
           <i class="fas fa-check-circle fa-3x mb-3"></i>
           <h4>簽名確認完成</h4>
           <p>感謝您完成宣導內容的簽名確認！</p>
-          <button
-            type="button"
-            class="btn btn-outline-success btn-signature"
-            onclick="window.close()"
-          >
-            <i class="fas fa-times me-1"></i>關閉視窗
-          </button>
+          <div class="d-grid gap-2 col-md-6 mx-auto">
+            <button
+              type="button"
+              class="btn btn-primary btn-signature"
+              onclick="exportToPDF()"
+            >
+              <i class="fas fa-file-pdf me-1"></i>下載PDF
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-success btn-signature"
+              onclick="closeWindow()"
+            >
+              <i class="fas fa-times me-1"></i>關閉視窗
+            </button>
+          </div>
         </div>
       </div>
 
