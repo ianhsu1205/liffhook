@@ -77,6 +77,58 @@
         align-items: center;
         z-index: 9999;
       }
+
+      /* 文件預覽樣式 */
+      .document-preview-small {
+        max-width: 600px;
+        background: white;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+      }
+
+      .document-content {
+        border: none;
+        box-shadow: none;
+      }
+
+      .document-header {
+        background: none;
+        color: #000;
+        padding: 15px 0;
+        border: none;
+      }
+
+      .document-body {
+        padding: 15px 0;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .document-preview-small .content-block {
+        margin-bottom: 15px;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+      }
+
+      .signature-section {
+        margin-top: 15px;
+      }
+
+      .signature-text {
+        text-align: right;
+      }
+
+      .signature-line {
+        padding: 5px 0;
+        align-items: center;
+      }
+
+      .signature-placeholder {
+        display: inline-block;
+        vertical-align: middle;
+      }
     </style>
   </head>
   <body>
@@ -230,12 +282,10 @@
             <!-- 簽名預覽 -->
             <div id="signaturePreview" style="display: none">
               <div class="border rounded p-3 bg-light">
-                <h6>簽名預覽：</h6>
-                <img
-                  id="signatureImage"
-                  class="border"
-                  style="max-width: 100%; height: auto"
-                />
+                <h6>文件預覽：</h6>
+                <div class="document-preview-small" id="documentPreviewSmall">
+                  <!-- 這裡會動態生成文件預覽內容 -->
+                </div>
               </div>
             </div>
 

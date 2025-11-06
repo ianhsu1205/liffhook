@@ -2,7 +2,7 @@
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return window.location.origin;
+   return window.location.origin + '/api';
     }
     // 生產環境使用指定的後端地址
     return 'https://35.221.146.143.nip.io/linehook';
@@ -258,11 +258,68 @@ function previewSignature() {
         return;
     }
     
+    // 獲取簽名圖片 base64
     const canvas = document.getElementById('signatureCanvas');
-    const dataURL = canvas.toDataURL('image/png');
+    const signatureData = canvas.toDataURL('image/png');
     
-    document.getElementById('signatureImage').src = dataURL;
+    // 生成文件預覽
+    generateDocumentPreviewForView(signatureData);
+    
+    // 顯示預覽
     document.getElementById('signaturePreview').style.display = 'block';
+}
+
+// 生成文件預覽 (view.html 版本)
+function generateDocumentPreviewForView(signatureData) {
+    if (!currentAnnouncement || !currentUserInfo) {
+        showAlert('預覽資料不完整', 'error');
+        return;
+    }
+    
+    const previewHtml = `
+        <div class="document-content">
+            <div class="document-header">
+                <h5 class="mb-0">${currentAnnouncement.title}</h5>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="badge bg-light text-dark">${currentAnnouncement.documentType}</span>
+                    <span>${currentAnnouncement.publishUnit} • ${currentAnnouncement.publishDate.split(' ')[0]}</span>
+                </div>
+            </div>
+            <div class="document-body">
+                <div class="mb-2">
+                    <strong>發佈單位：</strong>${currentAnnouncement.publishUnit}
+                </div>
+                <div class="mb-2">
+                    <strong>目標公司：</strong>${currentAnnouncement.targetCompany}
+                </div>
+                <div class="mb-2">
+                    <strong>目標部門：</strong>${Array.isArray(currentAnnouncement.targetDepartments) ? currentAnnouncement.targetDepartments.join('、') : currentAnnouncement.targetDepartments}
+                </div>
+                <hr>
+                <div class="content-area">
+                    ${generateContentBlocks(currentAnnouncement.contentBlocks)}
+                </div>
+                
+                <!-- 文件底部簽名確認區域 -->
+                <div class="mt-4 pt-3">
+                    <hr style="border-top: 1px solid #000; margin-bottom: 15px;">
+                    <div class="signature-section">
+                        <div class="signature-text mb-2 text-end">
+                            <span><strong>我已閱讀並知悉以上內容</strong></span>
+                        </div>
+                        <div class="signature-line d-flex justify-content-end align-items-center">
+                            <span class="me-3"><strong>${currentUserInfo.department} ${currentUserInfo.employeeId}</strong></span>
+                            <div class="signature-placeholder" style="width: 120px; text-align: center;">
+                                <img src="${signatureData}" class="signature-image" alt="數位簽名" style="max-width: 100px; max-height: 50px; border: none; background: transparent;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('documentPreviewSmall').innerHTML = previewHtml;
 }
 
 // 提交簽名
@@ -369,3 +426,23 @@ window.addEventListener('unhandledrejection', function(e) {
     console.error('未處理的Promise錯誤:', e.reason);
     showAlert('網路連線錯誤，請檢查網路狀態', 'error');
 });
+
+// 生成內容區塊 HTML
+function generateContentBlocks(contentBlocks) {
+    if (!contentBlocks || contentBlocks.length === 0) {
+        return '<p class="text-muted">尚無內容</p>';
+    }
+    
+    return contentBlocks.map(block => {
+        if (block.type === 'text') {
+            return `<div class="content-block">
+                        <div style="white-space: pre-wrap;">${block.content}</div>
+                    </div>`;
+        } else if (block.type === 'image') {
+            return `<div class="content-block text-center">
+                        <img src="${block.content}" alt="宣導圖片" class="img-fluid">
+                    </div>`;
+        }
+        return '';
+    }).join('');
+}

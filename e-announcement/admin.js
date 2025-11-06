@@ -2,7 +2,7 @@
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return window.location.origin;
+        return window.location.origin + '/api';
     }
     // 生產環境使用指定的後端地址
     return 'https://35.221.146.143.nip.io/linehook';
@@ -990,7 +990,25 @@ async function executeTestPublish() {
             })
         });
         
+        console.log('測試發佈回應狀態:', response.status);
+        console.log('測試發佈回應類型:', response.headers.get('content-type'));
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('伺服器錯誤回應:', errorText);
+            throw new Error(`伺服器錯誤 (${response.status}): ${errorText || '未知錯誤'}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const responseText = await response.text();
+            console.error('非 JSON 回應:', responseText);
+            throw new Error('伺服器回應格式錯誤，請檢查後端 API');
+        }
+        
         const result = await response.json();
+        console.log('測試發佈結果:', result);
+        
         if (result.success) {
             // 關閉對話框
             const modal = bootstrap.Modal.getInstance(document.getElementById('testPublishModal'));
