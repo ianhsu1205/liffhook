@@ -308,26 +308,67 @@ function updateStatistics() {
 }
 
 // 開啟宣導專案
-function openAnnouncement(announcementId, isCompleted) {
-    
-    // 構建簽名頁面 URL，包含必要的參數
-    let signatureUrl = `signature.html?id=${announcementId}`;
-    
-    // 如果有用戶資訊，添加 userId 參數以支援另開視窗功能
-    if (currentUserInfo && currentUserInfo.userId) {
-        signatureUrl += `&userId=${encodeURIComponent(currentUserInfo.userId)}`;
-    }
-    
-    
-    if (currentUserInfo?.source === 'line') {
-        // 在 LINE 內瀏覽器中開啟
-        liff.openWindow({
-            url: signatureUrl,
-            external: false
-        });
-    } else {
-        // 在新分頁中開啟
-        window.open(signatureUrl, '_blank');
+async function openAnnouncement(announcementId, isCompleted) {
+    try {
+        // 使用固定的前端網址
+        let fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}`;
+        
+        // 如果有用戶資訊，添加 userId 參數
+        if (currentUserInfo && currentUserInfo.userId) {
+            fullSignatureUrl += `&userId=${encodeURIComponent(currentUserInfo.userId)}`;
+        }
+        
+        // 如果是 LINE 環境，嘗試獲取縮網址
+        let finalUrl = fullSignatureUrl;
+        
+        if (currentUserInfo?.source === 'line') {
+            try {
+                // 呼叫後端 API 創建縮網址
+                const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/get-short-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserInfo.userId,
+                        originalUrl: fullSignatureUrl
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.shortUrl) {
+                        finalUrl = result.shortUrl;
+                    }
+                }
+            } catch (error) {
+                console.log('無法創建縮網址，使用原始連結:', error);
+                // 如果縮網址創建失敗，仍使用原始連結
+            }
+            
+            // 在 LINE 內瀏覽器中開啟
+            liff.openWindow({
+                url: finalUrl,
+                external: false
+            });
+        } else {
+            // 在新分頁中開啟（開發環境或其他瀏覽器）
+            window.open(finalUrl, '_blank');
+        }
+        
+    } catch (error) {
+        console.error('開啟宣導專案失敗:', error);
+        // 備援方案：使用固定的前端網址
+        const backupUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}${currentUserInfo?.userId ? `&userId=${encodeURIComponent(currentUserInfo.userId)}` : ''}`;
+        
+        if (currentUserInfo?.source === 'line') {
+            liff.openWindow({
+                url: backupUrl,
+                external: false
+            });
+        } else {
+            window.open(backupUrl, '_blank');
+        }
     }
 }
 
