@@ -490,13 +490,51 @@ function renderContentBlocks(blocks) {
                                         </button>
                                     </div>
                                 </div>
-                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden;">
-                                    <!-- URL隱藏覆蓋層 -->
-                                    <div class="iframe-url-overlay">
-                                        <span>${linkData.title || '網頁內容'}</span>
+                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
+                                    <!-- 多層URL隱藏覆蓋層 - 加強版 -->
+                                    <div style="
+                                        position: absolute;
+                                        top: 0;
+                                        left: 0;
+                                        right: 0;
+                                        height: 100px;
+                                        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                                        color: white;
+                                        z-index: 30;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-weight: bold;
+                                        font-size: 16px;
+                                        pointer-events: none;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                        border-radius: 4px 4px 0 0;
+                                    ">
+                                        <i class="fas fa-globe me-2"></i>${linkData.title || '📋 網頁內容'}
                                     </div>
+                                    <div style="
+                                        position: absolute;
+                                        top: 0;
+                                        left: 0;
+                                        right: 0;
+                                        height: 150px;
+                                        background: rgba(255, 255, 255, 0.98);
+                                        z-index: 25;
+                                        pointer-events: none;
+                                    "></div>
+                                    <!-- 額外的底部覆蓋層，防止底部顯示URL -->
+                                    <div style="
+                                        position: absolute;
+                                        bottom: 0;
+                                        left: 0;
+                                        right: 0;
+                                        height: 60px;
+                                        background: rgba(255, 255, 255, 0.95);
+                                        z-index: 20;
+                                        pointer-events: none;
+                                    "></div>
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none;" 
+                                            style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy">
@@ -1578,9 +1616,51 @@ async function generateContent(contentBlocks) {
                                     </button>
                                 </div>
                             </div>
-                            <div style="height: 600px; min-height: 70vh; overflow: hidden;">
+                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
+                                <!-- 多層URL隱藏覆蓋層 - 加強版 -->
+                                <div style="
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    right: 0;
+                                    height: 100px;
+                                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                                    color: white;
+                                    z-index: 30;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-weight: bold;
+                                    font-size: 16px;
+                                    pointer-events: none;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                    border-radius: 4px 4px 0 0;
+                                ">
+                                    <i class="fas fa-globe me-2"></i>${escapeHtml(linkData.title || '📋 網頁內容')}
+                                </div>
+                                <div style="
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    right: 0;
+                                    height: 150px;
+                                    background: rgba(255, 255, 255, 0.98);
+                                    z-index: 25;
+                                    pointer-events: none;
+                                "></div>
+                                <!-- 額外的底部覆蓋層，防止底部顯示URL -->
+                                <div style="
+                                    position: absolute;
+                                    bottom: 0;
+                                    left: 0;
+                                    right: 0;
+                                    height: 60px;
+                                    background: rgba(255, 255, 255, 0.95);
+                                    z-index: 20;
+                                    pointer-events: none;
+                                "></div>
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none;" 
+                                        style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy">
@@ -1998,16 +2078,12 @@ function showNormalSignature() {
     const signatureSelection = document.getElementById('signatureSelection');
     if (signatureSelection) {
         signatureSelection.style.display = 'none';
-    } else {
     }
     
-    // 安全地顯示一般簽名區域
-    const normalSignatureArea = document.getElementById('normalSignatureArea');
-    if (normalSignatureArea) {
-        normalSignatureArea.style.display = 'block';
-    } else {
-        showMessage('無法找到簽名區域，請重新整理頁面', 'error');
-        return;
+    // 確保簽名模態框內容可見 - 使用 mobile-signature-container
+    const mobileSignatureContainer = document.querySelector('.mobile-signature-container');
+    if (mobileSignatureContainer) {
+        mobileSignatureContainer.style.display = 'block';
     }
     
     // 初始化一般簽名板
@@ -3165,9 +3241,50 @@ function openUrlInModal(url, title = '網頁內容') {
                             <h5 class="modal-title" id="urlModalLabel">網頁檢視</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body p-0" style="height: 80vh;">
+                        <div class="modal-body p-0 position-relative" style="height: 80vh;">
+                            <!-- 模態框URL隱藏覆蓋層 - 加強版 -->
+                            <div style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                height: 100px;
+                                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                                color: white;
+                                z-index: 30;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-weight: bold;
+                                font-size: 16px;
+                                pointer-events: none;
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                            ">
+                                <i class="fas fa-globe me-2"></i>網頁內容
+                            </div>
+                            <div style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                height: 150px;
+                                background: rgba(255, 255, 255, 0.98);
+                                z-index: 25;
+                                pointer-events: none;
+                            "></div>
+                            <!-- 額外的底部覆蓋層，防止底部顯示URL -->
+                            <div style="
+                                position: absolute;
+                                bottom: 0;
+                                left: 0;
+                                right: 0;
+                                height: 80px;
+                                background: rgba(255, 255, 255, 0.95);
+                                z-index: 20;
+                                pointer-events: none;
+                            "></div>
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: 100%; border: none;" 
+                                    style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
