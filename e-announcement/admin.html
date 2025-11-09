@@ -418,6 +418,27 @@
                       >目標部門 *</label
                     >
                     <div
+                      class="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <span class="text-muted small">請選擇目標部門</span>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm"
+                          onclick="selectAllDepartments()"
+                        >
+                          <i class="fas fa-check-square me-1"></i>全選
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          onclick="deselectAllDepartments()"
+                        >
+                          <i class="far fa-square me-1"></i>全不選
+                        </button>
+                      </div>
+                    </div>
+                    <div
                       id="departmentCheckboxes"
                       class="border rounded p-2"
                       style="max-height: 200px; overflow-y: auto"
@@ -640,7 +661,7 @@
       aria-labelledby="signatureViewModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="signatureViewModalLabel">
@@ -653,7 +674,11 @@
               aria-label="Close"
             ></button>
           </div>
-          <div class="modal-body" id="signatureViewModalBody">
+          <div
+            class="modal-body"
+            id="signatureViewModalBody"
+            style="max-height: 70vh; overflow-y: auto"
+          >
             <!-- 簽名內容將在這裡動態載入 -->
           </div>
           <div class="modal-footer">
@@ -669,19 +694,19 @@
       </div>
     </div>
 
-    <!-- 測試發佈 Modal -->
+    <!-- 選擇發佈 Modal -->
     <div
       class="modal fade"
-      id="testPublishModal"
+      id="selectivePublishModal"
       tabindex="-1"
-      aria-labelledby="testPublishModalLabel"
+      aria-labelledby="selectivePublishModalLabel"
       aria-hidden="true"
     >
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="testPublishModalLabel">
-              <i class="fas fa-flask me-2"></i>測試發佈
+            <h5 class="modal-title" id="selectivePublishModalLabel">
+              <i class="fas fa-user-check me-2"></i>選擇發佈
             </h5>
             <button
               type="button"
@@ -693,15 +718,15 @@
           <div class="modal-body">
             <div class="alert alert-info">
               <i class="fas fa-info-circle me-2"></i>
-              測試發佈會忽略公司和部門設定，直接發送給指定的員工編號
+              選擇發佈會忽略公司和部門設定，直接發送給指定的員工編號
             </div>
             <div class="mb-3">
-              <label for="testEmployeeIds" class="form-label"
+              <label for="selectiveEmployeeIds" class="form-label"
                 >員工編號 <span class="text-danger">*</span></label
               >
               <textarea
                 class="form-control"
-                id="testEmployeeIds"
+                id="selectiveEmployeeIds"
                 rows="4"
                 placeholder="請輸入員工編號，每行一個或用逗號分隔&#10;例如：&#10;E001&#10;E002&#10;E003&#10;或：E001,E002,E003"
               ></textarea>
@@ -710,7 +735,7 @@
             <div class="mb-3">
               <label class="form-label">預覽發佈清單</label>
               <div
-                id="testPublishPreview"
+                id="selectivePublishPreview"
                 class="border rounded p-2 bg-light text-muted"
               >
                 請輸入員工編號...
@@ -728,11 +753,106 @@
             <button
               type="button"
               class="btn btn-warning"
-              onclick="executeTestPublish()"
-              id="testPublishBtn"
+              onclick="executeSelectivePublish()"
+              id="selectivePublishBtn"
               disabled
             >
-              <i class="fas fa-paper-plane me-1"></i>測試發佈
+              <i class="fas fa-paper-plane me-1"></i>選擇發佈
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 發佈選項 Modal -->
+    <div
+      class="modal fade"
+      id="publishOptionsModal"
+      tabindex="-1"
+      aria-labelledby="publishOptionsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="publishOptionsModalLabel">
+              <i class="fas fa-share me-2"></i>發佈選項
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>重要提醒：</strong>相同專案 ID 中的重複用戶 ID
+              將會清除目前的簽名及時間，改為未簽名狀態。
+            </div>
+            <div class="mb-3">
+              <label class="form-label">請選擇發佈方式：</label>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="publishOption"
+                  id="publishAll"
+                  value="all"
+                  checked
+                />
+                <label class="form-check-label" for="publishAll">
+                  <strong>全部重新發佈</strong>
+                  <div class="text-muted small">
+                    發送給所有目標部門的員工（包含已簽名和未簽名的）
+                  </div>
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="publishOption"
+                  id="publishUnsigned"
+                  value="unsigned"
+                />
+                <label class="form-check-label" for="publishUnsigned">
+                  <strong>重新發佈給未簽名的</strong>
+                  <div class="text-muted small">只發送給尚未簽名的員工</div>
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="publishOption"
+                  id="publishSigned"
+                  value="signed"
+                />
+                <label class="form-check-label" for="publishSigned">
+                  <strong>重新發佈給已簽名的</strong>
+                  <div class="text-muted small">
+                    只發送給已經簽名的員工（會清除其簽名狀態）
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times me-1"></i>取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-success"
+              onclick="executePublish()"
+            >
+              <i class="fas fa-paper-plane me-1"></i>確認發佈
             </button>
           </div>
         </div>

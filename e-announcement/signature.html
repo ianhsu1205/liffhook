@@ -51,6 +51,43 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
+      /* 簽名顯示樣式 */
+      .signature-display-container {
+        position: relative;
+        display: inline-block;
+        max-width: 160px;
+        max-height: 80px;
+      }
+
+      .signature-display-container.landscape-signature {
+        max-width: 160px;
+        max-height: 80px;
+      }
+
+      .signature-display {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        background-color: #fff;
+      }
+
+      .signature-frame {
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border: 2px solid #28a745;
+        border-radius: 6px;
+        pointer-events: none;
+      }
+
+      .signature-display-container.landscape-signature .signature-display {
+        width: 160px;
+        height: 80px;
+      }
       .btn-signature {
         min-width: 120px;
         font-size: 18px;
@@ -76,7 +113,12 @@
       /* 手機響應式 */
       @media (max-width: 768px) {
         .container {
+          padding: 5px;
+        }
+
+        .content-block {
           padding: 10px;
+          margin-bottom: 15px;
         }
 
         .signature-section {
@@ -109,6 +151,26 @@
           border-radius: 8px;
           background-color: #fff;
         }
+
+        /* 手機版iframe最大化 */
+        .link-block {
+          margin: 0 -10px;
+          border-radius: 0;
+        }
+
+        .link-block iframe {
+          height: 70vh !important;
+          min-height: 500px !important;
+        }
+
+        .iframe-container {
+          margin: 0;
+          padding: 0;
+        }
+
+        .link-header {
+          padding: 15px !important;
+        }
       }
 
       .modal-signature-pad {
@@ -124,6 +186,73 @@
       @media (max-width: 576px) {
         .modal-signature-pad {
           height: 250px;
+        }
+      }
+
+      /* 圖片放大相關樣式 */
+      .clickable-image {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+
+      .clickable-image:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* 圖片模態優化 */
+      #imageModal .modal-body {
+        background-color: #000;
+      }
+
+      #imageModal .modal-xl {
+        max-width: 95vw;
+      }
+
+      /* iframe 放大相關樣式 */
+      .iframe-wrapper {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+
+      .iframe-wrapper:hover {
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .iframe-wrapper:hover .btn {
+        opacity: 1 !important;
+      }
+
+      /* iframe 模態優化 */
+      #iframeModal .modal-content {
+        height: 100vh;
+      }
+
+      #iframeModal .modal-body {
+        overflow: hidden;
+      }
+
+      @media (max-width: 768px) {
+        #imageModal .modal-dialog {
+          margin: 0;
+          height: 100vh;
+          max-width: 100%;
+        }
+
+        #imageModal .modal-content {
+          height: 100vh;
+          border-radius: 0;
+        }
+
+        #imageModal .modal-body {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* 手機版 iframe 模態 */
+        .iframe-wrapper .position-absolute.bottom-0 {
+          display: none;
         }
       }
 
@@ -347,6 +476,30 @@
           display: none;
         }
       }
+
+      /* 預覽模態框響應式 */
+      @media (max-width: 768px) {
+        #previewModal .modal-dialog {
+          margin: 5px;
+        }
+
+        #previewModal .modal-content {
+          max-height: 95vh;
+        }
+
+        #previewModal .modal-body {
+          max-height: 60vh;
+          padding: 15px;
+        }
+
+        #previewModal .modal-footer .row {
+          gap: 10px;
+        }
+
+        #previewModal .modal-footer .col-md-6 {
+          margin-bottom: 5px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -378,14 +531,62 @@
         </div>
 
         <!-- 簽名按鈕 -->
-        <div class="d-grid gap-2 mb-4">
+        <div class="d-grid gap-2 mb-4" id="signButtonContainer">
           <button
             type="button"
+            id="signatureButton"
             class="btn btn-success btn-sign-action"
             onclick="openSignatureModal()"
           >
             <i class="fas fa-signature me-2"></i>我已閱覽
           </button>
+        </div>
+
+        <!-- 已簽名狀態區域 -->
+        <div id="signatureStatusArea" style="display: none">
+          <div class="alert alert-success">
+            <h5 class="alert-heading">
+              <i class="fas fa-check-circle me-2"></i>簽名確認完成
+            </h5>
+            <hr />
+            <div class="row">
+              <div class="col-md-8">
+                <p class="mb-2">
+                  <strong>簽名人員：</strong><span id="signedUserName"></span>
+                </p>
+                <p class="mb-2">
+                  <strong>簽名時間：</strong><span id="signedDateTime"></span>
+                </p>
+                <p class="mb-0">
+                  <strong>狀態：</strong
+                  ><span class="badge bg-success">已完成簽名確認</span>
+                </p>
+              </div>
+              <div class="col-md-4 text-center">
+                <h6><i class="fas fa-signature me-1"></i>您的簽名</h6>
+                <div
+                  class="signature-preview-container"
+                  style="
+                    min-height: 80px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "
+                >
+                  <img
+                    id="signaturePreviewImg"
+                    src=""
+                    alt="您的簽名"
+                    style="
+                      max-width: 300px;
+                      max-height: 150px;
+                      object-fit: contain;
+                    "
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -472,7 +673,7 @@
             </div>
 
             <!-- 一般簽名區域 -->
-            <div id="normalSignatureArea" class="d-none d-md-block">
+            <div id="normalSignatureArea" style="display: none">
               <div class="mb-3">
                 <label class="form-label">請在下方簽名板上簽名</label>
                 <canvas id="signaturePad" class="modal-signature-pad"></canvas>
@@ -573,33 +774,48 @@
       data-bs-backdrop="static"
       data-bs-keyboard="false"
     >
-      <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-eye me-2"></i>文件預覽</h5>
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content" style="max-height: 90vh">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="fas fa-eye me-2"></i>文件預覽確認
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
-          <div class="modal-body p-0">
+          <div
+            class="modal-body"
+            style="max-height: 70vh; overflow-y: auto; padding: 20px"
+          >
             <!-- 完整文件預覽 -->
             <div class="document-preview" id="documentPreview">
               <!-- 動態生成完整文件內容 -->
             </div>
           </div>
-          <div class="modal-footer">
-            <div class="d-grid gap-2 w-100">
-              <button
-                type="button"
-                class="btn btn-success btn-lg"
-                onclick="confirmSignature()"
-              >
-                <i class="fas fa-check me-1"></i>確認提交
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                onclick="cancelPreview()"
-              >
-                <i class="fas fa-arrow-left me-1"></i>返回修改
-              </button>
+          <div class="modal-footer bg-light">
+            <div class="row w-100">
+              <div class="col-md-6">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-lg w-100"
+                  onclick="cancelPreview()"
+                >
+                  <i class="fas fa-times me-1"></i>取消重簽
+                </button>
+              </div>
+              <div class="col-md-6">
+                <button
+                  type="button"
+                  class="btn btn-success btn-lg w-100"
+                  onclick="confirmSignature()"
+                >
+                  <i class="fas fa-paper-plane me-1"></i>確認送出簽名
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -624,10 +840,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script
-      charset="utf-8"
-      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
-    ></script>
     <script src="signature.js"></script>
   </body>
 </html>

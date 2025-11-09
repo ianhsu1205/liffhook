@@ -1,11 +1,11 @@
-// 全域變數
+﻿// 全域變數
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return window.location.origin + '/api';
     }
     // 生產環境使用指定的後端地址
-    return 'https://35.221.146.143.nip.io/linehook';
+     return 'https://35.221.146.143.nip.io/linehook';
 })();
 
 let currentUserInfo = null;
@@ -17,26 +17,20 @@ const LIFF_ID = "2006993665-qYDYM1DW".trim(); // LIFF ID
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 E宣導系統 - 用戶頁面初始化');
-    console.log('API Base URL:', API_BASE);
     initializeLiff();
 });
 
 // 初始化 LIFF
 async function initializeLiff() {
     try {
-        console.log('🔄 初始化 LIFF...');
         
         // 初始化 LIFF
         await liff.init({ liffId: LIFF_ID });
         
         if (!liff.isLoggedIn()) {
-            console.log('❌ 用戶未登入，重導向到登入頁面');
             liff.login();
             return;
         }
-        
-        console.log('✅ LIFF 初始化成功');
         
         // 取得用戶資訊
         await getUserInfo();
@@ -48,11 +42,9 @@ async function initializeLiff() {
         showMainContent();
         
     } catch (error) {
-        console.error('❌ LIFF 初始化失敗:', error);
         
         // 如果是本地開發環境，使用測試用戶資訊
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('🔧 本地開發模式，使用測試用戶');
             await useTestUser();
             await loadUserAnnouncements();
             showMainContent();
@@ -66,7 +58,6 @@ async function initializeLiff() {
 async function getUserInfo() {
     try {
         if (liff.isLoggedIn()) {
-            console.log('📱 從 LIFF 取得用戶資訊...');
             
             const profile = await liff.getProfile();
             const context = liff.getContext();
@@ -78,8 +69,6 @@ async function getUserInfo() {
                 source: 'line'
             };
             
-            console.log('👤 用戶資訊:', currentUserInfo);
-            
             // 查詢用戶在系統中的詳細資訊
             await fetchUserDetails();
             
@@ -87,7 +76,6 @@ async function getUserInfo() {
             throw new Error('用戶未登入');
         }
     } catch (error) {
-        console.error('❌ 取得用戶資訊失敗:', error);
         throw error;
     }
 }
@@ -104,14 +92,12 @@ async function useTestUser() {
         dept: '資訊部'
     };
     
-    console.log('🔧 使用測試用戶:', currentUserInfo);
     updateUserInfoDisplay();
 }
 
 // 查詢用戶詳細資訊
 async function fetchUserDetails() {
     try {
-        console.log('📋 查詢用戶詳細資訊，UserId:', currentUserInfo.userId, 'ChannelId:', channelId);
         
         const response = await fetch(`${API_BASE}/User/checkUser`, {
             method: 'POST',
@@ -126,7 +112,6 @@ async function fetchUserDetails() {
         
         if (response.ok) {
             const userDetails = await response.json();
-            console.log('✅ 從API獲取的用戶資訊:', userDetails);
             
             // 合併用戶資訊
             currentUserInfo = {
@@ -140,17 +125,14 @@ async function fetchUserDetails() {
                 phone: userDetails.phone || userDetails.Phone
             };
             
-            console.log('✅ 合併後的用戶資訊:', currentUserInfo);
         } else {
             const errorText = await response.text();
-            console.warn('⚠️ 用戶API回應失敗:', response.status, errorText);
             throw new Error(`用戶驗證失敗: ${errorText}`);
         }
         
         updateUserInfoDisplay();
         
     } catch (error) {
-        console.error('❌ 查詢用戶詳細資訊失敗:', error);
         
         // 如果是生產環境，不允許訪問
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -178,7 +160,6 @@ function updateUserInfoDisplay() {
 // 載入用戶的宣導專案
 async function loadUserAnnouncements() {
     try {
-        console.log('📋 載入用戶宣導專案...');
         
         hideAllStates();
         document.getElementById('loadingState').style.display = 'block';
@@ -186,6 +167,7 @@ async function loadUserAnnouncements() {
         if (!currentUserInfo) {
             throw new Error('用戶資訊不完整');
         }
+        
         
         // 構建查詢參數
         const params = new URLSearchParams({
@@ -195,17 +177,28 @@ async function loadUserAnnouncements() {
             dept: currentUserInfo.dept || '測試部門'
         });
         
+        
         const response = await fetch(`${API_BASE}/EAnnouncement/user-announcements?${params}`);
         
+        
         if (!response.ok) {
+            const errorText = await response.text();
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const result = await response.json();
         
+        
         if (result.success) {
             userAnnouncements = result.data || [];
-            console.log(`✅ 載入了 ${userAnnouncements.length} 個宣導專案`);
+            
+            // 按發佈時間排序，最新的在前面
+            userAnnouncements.sort((a, b) => {
+                const dateA = new Date(a.publishDate);
+                const dateB = new Date(b.publishDate);
+                return dateB - dateA; // 降序排列（最新在前）
+            });
+            
             
             renderAnnouncementsList();
             updateStatistics();
@@ -215,7 +208,6 @@ async function loadUserAnnouncements() {
         }
         
     } catch (error) {
-        console.error('❌ 載入用戶宣導專案失敗:', error);
         showErrorState(error.message);
     }
 }
@@ -229,20 +221,47 @@ function renderAnnouncementsList() {
         return;
     }
     
-    const container = document.getElementById('announcementsList');
+    // 分離待確認和已確認的宣導專案
+    const pendingAnnouncements = userAnnouncements.filter(a => !a.hasSignature);
+    const completedAnnouncements = userAnnouncements.filter(a => a.hasSignature);
     
-    const html = userAnnouncements.map(announcement => {
+    // 顯示標籤頁容器
+    document.getElementById('tabsContainer').style.display = 'block';
+    
+    // 渲染待確認列表
+    renderTabContent(pendingAnnouncements, 'pendingList', 'pendingEmptyState', '待確認');
+    
+    // 渲染已確認列表
+    renderTabContent(completedAnnouncements, 'completedList', 'completedEmptyState', '已確認');
+}
+
+function renderTabContent(announcements, containerId, emptyStateId, statusType) {
+    const container = document.getElementById(containerId);
+    const emptyState = document.getElementById(emptyStateId);
+    
+    if (announcements.length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    
+    const html = announcements.map(announcement => {
         const isCompleted = announcement.hasSignature || false;
         const statusClass = isCompleted ? 'status-completed' : 'status-pending';
-        const statusText = isCompleted ? '已完成' : '待簽名';
+        const statusText = isCompleted ? '已確認' : '待確認';
         const statusIcon = isCompleted ? 'check-circle' : 'clock';
         
         // 格式化日期
         const publishDate = formatDate(announcement.publishDate);
         const signedDate = announcement.signedAt ? formatDate(announcement.signedAt) : null;
         
+        // 根據狀態類型決定是否顯示確認時間
+        const showSignedDate = statusType === '待確認' && signedDate;
+        
         return `
-            <div class="list-group-item announcement-item" onclick="openAnnouncement('${announcement.id}', ${isCompleted})">
+            <div class="announcement-item" onclick="openAnnouncement('${announcement.id}', ${isCompleted})">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h6 class="mb-1 fw-bold">${announcement.title}</h6>
@@ -258,7 +277,7 @@ function renderAnnouncementsList() {
                         </div>
                         <div class="date-info mt-2">
                             <i class="fas fa-calendar me-1"></i>發佈：${publishDate}
-                            ${signedDate ? `<br><i class="fas fa-signature me-1"></i>簽名：${signedDate}` : ''}
+                            ${showSignedDate ? `<br><i class="fas fa-signature me-1"></i>確認：${signedDate}` : ''}
                         </div>
                     </div>
                     <div class="text-end">
@@ -275,26 +294,30 @@ function renderAnnouncementsList() {
     }).join('');
     
     container.innerHTML = html;
+    
     document.getElementById('statsRow').style.display = 'block';
 }
 
 // 更新統計資訊
 function updateStatistics() {
-    const total = userAnnouncements.length;
     const completed = userAnnouncements.filter(a => a.hasSignature).length;
-    const pending = total - completed;
+    const pending = userAnnouncements.length - completed;
     
-    document.getElementById('totalCount').textContent = total;
     document.getElementById('completedCount').textContent = completed;
     document.getElementById('pendingCount').textContent = pending;
 }
 
 // 開啟宣導專案
 function openAnnouncement(announcementId, isCompleted) {
-    console.log(`📱 開啟宣導專案: ${announcementId} (已完成: ${isCompleted})`);
     
     // 構建簽名頁面 URL，包含必要的參數
-    const signatureUrl = `signature.html?id=${announcementId}`;
+    let signatureUrl = `signature.html?id=${announcementId}`;
+    
+    // 如果有用戶資訊，添加 userId 參數以支援另開視窗功能
+    if (currentUserInfo && currentUserInfo.userId) {
+        signatureUrl += `&userId=${encodeURIComponent(currentUserInfo.userId)}`;
+    }
+    
     
     if (currentUserInfo?.source === 'line') {
         // 在 LINE 內瀏覽器中開啟
@@ -338,6 +361,7 @@ function hideAllStates() {
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('errorState').style.display = 'none';
     document.getElementById('statsRow').style.display = 'none';
+    document.getElementById('tabsContainer').style.display = 'none';
 }
 
 // 顯示錯誤狀態
@@ -403,16 +427,13 @@ window.addEventListener('beforeunload', function() {
     if (currentUserInfo?.source === 'line') {
         try {
             // 通知 LIFF 應用即將關閉
-            console.log('📱 LIFF 視窗即將關閉');
         } catch (error) {
-            console.error('處理視窗關閉事件失敗:', error);
         }
     }
 });
 
 // Debug 資訊（僅在開發環境顯示）
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log('🔧 開發模式啟用');
     
     // 添加調試按鈕
     window.addEventListener('load', function() {
@@ -427,12 +448,8 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         debugBtn.className = 'btn btn-secondary btn-sm';
         
         debugBtn.onclick = function() {
-            console.log('Current User Info:', currentUserInfo);
-            console.log('User Announcements:', userAnnouncements);
-            console.log('API Base:', API_BASE);
         };
         
         document.body.appendChild(debugBtn);
     });
 }
-

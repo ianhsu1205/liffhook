@@ -2,7 +2,7 @@
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return window.location.origin + '/api';
+        return 'http://localhost:5000/api';
     }
     // 生產環境使用指定的後端地址
     return 'https://35.221.146.143.nip.io/linehook';
@@ -133,6 +133,24 @@ function updateDepartmentOptions(selectedCompany) {
         departmentDiv.appendChild(checkboxDiv);
     });
     console.log('✅ 部門選項建立完成');
+}
+
+// 全選部門
+function selectAllDepartments() {
+    const checkboxes = document.querySelectorAll('#departmentCheckboxes input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    console.log('✅ 已全選所有部門');
+}
+
+// 全不選部門
+function deselectAllDepartments() {
+    const checkboxes = document.querySelectorAll('#departmentCheckboxes input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    console.log('✅ 已取消選擇所有部門');
 }
 
 // 新增內容區塊
@@ -475,8 +493,8 @@ function displayAnnouncements(announcements) {
                         <div class="d-flex gap-3 text-muted small">
                             <span><i class="fas fa-tag me-1"></i>${item.documentType}</span>
                             <span><i class="fas fa-building me-1"></i>${item.publishUnit}</span>
-                            <span><i class="fas fa-calendar me-1"></i>${new Date(item.publishDate).toLocaleDateString()}</span>
-                            <span><i class="fas fa-users me-1"></i>${item.recordCount} 人已簽名</span>
+                            <span><i class="fas fa-calendar me-1"></i>${item.publishDate}</span>
+                            <span><i class="fas fa-users me-1"></i>${item.confirmationStatus}</span>
                         </div>
                         <div class="mt-1">
                             <span class="badge bg-info">${item.targetCompany}</span>
@@ -484,31 +502,37 @@ function displayAnnouncements(announcements) {
                         </div>
                     </div>
                     <div class="col-md-4 text-end">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editAnnouncement('${item.id}')">
-                                <i class="fas fa-edit"></i> 編輯
-                            </button>
-                            <button class="btn btn-sm btn-outline-info" onclick="previewAnnouncementById('${item.id}')">
-                                <i class="fas fa-eye"></i> 預覽
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="viewRecords('${item.id}')">
-                                <i class="fas fa-list"></i> 記錄
-                            </button>
-                            <button class="btn btn-sm btn-outline-success" onclick="publishAnnouncement('${item.id}')">
-                                <i class="fas fa-share"></i> 發佈
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="testPublishAnnouncement('${item.id}')">
-                                <i class="fas fa-flask"></i> 測試
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="exportPdf('${item.id}')">
-                                <i class="fas fa-file-pdf"></i> PDF
-                            </button>
-                            <button class="btn btn-sm ${item.isArchived ? 'btn-outline-success' : 'btn-outline-warning'}" onclick="toggleArchiveStatus('${item.id}', ${item.isArchived})" title="${item.isArchived ? '取消封存' : '封存'}">
-                                <i class="fas fa-${item.isArchived ? 'folder-open' : 'archive'}"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement('${item.id}', '${item.title}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div class="btn-group-vertical btn-group-sm d-md-inline-block" role="group">
+                            <div class="btn-group mb-1" role="group">
+                                <button class="btn btn-outline-primary" onclick="editAnnouncement('${item.id}')" style="min-width: 80px;">
+                                    <i class="fas fa-edit"></i> 編輯
+                                </button>
+                                <button class="btn btn-outline-info" onclick="previewAnnouncementById('${item.id}')" style="min-width: 80px;">
+                                    <i class="fas fa-eye"></i> 預覽
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="viewRecords('${item.id}')" style="min-width: 80px;">
+                                    <i class="fas fa-list"></i> 記錄
+                                </button>
+                            </div>
+                            <div class="btn-group mb-1" role="group">
+                                <button class="btn btn-outline-success" onclick="publishAnnouncement('${item.id}')" style="min-width: 80px;">
+                                    <i class="fas fa-share"></i> 發佈
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="selectivePublishAnnouncement('${item.id}')" style="min-width: 100px;">
+                                    <i class="fas fa-user-check"></i> 選擇發佈
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="exportPdf('${item.id}')" style="min-width: 80px;">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn ${item.isArchived ? 'btn-outline-success' : 'btn-outline-warning'}" onclick="toggleArchiveStatus('${item.id}', ${item.isArchived})" title="${item.isArchived ? '取消封存' : '封存'}" style="min-width: 80px;">
+                                    <i class="fas fa-${item.isArchived ? 'folder-open' : 'archive'}"></i> ${item.isArchived ? '取消封存' : '封存'}
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteAnnouncement('${item.id}', '${item.title}')" style="min-width: 80px;">
+                                    <i class="fas fa-trash"></i> 刪除
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1064,14 +1088,56 @@ function deleteAnnouncement(id, title) {
 }
 
 // 發佈宣導
+let currentPublishId = null;
+
 async function publishAnnouncement(id) {
+    currentPublishId = id;
+    
+    // 顯示發佈選項對話框
+    const modal = new bootstrap.Modal(document.getElementById('publishOptionsModal'));
+    modal.show();
+}
+
+// 執行發佈（根據選擇的選項）
+async function executePublish() {
+    if (!currentPublishId) {
+        showAlert('找不到要發佈的專案ID', 'error');
+        return;
+    }
+    
+    const publishOption = document.querySelector('input[name="publishOption"]:checked')?.value;
+    if (!publishOption) {
+        showAlert('請選擇發佈選項', 'warning');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/EAnnouncement/${id}/publish`, {
+        let endpoint;
+        switch (publishOption) {
+            case 'all':
+                endpoint = `${API_BASE}/EAnnouncement/${currentPublishId}/publish/all`;
+                break;
+            case 'unsigned':
+                endpoint = `${API_BASE}/EAnnouncement/${currentPublishId}/publish/unsigned`;
+                break;
+            case 'signed':
+                endpoint = `${API_BASE}/EAnnouncement/${currentPublishId}/publish/signed`;
+                break;
+            default:
+                endpoint = `${API_BASE}/EAnnouncement/${currentPublishId}/publish`;
+                break;
+        }
+        
+        const response = await fetch(endpoint, {
             method: 'POST'
         });
         
         const result = await response.json();
         if (result.success) {
+            // 關閉對話框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('publishOptionsModal'));
+            modal.hide();
+            
             showAlert(result.message || '宣導通知發送成功', 'success');
         } else {
             throw new Error(result.message || '發送宣導通知失敗');
@@ -1082,29 +1148,29 @@ async function publishAnnouncement(id) {
     }
 }
 
-// 測試發佈功能
-let currentTestPublishId = null;
+// 選擇發佈功能
+let currentSelectivePublishId = null;
 
-async function testPublishAnnouncement(id) {
-    currentTestPublishId = id;
+async function selectivePublishAnnouncement(id) {
+    currentSelectivePublishId = id;
     
     // 顯示對話框
-    const modal = new bootstrap.Modal(document.getElementById('testPublishModal'));
+    const modal = new bootstrap.Modal(document.getElementById('selectivePublishModal'));
     modal.show();
     
     // 重置表單
-    document.getElementById('testEmployeeIds').value = '';
-    document.getElementById('testPublishPreview').textContent = '請輸入員工編號...';
-    document.getElementById('testPublishBtn').disabled = true;
+    document.getElementById('selectiveEmployeeIds').value = '';
+    document.getElementById('selectivePublishPreview').textContent = '請輸入員工編號...';
+    document.getElementById('selectivePublishBtn').disabled = true;
     
     // 監聽輸入變化
-    document.getElementById('testEmployeeIds').addEventListener('input', updateTestPublishPreview);
+    document.getElementById('selectiveEmployeeIds').addEventListener('input', updateSelectivePublishPreview);
 }
 
-function updateTestPublishPreview() {
-    const input = document.getElementById('testEmployeeIds').value;
-    const preview = document.getElementById('testPublishPreview');
-    const btn = document.getElementById('testPublishBtn');
+function updateSelectivePublishPreview() {
+    const input = document.getElementById('selectiveEmployeeIds').value;
+    const preview = document.getElementById('selectivePublishPreview');
+    const btn = document.getElementById('selectivePublishBtn');
     
     if (!input.trim()) {
         preview.textContent = '請輸入員工編號...';
@@ -1140,13 +1206,13 @@ function parseEmployeeIds(input) {
         .filter((id, index, array) => array.indexOf(id) === index); // 去重
 }
 
-async function executeTestPublish() {
-    if (!currentTestPublishId) {
+async function executeSelectivePublish() {
+    if (!currentSelectivePublishId) {
         showAlert('找不到要發佈的專案ID', 'error');
         return;
     }
     
-    const input = document.getElementById('testEmployeeIds').value;
+    const input = document.getElementById('selectiveEmployeeIds').value;
     const employeeIds = parseEmployeeIds(input);
     
     if (employeeIds.length === 0) {
@@ -1155,7 +1221,7 @@ async function executeTestPublish() {
     }
     
     try {
-        const response = await fetch(`${API_BASE}/EAnnouncement/${currentTestPublishId}/test-publish`, {
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentSelectivePublishId}/selective-publish`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1165,8 +1231,8 @@ async function executeTestPublish() {
             })
         });
         
-        console.log('測試發佈回應狀態:', response.status);
-        console.log('測試發佈回應類型:', response.headers.get('content-type'));
+        console.log('選擇發佈回應狀態:', response.status);
+        console.log('選擇發佈回應類型:', response.headers.get('content-type'));
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -1182,30 +1248,32 @@ async function executeTestPublish() {
         }
         
         const result = await response.json();
-        console.log('測試發佈結果:', result);
+        console.log('選擇發佈結果:', result);
         
         if (result.success) {
             // 關閉對話框
-            const modal = bootstrap.Modal.getInstance(document.getElementById('testPublishModal'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('selectivePublishModal'));
             modal.hide();
             
-            showAlert(`測試發佈成功！已發送給 ${employeeIds.length} 位員工`, 'success');
+            showAlert(`選擇發佈成功！已發送給 ${employeeIds.length} 位員工`, 'success');
         } else {
-            throw new Error(result.message || '測試發佈失敗');
+            throw new Error(result.message || '選擇發佈失敗');
         }
     } catch (error) {
-        console.error('測試發佈失敗:', error);
-        showAlert(error.message || '測試發佈失敗', 'error');
+        console.error('選擇發佈失敗:', error);
+        showAlert(error.message || '選擇發佈失敗', 'error');
     }
 }
 
 // 匯出 PDF
 async function exportPdf(id) {
     try {
+        // 顯示開始匯出訊息
+        showAlert('正在匯出PDF，請稍候...', 'info');
+        
         const response = await fetch(`${API_BASE}/EAnnouncement/${id}/export-pdf`);
         
-        if (response.headers.get('content-type')?.includes('application/pdf')) {
-            // 實際 PDF 檔案
+        if (response.ok) {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1213,7 +1281,7 @@ async function exportPdf(id) {
             
             // 從回應標頭獲取正確檔名
             const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = `宣導記錄_${new Date().toISOString().split('T')[0]}.pdf`;
+            let filename = `宣導記錄_${new Date().toISOString().slice(0, 10)}.pdf`;
             
             if (contentDisposition) {
                 const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
@@ -1235,18 +1303,13 @@ async function exportPdf(id) {
             
             showAlert('PDF已下載完成', 'success');
         } else {
-            // JSON 回應（開發中）
-            const result = await response.json();
-            if (result.success) {
-                showAlert(result.message || 'PDF 功能開發中', 'info');
-                console.log('PDF 資料:', result.data);
-            } else {
-                throw new Error(result.message || '匯出 PDF 失敗');
-            }
+            const errorResult = await response.json();
+            console.error('PDF匯出錯誤:', errorResult);
+            showAlert('PDF匯出失敗: ' + (errorResult.message || '未知錯誤'), 'error');
         }
     } catch (error) {
         console.error('匯出 PDF 失敗:', error);
-        showAlert(error.message || '匯出 PDF 失敗', 'error');
+        showAlert('PDF匯出失敗，請重新嘗試', 'error');
     }
 }
 
@@ -1451,121 +1514,67 @@ async function generatePreviewContent(id) {
 
 // 生成內容區塊預覽
 function generateContentBlocksPreview(contentBlocks) {
+    console.log('[generateContentBlocksPreview] 開始處理:', contentBlocks);
+    
     if (!contentBlocks || contentBlocks.length === 0) {
+        console.log('[generateContentBlocksPreview] 沒有內容區塊');
         return '<p class="text-muted">尚無內容</p>';
     }
     
-    return contentBlocks.map(block => {
-        if (block.type === 'text') {
-            return `<div class="content-block mb-3">
-                        <div style="white-space: pre-wrap;">${block.content}</div>
-                    </div>`;
-        } else if (block.type === 'image') {
-            return `<div class="content-block mb-3 text-center">
-                        <img src="${block.content}" alt="宣導圖片" class="img-fluid" style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>`;
-        } else if (block.type === 'html') {
-            // 解析HTML連結資料
-            try {
-                const htmlData = JSON.parse(block.content);
-                return `<div class="content-block html-content mb-3">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-external-link-alt"></i>
-                                        ${htmlData.title || '網頁連結'}
-                                    </h6>
-                                </div>
-                                <div class="card-body p-0">
-                                    <iframe src="${htmlData.url}" 
-                                            frameborder="0" 
-                                            style="width: 100%; height: 70vh; min-height: 500px;"
-                                            allowfullscreen>
-                                    </iframe>
-                                </div>
-                                <div class="card-footer">
-                                    <small class="text-muted">
-                                        <a href="${htmlData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
-                                        </a>
-                                    </small>
-                                </div>
-                            </div>
+    return contentBlocks.map((block, index) => {
+        console.log(`[generateContentBlocksPreview] 處理區塊 ${index}:`, block);
+        console.log(`[generateContentBlocksPreview] 區塊類型: ${block.type}, 內容長度: ${block.content ? block.content.length : 'null'}`);
+        
+        try {
+            if (block.type === 'text') {
+                return `<div class="content-block mb-3">
+                            <div style="white-space: pre-wrap;">${block.content}</div>
                         </div>`;
-            } catch (error) {
-                // 向後相容：直接當作URL處理
-                return `<div class="content-block html-content mb-3">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-external-link-alt"></i>
-                                        網頁連結
-                                    </h6>
-                                </div>
-                                <div class="card-body p-0">
-                                    <iframe src="${block.content}" 
-                                            frameborder="0" 
-                                            style="width: 100%; height: 70vh; min-height: 500px;"
-                                            allowfullscreen>
-                                    </iframe>
-                                </div>
-                                <div class="card-footer">
-                                    <small class="text-muted">
-                                        <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
-                                        </a>
-                                    </small>
-                                </div>
-                            </div>
+            } else if (block.type === 'image') {
+                return `<div class="content-block mb-3 text-center">
+                            <img src="${block.content}" alt="宣導圖片" class="img-fluid" style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px;">
                         </div>`;
-            }
-        } else if (block.type === 'youtube') {
-            // 解析YouTube影片資料
-            try {
-                const youtubeData = JSON.parse(block.content);
-                return `<div class="content-block youtube-content mb-3">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">
-                                        <i class="fab fa-youtube"></i>
-                                        ${youtubeData.title || 'YouTube影片'}
-                                    </h6>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="embed-responsive embed-responsive-16by9">
-                                        <iframe class="embed-responsive-item" 
-                                                src="https://www.youtube.com/embed/${youtubeData.videoId}?rel=0"
-                                                frameborder="0" 
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowfullscreen>
+            } else if (block.type === 'html') {
+                // HTML 區塊處理 - 顯示網頁內容預覽
+                try {
+                    const htmlData = JSON.parse(block.content);
+                    return `<div class="content-block mb-3">
+                                <div class="p-3 border rounded" style="background-color: #f0f8ff;">
+                                    <strong><i class="fas fa-globe"></i> 網頁內容：${htmlData.title || htmlData.url}</strong>
+                                    <div class="mt-2" style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                                        <iframe src="${htmlData.url}" 
+                                                style="width: 100%; height: 400px; border: none;" 
+                                                sandbox="allow-same-origin allow-scripts"
+                                                loading="lazy">
                                         </iframe>
                                     </div>
                                 </div>
-                                <div class="card-footer">
-                                    <small class="text-muted">
-                                        <a href="${youtubeData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            <i class="fab fa-youtube"></i> 在YouTube觀看
-                                        </a>
-                                    </small>
+                            </div>`;
+                } catch (error) {
+                    // 如果不是 JSON 格式，當作純 HTML 處理
+                    return `<div class="content-block mb-3">
+                                <div class="p-3 border rounded" style="background-color: #f8f9fa;">
+                                    <strong>HTML內容：</strong><br>
+                                    <div style="white-space: pre-wrap; margin-top: 8px;" dangerouslySetInnerHTML="{__html: '${block.content}'}">${block.content}</div>
                                 </div>
-                            </div>
-                        </div>`;
-            } catch (error) {
-                // 向後相容：嘗試從URL解析videoId
-                const videoId = extractYouTubeVideoIdForPreview(block.content);
-                if (videoId) {
+                            </div>`;
+                }
+            } else if (block.type === 'youtube') {
+                // 解析YouTube影片資料
+                try {
+                    const youtubeData = JSON.parse(block.content);
                     return `<div class="content-block youtube-content mb-3">
                                 <div class="card">
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fab fa-youtube"></i>
-                                            YouTube影片
+                                            ${youtubeData.title || 'YouTube影片'}
                                         </h6>
                                     </div>
                                     <div class="card-body p-0">
                                         <div class="embed-responsive embed-responsive-16by9">
                                             <iframe class="embed-responsive-item" 
-                                                    src="https://www.youtube.com/embed/${videoId}?rel=0"
+                                                    src="https://www.youtube.com/embed/${youtubeData.videoId}?rel=0"
                                                     frameborder="0" 
                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                     allowfullscreen>
@@ -1574,24 +1583,70 @@ function generateContentBlocksPreview(contentBlocks) {
                                     </div>
                                     <div class="card-footer">
                                         <small class="text-muted">
-                                            <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <a href="${youtubeData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
                                                 <i class="fab fa-youtube"></i> 在YouTube觀看
                                             </a>
                                         </small>
                                     </div>
                                 </div>
                             </div>`;
-                } else {
-                    return `<div class="content-block mb-3">
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    無效的YouTube連結：${block.content}
-                                </div>
-                            </div>`;
+                } catch (error) {
+                    // 向後相容：嘗試從URL解析videoId
+                    const videoId = extractYouTubeVideoIdForPreview(block.content);
+                    if (videoId) {
+                        return `<div class="content-block youtube-content mb-3">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <i class="fab fa-youtube"></i>
+                                                YouTube影片
+                                            </h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="embed-responsive embed-responsive-16by9">
+                                                <iframe class="embed-responsive-item" 
+                                                        src="https://www.youtube.com/embed/${videoId}?rel=0"
+                                                        frameborder="0" 
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowfullscreen>
+                                                </iframe>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer">
+                                            <small class="text-muted">
+                                                <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fab fa-youtube"></i> 在YouTube觀看
+                                                </a>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>`;
+                    } else {
+                        return `<div class="content-block mb-3">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        無效的YouTube連結：${block.content}
+                                    </div>
+                                </div>`;
+                    }
                 }
+            } else {
+                return `<div class="content-block mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                未知的內容類型：${block.type}
+                            </div>
+                        </div>`;
             }
+        } catch (error) {
+            console.error(`[generateContentBlocksPreview] 處理區塊 ${index} 時發生錯誤:`, error);
+            return `<div class="content-block mb-3">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            內容區塊處理錯誤: ${error.message}
+                        </div>
+                    </div>`;
         }
-        return '';
     }).join('');
 }
 
@@ -1760,7 +1815,9 @@ function saveSignature() {
     const signatureDisplay = document.getElementById('signatureDisplay');
     
     signatureDisplay.innerHTML = `
-        <img src="${dataURL}" style="width: 100%; height: 100%; object-fit: contain;" alt="簽名">
+        <div class="signature-preview-container d-flex justify-content-center align-items-center" style="width: 100%; height: 100%;">
+            <img src="${dataURL}" style="width: 120px; height: 60px; object-fit: contain; transform: rotate(-90deg);" alt="簽名">
+        </div>
         <button class="btn btn-outline-danger btn-sm position-absolute" 
                 style="top: 5px; right: 5px; width: 25px; height: 25px; padding: 0; font-size: 12px;"
                 onclick="removeSignature()" title="移除簽名">
@@ -2078,31 +2135,116 @@ function displayRecordsPagination(totalPages, currentPageNum) {
 // 檢視簽名詳情
 async function viewSignatureDetail(recordId) {
     try {
+        console.log('🔍 開始檢視簽名詳情，recordId:', recordId);
+        
+        // 獲取簽名記錄詳細信息
         const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/signature`);
+        console.log('📡 簽名API響應狀態:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`簽名API請求失敗: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('📋 簽名API結果:', result);
 
         if (result.success) {
-            const modalBody = document.getElementById('signatureViewModalBody');
+            const record = result.data;
+            console.log('✅ 獲取簽名記錄:', record);
             
-            modalBody.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-user me-2"></i>簽名人員</h6>
-                        <p class="fw-bold">${result.data.employeeName}</p>
-                        
-                        <h6><i class="fas fa-calendar me-2"></i>簽名時間</h6>
-                        <p>${new Date(result.data.signedAt).toLocaleString('zh-TW')}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-signature me-2"></i>簽名圖片</h6>
-                        <img src="${result.data.signatureData}" alt="簽名" class="img-fluid border rounded" style="max-height: 200px;">
-                    </div>
-                </div>
-            `;
+            // 獲取宣導專案內容
+            const announcementResponse = await fetch(`${API_BASE}/EAnnouncement/${record.announcementId}`);
+            console.log('📡 宣導專案API響應狀態:', announcementResponse.status);
+            
+            if (!announcementResponse.ok) {
+                throw new Error(`宣導專案API請求失敗: ${announcementResponse.status}`);
+            }
+            
+            const announcementResult = await announcementResponse.json();
+            console.log('📋 宣導專案API結果:', announcementResult);
+            
+            if (announcementResult.success) {
+                const announcement = announcementResult.data;
+                const modalBody = document.getElementById('signatureViewModalBody');
+                
+                // 構建和用戶頁面相同的檢視內容
+                let contentHtml = '';
+                
+                // 宣導專案卡片
+                contentHtml += `
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">${announcement.title}</h4>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="badge bg-light text-dark">${announcement.documentType}</span>
+                                <span>發佈日期：${announcement.publishDate} | 發佈單位：${announcement.publishUnit}</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="contentArea">
+                `;
+                
+                
+                // 顯示內容區塊
+                const contentBlocks = typeof announcement.contentBlocks === 'string' 
+                    ? JSON.parse(announcement.contentBlocks) 
+                    : announcement.contentBlocks;
+                console.log('📋 內容區塊資料:', contentBlocks);
+                console.log('📋 內容區塊類型:', typeof contentBlocks);
+                console.log('📋 內容區塊長度:', Array.isArray(contentBlocks) ? contentBlocks.length : 'Not an array');
+                
+                if (Array.isArray(contentBlocks) && contentBlocks.length > 0) {
+                    // 使用統一的內容區塊預覽函數
+                    contentHtml += generateContentBlocksPreview(contentBlocks);
+                } else {
+                    contentHtml += '<p class="text-muted">尚無宣導內容</p>';
+                }
 
-            // 顯示 Modal
-            const modal = new bootstrap.Modal(document.getElementById('signatureViewModal'));
-            modal.show();
+                contentHtml += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 簽名狀態區域（和用戶頁面完全相同的樣式）
+                contentHtml += `
+                    <div class="alert alert-success">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-check-circle me-2"></i>簽名確認完成
+                        </h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-2"><strong>簽名人員：</strong>${record.employeeName} (${record.employeeId})</p>
+                                <p class="mb-2"><strong>簽名時間：</strong>${new Date(record.signedAt).toLocaleString('zh-TW')}</p>
+                                <p class="mb-0"><strong>狀態：</strong><span class="badge bg-success">已完成簽名確認</span></p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h6><i class="fas fa-signature me-1"></i>已簽名確認</h6>
+                                <div class="signature-preview-container border rounded p-3" 
+                                     style="background-color: #f8f9fa; min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                                    <img src="${record.signatureData}" alt="已簽名確認" 
+                                         style="max-width: 240px; max-height: 120px; object-fit: contain; 
+                                         ${record.isMobileDevice && record.isLandscapeSignature ? 'transform: rotate(-90deg);' : ''}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modalBody.innerHTML = contentHtml;
+                
+                // 調整 Modal 標題
+                document.getElementById('signatureViewModalLabel').innerHTML = `
+                    <i class="fas fa-file-signature me-2"></i>${announcement.title} - 已簽名檢視
+                `;
+                
+                // 顯示 Modal
+                const modal = new bootstrap.Modal(document.getElementById('signatureViewModal'));
+                modal.show();
+            } else {
+                throw new Error('無法載入宣導專案內容');
+            }
         } else {
             showAlert('無法載入簽名資料: ' + result.message, 'error');
         }
@@ -2115,6 +2257,9 @@ async function viewSignatureDetail(recordId) {
 // 匯出單一記錄PDF
 async function exportRecordPdf(recordId) {
     try {
+        // 顯示開始匯出訊息
+        showAlert('正在匯出PDF，請稍候...', 'info');
+        
         const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/export-pdf`);
         
         if (response.ok) {
@@ -2149,11 +2294,11 @@ async function exportRecordPdf(recordId) {
             showAlert('PDF 已下載完成', 'success');
         } else {
             const errorResult = await response.json();
-            showAlert('下載失敗: ' + (errorResult.message || '未知錯誤'), 'error');
+            showAlert('PDF匯出失敗: ' + (errorResult.message || '未知錯誤'), 'error');
         }
     } catch (error) {
-        console.error('下載PDF失敗:', error);
-        showAlert('下載失敗，請重新嘗試', 'error');
+        console.error('匯出PDF失敗:', error);
+        showAlert('PDF匯出失敗，請重新嘗試', 'error');
     }
 }
 
@@ -2165,6 +2310,9 @@ async function downloadRecordsPDF() {
     }
     
     try {
+        // 顯示開始匯出訊息
+        showAlert('正在匯出PDF，請稍候...', 'info');
+        
         const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/export-pdf`);
         
         if (response.ok) {
@@ -2238,12 +2386,6 @@ function backToList() {
     currentAnnouncementId = null;
 }
 
-// 修改現有的 exportPdf 函數以使用新的實作
-async function exportPdf(announcementId) {
-    currentAnnouncementId = announcementId;
-    await downloadRecordsPDF();
-}
-
 // 切換封存狀態
 async function toggleArchiveStatus(announcementId, currentArchiveStatus) {
     try {
@@ -2276,6 +2418,7 @@ async function toggleArchiveStatus(announcementId, currentArchiveStatus) {
     }
 }
 
+// 生成直接連結
 // 切換封存顯示
 function toggleArchivedDisplay() {
     loadAnnouncements();

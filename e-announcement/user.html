@@ -50,18 +50,32 @@
       }
 
       .announcement-item {
-        border: none;
-        border-bottom: 1px solid #e9ecef;
-        transition: background-color 0.2s ease;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 16px; /* 增加內邊距 */
+        transition: all 0.3s ease;
         cursor: pointer;
+        background: white;
       }
 
       .announcement-item:hover {
-        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #007bff;
       }
 
       .announcement-item:last-child {
         border-bottom: none;
+      }
+
+      .announcement-content {
+        margin-bottom: 8px; /* 增加行間距 */
+      }
+
+      .announcement-content small {
+        padding: 2px 0; /* 增加文字的垂直間距 */
+        display: inline-block;
       }
 
       .status-badge {
@@ -247,30 +261,98 @@
       <!-- 統計資訊 -->
       <div id="statsRow" class="stats-row" style="display: none">
         <div class="row">
-          <div class="col-4">
-            <div class="stat-item">
-              <div class="stat-number" id="totalCount">0</div>
-              <div class="stat-label">總計</div>
-            </div>
-          </div>
-          <div class="col-4">
+          <div class="col-6">
             <div class="stat-item">
               <div class="stat-number text-warning" id="pendingCount">0</div>
-              <div class="stat-label">待簽名</div>
+              <div class="stat-label">待確認</div>
             </div>
           </div>
-          <div class="col-4">
+          <div class="col-6">
             <div class="stat-item">
               <div class="stat-number text-success" id="completedCount">0</div>
-              <div class="stat-label">已完成</div>
+              <div class="stat-label">已確認</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 宣導專案列表 -->
-      <div id="announcementsList" class="announcement-list">
-        <!-- 動態載入內容 -->
+      <!-- 標籤頁導航 -->
+      <div id="tabsContainer" style="display: none">
+        <ul
+          class="nav nav-pills nav-fill mb-3"
+          id="announcementTabs"
+          role="tablist"
+        >
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="pending-tab"
+              data-bs-toggle="pill"
+              data-bs-target="#pending"
+              type="button"
+              role="tab"
+              aria-controls="pending"
+              aria-selected="true"
+            >
+              <i class="fas fa-clock me-1"></i>待確認內容
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="completed-tab"
+              data-bs-toggle="pill"
+              data-bs-target="#completed"
+              type="button"
+              role="tab"
+              aria-controls="completed"
+              aria-selected="false"
+            >
+              <i class="fas fa-check-circle me-1"></i>已確認內容
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="announcementTabsContent">
+          <div
+            class="tab-pane fade show active"
+            id="pending"
+            role="tabpanel"
+            aria-labelledby="pending-tab"
+          >
+            <div id="pendingList" class="announcement-list">
+              <!-- 待確認列表 -->
+            </div>
+            <div
+              id="pendingEmptyState"
+              class="empty-state"
+              style="display: none"
+            >
+              <i class="fas fa-check-double"></i>
+              <h5>太好了！</h5>
+              <p>目前沒有待確認的內容</p>
+            </div>
+          </div>
+          <div
+            class="tab-pane fade"
+            id="completed"
+            role="tabpanel"
+            aria-labelledby="completed-tab"
+          >
+            <div id="completedList" class="announcement-list">
+              <!-- 已確認列表 -->
+            </div>
+            <div
+              id="completedEmptyState"
+              class="empty-state"
+              style="display: none"
+            >
+              <i class="fas fa-inbox"></i>
+              <h5>尚無確認記錄</h5>
+              <p>完成確認的內容將在這裡顯示</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 載入狀態 -->
