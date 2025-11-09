@@ -310,7 +310,7 @@ function updateStatistics() {
 // 開啟宣導專案
 async function openAnnouncement(announcementId, isCompleted) {
     try {
-        // 使用固定的前端網址
+        // 使用固定的前端網址，不再請求縮網址
         let fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}`;
         
         // 如果有用戶資訊，添加 userId 參數
@@ -318,42 +318,16 @@ async function openAnnouncement(announcementId, isCompleted) {
             fullSignatureUrl += `&userId=${encodeURIComponent(currentUserInfo.userId)}`;
         }
         
-        // 如果是 LINE 環境，嘗試獲取縮網址
-        let finalUrl = fullSignatureUrl;
-        
+        // 直接使用前端網址，不通過縮網址轉換
         if (currentUserInfo?.source === 'line') {
-            try {
-                // 呼叫後端 API 創建縮網址
-                const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/get-short-url`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userId: currentUserInfo.userId,
-                        originalUrl: fullSignatureUrl
-                    })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success && result.shortUrl) {
-                        finalUrl = result.shortUrl;
-                    }
-                }
-            } catch (error) {
-                console.log('無法創建縮網址，使用原始連結:', error);
-                // 如果縮網址創建失敗，仍使用原始連結
-            }
-            
             // 在 LINE 內瀏覽器中開啟
             liff.openWindow({
-                url: finalUrl,
+                url: fullSignatureUrl,
                 external: false
             });
         } else {
             // 在新分頁中開啟（開發環境或其他瀏覽器）
-            window.open(finalUrl, '_blank');
+            window.open(fullSignatureUrl, '_blank');
         }
         
     } catch (error) {
