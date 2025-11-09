@@ -13,7 +13,7 @@ let userAnnouncements = [];
 
 // LIFF 設定
 const channelId = "2006992891"; // 服務 ID
-const LIFF_ID = "2006993665-xkeLlPeW".trim(); // LIFF ID
+const LIFF_ID = "2006993665-qYDYM1DW".trim(); // LIFF ID
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -435,3 +435,4 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         document.body.appendChild(debugBtn);
     });
 }
+
