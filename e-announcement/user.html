@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>E宣導系統 - 我的宣導</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-size: 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .main-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        margin: 20px auto;
+        max-width: 500px;
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .user-info {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+      }
+
+      .announcement-list {
+        padding: 0;
+      }
+
+      .announcement-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s ease;
+        cursor: pointer;
+      }
+
+      .announcement-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .announcement-item:last-child {
+        border-bottom: none;
+      }
+
+      .status-badge {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+      }
+
+      .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+
+      .status-completed {
+        background: #d1edff;
+        color: #0c5460;
+        border: 1px solid #74c0fc;
+      }
+
+      .loading-container {
+        text-align: center;
+        padding: 50px 20px;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 50px 20px;
+        color: #6c757d;
+      }
+
+      .empty-state i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      .error-state {
+        text-align: center;
+        padding: 30px 20px;
+      }
+
+      .refresh-btn {
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 25px;
+        padding: 10px 25px;
+        transition: transform 0.2s ease;
+      }
+
+      .refresh-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+      }
+
+      .stats-row {
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+      }
+
+      .announcement-content {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 5px;
+      }
+
+      .date-info {
+        font-size: 12px;
+        color: #868e96;
+      }
+
+      /* LIFF 載入狀態 */
+      .liff-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .liff-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      /* 響應式設計 */
+      @media (max-width: 576px) {
+        .main-container {
+          margin: 10px;
+          border-radius: 10px;
+        }
+
+        .header {
+          padding: 15px;
+        }
+
+        .user-info {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- LIFF 載入畫面 -->
+    <div id="liffLoading" class="liff-loading">
+      <div class="liff-logo">
+        <i class="fab fa-line fa-2x text-white"></i>
+      </div>
+      <div class="loading-spinner"></div>
+      <p class="mt-3 text-muted">正在驗證身份...</p>
+    </div>
+
+    <!-- 主要內容 -->
+    <div id="mainContent" class="main-container" style="display: none">
+      <!-- 標題區域 -->
+      <div class="header">
+        <h4 class="mb-0"><i class="fas fa-bullhorn me-2"></i>E宣導系統</h4>
+        <p class="mb-0 small opacity-75">我的宣導專案</p>
+
+        <!-- 用戶資訊 -->
+        <div id="userInfo" class="user-info" style="display: none">
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <div class="fw-bold" id="userName">載入中...</div>
+              <div class="small opacity-75" id="userDept">載入中...</div>
+            </div>
+            <div class="text-end">
+              <i class="fas fa-user-circle fa-2x opacity-75"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 統計資訊 -->
+      <div id="statsRow" class="stats-row" style="display: none">
+        <div class="row">
+          <div class="col-4">
+            <div class="stat-item">
+              <div class="stat-number" id="totalCount">0</div>
+              <div class="stat-label">總計</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-item">
+              <div class="stat-number text-warning" id="pendingCount">0</div>
+              <div class="stat-label">待簽名</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stat-item">
+              <div class="stat-number text-success" id="completedCount">0</div>
+              <div class="stat-label">已完成</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 宣導專案列表 -->
+      <div id="announcementsList" class="announcement-list">
+        <!-- 動態載入內容 -->
+      </div>
+
+      <!-- 載入狀態 -->
+      <div id="loadingState" class="loading-container">
+        <div class="loading-spinner mx-auto mb-3"></div>
+        <p class="text-muted">載入宣導專案中...</p>
+      </div>
+
+      <!-- 空白狀態 -->
+      <div id="emptyState" class="empty-state" style="display: none">
+        <i class="fas fa-inbox"></i>
+        <h5>暫無宣導專案</h5>
+        <p>目前沒有分配給您的宣導專案</p>
+      </div>
+
+      <!-- 錯誤狀態 -->
+      <div id="errorState" class="error-state" style="display: none">
+        <div class="text-danger mb-3">
+          <i class="fas fa-exclamation-triangle fa-3x"></i>
+        </div>
+        <h5>載入失敗</h5>
+        <p id="errorMessage" class="text-muted mb-3">請檢查網路連線後重試</p>
+        <button class="btn refresh-btn" onclick="loadUserAnnouncements()">
+          <i class="fas fa-refresh me-1"></i>重新載入
+        </button>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- LIFF SDK -->
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"
+    ></script>
+
+    <!-- 主要JavaScript -->
+    <script src="user.js"></script>
+  </body>
+</html>

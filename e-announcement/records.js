@@ -1,10 +1,10 @@
-// 全域變數
+// Global variables
 const API_BASE = (() => {
-    // 檢查是否為本地開發環境
+    // Check if it's local development environment
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
        return window.location.origin + '/api';
     }
-    // 生產環境使用指定的後端地址
+    // Production environment uses specified backend address
     return 'https://35.221.146.143.nip.io/linehook';
 })();
 let announcementId = '';
@@ -13,193 +13,282 @@ let totalPages = 1;
 let allRecords = [];
 let filteredRecords = [];
 
-// 初始化
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('API Base URL:', API_BASE);
     initializePage();
 });
 
-// 初始化頁面
+// Initialize page
 async function initializePage() {
     try {
         showLoading();
-        console.log('開始頁面初始化...');
+        console.log('Starting page initialization...');
         
-        // 從 URL 獲取宣導 ID
+        // Get announcement ID from URL
         const urlParams = new URLSearchParams(window.location.search);
         announcementId = urlParams.get('id');
         
-        console.log('從URL獲取的宣導ID:', announcementId);
+        console.log('Announcement ID from URL:', announcementId);
         
         if (!announcementId) {
-            console.error('缺少宣導ID');
+            console.error('Missing announcement ID');
             showAlert('缺少宣導 ID，請從宣導列表頁面進入', 'error');
+            hideLoading();
             return;
         }
         
-        console.log('開始載入宣導資訊...');
-        // 載入宣導資訊
-        await loadAnnouncementInfo();
+        // Validate announcement ID format
+        if (!isValidGuid(announcementId)) {
+            console.error('Invalid announcement ID format:', announcementId);
+            showAlert('無效的宣導 ID 格式', 'error');
+            hideLoading();
+            return;
+        }
         
-        console.log('開始載入記錄...');
-        // 載入記錄 (不在這裡隱藏載入動畫，由 loadRecords 負責)
+        console.log('Starting to load announcement management information...');
+        // Load announcement management information (including statistics) - continue even if fails
+        try {
+            await loadRecordsManagement();
+        } catch (managementError) {
+            console.error('Management information loading failed, but continue loading records:', managementError);
+        }
+        
+        console.log('Starting to load records...');
+        // Load records (don't hide loading animation here, loadRecords is responsible for that)
         await loadRecords();
         
-        console.log('頁面初始化完成');
+        console.log('Page initialization completed');
         
     } catch (error) {
-        console.error('初始化頁面失敗:', error);
+        console.error('Page initialization failed:', error);
         showAlert(error.message || '載入頁面失敗', 'error');
-        hideLoading(); // 確保錯誤時隱藏載入動畫
+        hideLoading(); // Ensure loading animation is hidden on error
     }
 }
 
-// 載入宣導資訊
+// Validate GUID format
+function isValidGuid(guid) {
+    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return guidRegex.test(guid);
+}
+
+// Load announcement management information
+async function loadRecordsManagement() {
+    try {
+        console.log('Calling API:', `${API_BASE}/EAnnouncement/${announcementId}/records-management`);
+        
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/records-management`);
+        console.log('API response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            console.error('API response error:', response.status, response.statusText);
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('API response data:', result);
+        console.log('API response data keys:', Object.keys(result));
+        
+        if (result.success && result.data) {
+            const data = result.data;
+            console.log('Parsed data:', data);
+            console.log('Data keys:', Object.keys(data));
+            console.log('Data.Announcement:', data.Announcement);
+            
+            // Check data structure
+            if (!data.announcement) {
+                console.error('Data structure error: missing announcement object', data);
+                console.error('Available data properties:', Object.keys(data));
+                throw new Error('Data structure error: missing announcement information');
+            }
+            
+            if (!data.announcement.title) {
+                console.error('Data structure error: announcement missing title property', data.announcement);
+                throw new Error('Data structure error: missing announcement title');
+            }
+            
+            // Update page title
+            document.getElementById('announcementTitle').textContent = 
+                `${data.announcement.title} (${data.announcement.documentType || '未指定'})`;
+            
+            // Update statistics
+            updateManagementStatistics(data.statistics);
+            
+            // Show statistics cards
+            const statsContainer = document.getElementById('statsContainer');
+            if (statsContainer) {
+                statsContainer.style.display = 'flex';
+            }
+            
+        } else {
+            console.error('API response failed:', result);
+            throw new Error(result.message || '載入宣導管理資訊失敗');
+        }
+    } catch (error) {
+        console.error('Failed to load announcement management information:', error);
+        
+        // If management API fails, try to load basic announcement information
+        console.log('Trying to load basic announcement information as fallback...');
+        try {
+            await loadAnnouncementInfo();
+            
+            // Set empty statistics
+            updateManagementStatistics({
+                totalRecords: 0,
+                withSignature: 0,
+                withoutSignature: 0
+            });
+            
+            console.log('Successfully loaded basic announcement information');
+        } catch (fallbackError) {
+            console.error('Loading basic announcement information also failed:', fallbackError);
+            
+            // Final fallback: show error state
+            document.getElementById('announcementTitle').textContent = '載入失敗 - 請檢查宣導ID或重新整理頁面';
+            
+            showAlert('無法載入宣導資訊，請檢查宣導ID或稍後重試', 'error');
+        }
+        
+        // Don't re-throw error, let page continue to try loading records
+        console.log('Management information loading failed, but continue loading records...');
+    }
+}
+
+// Update management statistics
+function updateManagementStatistics(stats) {
+    console.log('Updating management statistics:', stats);
+    
+    if (!stats) {
+        console.warn('Stats is null or undefined, using default values');
+        stats = {};
+    }
+    
+    document.getElementById('totalCount').textContent = stats.totalRecords || 0;
+    document.getElementById('withSignatureCount').textContent = stats.withSignature || 0;
+    
+    // Calculate completion rate
+    const total = stats.totalRecords || 0;
+    const withSignature = stats.withSignature || 0;
+    const completionRate = total > 0 ? Math.round((withSignature / total) * 100) : 0;
+    document.getElementById('completionRate').textContent = `${completionRate}%`;
+    
+    // Today's count (placeholder)
+    document.getElementById('todayCount').textContent = 0;
+}
+
+// Load announcement information
 async function loadAnnouncementInfo() {
     try {
+        console.log('Loading basic announcement info for ID:', announcementId);
         const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}`);
+        console.log('Basic announcement API response status:', response.status, response.statusText);
+        
         const result = await response.json();
+        console.log('Basic announcement API response data:', result);
         
         if (result.success) {
+            console.log('Basic announcement data:', result.data);
             document.getElementById('announcementTitle').textContent = 
                 `${result.data.title} (${result.data.documentType})`;
         } else {
-            throw new Error(result.message || '載入宣導資訊失敗');
+            throw new Error(result.message || '載入公告資訊失敗');
         }
     } catch (error) {
-        console.error('載入宣導資訊失敗:', error);
+        console.error('Failed to load announcement information:', error);
         throw error;
     }
 }
 
-// 載入記錄
+// Load records
 async function loadRecords() {
     try {
-        console.log(`正在載入記錄，宣導ID: ${announcementId}, 頁面: ${currentPage}`);
-        const url = `${API_BASE}/EAnnouncement/${announcementId}/records?page=${currentPage}&pageSize=50`;
-        console.log('API URL:', url);
+        console.log(`Loading records, announcement ID: ${announcementId}, page: ${currentPage}`);
         
-        const response = await fetch(url);
-        console.log('API 回應狀態:', response.status);
+        // Build query parameters
+        const params = new URLSearchParams({
+            page: currentPage,
+            pageSize: 50
+        });
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Add search parameters
+        const nameSearch = document.getElementById('nameSearch')?.value?.trim();
+        const departmentFilter = document.getElementById('departmentFilter')?.value?.trim();
+        const signatureFilter = document.getElementById('signatureFilter')?.value?.trim();
+        
+        if (nameSearch) {
+            params.append('search', nameSearch);
+        }
+        if (departmentFilter) {
+            params.append('department', departmentFilter);
+        }
+        if (signatureFilter) {
+            params.append('signatureFilter', signatureFilter);
         }
         
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/records?${params}`);
+        console.log('Records API response status:', response.status, response.statusText);
+        
         const result = await response.json();
-        console.log('API 回應結果:', result);
+        console.log('Records API response data:', result);
+        console.log('Records API result.data:', result.data);
+        console.log('Records API result.data type:', typeof result.data);
+        console.log('Records API result.data.length:', result.data?.length);
         
         if (result.success) {
             allRecords = result.data || [];
-            filteredRecords = [...allRecords];
-            console.log(`載入了 ${allRecords.length} 筆記錄`);
+            totalPages = result.totalPages || 1;
+            filteredRecords = allRecords;
             
-            // 更新統計資訊
-            updateStatistics();
+            console.log('Processed records:', allRecords);
+            console.log('Sample record:', allRecords[0]);
             
-            // 填入部門篩選選項
-            populateDepartmentFilter();
+            displayRecords(filteredRecords);
+            updatePagination();
+            updateDepartmentFilter(allRecords);
             
-            // 顯示記錄
-            displayRecords();
-            
-            // 安全地調用 updatePagination，提供預設值
-            const page = result.page || 1;
-            const totalPages = result.totalPages || 1;
-            const totalCount = result.totalCount || allRecords.length;
-            console.log(`分頁資訊: page=${page}, totalPages=${totalPages}, totalCount=${totalCount}`);
-            updatePagination(page, totalPages, totalCount);
-            
-            console.log('正在顯示統計卡片...');
-            const statsCard = document.getElementById('statsCard');
-            if (statsCard) {
-                statsCard.style.display = 'block';
-                console.log('統計卡片已設置為顯示狀態');
-            } else {
-                console.error('找不到 statsCard 元素');
-            }
-            
-            console.log('記錄載入完成，準備隱藏載入動畫');
+            console.log(`Loaded ${filteredRecords.length} records successfully`);
         } else {
             throw new Error(result.message || '載入記錄失敗');
         }
     } catch (error) {
-        console.error('載入記錄失敗:', error);
-        showAlert(error.message || '載入記錄失敗', 'error');
+        console.error('Failed to load records:', error);
+        showAlert('載入記錄失敗: ' + error.message, 'error');
+        
+        // Show empty state
+        const recordsList = document.getElementById('recordsList');
+        if (recordsList) {
+            recordsList.innerHTML = '<div class="alert alert-warning">Unable to load records</div>';
+        }
     } finally {
-        console.log('loadRecords finally 區塊：正在隱藏載入動畫...');
         hideLoading();
-        console.log('loadRecords finally 區塊：載入動畫隱藏完成');
     }
 }
 
-// 更新統計資訊
-function updateStatistics() {
-    console.log('updateStatistics() 被調用');
-    const total = filteredRecords.length;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD格式
-    const todayCount = filteredRecords.filter(record => {
-        // 檢查記錄的簽名日期是否為今天（比較 YYYY-MM-DD 部分）
-        const recordDate = record.signedAt ? record.signedAt.split(' ')[0] : '';
-        return recordDate === today;
-    }).length;
-    const withSignature = filteredRecords.filter(record => record.hasSignature).length;
-    
-    console.log(`統計資料 - 總數: ${total}, 今日: ${todayCount}, 有簽名: ${withSignature}`);
-    
-    document.getElementById('totalCount').textContent = total;
-    document.getElementById('todayCount').textContent = todayCount;
-    document.getElementById('withSignatureCount').textContent = withSignature;
-    document.getElementById('completionRate').textContent = 
-        total > 0 ? Math.round((withSignature / total) * 100) + '%' : '0%';
-    
-    console.log('統計資料已更新到DOM');
-}
-
-// 填入部門篩選選項
-function populateDepartmentFilter() {
-    const departments = [...new Set(allRecords.map(record => record.department))].sort();
-    const departmentSelect = document.getElementById('departmentFilter');
-    
-    departmentSelect.innerHTML = '<option value="">所有部門</option>';
-    departments.forEach(dept => {
-        const option = new Option(dept, dept);
-        departmentSelect.appendChild(option);
-    });
-}
-
-// 顯示記錄
-function displayRecords() {
-    console.log('displayRecords() 被調用，記錄數量:', filteredRecords.length);
+// Display records
+function displayRecords(records) {
     const recordsContainer = document.getElementById('recordsList');
     
-    if (!recordsContainer) {
-        console.error('找不到 recordsList 容器元素');
+    if (!records || records.length === 0) {
+        recordsContainer.innerHTML = '<div class="alert alert-info">找不到簽名記錄</div>';
         return;
     }
     
-    console.log('找到 recordsList 容器元素');
-    
-    if (filteredRecords.length === 0) {
-        const noDataHtml = `
-            <div class="text-center py-4">
-                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <p class="text-muted">尚無符合條件的記錄</p>
-            </div>
-        `;
-        console.log('設置空資料提示');
-        recordsContainer.innerHTML = noDataHtml;
-        console.log('recordsList 內容已設置:', recordsContainer.innerHTML);
-        return;
-    }
-    
-    const recordsHtml = filteredRecords.map(record => `
-        <div class="card mb-3">
-            <div class="card-body">
+    const recordsHtml = records.map(record => {
+        console.log('Rendering record:', record);
+        console.log('Record keys:', Object.keys(record));
+        
+        // 根據簽名狀態設定卡片樣式
+        const cardClass = record.hasSignature ? 'card mb-3 border-success' : 'card mb-3 border-warning';
+        const bgClass = record.hasSignature ? 'bg-light' : 'bg-warning bg-opacity-10';
+        
+        return `
+        <div class="${cardClass}">
+            <div class="card-body ${bgClass}">
                 <div class="row align-items-center">
                     <div class="col-md-3">
                         <h6 class="mb-1">${record.employeeName}</h6>
-                        <small class="text-muted">員工編號：${record.employeeId}</small>
+                        <small class="text-muted">員工編號: ${record.employeeId}</small>
                     </div>
                     <div class="col-md-2">
                         <span class="badge bg-info">${record.company}</span>
@@ -211,200 +300,51 @@ function displayRecords() {
                     </div>
                     <div class="col-md-2 text-center">
                         ${record.hasSignature ? 
-                            `<button class="btn btn-sm btn-outline-success" onclick="viewSignature('${record.id}', '${record.employeeName}')">
-                                <i class="fas fa-signature"></i><br>檢視簽名
-                             </button>` :
-                            `<div class="text-muted">
-                                 <i class="fas fa-minus-circle"></i><br>無簽名圖片
-                             </div>`
+                            `<span class="badge bg-success fs-6">
+                                <i class="fas fa-check-circle me-1"></i>已簽名確認
+                             </span>` :
+                            `<span class="badge bg-danger fs-6">
+                                <i class="fas fa-exclamation-triangle me-1"></i>尚未簽名
+                             </span>`
                         }
                     </div>
                     <div class="col-md-2 text-end">
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-info" onclick="viewDetail('${record.id}')">
-                                <i class="fas fa-eye"></i> 詳情
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewRecord('${record.id}')">
+                                <i class="fas fa-eye"></i> 檢視
                             </button>
+                            ${record.hasSignature ? 
+                                `<button class="btn btn-sm btn-outline-success" onclick="viewSignature('${record.id}')">
+                                    <i class="fas fa-signature"></i> 簽名
+                                 </button>` : 
+                                 `<button class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fas fa-signature"></i> 簽名
+                                 </button>`
+                            }
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    recordsContainer.innerHTML = recordsHtml;
-}
-
-// 套用篩選
-function applyFilters() {
-    const department = document.getElementById('departmentFilter').value;
-    const date = document.getElementById('dateFilter').value;
-    const name = document.getElementById('nameSearch').value.toLowerCase();
-    
-    filteredRecords = allRecords.filter(record => {
-        const matchDepartment = !department || record.department === department;
-        // 比較日期的 YYYY-MM-DD 部分
-        const matchDate = !date || (record.signedAt && record.signedAt.split(' ')[0] === date);
-        const matchName = !name || record.employeeName.toLowerCase().includes(name);
-        
-        return matchDepartment && matchDate && matchName;
-    });
-    
-    updateStatistics();
-    displayRecords();
-    
-    // 重置分頁
-    currentPage = 1;
-    updatePagination(1, 1, filteredRecords.length);
-}
-
-// 檢視詳情
-async function viewDetail(recordId) {
-    try {
-        const record = filteredRecords.find(r => r.id === recordId);
-        if (!record) {
-            showAlert('找不到該記錄', 'error');
-            return;
-        }
-        
-        // 顯示詳情 Modal
-        showDetailModal(record);
-        
-    } catch (error) {
-        console.error('檢視詳情失敗:', error);
-        showAlert('檢視詳情失敗', 'error');
-    }
-}
-
-// 顯示詳情 Modal
-function showDetailModal(record) {
-    const modalHtml = `
-        <div class="modal fade" id="detailModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">簽名記錄詳情</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>基本資訊</h6>
-                                <table class="table table-borderless">
-                                    <tr><td><strong>員工姓名：</strong></td><td>${record.employeeName}</td></tr>
-                                    <tr><td><strong>員工編號：</strong></td><td>${record.employeeId}</td></tr>
-                                    <tr><td><strong>公司：</strong></td><td>${record.company}</td></tr>
-                                    <tr><td><strong>部門：</strong></td><td>${record.department}</td></tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>簽名資訊</h6>
-                                <table class="table table-borderless">
-                                    <tr><td><strong>簽名時間：</strong></td><td>${record.signedAt || '未知時間'}</td></tr>
-                                    <tr><td><strong>有簽名圖片：</strong></td><td>${record.hasSignature ? '是' : '否'}</td></tr>
-                                    <tr><td><strong>記錄ID：</strong></td><td>${record.id}</td></tr>
-                                </table>
-                            </div>
-                        </div>
-                        ${record.hasSignature ? `
-                            <div class="mt-3">
-                                <h6>簽名圖片</h6>
-                                <div class="text-center">
-                                    <button class="btn btn-outline-primary" onclick="viewSignature('${record.id}', '${record.employeeName}')">
-                                        <i class="fas fa-signature"></i> 查看簽名
-                                    </button>
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
                     </div>
                 </div>
             </div>
         </div>
     `;
+    }).join('');
     
-    // 移除舊的 Modal（如果存在）
-    const existingModal = document.getElementById('detailModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // 加入新的 Modal
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // 顯示 Modal
-    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-    modal.show();
+    recordsContainer.innerHTML = recordsHtml;
 }
 
-// 匯出資料
-async function exportData() {
-    try {
-        showLoading();
-        
-        // 準備匯出資料
-        const exportData = filteredRecords.map(record => ({
-            '員工姓名': record.employeeName,
-            '員工編號': record.employeeId,
-            '公司': record.company,
-            '部門': record.department,
-            '簽名時間': record.signedAt || '未知時間',
-            '有簽名圖片': record.hasSignature ? '是' : '否'
-        }));
-        
-        // 轉換為 CSV
-        const csvContent = convertToCSV(exportData);
-        
-        // 下載檔案
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `簽名記錄_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert('匯出成功', 'success');
-        
-    } catch (error) {
-        console.error('匯出資料失敗:', error);
-        showAlert('匯出資料失敗', 'error');
-    } finally {
-        hideLoading();
-    }
+// Apply filters
+function applyFilters() {
+    // Reload records to apply search
+    currentPage = 1;
+    loadRecords();
 }
 
-// 轉換為 CSV 格式
-function convertToCSV(data) {
-    if (data.length === 0) return '';
-    
-    const headers = Object.keys(data[0]);
-    const csvArray = [headers.join(',')];
-    
-    data.forEach(row => {
-        const values = headers.map(header => {
-            const value = row[header] || '';
-            // 處理包含逗號的值
-            return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-        });
-        csvArray.push(values.join(','));
-    });
-    
-    return csvArray.join('\n');
-}
-
-// 更新分頁
-function updatePagination(page, totalPagesCount, totalCount) {
-    currentPage = page;
-    totalPages = totalPagesCount;
-    
+// Update pagination
+function updatePagination() {
     const paginationNav = document.getElementById('paginationNav');
-    const paginationUl = document.getElementById('pagination');
+    const pagination = document.getElementById('pagination');
     
-    if (totalPagesCount <= 1) {
+    if (totalPages <= 1) {
         paginationNav.style.display = 'none';
         return;
     }
@@ -413,122 +353,360 @@ function updatePagination(page, totalPagesCount, totalCount) {
     
     let paginationHtml = '';
     
-    // 上一頁
-    if (page > 1) {
-        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${page - 1})">上一頁</a></li>`;
+    // Previous page
+    paginationHtml += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <button class="page-link" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                Previous
+            </button>
+        </li>
+    `;
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <button class="page-link" onclick="changePage(${i})">${i}</button>
+            </li>
+        `;
     }
     
-    // 頁碼
-    for (let i = Math.max(1, page - 2); i <= Math.min(totalPagesCount, page + 2); i++) {
-        const activeClass = i === page ? 'active' : '';
-        paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
-    }
+    // Next page
+    paginationHtml += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <button class="page-link" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                Next
+            </button>
+        </li>
+    `;
     
-    // 下一頁
-    if (page < totalPagesCount) {
-        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${page + 1})">下一頁</a></li>`;
-    }
-    
-    paginationUl.innerHTML = paginationHtml;
+    pagination.innerHTML = paginationHtml;
 }
 
-// 切換頁面
+// Change page
 function changePage(page) {
-    currentPage = page;
-    loadRecords();
-}
-
-// 顯示載入中
-function showLoading() {
-    console.log('showLoading() 被調用');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.setProperty('display', 'flex', 'important');
-        console.log('載入動畫已顯示，display設為: flex !important');
-    } else {
-        console.error('找不到 loadingOverlay 元素');
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        currentPage = page;
+        loadRecords();
     }
 }
 
-// 隱藏載入中
-function hideLoading() {
-    console.log('hideLoading() 被調用');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.setProperty('display', 'none', 'important');
-        console.log('載入動畫已隱藏，display設為: none !important');
-        console.log('loadingOverlay 當前樣式:', window.getComputedStyle(loadingOverlay).display);
-    } else {
-        console.error('找不到 loadingOverlay 元素');
-    }
-}
-
-// 顯示提示訊息
-function showAlert(message, type = 'info') {
-    const toast = document.getElementById('alertToast');
-    const title = document.getElementById('toastTitle');
-    const body = document.getElementById('toastBody');
+// Update department filter
+function updateDepartmentFilter(records) {
+    const departmentFilter = document.getElementById('departmentFilter');
+    const departments = [...new Set(records.map(r => r.department))].sort();
     
-    // 設定樣式
-    const bgClass = type === 'error' ? 'bg-danger' : 
-                   type === 'success' ? 'bg-success' : 
-                   type === 'warning' ? 'bg-warning' : 'bg-info';
+    // Save current selection
+    const currentValue = departmentFilter.value;
     
-    toast.className = `toast align-items-center text-white ${bgClass} border-0`;
-    title.textContent = type === 'error' ? '錯誤' : 
-                       type === 'success' ? '成功' : 
-                       type === 'warning' ? '警告' : '通知';
-    body.textContent = message;
-    
-    // 顯示 Toast
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-}
-
-// 設定事件監聽器
-document.addEventListener('DOMContentLoaded', function() {
-    // 搜尋框即時篩選
-    document.getElementById('nameSearch').addEventListener('input', function() {
-        // 延遲執行以避免過多API調用
-        clearTimeout(this.searchTimeout);
-        this.searchTimeout = setTimeout(applyFilters, 300);
+    // Clear and rebuild options
+    departmentFilter.innerHTML = '<option value="">所有部門</option>';
+    departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        departmentFilter.appendChild(option);
     });
     
-    // Enter 鍵觸發搜尋
-    document.getElementById('nameSearch').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            applyFilters();
+    // Restore selection if still valid
+    if (departments.includes(currentValue)) {
+        departmentFilter.value = currentValue;
+    }
+}
+
+// Show complete record
+async function viewRecord(recordId) {
+    try {
+        showLoading();
+        
+        const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/detail`);
+        const result = await response.json();
+
+        if (result.success) {
+            showRecordModal(result.data);
+        } else {
+            throw new Error(result.message || 'Unable to load record details');
         }
-    });
-});
+    } catch (error) {
+        console.error('View record failed:', error);
+        showAlert('檢視記錄失敗: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
 
-// 查看簽名
-window.viewSignature = function(recordId, employeeName) {
-    fetch(`${API_BASE}/EAnnouncement/records/${recordId}/signature`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('無法取得簽名圖片');
+// Show record view Modal
+function showRecordModal(data) {
+    const modal = document.getElementById('recordModal');
+    const recordContent = document.getElementById('recordContent');
+    
+    // Set Modal title
+    document.getElementById('recordModalLabel').innerHTML = 
+        `<i class="fas fa-file-alt me-2"></i>${data.announcement.title} - ${data.recordInfo.employeeName}`;
+    
+    // Build content HTML
+    const contentHtml = `
+        <div class="container-fluid">
+            <!-- 宣導專案資訊 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>宣導專案資訊</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="fw-bold">標題:</td><td>${data.announcement.title}</td></tr>
+                                <tr><td class="fw-bold">文件類型:</td><td><span class="badge bg-info">${data.announcement.documentType}</span></td></tr>
+                                <tr><td class="fw-bold">發佈單位:</td><td>${data.announcement.publishUnit}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="fw-bold">目標公司:</td><td>${data.announcement.targetCompany}</td></tr>
+                                <tr><td class="fw-bold">發佈日期:</td><td>${new Date(data.announcement.publishDate).toLocaleDateString('zh-TW')}</td></tr>
+                                <tr><td class="fw-bold">目標部門:</td><td>${data.announcement.targetDepartments.map(dept => `<span class="badge bg-secondary me-1">${dept}</span>`).join('')}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 宣導內容 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-text me-2"></i>宣導內容</h5>
+                </div>
+                <div class="card-body">
+                    ${renderContentBlocks(data.announcement.contentBlocks)}
+                </div>
+            </div>
+
+            <!-- 簽名者資訊 -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>簽名者資訊</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="fw-bold">姓名:</td><td>${data.recordInfo.employeeName}</td></tr>
+                                <tr><td class="fw-bold">員工編號:</td><td>${data.recordInfo.employeeId}</td></tr>
+                                <tr><td class="fw-bold">公司:</td><td>${data.recordInfo.company}</td></tr>
+                                <tr><td class="fw-bold">部門:</td><td>${data.recordInfo.department}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="fw-bold">簽名時間:</td><td>${new Date(data.recordInfo.signedAt).toLocaleString('zh-TW')}</td></tr>
+                                <tr><td class="fw-bold">簽名狀態:</td><td>${data.recordInfo.hasSignature ? 
+                                    '<span class="badge bg-success"><i class="fas fa-check me-1"></i>已簽名</span>' : 
+                                    '<span class="badge bg-warning"><i class="fas fa-times me-1"></i>未簽名</span>'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    ${data.recordInfo.hasSignature ? `
+                        <div class="mt-3">
+                            <h6><i class="fas fa-signature me-2"></i>電子簽名</h6>
+                            <div class="text-center p-3 border rounded bg-light">
+                                <img src="${data.recordInfo.signatureData}" alt="電子簽名" 
+                                     class="img-fluid" style="max-height: 200px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="mt-3">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>This record has no electronic signature
+                            </div>
+                        </div>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    recordContent.innerHTML = contentHtml;
+    
+    // Set PDF export button event
+    const exportPdfBtn = document.getElementById('exportRecordPdf');
+    if (exportPdfBtn) {
+        exportPdfBtn.onclick = () => exportRecordPdf(data.recordInfo.id);
+    }
+    
+    // Show Modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+// Render content blocks
+function renderContentBlocks(contentBlocks) {
+    if (!contentBlocks || contentBlocks.length === 0) {
+        return '<div class="alert alert-info">無內容</div>';
+    }
+
+    return contentBlocks.map((block, index) => {
+        let blockHtml = `<div class="content-block mb-3 p-3 border rounded">`;
+        
+        if (block.subTitle) {
+            blockHtml += `<h6 class="fw-bold text-primary mb-2">${block.subTitle}</h6>`;
+        }
+        
+        if (block.type === 'text' && block.content) {
+            blockHtml += `<p class="mb-2">${block.content.replace(/\n/g, '<br>')}</p>`;
+        } else if (block.text) {
+            blockHtml += `<p class="mb-2">${block.text.replace(/\n/g, '<br>')}</p>`;
+        }
+        
+        if (block.type === 'image' && block.content) {
+            blockHtml += `
+                <div class="text-center mb-2">
+                    <img src="${block.content}" alt="內容圖片" 
+                         class="img-fluid border rounded" 
+                         style="max-height: 400px; cursor: pointer;"
+                         onclick="showImagePreview('${block.content}')">
+                </div>
+            `;
+        } else if (block.imageUrl) {
+            blockHtml += `
+                <div class="text-center mb-2">
+                    <img src="${block.imageUrl}" alt="內容圖片" 
+                         class="img-fluid border rounded" 
+                         style="max-height: 400px; cursor: pointer;"
+                         onclick="showImagePreview('${block.imageUrl}')">
+                </div>
+            `;
+        }
+        
+        blockHtml += '</div>';
+        return blockHtml;
+    }).join('');
+}
+
+// Show image preview
+function showImagePreview(imageUrl) {
+    const previewHtml = `
+        <div class="modal fade" id="imagePreviewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">圖片預覽</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="${imageUrl}" alt="圖片預覽" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove old preview modal
+    const existingModal = document.getElementById('imagePreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', previewHtml);
+    const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    modal.show();
+}
+
+// Export single record PDF
+async function exportRecordPdf(recordId) {
+    try {
+        showLoading();
+        
+        const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/export-pdf`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `Signature_record_${new Date().toISOString().slice(0, 10)}.pdf`;
+            
+            if (contentDisposition) {
+                // 處理UTF-8編碼的檔名
+                if (contentDisposition.includes('filename*=UTF-8\'\'')) {
+                    const encodedFilename = contentDisposition.split('filename*=UTF-8\'\'')[1];
+                    try {
+                        filename = decodeURIComponent(encodedFilename);
+                    } catch (e) {
+                        console.warn('Failed to decode filename:', e);
+                    }
+                } else if (contentDisposition.includes('filename=')) {
+                    filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+                }
             }
-            return response.json();
-        })
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('PDF匯出成功', 'success');
+        } else {
+            const errorResult = await response.json().catch(() => ({message: '未知錯誤'}));
+            throw new Error(errorResult.message || '匯出失敗');
+        }
+    } catch (error) {
+        console.error('Export PDF failed:', error);
+        showAlert('PDF匯出失敗: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// View signature
+function viewSignature(recordId) {
+    // Check if modal already exists
+    let modal = document.getElementById('signatureModal');
+    if (!modal) {
+        modal = createSignatureModal();
+    }
+    
+    // Load signature data
+    fetch(`${API_BASE}/EAnnouncement/records/${recordId}/signature`)
+        .then(response => response.json())
         .then(result => {
-            if (result.success && result.data.signatureData) {
-                // 建立簽名查看對話框
-                const modal = new bootstrap.Modal(document.getElementById('signatureModal') || createSignatureModal());
-                document.getElementById('signatureModalLabel').textContent = `${employeeName}的簽名`;
-                document.getElementById('signatureImage').src = result.data.signatureData;
-                modal.show();
+            if (result.success && result.data) {
+                console.log('Signature data loaded successfully');
+                
+                // Update signer information
+                const signerInfo = document.getElementById('signerInfo');
+                if (signerInfo) {
+                    signerInfo.textContent = `${result.data.employeeName} (${result.data.employeeId}) - ${result.data.department}`;
+                }
+                
+                // Set signature image
+                const signatureImage = document.getElementById('signatureImage');
+                if (signatureImage) {
+                    signatureImage.src = result.data.signatureData;
+                }
+                
+                // Show modal
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
             } else {
-                throw new Error('無法取得簽名資料');
+                throw new Error('Unable to get signature data');
             }
         })
         .catch(error => {
             console.error('Error loading signature:', error);
-            showAlert('無法載入簽名圖片：' + error.message, 'error');
+            showAlert('無法載入簽名圖片: ' + error.message, 'error');
         });
-};
+}
 
-// 建立簽名檢視對話框
+// Create signature view dialog
 function createSignatureModal() {
     const modalHtml = `
         <div class="modal fade" id="signatureModal" tabindex="-1">
@@ -539,6 +717,9 @@ function createSignatureModal() {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body text-center">
+                        <div class="mb-3">
+                            <h6 id="signerInfo">載入中...</h6>
+                        </div>
                         <img id="signatureImage" src="" alt="簽名圖片" class="img-fluid" style="max-height: 400px;">
                     </div>
                     <div class="modal-footer">
@@ -550,4 +731,103 @@ function createSignatureModal() {
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     return document.getElementById('signatureModal');
+}
+
+// Download PDF
+async function downloadPDF() {
+    try {
+        showLoading();
+        
+        // Build export parameters
+        const params = new URLSearchParams();
+        const nameSearch = document.getElementById('nameSearch')?.value?.trim();
+        const departmentFilter = document.getElementById('departmentFilter')?.value?.trim();
+        const dateFilter = document.getElementById('dateFilter')?.value?.trim();
+        
+        if (nameSearch) {
+            params.append('employeeName', nameSearch);
+        }
+        if (departmentFilter) {
+            params.append('department', departmentFilter);
+        }
+        if (dateFilter) {
+            params.append('signedDate', dateFilter);
+        }
+        
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/export-pdf?${params}`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `Signature_records_${new Date().toISOString().slice(0, 10)}.pdf`;
+            
+            if (contentDisposition && contentDisposition.includes('filename=')) {
+                filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+            }
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('PDF匯出成功', 'success');
+        } else {
+            const errorResult = await response.json().catch(() => ({message: '未知錯誤'}));
+            throw new Error(errorResult.message || '匯出失敗');
+        }
+    } catch (error) {
+        console.error('Download PDF failed:', error);
+        showAlert('PDF下載失敗: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Show alert
+function showAlert(message, type = 'info') {
+    const alertToast = document.getElementById('alertToast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastBody = document.getElementById('toastBody');
+    
+    // Set alert type
+    const typeConfig = {
+        'success': { title: '成功', class: 'text-success' },
+        'error': { title: '錯誤', class: 'text-danger' },
+        'warning': { title: '警告', class: 'text-warning' },
+        'info': { title: '資訊', class: 'text-info' }
+    };
+    
+    const config = typeConfig[type] || typeConfig['info'];
+    toastTitle.textContent = config.title;
+    toastTitle.className = config.class;
+    toastBody.textContent = message;
+    
+    // Show toast
+    const toast = new bootstrap.Toast(alertToast);
+    toast.show();
+}
+
+// Show loading
+function showLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+        console.log('showLoading() called');
+    }
+}
+
+// Hide loading
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+        console.log('hideLoading() called');
+        console.log('Loading animation hidden, display set to:', loadingOverlay.style.display);
+    }
 }

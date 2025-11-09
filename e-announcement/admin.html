@@ -44,6 +44,24 @@
         text-align: center;
         background-color: #fff;
       }
+      .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+      }
+      .stats-card .card-body {
+        padding: 1.5rem;
+      }
+      .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+      .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+      }
       .image-preview img {
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -51,13 +69,58 @@
       .btn-outline-danger:hover {
         color: #fff;
       }
-      .loading {
-        opacity: 0.6;
-        pointer-events: none;
-      }
       .content-block:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: box-shadow 0.2s ease;
+      }
+
+      /* YouTube 預覽樣式 */
+      .youtube-preview {
+        margin-top: 15px;
+      }
+
+      .youtube-preview .embed-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 回應式嵌入樣式 */
+      .embed-responsive {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .embed-responsive-16by9 {
+        padding-bottom: 56.25%; /* 16:9 寬高比 */
+      }
+
+      .embed-responsive-item {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      /* 預覽模態內容樣式 */
+      #previewModal .html-content iframe {
+        border-radius: 8px;
+      }
+
+      #previewModal .youtube-content .embed-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      #previewModal .content-block {
+        margin-bottom: 2rem;
       }
     </style>
   </head>
@@ -106,7 +169,18 @@
               class="card-header d-flex justify-content-between align-items-center"
             >
               <h5 class="mb-0"><i class="fas fa-list me-2"></i>宣導專案列表</h5>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="showArchivedSwitch"
+                    onchange="toggleArchivedDisplay()"
+                  />
+                  <label class="form-check-label" for="showArchivedSwitch">
+                    顯示封存專案
+                  </label>
+                </div>
                 <select
                   class="form-select form-select-sm"
                   id="companyFilter"
@@ -138,6 +212,113 @@
                   id="pagination"
                 ></ul>
               </nav>
+            </div>
+          </div>
+        </div>
+
+        <!-- 簽名記錄檢視 -->
+        <div id="recordsView" class="view-content" style="display: none">
+          <div class="card">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0"><i class="fas fa-list me-2"></i>簽名記錄管理</h5>
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                onclick="backToList()"
+              >
+                <i class="fas fa-arrow-left me-1"></i>返回列表
+              </button>
+            </div>
+            <div class="card-body">
+              <!-- 宣導專案資訊 -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6><i class="fas fa-info-circle me-2"></i>宣導專案資訊</h6>
+                  <div id="announcementInfo" class="p-3 bg-light rounded"></div>
+                </div>
+              </div>
+
+              <!-- 統計資訊 -->
+              <div class="row mb-4" id="statisticsContainer"></div>
+
+              <!-- 部門統計 -->
+              <div class="row mb-4">
+                <div class="col-md-6">
+                  <h6><i class="fas fa-chart-bar me-2"></i>部門統計</h6>
+                  <div id="departmentStatsContainer"></div>
+                </div>
+                <div class="col-md-6">
+                  <h6><i class="fas fa-tools me-2"></i>操作</h6>
+                  <div class="d-grid gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-success"
+                      onclick="downloadRecordsPDF()"
+                    >
+                      <i class="fas fa-download me-2"></i>下載 PDF 報表
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 記錄篩選與搜尋 -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <div class="input-group">
+                    <span class="input-group-text"
+                      ><i class="fas fa-search"></i
+                    ></span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="recordSearch"
+                      placeholder="搜尋姓名或員工編號"
+                      onkeypress="if(event.key==='Enter') filterRecords()"
+                    />
+                    <button
+                      class="btn btn-primary"
+                      type="button"
+                      onclick="filterRecords()"
+                    >
+                      搜尋
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <select
+                    class="form-select"
+                    id="signatureFilter"
+                    onchange="filterRecordsBySignature()"
+                  >
+                    <option value="">全部記錄</option>
+                    <option value="true">有簽名</option>
+                    <option value="false">無簽名</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <select
+                    class="form-select"
+                    id="recordsPageSize"
+                    onchange="changePageSize()"
+                  >
+                    <option value="25">25 筆</option>
+                    <option value="50" selected>50 筆</option>
+                    <option value="100">100 筆</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 簽名記錄列表 -->
+              <div id="recordsContainer">
+                <div class="loading">
+                  <i class="fas fa-spinner fa-spin me-2"></i>載入記錄中...
+                </div>
+              </div>
+
+              <!-- 記錄分頁 -->
+              <div id="recordsPaginationContainer" class="mt-3"></div>
             </div>
           </div>
         </div>
@@ -272,6 +453,13 @@
                   </button>
                   <button
                     type="button"
+                    class="btn btn-outline-info"
+                    onclick="previewFormContent()"
+                  >
+                    <i class="fas fa-eye me-1"></i>預覽
+                  </button>
+                  <button
+                    type="button"
                     class="btn btn-secondary"
                     onclick="showView('list')"
                   >
@@ -338,7 +526,9 @@
           </div>
           <div class="modal-body">
             <p>確定要刪除此宣導專案嗎？</p>
-            <p class="text-danger small">注意：已有簽名記錄的專案無法刪除</p>
+            <p class="text-danger small">
+              ⚠️ 注意：此操作將會同時刪除所有相關的簽名記錄，且無法復原
+            </p>
           </div>
           <div class="modal-footer">
             <button
@@ -436,6 +626,43 @@
               onclick="saveSignature()"
             >
               <i class="fas fa-check me-1"></i>確認簽名
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 簽名檢視 Modal -->
+    <div
+      class="modal fade"
+      id="signatureViewModal"
+      tabindex="-1"
+      aria-labelledby="signatureViewModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="signatureViewModalLabel">
+              <i class="fas fa-signature me-2"></i>簽名詳情
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="signatureViewModalBody">
+            <!-- 簽名內容將在這裡動態載入 -->
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times me-1"></i>關閉
             </button>
           </div>
         </div>

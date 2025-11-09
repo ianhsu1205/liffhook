@@ -161,6 +161,8 @@ function addContentBlock() {
                 <select class="form-select content-type" onchange="updateContentInput('${blockId}')">
                     <option value="text">文字內容</option>
                     <option value="image">圖片</option>
+                    <option value="html">HTML連結</option>
+                    <option value="youtube">YouTube影片</option>
                 </select>
             </div>
             <div class="content-input">
@@ -247,6 +249,50 @@ function updateContentInput(blockId) {
                 <div class="form-text">您可以選擇上傳圖片或輸入圖片網址</div>
             </div>
         `;
+    } else if (typeSelect.value === 'html') {
+        contentInput.innerHTML = `
+            <label class="form-label">HTML連結網址</label>
+            <input type="url" class="form-control html-url" placeholder="https://example.com/page.html" required>
+            <div class="form-text">請輸入要嵌入的HTML網頁連結，將以最大化方式顯示該網頁內容</div>
+            <div class="mt-2">
+                <label class="form-label">連結標題 (選填)</label>
+                <input type="text" class="form-control html-title" placeholder="網頁標題...">
+                <div class="form-text">為此連結設定一個標題，幫助使用者了解內容</div>
+            </div>
+        `;
+    } else if (typeSelect.value === 'youtube') {
+        contentInput.innerHTML = `
+            <label class="form-label">YouTube影片連結</label>
+            <input type="url" class="form-control youtube-url" placeholder="https://youtu.be/qV_nb10ag68 或 https://www.youtube.com/watch?v=qV_nb10ag68" required>
+            <div class="form-text">
+                支援兩種格式：<br>
+                • 分享連結：https://youtu.be/影片ID<br>
+                • 完整連結：https://www.youtube.com/watch?v=影片ID
+            </div>
+            <div class="mt-2">
+                <label class="form-label">影片標題 (選填)</label>
+                <input type="text" class="form-control youtube-title" placeholder="影片標題...">
+                <div class="form-text">為此影片設定一個標題，如果不填入系統會自動抓取YouTube標題</div>
+            </div>
+            <div class="mt-2">
+                <div class="youtube-preview" style="display: none;">
+                    <label class="form-label">影片預覽</label>
+                    <div class="embed-responsive embed-responsive-16by9">
+                        <iframe class="embed-responsive-item" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 為YouTube URL輸入框添加即時預覽功能
+        setTimeout(() => {
+            const youtubeUrlInput = block.querySelector('.youtube-url');
+            if (youtubeUrlInput) {
+                youtubeUrlInput.addEventListener('input', function() {
+                    updateYouTubePreview(blockId, this.value);
+                });
+            }
+        }, 100);
     }
 }
 
@@ -327,13 +373,64 @@ function removeImage(blockId) {
     urlInput.value = '';
 }
 
+// 更新YouTube預覽
+function updateYouTubePreview(blockId, url) {
+    const block = document.getElementById(blockId);
+    const previewContainer = block.querySelector('.youtube-preview');
+    const iframe = previewContainer.querySelector('iframe');
+    
+    if (!url.trim()) {
+        previewContainer.style.display = 'none';
+        return;
+    }
+    
+    // 解析YouTube URL並取得影片ID
+    const videoId = extractYouTubeVideoId(url);
+    if (videoId) {
+        iframe.src = `https://www.youtube.com/embed/${videoId}`;
+        previewContainer.style.display = 'block';
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+
+// 從YouTube URL提取影片ID
+function extractYouTubeVideoId(url) {
+    try {
+        // 支援的格式：
+        // https://youtu.be/VIDEO_ID
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        // https://m.youtube.com/watch?v=VIDEO_ID
+        
+        const regexPatterns = [
+            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+            /(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/
+        ];
+        
+        for (const pattern of regexPatterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('解析YouTube URL時發生錯誤:', error);
+        return null;
+    }
+}
+
 // 載入宣導專案列表
 async function loadAnnouncements() {
     try {
         const company = document.getElementById('companyFilter').value;
+        const showArchived = document.getElementById('showArchivedSwitch')?.checked || false;
         const params = new URLSearchParams({
             page: currentPage,
-            pageSize: 10
+            pageSize: 10,
+            includeArchived: showArchived
         });
         
         if (company) {
@@ -382,8 +479,8 @@ function displayAnnouncements(announcements) {
                             <span><i class="fas fa-users me-1"></i>${item.recordCount} 人已簽名</span>
                         </div>
                         <div class="mt-1">
-                            <span class="badge bg-${item.isActive ? 'success' : 'secondary'}">${item.isActive ? '啟用' : '停用'}</span>
                             <span class="badge bg-info">${item.targetCompany}</span>
+                            ${item.isArchived ? '<span class="badge bg-warning"><i class="fas fa-archive me-1"></i>已封存</span>' : ''}
                         </div>
                     </div>
                     <div class="col-md-4 text-end">
@@ -405,6 +502,9 @@ function displayAnnouncements(announcements) {
                             </button>
                             <button class="btn btn-sm btn-outline-warning" onclick="exportPdf('${item.id}')">
                                 <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button class="btn btn-sm ${item.isArchived ? 'btn-outline-success' : 'btn-outline-warning'}" onclick="toggleArchiveStatus('${item.id}', ${item.isArchived})" title="${item.isArchived ? '取消封存' : '封存'}">
+                                <i class="fas fa-${item.isArchived ? 'folder-open' : 'archive'}"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnouncement('${item.id}', '${item.title}')">
                                 <i class="fas fa-trash"></i>
@@ -571,6 +671,42 @@ function gatherFormData() {
                 content = imageUrl; // 網址格式
             } else {
                 console.warn(`內容區塊 ${index + 1} 的圖片內容為空`);
+            }
+        } else if (type === 'html') {
+            const htmlUrlElement = block.querySelector('.html-url');
+            const htmlTitleElement = block.querySelector('.html-title');
+            
+            const htmlUrl = htmlUrlElement?.value?.trim();
+            const htmlTitle = htmlTitleElement?.value?.trim();
+            
+            if (htmlUrl) {
+                content = JSON.stringify({
+                    url: htmlUrl,
+                    title: htmlTitle || htmlUrl
+                });
+            } else {
+                console.warn(`內容區塊 ${index + 1} 的HTML連結為空`);
+            }
+        } else if (type === 'youtube') {
+            const youtubeUrlElement = block.querySelector('.youtube-url');
+            const youtubeTitleElement = block.querySelector('.youtube-title');
+            
+            const youtubeUrl = youtubeUrlElement?.value?.trim();
+            const youtubeTitle = youtubeTitleElement?.value?.trim();
+            
+            if (youtubeUrl) {
+                const videoId = extractYouTubeVideoId(youtubeUrl);
+                if (videoId) {
+                    content = JSON.stringify({
+                        url: youtubeUrl,
+                        videoId: videoId,
+                        title: youtubeTitle || 'YouTube影片'
+                    });
+                } else {
+                    throw new Error(`內容區塊 ${index + 1} 的YouTube連結格式不正確`);
+                }
+            } else {
+                console.warn(`內容區塊 ${index + 1} 的YouTube連結為空`);
             }
         }
         
@@ -844,6 +980,45 @@ function populateFormWithData(data) {
                         console.log('✅ 網址圖片已載入');
                     }
                 }
+            } else if (block.type === 'html') {
+                console.log('🌐 填入HTML連結內容:', block.content);
+                try {
+                    const htmlData = JSON.parse(block.content);
+                    const urlInput = blockElement.querySelector('.html-url');
+                    const titleInput = blockElement.querySelector('.html-title');
+                    
+                    if (urlInput) urlInput.value = htmlData.url || '';
+                    if (titleInput) titleInput.value = htmlData.title || '';
+                    console.log('✅ HTML連結內容已填入');
+                } catch (error) {
+                    console.warn('❌ 解析HTML連結資料失敗:', error);
+                    // 向後相容：直接當作URL處理
+                    const urlInput = blockElement.querySelector('.html-url');
+                    if (urlInput) urlInput.value = block.content || '';
+                }
+            } else if (block.type === 'youtube') {
+                console.log('🎥 填入YouTube影片內容:', block.content);
+                try {
+                    const youtubeData = JSON.parse(block.content);
+                    const urlInput = blockElement.querySelector('.youtube-url');
+                    const titleInput = blockElement.querySelector('.youtube-title');
+                    
+                    if (urlInput) {
+                        urlInput.value = youtubeData.url || '';
+                        // 觸發預覽更新
+                        updateYouTubePreview(blockElement.id, youtubeData.url || '');
+                    }
+                    if (titleInput) titleInput.value = youtubeData.title || '';
+                    console.log('✅ YouTube影片內容已填入');
+                } catch (error) {
+                    console.warn('❌ 解析YouTube影片資料失敗:', error);
+                    // 向後相容：直接當作URL處理
+                    const urlInput = blockElement.querySelector('.youtube-url');
+                    if (urlInput) {
+                        urlInput.value = block.content || '';
+                        updateYouTubePreview(blockElement.id, block.content || '');
+                    }
+                }
             }
             console.log(`✅ 區塊內容填入完成`);
         }, 100);
@@ -1024,11 +1199,6 @@ async function executeTestPublish() {
     }
 }
 
-// 查看記錄
-function viewRecords(id) {
-    window.open(`records.html?id=${id}`, '_blank');
-}
-
 // 匯出 PDF
 async function exportPdf(id) {
     try {
@@ -1040,11 +1210,30 @@ async function exportPdf(id) {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `宣導記錄_${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            // 從回應標頭獲取正確檔名
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `宣導記錄_${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
+                if (fileNameMatch) {
+                    const encodedFileName = fileNameMatch[1].trim();
+                    if (encodedFileName.startsWith("UTF-8''")) {
+                        filename = decodeURIComponent(encodedFileName.substring(7));
+                    } else {
+                        filename = encodedFileName.replace(/"/g, '');
+                    }
+                }
+            }
+            
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+            
+            showAlert('PDF已下載完成', 'success');
         } else {
             // JSON 回應（開發中）
             const result = await response.json();
@@ -1081,6 +1270,86 @@ function showAlert(message, type = 'info') {
 function logout() {
     if (confirm('確定要登出嗎？')) {
         window.location.href = '/';
+    }
+}
+
+// 從表單內容預覽宣導專案
+function previewFormContent() {
+    try {
+        // 收集表單資料
+        const formData = gatherFormData();
+        
+        // 生成預覽HTML
+        const targetDepartments = Array.isArray(formData.targetDepartments) ? 
+            formData.targetDepartments.join('、') : formData.targetDepartments;
+            
+        const publishUnit = formData.publishUnit === '其它' && formData.customPublishUnit ? 
+            formData.customPublishUnit : formData.publishUnit;
+        
+        const previewHtml = `
+            <div class="container">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">${formData.title}</h4>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="badge bg-light text-dark">${formData.documentType}</span>
+                            <span>${formData.publishDate}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>發佈單位：</strong>${publishUnit}
+                        </div>
+                        <div class="mb-3">
+                            <strong>目標公司：</strong>${formData.targetCompany}
+                        </div>
+                        <div class="mb-3">
+                            <strong>目標部門：</strong>${targetDepartments}
+                        </div>
+                        <hr>
+                        <div class="content-area">
+                            ${generateContentBlocksPreview(formData.contentBlocks)}
+                        </div>
+                        
+                        <!-- 文件底部簽名區域 -->
+                        <div class="signature-area mt-4 p-3 border-top">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>簽名確認</strong></p>
+                                    <p class="text-muted small">請在此區域進行電子簽名確認</p>
+                                    <div class="signature-placeholder p-3 text-center" style="border: 2px dashed #ccc; background: #f8f9fa;">
+                                        <i class="fas fa-signature fa-2x text-muted"></i>
+                                        <p class="text-muted mt-2">簽名區域</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>確認資訊</strong></p>
+                                    <p class="text-muted small mb-1">員工編號：___________</p>
+                                    <p class="text-muted small mb-1">姓名：___________</p>
+                                    <p class="text-muted small mb-1">部門：___________</p>
+                                    <p class="text-muted small mb-1">簽名日期：___________</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 顯示預覽
+        document.getElementById('previewContent').innerHTML = previewHtml;
+        
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        previewModal.show();
+        
+        // 記錄當前為表單預覽（沒有ID）
+        window.currentPreviewId = null;
+        
+        console.log('✅ 表單預覽顯示成功');
+        
+    } catch (error) {
+        console.error('❌ 表單預覽失敗:', error);
+        showAlert(error.message || '預覽失敗', 'error');
     }
 }
 
@@ -1195,9 +1464,163 @@ function generateContentBlocksPreview(contentBlocks) {
             return `<div class="content-block mb-3 text-center">
                         <img src="${block.content}" alt="宣導圖片" class="img-fluid" style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px;">
                     </div>`;
+        } else if (block.type === 'html') {
+            // 解析HTML連結資料
+            try {
+                const htmlData = JSON.parse(block.content);
+                return `<div class="content-block html-content mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        ${htmlData.title || '網頁連結'}
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <iframe src="${htmlData.url}" 
+                                            frameborder="0" 
+                                            style="width: 100%; height: 70vh; min-height: 500px;"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${htmlData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            } catch (error) {
+                // 向後相容：直接當作URL處理
+                return `<div class="content-block html-content mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        網頁連結
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <iframe src="${block.content}" 
+                                            frameborder="0" 
+                                            style="width: 100%; height: 70vh; min-height: 500px;"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+        } else if (block.type === 'youtube') {
+            // 解析YouTube影片資料
+            try {
+                const youtubeData = JSON.parse(block.content);
+                return `<div class="content-block youtube-content mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fab fa-youtube"></i>
+                                        ${youtubeData.title || 'YouTube影片'}
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="embed-responsive embed-responsive-16by9">
+                                        <iframe class="embed-responsive-item" 
+                                                src="https://www.youtube.com/embed/${youtubeData.videoId}?rel=0"
+                                                frameborder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowfullscreen>
+                                        </iframe>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${youtubeData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fab fa-youtube"></i> 在YouTube觀看
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            } catch (error) {
+                // 向後相容：嘗試從URL解析videoId
+                const videoId = extractYouTubeVideoIdForPreview(block.content);
+                if (videoId) {
+                    return `<div class="content-block youtube-content mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fab fa-youtube"></i>
+                                            YouTube影片
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="embed-responsive embed-responsive-16by9">
+                                            <iframe class="embed-responsive-item" 
+                                                    src="https://www.youtube.com/embed/${videoId}?rel=0"
+                                                    frameborder="0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer">
+                                        <small class="text-muted">
+                                            <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fab fa-youtube"></i> 在YouTube觀看
+                                            </a>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>`;
+                } else {
+                    return `<div class="content-block mb-3">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    無效的YouTube連結：${block.content}
+                                </div>
+                            </div>`;
+                }
+            }
         }
         return '';
     }).join('');
+}
+
+// 為預覽功能專用的YouTube URL解析函數
+function extractYouTubeVideoIdForPreview(url) {
+    try {
+        // 支援的格式：
+        // https://youtu.be/VIDEO_ID
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        // https://m.youtube.com/watch?v=VIDEO_ID
+        
+        const regexPatterns = [
+            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+            /(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/
+        ];
+        
+        for (const pattern of regexPatterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('解析YouTube URL時發生錯誤:', error);
+        return null;
+    }
 }
 
 // 開啟簽名頁面
@@ -1361,4 +1784,499 @@ function removeSignature() {
             </button>
         </div>
     `;
+}
+
+// ==================== 記錄管理功能 ====================
+
+let currentAnnouncementId = null;
+let currentRecordsPage = 1;
+let currentRecordsPageSize = 50;
+let currentRecordsFilter = '';
+let allRecords = [];
+
+// 檢視簽名記錄
+async function viewRecords(announcementId) {
+    currentAnnouncementId = announcementId;
+    currentRecordsPage = 1;
+    
+    // 切換視圖
+    document.getElementById('listView').style.display = 'none';
+    document.getElementById('createView').style.display = 'none';
+    document.getElementById('recordsView').style.display = 'block';
+    
+    // 載入記錄管理頁面資料
+    await loadRecordsManagement();
+}
+
+// 載入記錄管理頁面
+async function loadRecordsManagement() {
+    try {
+        // 載入宣導專案和統計資料
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/records-management`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP錯誤! 狀態: ${response.status}`);
+        }
+        
+        const result = await response.json();
+
+        if (result.success) {
+            displayAnnouncementInfo(result.data.announcement);
+            displayStatistics(result.data.statistics);
+            displayDepartmentStats(result.data.departmentStats);
+            
+            // 載入簽名記錄
+            await loadRecords();
+        } else {
+            showAlert('載入失敗: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('載入記錄管理頁面失敗:', error);
+        showAlert('載入失敗，請重新整理頁面', 'error');
+    }
+}
+
+// 顯示宣導專案資訊
+function displayAnnouncementInfo(announcement) {
+    if (!announcement) {
+        console.error('announcement 參數為 undefined 或 null');
+        return;
+    }
+    
+    const container = document.getElementById('announcementInfo');
+    
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-heading me-2"></i>標題</h6>
+                <p class="fw-bold">${announcement.title}</p>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-file-alt me-2"></i>文件類型</h6>
+                <p><span class="badge bg-primary">${announcement.documentType}</span></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-building me-2"></i>發佈單位</h6>
+                <p>${announcement.publishUnit}</p>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-calendar me-2"></i>發佈日期</h6>
+                <p>${new Date(announcement.publishDate).toLocaleString('zh-TW')}</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-industry me-2"></i>目標公司</h6>
+                <p>${announcement.targetCompany}</p>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-users me-2"></i>目標部門</h6>
+                <p>${announcement.targetDepartments.map(dept => `<span class="badge bg-secondary me-1">${dept}</span>`).join('')}</p>
+            </div>
+        </div>
+    `;
+}
+
+// 顯示統計資訊
+function displayStatistics(stats) {
+    const container = document.getElementById('statisticsContainer');
+    
+    container.innerHTML = `
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <div class="stats-number">${stats.targetCount}</div>
+                    <div><i class="fas fa-bullhorn me-2"></i>應宣導數</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <div class="stats-number">${stats.signedCount}</div>
+                    <div><i class="fas fa-signature me-2"></i>已簽確認數</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body text-center">
+                    <div class="stats-number">${stats.completionRate}%</div>
+                    <div><i class="fas fa-chart-line me-2"></i>完成率</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 顯示部門統計
+function displayDepartmentStats(departmentStats) {
+    const container = document.getElementById('departmentStatsContainer');
+    
+    if (!departmentStats || departmentStats.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">尚無部門統計資料</div>';
+        return;
+    }
+
+    const maxCount = Math.max(...departmentStats.map(d => d.count));
+
+    container.innerHTML = departmentStats.map(dept => {
+        const percentage = (dept.count / maxCount) * 100;
+        return `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">${dept.department}</span>
+                    <span class="badge bg-primary">${dept.count} 人</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 載入簽名記錄
+async function loadRecords() {
+    const container = document.getElementById('recordsContainer');
+    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>載入記錄中...</div>';
+
+    try {
+        const params = new URLSearchParams({
+            page: currentRecordsPage,
+            pageSize: currentRecordsPageSize
+        });
+
+        // 加入搜尋和篩選參數
+        if (currentRecordsFilter) {
+            params.append('search', currentRecordsFilter);
+        }
+
+        const signatureFilter = document.getElementById('signatureFilter')?.value;
+        if (signatureFilter) {
+            params.append('signatureFilter', signatureFilter);
+        }
+
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/records?${params.toString()}`);
+        const result = await response.json();
+
+        if (result.success) {
+            allRecords = result.data;
+            displayRecords();
+            displayRecordsPagination(result.totalPages, result.page);
+        } else {
+            container.innerHTML = `<div class="alert alert-warning">${result.message}</div>`;
+        }
+    } catch (error) {
+        console.error('載入簽名記錄失敗:', error);
+        container.innerHTML = '<div class="alert alert-danger">載入失敗，請重新整理頁面</div>';
+    }
+}
+
+// 顯示簽名記錄
+function displayRecords() {
+    const container = document.getElementById('recordsContainer');
+    
+    if (!allRecords || allRecords.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">尚無符合條件的簽名記錄</div>';
+        return;
+    }
+
+    const tableHtml = `
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>員工編號</th>
+                    <th>公司</th>
+                    <th>部門</th>
+                    <th>簽名時間</th>
+                    <th>簽名狀態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${allRecords.map(record => `
+                    <tr>
+                        <td><strong>${record.employeeName}</strong></td>
+                        <td>${record.employeeId}</td>
+                        <td>${record.company}</td>
+                        <td>${record.department}</td>
+                        <td>${new Date(record.signedAt).toLocaleString('zh-TW')}</td>
+                        <td>
+                            ${record.hasSignature 
+                                ? '<span class="badge bg-success"><i class="fas fa-signature me-1"></i>已簽名</span>' 
+                                : '<span class="badge bg-warning"><i class="fas fa-times me-1"></i>無簽名</span>'
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                ${record.hasSignature 
+                                    ? `<button class="btn btn-outline-primary" onclick="viewSignatureDetail('${record.id}')" title="檢視簽名">
+                                         <i class="fas fa-eye"></i>
+                                       </button>
+                                       <button class="btn btn-outline-success" onclick="exportRecordPdf('${record.id}')" title="匯出PDF">
+                                         <i class="fas fa-file-pdf"></i>
+                                       </button>`
+                                    : '<span class="text-muted">-</span>'
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = tableHtml;
+}
+
+// 顯示記錄分頁
+function displayRecordsPagination(totalPages, currentPageNum) {
+    const container = document.getElementById('recordsPaginationContainer');
+    
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let paginationHtml = '<nav><ul class="pagination justify-content-center">';
+    
+    // 上一頁
+    paginationHtml += `
+        <li class="page-item ${currentPageNum === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changeRecordsPage(${currentPageNum - 1})">上一頁</a>
+        </li>
+    `;
+    
+    // 頁碼
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPageNum || Math.abs(i - currentPageNum) <= 2 || i === 1 || i === totalPages) {
+            paginationHtml += `
+                <li class="page-item ${i === currentPageNum ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changeRecordsPage(${i})">${i}</a>
+                </li>
+            `;
+        } else if (Math.abs(i - currentPageNum) === 3) {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+    
+    // 下一頁
+    paginationHtml += `
+        <li class="page-item ${currentPageNum === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changeRecordsPage(${currentPageNum + 1})">下一頁</a>
+        </li>
+    `;
+    
+    paginationHtml += '</ul></nav>';
+    container.innerHTML = paginationHtml;
+}
+
+// 檢視簽名詳情
+async function viewSignatureDetail(recordId) {
+    try {
+        const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/signature`);
+        const result = await response.json();
+
+        if (result.success) {
+            const modalBody = document.getElementById('signatureViewModalBody');
+            
+            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-user me-2"></i>簽名人員</h6>
+                        <p class="fw-bold">${result.data.employeeName}</p>
+                        
+                        <h6><i class="fas fa-calendar me-2"></i>簽名時間</h6>
+                        <p>${new Date(result.data.signedAt).toLocaleString('zh-TW')}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-signature me-2"></i>簽名圖片</h6>
+                        <img src="${result.data.signatureData}" alt="簽名" class="img-fluid border rounded" style="max-height: 200px;">
+                    </div>
+                </div>
+            `;
+
+            // 顯示 Modal
+            const modal = new bootstrap.Modal(document.getElementById('signatureViewModal'));
+            modal.show();
+        } else {
+            showAlert('無法載入簽名資料: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('載入簽名失敗:', error);
+        showAlert('載入簽名失敗', 'error');
+    }
+}
+
+// 匯出單一記錄PDF
+async function exportRecordPdf(recordId) {
+    try {
+        const response = await fetch(`${API_BASE}/EAnnouncement/records/${recordId}/export-pdf`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            // 從回應標頭獲取檔案名稱
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `簽名記錄_${new Date().toISOString().slice(0, 10)}.pdf`;
+            
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
+                if (fileNameMatch) {
+                    const encodedFileName = fileNameMatch[1].trim();
+                    if (encodedFileName.startsWith("UTF-8''")) {
+                        filename = decodeURIComponent(encodedFileName.substring(7));
+                    } else {
+                        filename = encodedFileName.replace(/"/g, '');
+                    }
+                }
+            }
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('PDF 已下載完成', 'success');
+        } else {
+            const errorResult = await response.json();
+            showAlert('下載失敗: ' + (errorResult.message || '未知錯誤'), 'error');
+        }
+    } catch (error) {
+        console.error('下載PDF失敗:', error);
+        showAlert('下載失敗，請重新嘗試', 'error');
+    }
+}
+
+// 下載所有記錄的PDF
+async function downloadRecordsPDF() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/export-pdf`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            // 從回應標頭獲取檔案名稱
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `宣導記錄_${new Date().toISOString().slice(0, 10)}.pdf`;
+            
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
+                if (fileNameMatch) {
+                    const encodedFileName = fileNameMatch[1].trim();
+                    if (encodedFileName.startsWith("UTF-8''")) {
+                        filename = decodeURIComponent(encodedFileName.substring(7));
+                    } else {
+                        filename = encodedFileName.replace(/"/g, '');
+                    }
+                }
+            }
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('PDF 已下載完成', 'success');
+        } else {
+            const errorResult = await response.json();
+            showAlert('下載失敗: ' + (errorResult.message || '未知錯誤'), 'error');
+        }
+    } catch (error) {
+        console.error('下載PDF失敗:', error);
+        showAlert('下載失敗，請重新嘗試', 'error');
+    }
+}
+
+// 記錄管理相關事件處理函數
+function changeRecordsPage(page) {
+    if (page >= 1) {
+        currentRecordsPage = page;
+        loadRecords();
+    }
+}
+
+function filterRecords() {
+    currentRecordsFilter = document.getElementById('recordSearch').value;
+    currentRecordsPage = 1;
+    loadRecords();
+}
+
+function filterRecordsBySignature() {
+    currentRecordsPage = 1;
+    loadRecords();
+}
+
+function changePageSize() {
+    currentRecordsPageSize = parseInt(document.getElementById('recordsPageSize').value);
+    currentRecordsPage = 1;
+    loadRecords();
+}
+
+function backToList() {
+    document.getElementById('recordsView').style.display = 'none';
+    document.getElementById('listView').style.display = 'block';
+    currentAnnouncementId = null;
+}
+
+// 修改現有的 exportPdf 函數以使用新的實作
+async function exportPdf(announcementId) {
+    currentAnnouncementId = announcementId;
+    await downloadRecordsPDF();
+}
+
+// 切換封存狀態
+async function toggleArchiveStatus(announcementId, currentArchiveStatus) {
+    try {
+        const action = currentArchiveStatus ? '取消封存' : '封存';
+        
+        if (!confirm(`確定要${action}此宣導專案嗎？`)) {
+            return;
+        }
+
+        const response = await fetch(`${API_BASE}/EAnnouncement/${announcementId}/archive`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(!currentArchiveStatus) // 直接發送布林值
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(`專案已${action}`, 'success');
+            // 重新載入列表
+            await loadAnnouncements();
+        } else {
+            showAlert(result.message || `${action}失敗`, 'error');
+        }
+    } catch (error) {
+        console.error('切換封存狀態失敗:', error);
+        showAlert('操作失敗，請重新嘗試', 'error');
+    }
+}
+
+// 切換封存顯示
+function toggleArchivedDisplay() {
+    loadAnnouncements();
 }

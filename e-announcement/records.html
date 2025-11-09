@@ -28,6 +28,11 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-radius: 15px;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
       }
       .loading {
         opacity: 0.6;
@@ -51,23 +56,29 @@
       </div>
 
       <!-- 統計資訊 -->
-      <div class="stats-card p-4 mb-4" id="statsCard" style="display: none">
-        <div class="row text-center">
-          <div class="col-md-3">
+      <div class="row mb-4" id="statsContainer">
+        <div class="col-md-3">
+          <div class="stats-card p-4 text-center">
             <h3 class="mb-1" id="totalCount">0</h3>
-            <small>總簽名數</small>
+            <small><i class="fas fa-users me-1"></i>總簽名數</small>
           </div>
-          <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card p-4 text-center">
             <h3 class="mb-1" id="todayCount">0</h3>
-            <small>今日簽名</small>
+            <small><i class="fas fa-calendar-day me-1"></i>今日簽名</small>
           </div>
-          <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card p-4 text-center">
             <h3 class="mb-1" id="withSignatureCount">0</h3>
-            <small>有簽名圖片</small>
+            <small><i class="fas fa-signature me-1"></i>有簽名圖片</small>
           </div>
-          <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card p-4 text-center">
             <h3 class="mb-1" id="completionRate">0%</h3>
-            <small>完成率</small>
+            <small><i class="fas fa-chart-pie me-1"></i>完成率</small>
           </div>
         </div>
       </div>
@@ -76,13 +87,21 @@
       <div class="card mb-4">
         <div class="card-body">
           <div class="row align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label">部門篩選</label>
               <select class="form-select" id="departmentFilter">
                 <option value="">所有部門</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+              <label class="form-label">簽名狀態</label>
+              <select class="form-select" id="signatureFilter">
+                <option value="">全部</option>
+                <option value="with">已簽名</option>
+                <option value="without">未簽名</option>
+              </select>
+            </div>
+            <div class="col-md-2">
               <label class="form-label">簽名日期</label>
               <input type="date" class="form-control" id="dateFilter" />
             </div>
@@ -92,7 +111,7 @@
                 type="text"
                 class="form-control"
                 id="nameSearch"
-                placeholder="輸入員工姓名..."
+                placeholder="輸入員工姓名或員工編號..."
               />
             </div>
             <div class="col-md-2">
@@ -113,9 +132,10 @@
           <div class="d-flex gap-2">
             <button
               class="btn btn-sm btn-outline-success"
-              onclick="exportData()"
+              onclick="downloadPDF()"
+              title="下載包含簽名圖片的完整PDF報告"
             >
-              <i class="fas fa-download me-1"></i>匯出
+              <i class="fas fa-file-pdf me-1"></i>下載PDF
             </button>
             <button
               class="btn btn-sm btn-outline-secondary"
@@ -138,12 +158,47 @@
       </div>
     </div>
 
-    <!-- 簽名放大 Modal -->
+    <!-- 記錄檢視 Modal -->
+    <div class="modal fade" id="recordModal" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="recordModalLabel">
+              <i class="fas fa-file-alt me-2"></i>記錄檢視
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="recordContent">
+              <!-- 動態載入內容 -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times me-1"></i>關閉
+            </button>
+            <button type="button" class="btn btn-success" id="exportRecordPdf">
+              <i class="fas fa-download me-1"></i>匯出PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 簽名放大 Modal (保留供獨立檢視簽名使用) -->
     <div class="modal fade" id="signatureModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">
+            <h5 class="modal-title" id="signatureModalLabel">
               <i class="fas fa-signature me-2"></i>簽名檢視
             </h5>
             <button

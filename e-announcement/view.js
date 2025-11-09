@@ -442,7 +442,161 @@ function generateContentBlocks(contentBlocks) {
             return `<div class="content-block text-center">
                         <img src="${block.content}" alt="宣導圖片" class="img-fluid">
                     </div>`;
+        } else if (block.type === 'html') {
+            // 解析HTML連結資料
+            try {
+                const htmlData = JSON.parse(block.content);
+                return `<div class="content-block html-content">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        ${htmlData.title || '網頁連結'}
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <iframe src="${htmlData.url}" 
+                                            frameborder="0" 
+                                            style="width: 100%; height: 70vh; min-height: 500px;"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${htmlData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            } catch (error) {
+                // 向後相容：直接當作URL處理
+                return `<div class="content-block html-content">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-external-link-alt"></i>
+                                        網頁連結
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <iframe src="${block.content}" 
+                                            frameborder="0" 
+                                            style="width: 100%; height: 70vh; min-height: 500px;"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> 在新視窗開啟
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+        } else if (block.type === 'youtube') {
+            // 解析YouTube影片資料
+            try {
+                const youtubeData = JSON.parse(block.content);
+                return `<div class="content-block youtube-content">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fab fa-youtube"></i>
+                                        ${youtubeData.title || 'YouTube影片'}
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="embed-responsive embed-responsive-16by9">
+                                        <iframe class="embed-responsive-item" 
+                                                src="https://www.youtube.com/embed/${youtubeData.videoId}?rel=0"
+                                                frameborder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowfullscreen>
+                                        </iframe>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <small class="text-muted">
+                                        <a href="${youtubeData.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fab fa-youtube"></i> 在YouTube觀看
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>`;
+            } catch (error) {
+                // 向後相容：嘗試從URL解析videoId
+                const videoId = extractYouTubeVideoId(block.content);
+                if (videoId) {
+                    return `<div class="content-block youtube-content">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fab fa-youtube"></i>
+                                            YouTube影片
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="embed-responsive embed-responsive-16by9">
+                                            <iframe class="embed-responsive-item" 
+                                                    src="https://www.youtube.com/embed/${videoId}?rel=0"
+                                                    frameborder="0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer">
+                                        <small class="text-muted">
+                                            <a href="${block.content}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fab fa-youtube"></i> 在YouTube觀看
+                                            </a>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>`;
+                } else {
+                    return `<div class="content-block">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    無效的YouTube連結：${block.content}
+                                </div>
+                            </div>`;
+                }
+            }
         }
         return '';
     }).join('');
+}
+
+// 從YouTube URL提取影片ID
+function extractYouTubeVideoId(url) {
+    try {
+        // 支援的格式：
+        // https://youtu.be/VIDEO_ID
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        // https://m.youtube.com/watch?v=VIDEO_ID
+        
+        const regexPatterns = [
+            /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+            /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+            /(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/
+        ];
+        
+        for (const pattern of regexPatterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('解析YouTube URL時發生錯誤:', error);
+        return null;
+    }
 }
