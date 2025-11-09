@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes"
     />
     <title>E宣導簽名確認</title>
     <link
@@ -27,6 +27,84 @@
         background-color: #fff;
         cursor: crosshair;
         touch-action: none;
+        position: relative;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+      }
+
+      /* 簽名板容器 - 手機優化，最大化簽名空間 */
+      .signature-canvas-container {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 -15px; /* 負邊距讓簽名區域延伸到螢幕邊緣 */
+        border: 2px solid #007bff;
+        border-radius: 0; /* 手機版移除圓角以最大化空間 */
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 123, 255, 0.15);
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .mobile-signature-pad {
+        width: 100%;
+        height: 350px; /* 增加高度 */
+        display: block;
+        cursor: crosshair;
+        touch-action: none;
+        background: #fff;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* 簽名控制按鈕 - 移到簽名區域下方 */
+      .signature-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        padding: 0 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .signature-controls .btn {
+        flex: 1;
+        min-width: 100px;
+        max-width: 150px;
+        padding: 12px 8px;
+        font-size: 14px;
+        border-radius: 8px;
+      }
+
+      /* 桌面版保持原有樣式 */
+      @media (min-width: 768px) {
+        .signature-canvas-container {
+          margin: 0;
+          border-radius: 12px;
+          max-width: 600px;
+        }
+
+        .mobile-signature-pad {
+          height: 280px;
+        }
+
+        .signature-controls {
+          padding: 0;
+          max-width: 600px;
+          margin: 15px auto 0;
+        }
+      }
+        position: relative;
       }
 
       .content-block {
@@ -152,25 +230,64 @@
           background-color: #fff;
         }
 
-        /* 手機版iframe最大化 */
-        .link-block {
-          margin: 0 -10px;
-          border-radius: 0;
-        }
+      /* 手機版iframe最大化 - 隱藏網址 */
+      .link-block {
+        margin: 0 -10px;
+        border-radius: 0;
+      }
 
-        .link-block iframe {
-          height: 70vh !important;
-          min-height: 500px !important;
-        }
+      .link-block iframe {
+        height: 70vh !important;
+        min-height: 500px !important;
+      }
 
-        .iframe-container {
-          margin: 0;
-          padding: 0;
-        }
+      .iframe-container {
+        margin: 0;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+      }
 
-        .link-header {
-          padding: 15px !important;
-        }
+      /* 隱藏iframe中可能出現的網址列 */
+      .iframe-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: #f8f9fa;
+        z-index: 10;
+        border-bottom: 1px solid #dee2e6;
+        pointer-events: none;
+      }
+
+      /* 強化URL隱藏 - 覆蓋任何可能的網址顯示 */
+      .link-block iframe {
+        margin-top: -10px !important;
+      }
+
+      /* 額外的網址隱藏層 */
+      .iframe-url-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: #ffffff;
+        z-index: 15;
+        border-bottom: 2px solid #007bff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #007bff;
+        pointer-events: none;
+      }
+
+      .link-header {
+        padding: 15px !important;
+      }
 
         /* 手機版iframe頂部按鈕隱藏 */
         .html-iframe-block .bg-light .btn-group {
@@ -266,7 +383,7 @@
         }
       }
 
-      /* 圖片放大優化 */
+      /* 圖片放大優化 - 簡化版本 */
       .image-zoom-container {
         position: relative;
         overflow: hidden;
@@ -281,42 +398,30 @@
       }
 
       .zoomable-image:hover {
-        transform: scale(1.05);
+        transform: scale(1.02);
       }
 
-      /* 圖片模態全螢幕優化 */
+      /* 圖片模態優化 - 簡化版本 */
       #imageModal .modal-dialog {
-        width: 100vw;
-        height: 100vh;
-        margin: 0;
-        max-width: none;
+        max-width: 90vw;
+        margin: 2rem auto;
       }
 
       #imageModal .modal-content {
-        width: 100%;
-        height: 100vh;
-        border: none;
-        border-radius: 0;
-        background: #000;
+        background: #fff;
+        border-radius: 8px;
       }
 
       #imageModal .modal-body {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        position: relative;
-        overflow: hidden;
+        padding: 20px;
+        min-height: 300px;
       }
 
       #imageModal .modal-body img {
-        max-width: none !important;
-        max-height: none !important;
-        width: auto;
+        width: 100%;
         height: auto;
+        max-height: 70vh;
         object-fit: contain;
-        touch-action: pan-x pan-y pinch-zoom;
       }
 
       /* 圖片縮放控制 */
@@ -393,22 +498,18 @@
 
       @media (max-width: 768px) {
         #imageModal .modal-dialog {
-          margin: 0;
-          height: 100vh;
-          max-width: 100%;
+          margin: 0.5rem;
+          max-width: 95vw;
         }
 
         #imageModal .modal-content {
-          height: 100vh;
-          border-radius: 0;
+          border-radius: 8px;
         }
 
         #imageModal .modal-body {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          padding: 15px;
         }
+      }
 
         /* 手機版 iframe 模態 */
         .iframe-wrapper .position-absolute.bottom-0 {
@@ -825,42 +926,31 @@
                 </div>
               </div>
 
-              <!-- 簽名控制按鈕組 -->
+              <!-- 簽名控制按鈕組 - 手機優化 -->
               <div class="signature-controls">
-                <div class="row g-2">
-                  <div class="col-4">
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary w-100"
-                      onclick="clearSignature()"
-                    >
-                      <i class="fas fa-eraser me-1"></i>
-                      <span class="d-none d-sm-inline">清除</span>
-                    </button>
-                  </div>
-                  <div class="col-4">
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger w-100"
-                      onclick="closeSignatureModal()"
-                    >
-                      <i class="fas fa-times me-1"></i>
-                      <span class="d-none d-sm-inline">取消</span>
-                    </button>
-                  </div>
-                  <div class="col-4">
-                    <button
-                      type="button"
-                      class="btn btn-success w-100"
-                      onclick="saveSignature()"
-                      id="saveSignatureBtn"
-                      disabled
-                    >
-                      <i class="fas fa-check me-1"></i>
-                      <span class="d-none d-sm-inline">確認</span>
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  onclick="clearSignature()"
+                >
+                  <i class="fas fa-eraser me-1"></i>清除簽名
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger"
+                  onclick="closeSignatureModal()"
+                >
+                  <i class="fas fa-times me-1"></i>取消
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-success"
+                  onclick="saveSignature()"
+                  id="saveSignatureBtn"
+                  disabled
+                >
+                  <i class="fas fa-check me-1"></i>確認簽名
+                </button>
               </div>
             </div>
           </div>
