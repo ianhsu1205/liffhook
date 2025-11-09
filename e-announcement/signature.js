@@ -470,27 +470,27 @@ function renderContentBlocks(blocks) {
                         // 創建iframe來載入網頁內容而不是外部連結
                         html += `<div class="content-block html-iframe-block mb-3">
                             <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
-                                    <small class="text-muted">
-                                        <i class="fas fa-globe me-1"></i>
-                                        ${linkData.title || '網頁內容'}
-                                    </small>
-                                    <div>
+                                <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+                                    <div class="text-muted">
+                                        <i class="fas fa-globe me-2"></i>
+                                        <strong>${linkData.title || '網頁內容'}</strong>
+                                    </div>
+                                    <div class="btn-group">
                                         <button type="button" 
-                                                class="btn btn-outline-primary btn-sm me-1" 
+                                                class="btn btn-primary btn-sm" 
                                                 onclick="openUrlInModal('${linkData.url}', '${(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                                 title="放大檢視">
-                                            <i class="fas fa-search-plus"></i>
+                                            <i class="fas fa-expand-arrows-alt me-1"></i>放大
                                         </button>
                                         <button type="button" 
-                                                class="btn btn-outline-secondary btn-sm" 
+                                                class="btn btn-outline-primary btn-sm" 
                                                 onclick="window.open('${linkData.url}', '_blank')"
                                                 title="新視窗開啟">
-                                            <i class="fas fa-external-link-alt"></i>
+                                            <i class="fas fa-external-link-alt me-1"></i>新視窗
                                         </button>
                                     </div>
                                 </div>
-                                <div style="height: 600px; min-height: 70vh; overflow: hidden;">
+                                <div class="iframe-container" style="height: 600px; min-height: 70vh; overflow: hidden; position: relative;">
                                     <iframe src="${linkData.url}" 
                                             style="width: 100%; height: 100%; border: none;" 
                                             frameborder="0"
@@ -503,6 +503,23 @@ function renderContentBlocks(blocks) {
                                             </a>
                                         </div>
                                     </iframe>
+                                    <!-- 浮動按鈕組 (手機版) -->
+                                    <div class="d-md-none position-absolute" style="top: 10px; right: 10px; z-index: 10;">
+                                        <div class="btn-group-vertical iframe-floating-buttons">
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm" 
+                                                    onclick="openUrlInModal('${linkData.url}', '${(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
+                                                    title="放大檢視">
+                                                <i class="fas fa-expand-arrows-alt"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-outline-primary btn-sm" 
+                                                    onclick="window.open('${linkData.url}', '_blank')"
+                                                    title="新視窗開啟">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>`;
@@ -582,13 +599,18 @@ function renderContentBlocks(blocks) {
                     </div>
                 </div>`;
             } else {
-                // 無法取得可嵌入的影片，回退顯示可點連結
+                // 無法取得可嵌入的影片，顯示播放按鈕而不顯示網址
                 const displayUrl = videoUrl || block.content;
                 html += `<div class="content-block youtube-block mb-3">
-                    <div class="border rounded p-3" style="background-color: #fff3cd;">
-                        <i class="fab fa-youtube text-danger me-2"></i>
-                        <strong>YouTube 影片：</strong>
-                        <a href="${displayUrl}" target="_blank" class="text-primary">${displayUrl}<i class="fas fa-external-link-alt ms-1"></i></a>
+                    <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background-color: #fff3cd;">
+                        <div>
+                            <i class="fab fa-youtube text-danger me-2" style="font-size: 1.5em;"></i>
+                            <strong>YouTube 影片</strong>
+                            <div class="small text-muted mt-1">點擊播放按鈕開啟影片</div>
+                        </div>
+                        <a href="${displayUrl}" target="_blank" class="btn btn-danger">
+                            <i class="fas fa-play me-1"></i>播放影片
+                        </a>
                     </div>
                 </div>`;
             }
@@ -1554,27 +1576,27 @@ async function generateContent(contentBlocks) {
                     // 創建iframe來載入網頁內容而不是外部連結
                     html += `<div class="content-block html-iframe-block mb-3">
                         <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
-                                <small class="text-muted">
-                                    <i class="fas fa-globe me-1"></i>
-                                    ${escapeHtml(linkData.title || '網頁內容')}
-                                </small>
-                                <div>
+                            <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+                                <div class="text-muted">
+                                    <i class="fas fa-globe me-2"></i>
+                                    <strong>${escapeHtml(linkData.title || '網頁內容')}</strong>
+                                </div>
+                                <div class="btn-group">
                                     <button type="button" 
-                                            class="btn btn-outline-primary btn-sm me-1" 
+                                            class="btn btn-primary btn-sm" 
                                             onclick="openUrlInModal('${linkData.url}', '${escapeHtml(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                             title="放大檢視">
-                                        <i class="fas fa-search-plus"></i>
+                                        <i class="fas fa-expand-arrows-alt me-1"></i>放大
                                     </button>
                                     <button type="button" 
-                                            class="btn btn-outline-secondary btn-sm" 
+                                            class="btn btn-outline-primary btn-sm" 
                                             onclick="window.open('${linkData.url}', '_blank')"
                                             title="新視窗開啟">
-                                        <i class="fas fa-external-link-alt"></i>
+                                        <i class="fas fa-external-link-alt me-1"></i>新視窗
                                     </button>
                                 </div>
                             </div>
-                            <div style="height: 600px; min-height: 70vh; overflow: hidden;">
+                            <div class="iframe-container" style="height: 600px; min-height: 70vh; overflow: hidden; position: relative;">
                                 <iframe src="${linkData.url}" 
                                         style="width: 100%; height: 100%; border: none;" 
                                         frameborder="0"
@@ -1587,6 +1609,23 @@ async function generateContent(contentBlocks) {
                                         </a>
                                     </div>
                                 </iframe>
+                                <!-- 浮動按鈕組 (手機版) -->
+                                <div class="d-md-none position-absolute" style="top: 10px; right: 10px; z-index: 10;">
+                                    <div class="btn-group-vertical iframe-floating-buttons">
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm" 
+                                                onclick="openUrlInModal('${linkData.url}', '${escapeHtml(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
+                                                title="放大檢視">
+                                            <i class="fas fa-expand-arrows-alt"></i>
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-outline-primary btn-sm" 
+                                                onclick="window.open('${linkData.url}', '_blank')"
+                                                title="新視窗開啟">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>`;
@@ -1654,13 +1693,18 @@ async function generateContent(contentBlocks) {
                     </div>
                 </div>`;
             } else {
-                // 無法取得可嵌入的影片，回退顯示可點連結
+                // 無法取得可嵌入的影片，顯示播放按鈕而不顯示網址  
                 const displayUrl = videoUrl || block.content;
                 html += `<div class="content-block youtube-block mb-3">
-                    <div class="border rounded p-3" style="background-color: #fff3cd;">
-                        <i class="fab fa-youtube text-danger me-2"></i>
-                        <strong>YouTube 影片：</strong>
-                        <a href="${displayUrl}" target="_blank" class="text-primary">${displayUrl}<i class="fas fa-external-link-alt ms-1"></i></a>
+                    <div class="border rounded p-3 d-flex align-items-center justify-content-between" style="background-color: #fff3cd;">
+                        <div>
+                            <i class="fab fa-youtube text-danger me-2" style="font-size: 1.5em;"></i>
+                            <strong>YouTube 影片</strong>
+                            <div class="small text-muted mt-1">點擊播放按鈕開啟影片</div>
+                        </div>
+                        <a href="${displayUrl}" target="_blank" class="btn btn-danger">
+                            <i class="fas fa-play me-1"></i>播放影片
+                        </a>
                     </div>
                 </div>`;
             }
@@ -1672,8 +1716,9 @@ async function generateContent(contentBlocks) {
 
 // 初始化簽名板
 function initializeSignaturePad() {
-    canvas = document.getElementById('signatureCanvas');
+    canvas = document.getElementById('signaturePad');
     if (!canvas) {
+        console.error('找不到簽名畫布元素');
         return;
     }
     
@@ -1684,7 +1729,7 @@ function initializeSignaturePad() {
     
     // 設定繪圖樣式
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3; // 手機友好的線條粗細
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
@@ -1693,6 +1738,9 @@ function initializeSignaturePad() {
     
     // 監聽視窗大小改變
     window.addEventListener('resize', resizeCanvas);
+    
+    // 啟用保存按鈕監聽
+    enableSaveButton();
 }
 
 // 調整 Canvas 尺寸
@@ -1701,18 +1749,53 @@ function resizeCanvas() {
     
     const container = canvas.parentElement;
     const containerWidth = container.offsetWidth;
-    const containerHeight = Math.min(300, window.innerHeight * 0.3);
+    
+    // 手機優化：根據設備類型調整高度
+    let containerHeight;
+    if (isMobileDevice()) {
+        containerHeight = Math.min(280, window.innerHeight * 0.35); // 手機版更高一些
+    } else {
+        containerHeight = Math.min(300, window.innerHeight * 0.4); // 桌面版
+    }
     
     canvas.width = containerWidth;
     canvas.height = containerHeight;
+    canvas.style.width = containerWidth + 'px';
+    canvas.style.height = containerHeight + 'px';
     
     // 重新設定繪圖樣式（調整大小後會重置）
     if (ctx) {
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isMobileDevice() ? 3 : 2; // 手機版線條更粗
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
     }
+}
+
+// 啟用保存按鈕功能
+function enableSaveButton() {
+    let hasSignature = false;
+    
+    // 檢測簽名狀態的函數
+    function checkSignatureState() {
+        const saveBtn = document.getElementById('saveSignatureBtn');
+        if (saveBtn) {
+            saveBtn.disabled = !hasSignature;
+        }
+    }
+    
+    // 設定簽名狀態變更監聽
+    canvas.addEventListener('touchstart', () => { hasSignature = true; checkSignatureState(); });
+    canvas.addEventListener('mousedown', () => { hasSignature = true; checkSignatureState(); });
+    
+    // 清除簽名時重置狀態
+    window.clearSignature = function() {
+        if (canvas && ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSignature = false;
+            checkSignatureState();
+        }
+    };
 }
 
 // 綁定 Canvas 事件
@@ -1916,13 +1999,7 @@ function openSignatureModal() {
         return;
     }
     
-    // 檢查是否為手機裝置
-    if (isMobileDevice()) {
-        enterFullscreenLandscapeMode();
-        return;
-    }
-    
-    // 桌面版：安全地找到簽名模態框元素
+    // 安全地找到簽名模態框元素
     const signatureModalElement = document.getElementById('signatureModal');
     if (!signatureModalElement) {
         showMessage('無法開啟簽名視窗，請重新整理頁面', 'error');
@@ -1934,9 +2011,9 @@ function openSignatureModal() {
         const signatureModal = new bootstrap.Modal(signatureModalElement);
         signatureModal.show();
         
-        // 延遲一點再顯示一般簽名模式，避免 DOM 還沒準備好
+        // 延遲一點再初始化簽名板
         setTimeout(() => {
-            showNormalSignature();
+            initializeSignaturePad();
         }, 100);
         
     } catch (error) {
@@ -2551,23 +2628,34 @@ function openImageModal(imageSrc, imageAlt = '圖片') {
     let imageModal = document.getElementById('imageModal');
     
     if (!imageModal) {
-        // 創建 modal HTML
+        // 創建全螢幕可縮放的 modal HTML
         const modalHTML = `
             <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-dialog">
                     <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="imageModalLabel">圖片檢視</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                        <div class="modal-header position-absolute" style="top: 0; left: 0; right: 0; z-index: 10; background: rgba(0,0,0,0.8); border: none;">
+                            <h6 class="modal-title text-white" id="imageModalLabel">圖片檢視</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body text-center p-0">
-                            <img id="modalImage" src="" alt="" class="img-fluid" style="max-width: 100%; height: auto;">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
-                            <button type="button" class="btn btn-primary" onclick="downloadImage()">
-                                <i class="fas fa-download"></i> 下載圖片
-                            </button>
+                        <div class="modal-body">
+                            <div class="image-zoom-container" id="imageContainer">
+                                <img id="modalImage" src="" alt="" class="zoomable-image">
+                            </div>
+                            <!-- 縮放控制按鈕 -->
+                            <div class="image-controls">
+                                <button type="button" class="btn btn-dark btn-sm" onclick="resetImageZoom()" title="重置縮放">
+                                    <i class="fas fa-home"></i>
+                                </button>
+                                <button type="button" class="btn btn-dark btn-sm" onclick="zoomImageIn()" title="放大">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-dark btn-sm" onclick="zoomImageOut()" title="縮小">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-dark btn-sm" onclick="downloadImage()" title="下載圖片">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2578,6 +2666,8 @@ function openImageModal(imageSrc, imageAlt = '圖片') {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         imageModal = document.getElementById('imageModal');
         
+        // 初始化縮放功能
+        initializeImageZoom();
     }
     
     // 設置圖片來源和替代文字
@@ -2588,6 +2678,9 @@ function openImageModal(imageSrc, imageAlt = '圖片') {
         modalImage.src = imageSrc;
         modalImage.alt = imageAlt;
         currentModalImageSrc = imageSrc; // 保存當前圖片來源用於下載
+        
+        // 重置縮放
+        setTimeout(() => resetImageZoom(), 100);
     }
     
     if (modalTitle) {
@@ -2606,6 +2699,96 @@ function openImageModal(imageSrc, imageAlt = '圖片') {
             showFullscreenImage(imageSrc, imageAlt);
         }
     }
+}
+
+// 初始化圖片縮放功能
+function initializeImageZoom() {
+    let currentZoom = 1;
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+    
+    // 縮放函數
+    window.zoomImageIn = function() {
+        currentZoom = Math.min(currentZoom * 1.2, 5); // 最大5倍
+        applyZoom();
+    };
+    
+    window.zoomImageOut = function() {
+        currentZoom = Math.max(currentZoom / 1.2, 0.5); // 最小0.5倍
+        applyZoom();
+    };
+    
+    window.resetImageZoom = function() {
+        currentZoom = 1;
+        applyZoom();
+        resetImagePosition();
+    };
+    
+    function applyZoom() {
+        const modalImage = document.getElementById('modalImage');
+        if (modalImage) {
+            modalImage.style.transform = `scale(${currentZoom})`;
+            modalImage.style.transformOrigin = 'center center';
+        }
+    }
+    
+    function resetImagePosition() {
+        const modalImage = document.getElementById('modalImage');
+        if (modalImage) {
+            modalImage.style.left = '0px';
+            modalImage.style.top = '0px';
+            modalImage.style.position = 'relative';
+        }
+    }
+    
+    // 延遲初始化以確保DOM準備好
+    setTimeout(() => {
+        const imageContainer = document.getElementById('imageContainer');
+        if (!imageContainer) return;
+        
+        // 滾輪縮放
+        imageContainer.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomImageIn();
+            } else {
+                zoomImageOut();
+            }
+        });
+        
+        // 觸控縮放（手機）
+        let initialDistance = 0;
+        let initialZoom = 1;
+        
+        imageContainer.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                initialZoom = currentZoom;
+            }
+        });
+        
+        imageContainer.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                const scale = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.5), 5);
+                applyZoom();
+            }
+        });
+    }, 300);
 }
 
 // 備用的全螢幕圖片顯示

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
     <title>E宣導簽名確認</title>
     <link
@@ -171,8 +171,67 @@
         .link-header {
           padding: 15px !important;
         }
+
+        /* 手機版iframe頂部按鈕隱藏 */
+        .html-iframe-block .bg-light .btn-group {
+          display: none !important;
+        }
+
+        /* 浮動按鈕組樣式 */
+        .iframe-floating-buttons {
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 8px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .iframe-floating-buttons .btn {
+          border-radius: 6px;
+          margin-bottom: 2px;
+          min-width: 44px;
+          min-height: 44px;
+        }
+
+        .iframe-floating-buttons .btn:last-child {
+          margin-bottom: 0;
+        }
       }
 
+      /* 手機版簽名優化 */
+      .mobile-signature-container {
+        padding: 0;
+      }
+
+      .signature-canvas-container {
+        width: 100%;
+        border: 2px solid #007bff;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.1);
+      }
+
+      .mobile-signature-pad {
+        width: 100%;
+        height: 280px;
+        display: block;
+        cursor: crosshair;
+        touch-action: none;
+        background: #fff;
+      }
+
+      .signature-controls {
+        margin-top: 20px;
+      }
+
+      .signature-tips {
+        background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+        padding: 12px;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+      }
+
+      /* 桌面版簽名樣式 */
       .modal-signature-pad {
         width: 100%;
         height: 300px;
@@ -184,9 +243,110 @@
       }
 
       @media (max-width: 576px) {
-        .modal-signature-pad {
+        .mobile-signature-pad {
           height: 250px;
         }
+
+        .signature-controls .btn {
+          font-size: 14px;
+          padding: 10px 8px;
+        }
+
+        .mobile-signature-container {
+          margin: -10px;
+          padding: 15px;
+        }
+
+        .signature-modal .modal-content {
+          margin: 5px;
+        }
+
+        .signature-canvas-container {
+          border-width: 3px;
+        }
+      }
+
+      /* 圖片放大優化 */
+      .image-zoom-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+      }
+
+      .zoomable-image {
+        width: 100%;
+        height: auto;
+        transition: transform 0.3s ease;
+        cursor: zoom-in;
+      }
+
+      .zoomable-image:hover {
+        transform: scale(1.05);
+      }
+
+      /* 圖片模態全螢幕優化 */
+      #imageModal .modal-dialog {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        max-width: none;
+      }
+
+      #imageModal .modal-content {
+        width: 100%;
+        height: 100vh;
+        border: none;
+        border-radius: 0;
+        background: #000;
+      }
+
+      #imageModal .modal-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      #imageModal .modal-body img {
+        max-width: none !important;
+        max-height: none !important;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        touch-action: pan-x pan-y pinch-zoom;
+      }
+
+      /* 圖片縮放控制 */
+      .image-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 25px;
+        padding: 8px;
+      }
+
+      .image-controls .btn {
+        margin: 0 2px;
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 50%;
+        color: white;
+        border: none;
+      }
+
+      /* 移除舊的橫向簽名樣式 */
+      .landscape-signature-mode,
+      .landscape-signature-canvas,
+      .landscape-header,
+      .landscape-controls,
+      .landscape-tip,
+      .rotate-icon {
+        display: none !important;
       }
 
       /* 圖片放大相關樣式 */
@@ -648,118 +808,60 @@
             </h5>
           </div>
           <div class="modal-body">
-            <!-- 簽名模式選擇 -->
-            <div class="d-block d-md-none mb-3">
-              <div class="landscape-tip">
-                <i class="fas fa-mobile-alt rotate-icon"></i>
-                建議橫式簽名以獲得更大的簽名空間
-              </div>
-              <div class="d-grid gap-2">
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  onclick="enterLandscapeMode()"
-                >
-                  <i class="fas fa-expand-arrows-alt me-1"></i>橫式全螢幕簽名
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary"
-                  onclick="showNormalSignature()"
-                >
-                  <i class="fas fa-edit me-1"></i>一般簽名模式
-                </button>
-              </div>
-            </div>
-
-            <!-- 一般簽名區域 -->
-            <div id="normalSignatureArea" style="display: none">
+            <!-- 手機版簽名區域優化 -->
+            <div class="mobile-signature-container">
               <div class="mb-3">
-                <label class="form-label">請在下方簽名板上簽名</label>
-                <canvas id="signaturePad" class="modal-signature-pad"></canvas>
+                <label class="form-label fw-bold">請在下方簽名板上簽名</label>
+                <div class="signature-tips text-muted small mb-2">
+                  <i class="fas fa-lightbulb me-1"></i>
+                  提示：請使用手指或觸控筆進行簽名，簽名完成後點擊下方確認按鈕
+                </div>
+                <!-- 簽名畫布 - 手機優化 -->
+                <div class="signature-canvas-container">
+                  <canvas
+                    id="signaturePad"
+                    class="mobile-signature-pad"
+                  ></canvas>
+                </div>
               </div>
-              <div class="text-center">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary me-2"
-                  onclick="clearSignature()"
-                >
-                  <i class="fas fa-eraser me-1"></i>清除重簽
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer" id="normalSignatureFooter">
-            <div class="d-grid gap-2 w-100">
-              <button
-                type="button"
-                class="btn btn-success btn-lg"
-                onclick="saveSignature()"
-                id="saveSignatureBtn"
-                style="display: none"
-              >
-                <i class="fas fa-check me-1"></i>完成簽名
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                onclick="closeSignatureModal()"
-              >
-                <i class="fas fa-times me-1"></i>取消
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 橫式全螢幕簽名 Modal -->
-    <div
-      class="modal fade"
-      id="landscapeSignatureModal"
-      tabindex="-1"
-      data-bs-backdrop="static"
-      data-bs-keyboard="false"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="landscape-header">
-            <i class="fas fa-signature me-2"></i>橫式全螢幕簽名
-            <div class="small mt-1">請將手機橫置以獲得最佳簽名體驗</div>
-          </div>
-          <div class="modal-body">
-            <canvas
-              id="landscapeSignaturePad"
-              class="landscape-signature-canvas"
-            ></canvas>
-          </div>
-          <div class="landscape-controls">
-            <div>
-              <button
-                type="button"
-                class="btn btn-outline-danger btn-sm"
-                onclick="clearLandscapeSignature()"
-              >
-                <i class="fas fa-eraser me-1"></i>清除
-              </button>
-            </div>
-            <div>
-              <button
-                type="button"
-                class="btn btn-secondary btn-sm me-2"
-                onclick="exitLandscapeMode()"
-              >
-                <i class="fas fa-times me-1"></i>返回
-              </button>
-              <button
-                type="button"
-                class="btn btn-success btn-sm"
-                onclick="saveLandscapeSignature()"
-                id="saveLandscapeSignatureBtn"
-                disabled
-              >
-                <i class="fas fa-check me-1"></i>完成
-              </button>
+              <!-- 簽名控制按鈕組 -->
+              <div class="signature-controls">
+                <div class="row g-2">
+                  <div class="col-4">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary w-100"
+                      onclick="clearSignature()"
+                    >
+                      <i class="fas fa-eraser me-1"></i>
+                      <span class="d-none d-sm-inline">清除</span>
+                    </button>
+                  </div>
+                  <div class="col-4">
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger w-100"
+                      onclick="closeSignatureModal()"
+                    >
+                      <i class="fas fa-times me-1"></i>
+                      <span class="d-none d-sm-inline">取消</span>
+                    </button>
+                  </div>
+                  <div class="col-4">
+                    <button
+                      type="button"
+                      class="btn btn-success w-100"
+                      onclick="saveSignature()"
+                      id="saveSignatureBtn"
+                      disabled
+                    >
+                      <i class="fas fa-check me-1"></i>
+                      <span class="d-none d-sm-inline">確認</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
