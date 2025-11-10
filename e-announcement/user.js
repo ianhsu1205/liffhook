@@ -348,14 +348,14 @@ async function openAnnouncement(announcementId, isCompleted) {
                     });
                 }).catch(liffError => {
                     console.error('LIFF openWindow 失敗:', liffError);
-                    // 備援：嘗試使用普通的 window.open
-                    console.log('嘗試使用 window.open 作為備援');
-                    window.open(fullSignatureUrl, '_blank');
+                    // 備援：在當前頁面導航（保持在 LINE 內）
+                    console.log('LIFF 失敗，在當前頁面導航');
+                    window.location.href = fullSignatureUrl;
                 });
             } catch (syncError) {
                 console.error('同步 LIFF 調用失敗:', syncError);
-                // 立即備援
-                window.open(fullSignatureUrl, '_blank');
+                // 立即備援：在當前頁面導航
+                window.location.href = fullSignatureUrl;
             }
         } else {
             // 在新分頁中開啟（開發環境或其他瀏覽器）
