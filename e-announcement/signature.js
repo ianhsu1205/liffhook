@@ -507,7 +507,7 @@ function renderContentBlocks(blocks) {
                                 ` : ''}
                                 <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
+                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-30px); transform-origin: top left;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy"
@@ -1598,7 +1598,7 @@ async function generateContent(contentBlocks) {
                             ` : ''}
                             <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
+                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-30px); transform-origin: top left;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy"
@@ -3266,7 +3266,7 @@ function openUrlInModal(url, title = '網頁內容') {
                         </div>
                         <div class="modal-body p-0 position-relative" style="height: 95vh; overflow: hidden;">
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
+                                    style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-30px); transform-origin: top left;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
@@ -3332,10 +3332,10 @@ function generateCompleteDocumentPreview(signatureData) {
     
     // 生成完整的文件HTML，包含宣導內容和簽名
     const previewHTML = `
-        <div class="document-preview">
+        <div class="document-preview" style="max-width: 100%; margin: 0 auto; font-size: 14px; line-height: 1.6;">
             <!-- 文件標題 -->
-            <div class="document-header text-center">
-                <h2 class="mb-3">${escapeHtml(currentAnnouncement.title)}</h2>
+            <div class="document-header text-center mb-4">
+                <h3 class="mb-3">${escapeHtml(currentAnnouncement.title)}</h3>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="badge bg-primary">${escapeHtml(currentAnnouncement.documentType || 'E宣導')}</span>
                     <span class="text-muted">${escapeHtml(currentAnnouncement.publishInfo || '')}</span>
@@ -3345,13 +3345,13 @@ function generateCompleteDocumentPreview(signatureData) {
             
             <!-- 文件內容 -->
             <div class="document-body">
-                ${renderContentBlocks(currentAnnouncement.contentBlocks)} 
+                ${renderContentBlocksForPreview(currentAnnouncement.contentBlocks)} 
             </div>
             
             <!-- 簽名區域 -->
-            <div class="signature-section mt-5">
+            <div class="signature-section mt-4">
                 <!-- 簽名人員資訊 -->
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-12">
                         <div class="signature-info bg-light p-3 rounded">
                             <div class="row">
@@ -3392,6 +3392,76 @@ function generateCompleteDocumentPreview(signatureData) {
     return previewHTML;
 }
 
+// 專門用於預覽的內容渲染函數（簡化版，無按鈕）
+function renderContentBlocksForPreview(blocks) {
+    let html = '';
+    
+    blocks.forEach((block, index) => {
+        if (block.text && block.text.trim()) {
+            html += `<div class="content-block text-block mb-3">
+                <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                    <p class="mb-0">${block.text}</p>
+                </div>
+            </div>`;
+        }
+        else if (block.type === 'image' && block.content) {
+            html += `<div class="content-block image-block mb-3 text-center">
+                <img src="${block.content}" 
+                     class="img-fluid content-image" 
+                     alt="宣導圖片" 
+                     style="max-width: 100%; height: auto; border-radius: 8px;">
+            </div>`;
+        }
+        else if (block.type === 'html' && block.content) {
+            // 檢查是否為HTML內容
+            let isLikelyHtml = block.content.includes('<') && block.content.includes('>');
+            let isJsonLike = false;
+            let isUrlLike = block.content.startsWith('http://') || block.content.startsWith('https://');
+            
+            if (!isUrlLike) {
+                try {
+                    JSON.parse(block.content);
+                    isJsonLike = true;
+                } catch {
+                    // 不是 JSON
+                }
+            }
+            
+            if (isLikelyHtml || (!isUrlLike && !isJsonLike)) {
+                // 直接顯示HTML內容（預覽版，無按鈕）
+                html += `<div class="content-block html-block mb-3">
+                    <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                        ${block.content}
+                    </div>
+                </div>`;
+            } else if (isUrlLike || isJsonLike) {
+                // 顯示為iframe連結（預覽版，簡化）
+                let linkData;
+                if (isUrlLike) {
+                    linkData = { url: block.content, title: '網頁內容' };
+                } else {
+                    try {
+                        linkData = JSON.parse(block.content);
+                    } catch (error) {
+                        linkData = { url: block.content, title: '內容連結' };
+                    }
+                }
+                
+                html += `<div class="content-block iframe-block mb-3">
+                    <div class="border rounded p-3" style="background-color: #f0f0f0;">
+                        <div class="text-center">
+                            <i class="fas fa-globe me-2"></i>
+                            <span class="text-muted">網頁內容：${linkData.title || '外部連結'}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
+    });
+    
+    return html;
+}
+
 // 顯示完整文件預覽的Modal（所有裝置共用）
 function showCompleteDocumentPreview(signatureData) {
     
@@ -3415,6 +3485,21 @@ function showCompleteDocumentPreview(signatureData) {
     
     // 暫存簽名數據
     currentSignatureData = signatureData;
+    
+    // 增大預覽模態框
+    const modalDialog = previewModal.querySelector('.modal-dialog');
+    if (modalDialog) {
+        modalDialog.classList.add('modal-xl');
+        modalDialog.style.maxWidth = '95vw';
+        modalDialog.style.margin = '1rem auto';
+    }
+    
+    const modalBody = previewModal.querySelector('.modal-body');
+    if (modalBody) {
+        modalBody.style.maxHeight = '80vh';
+        modalBody.style.overflowY = 'auto';
+        modalBody.style.padding = '1.5rem';
+    }
     
     // 顯示預覽模態框
     try {
@@ -3511,7 +3596,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.05) !important;
+                    transform: scale(1.05) translateY(-40px) !important;
                     transform-origin: top left !important;
                 }
                 
