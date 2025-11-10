@@ -2082,9 +2082,12 @@ async function loadRecords() {
 
         // 加入簽名狀態篩選參數
         const signatureFilter = document.getElementById('signatureFilter')?.value;
-        console.log('🔍 簽名篩選條件:', signatureFilter);
+        console.log('🔍 簽名篩選條件:', signatureFilter, '| 類型:', typeof signatureFilter);
         if (signatureFilter && signatureFilter !== '') {
             params.append('signatureFilter', signatureFilter);
+            console.log('✅ 已加入簽名篩選參數:', signatureFilter);
+        } else {
+            console.log('⚠️ 無簽名篩選條件');
         }
 
         console.log('🌐 載入記錄API參數:', params.toString());
