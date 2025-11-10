@@ -205,21 +205,31 @@ function removeContentBlock(blockId) {
 
 // 向上移動區塊
 function moveBlockUp(blockId) {
+    console.log(`執行區塊上移: ${blockId}`);
     const block = document.getElementById(blockId);
     const prevBlock = block.previousElementSibling;
     if (prevBlock) {
+        console.log(`移動區塊 ${blockId} 到 ${prevBlock.id} 之前`);
         block.parentNode.insertBefore(block, prevBlock);
         updateBlockNumbers();
+        
+        // 驗證移動後的結構
+        validateBlockStructure();
     }
 }
 
 // 向下移動區塊
 function moveBlockDown(blockId) {
+    console.log(`執行區塊下移: ${blockId}`);
     const block = document.getElementById(blockId);
     const nextBlock = block.nextElementSibling;
     if (nextBlock) {
+        console.log(`移動區塊 ${blockId} 到 ${nextBlock.id} 之後`);
         block.parentNode.insertBefore(nextBlock, block);
         updateBlockNumbers();
+        
+        // 驗證移動後的結構
+        validateBlockStructure();
     }
 }
 
@@ -234,6 +244,29 @@ function updateBlockNumbers() {
             header.textContent = `內容區塊 ${order}`;
         }
     });
+}
+
+// 驗證區塊結構
+function validateBlockStructure() {
+    console.log('=== 驗證區塊結構 ===');
+    const blocks = document.querySelectorAll('.content-block');
+    blocks.forEach((block, index) => {
+        const type = block.querySelector('.content-type')?.value;
+        const textContent = block.querySelector('textarea')?.value?.length || 0;
+        const imageData = block.querySelector('.image-data')?.value?.length || 0;
+        const imageUrl = block.querySelector('.image-url')?.value?.length || 0;
+        
+        console.log(`區塊 ${index + 1}: ID=${block.id}, 類型=${type}, 文字長度=${textContent}, 圖片資料長度=${imageData}, 圖片URL長度=${imageUrl}`);
+        
+        // 檢查是否有重複的ID或name屬性
+        const inputs = block.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            if (input.name && input.name.includes('undefined') || input.id && input.id.includes('undefined')) {
+                console.warn(`發現無效的欄位名稱/ID: ${input.name || input.id}`, input);
+            }
+        });
+    });
+    console.log('=== 結構驗證完成 ===');
 }
 
 // 更新內容輸入區塊
@@ -676,6 +709,8 @@ function gatherFormData() {
         const type = typeElement.value;
         let content = '';
         
+        console.log(`處理區塊 ${index + 1}, 類型: ${type}, DOM順序: ${index}`);
+        
         if (type === 'text') {
             const textarea = block.querySelector('textarea');
             if (textarea) {
@@ -691,8 +726,10 @@ function gatherFormData() {
             
             if (imageData) {
                 content = imageData; // base64 格式
+                console.log(`區塊 ${index + 1} 使用base64圖片，大小: ${(imageData.length * 0.75 / 1024 / 1024).toFixed(2)} MB`);
             } else if (imageUrl) {
                 content = imageUrl; // 網址格式
+                console.log(`區塊 ${index + 1} 使用圖片URL: ${imageUrl}`);
             } else {
                 console.warn(`內容區塊 ${index + 1} 的圖片內容為空`);
             }
@@ -797,6 +834,26 @@ function formatDateTimeString(dateTimeInput) {
 
 // 建立宣導專案
 async function createAnnouncement(data) {
+    // 檢查payload大小
+    const jsonString = JSON.stringify(data);
+    const payloadSize = new Blob([jsonString]).size;
+    console.log(`Payload 大小: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`內容區塊數量: ${data.contentBlocks ? data.contentBlocks.length : 0}`);
+    
+    // 檢查是否有過大的base64圖片
+    if (data.contentBlocks) {
+        data.contentBlocks.forEach((block, index) => {
+            if (block.type === 'image' && block.content && block.content.startsWith('data:')) {
+                const base64Size = block.content.length * 0.75; // 估算base64大小
+                console.log(`區塊 ${index + 1} 圖片大小: ${(base64Size / 1024 / 1024).toFixed(2)} MB`);
+            }
+        });
+    }
+    
+    if (payloadSize > 50 * 1024 * 1024) { // 50MB
+        throw new Error(`請求資料過大 (${(payloadSize / 1024 / 1024).toFixed(2)} MB)，請減少圖片數量或壓縮圖片`);
+    }
+    
     const response = await fetch(`${API_BASE}/EAnnouncement`, {
         method: 'POST',
         headers: {
@@ -1855,11 +1912,23 @@ let allRecords = [];
 async function viewRecords(announcementId) {
     currentAnnouncementId = announcementId;
     currentRecordsPage = 1;
+    currentRecordsFilter = ''; // 重置搜尋條件
     
     // 切換視圖
     document.getElementById('listView').style.display = 'none';
     document.getElementById('createView').style.display = 'none';
     document.getElementById('recordsView').style.display = 'block';
+    
+    // 重置篩選器UI狀態
+    const searchInput = document.getElementById('recordSearch');
+    const signatureFilter = document.getElementById('signatureFilter');
+    const pageSizeSelect = document.getElementById('recordsPageSize');
+    
+    if (searchInput) searchInput.value = '';
+    if (signatureFilter) signatureFilter.value = ''; // 重置為"全部記錄"
+    if (pageSizeSelect) pageSizeSelect.value = '50';
+    
+    console.log('🔄 重置記錄頁面篩選條件');
     
     // 載入記錄管理頁面資料
     await loadRecordsManagement();
@@ -2006,18 +2075,24 @@ async function loadRecords() {
             pageSize: currentRecordsPageSize
         });
 
-        // 加入搜尋和篩選參數
+        // 加入搜尋參數
         if (currentRecordsFilter) {
             params.append('search', currentRecordsFilter);
         }
 
+        // 加入簽名狀態篩選參數
         const signatureFilter = document.getElementById('signatureFilter')?.value;
-        if (signatureFilter) {
+        console.log('🔍 簽名篩選條件:', signatureFilter);
+        if (signatureFilter && signatureFilter !== '') {
             params.append('signatureFilter', signatureFilter);
         }
 
+        console.log('🌐 載入記錄API參數:', params.toString());
+
         const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/records?${params.toString()}`);
         const result = await response.json();
+
+        console.log('📡 載入記錄API回應:', result);
 
         if (result.success) {
             allRecords = result.data;
@@ -2365,13 +2440,13 @@ function changeRecordsPage(page) {
 
 function filterRecords() {
     currentRecordsFilter = document.getElementById('recordSearch').value;
-    currentRecordsPage = 1;
+    currentRecordsPage = 1; // 重置到第一頁
     loadRecords();
 }
 
 function filterRecordsBySignature() {
-    currentRecordsPage = 1;
-    loadRecords();
+    currentRecordsPage = 1; // 重置到第一頁
+    loadRecords(); // 重新載入記錄，會自動包含篩選條件
 }
 
 function changePageSize() {
