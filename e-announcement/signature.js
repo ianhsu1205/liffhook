@@ -505,9 +505,9 @@ function renderContentBlocks(blocks) {
                                     </small>
                                 </div>
                                 ` : ''}
-                                <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
+                                <div class="iframe-container position-relative" style="height: 90vh; width: 100%; margin: 0 auto; overflow: hidden !important;">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-80px); transform-origin: top left;" 
+                                            style="width: 100%; height: 100%; border: none; transform: scale(1.02) translateY(-40px); transform-origin: top center;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy"
@@ -1596,9 +1596,9 @@ async function generateContent(contentBlocks) {
                                 </small>
                             </div>
                             ` : ''}
-                            <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
+                            <div class="iframe-container position-relative" style="height: 90vh; width: 100%; margin: 0 auto; overflow: hidden !important;">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-80px); transform-origin: top left;" 
+                                        style="width: 100%; height: 100%; border: none; transform: scale(1.02) translateY(-40px); transform-origin: top center;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy"
@@ -3551,12 +3551,12 @@ function showCompleteDocumentPreview(signatureData) {
                 <!-- 數位簽名顯示 -->
                 <div class="row mb-4">
                     <div class="col-12 text-center">
-                        <div class="signature-display-container p-3 bg-white border rounded">
-                            <p class="mb-2"><strong>數位簽名：</strong></p>
+                        <div class="signature-display-container p-4 bg-white border rounded" style="transform: scale(1.5); margin: 2rem 0;">
+                            <p class="mb-3" style="font-size: 1.2em;"><strong>數位簽名：</strong></p>
                             <img src="${signatureData}" 
                                  alt="數位簽名" 
                                  class="signature-display"
-                                 style="max-width: 150px; max-height: 75px; min-width: 100px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                 style="max-width: 225px; max-height: 112px; min-width: 150px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         </div>
                     </div>
                 </div>
@@ -3702,6 +3702,22 @@ function injectHideUrlStyles() {
                     border: none !important;
                     padding: 0 !important;
                     margin: 0 !important;
+                }
+            }
+            
+            /* 電腦版優化 */
+            @media (min-width: 769px) {
+                .iframe-container {
+                    margin: 0 auto !important;
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                
+                .iframe-container iframe {
+                    width: 100% !important;
+                    height: 100% !important;
+                    transform: scale(1.02) translateY(-40px) !important;
+                    transform-origin: top center !important;
                 }
             }
         </style>
