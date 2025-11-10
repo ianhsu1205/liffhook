@@ -507,7 +507,7 @@ function renderContentBlocks(blocks) {
                                 ` : ''}
                                 <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-60px); transform-origin: top left;" 
+                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-80px); transform-origin: top left;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy"
@@ -1598,7 +1598,7 @@ async function generateContent(contentBlocks) {
                             ` : ''}
                             <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-60px); transform-origin: top left;" 
+                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-80px); transform-origin: top left;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy"
@@ -3500,52 +3500,93 @@ function renderContentBlocksForPreview(blocks) {
     return html;
 }
 
-// 顯示完整文件預覽的Modal（所有裝置共用）
+// 顯示完整文件預覽（直接在當前頁面顯示）
 function showCompleteDocumentPreview(signatureData) {
     
-    const previewHTML = generateCompleteDocumentPreview(signatureData);
-    if (!previewHTML) {
+    if (!currentAnnouncement || !signatureData) {
         showMessage('無法生成文件預覽', 'error');
         return;
     }
     
-    // 獲取預覽模態框
-    const previewModal = document.getElementById('previewModal');
-    const documentPreview = document.getElementById('documentPreview');
+    const userName = currentUserInfo?.displayName || '用戶';
     
-    if (!previewModal || !documentPreview) {
-        showMessage('無法開啟預覽視窗', 'error');
-        return;
+    // 隱藏簽名區域
+    const signatureArea = document.getElementById('signatureArea');
+    if (signatureArea) {
+        signatureArea.style.display = 'none';
     }
     
-    // 設置預覽內容
-    documentPreview.innerHTML = previewHTML;
+    // 找到"我已閱讀"按鈕區域並替換為預覽控制區域
+    const readButton = document.querySelector('button[onclick*="readAnnouncement"]') || 
+                      document.querySelector('.btn-success') ||
+                      document.querySelector('#confirmReadBtn');
     
-    // 暫存簽名數據
-    currentSignatureData = signatureData;
-    
-    // 增大預覽模態框
-    const modalDialog = previewModal.querySelector('.modal-dialog');
-    if (modalDialog) {
-        modalDialog.classList.add('modal-xl');
-        modalDialog.style.maxWidth = '95vw';
-        modalDialog.style.margin = '1rem auto';
+    if (readButton) {
+        const buttonContainer = readButton.parentElement;
+        
+        // 暫存簽名數據
+        currentSignatureData = signatureData;
+        
+        // 替換按鈕區域為預覽控制
+        buttonContainer.innerHTML = `
+            <div class="signature-preview-area">
+                <!-- 簽名資訊區域 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="signature-info bg-light p-3 rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>簽名人員：</strong></p>
+                                    <p class="text-primary">${escapeHtml(userName)}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>狀態：</strong></p>
+                                    <p><span class="badge bg-success fs-6">已確認閱覽</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 數位簽名顯示 -->
+                <div class="row mb-4">
+                    <div class="col-12 text-center">
+                        <div class="signature-display-container p-3 bg-white border rounded">
+                            <p class="mb-2"><strong>數位簽名：</strong></p>
+                            <img src="${signatureData}" 
+                                 alt="數位簽名" 
+                                 class="signature-display"
+                                 style="max-width: 150px; max-height: 75px; min-width: 100px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 確認資訊 -->
+                <div class="mb-4 p-3 bg-light border-start border-5 border-success">
+                    <h6 class="text-success"><i class="fas fa-check-circle"></i> 簽名確認</h6>
+                    <p class="mb-0 small text-muted">
+                        本人已詳細閱讀上述宣導內容，並以數位簽名方式確認收悉。
+                    </p>
+                </div>
+                
+                <!-- 控制按鈕 -->
+                <div class="text-center">
+                    <button type="button" class="btn btn-success btn-lg me-3" onclick="confirmSignature()">
+                        <i class="fas fa-check"></i> 確認送出
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg" onclick="cancelSignaturePreview()">
+                        <i class="fas fa-times"></i> 取消重簽
+                    </button>
+                </div>
+            </div>
+        `;
     }
-    
-    const modalBody = previewModal.querySelector('.modal-body');
-    if (modalBody) {
-        modalBody.style.maxHeight = '80vh';
-        modalBody.style.overflowY = 'auto';
-        modalBody.style.padding = '1.5rem';
-    }
-    
-    // 顯示預覽模態框
-    try {
-        const bsPreviewModal = new bootstrap.Modal(previewModal);
-        bsPreviewModal.show();
-    } catch (error) {
-        showMessage('無法開啟預覽視窗', 'error');
-    }
+}
+
+// 取消簽名預覽，回到原始狀態
+function cancelSignaturePreview() {
+    // 重新載入頁面回到原始狀態
+    window.location.reload();
 }
 
 // 取消預覽，返回宣導頁面
@@ -3608,8 +3649,18 @@ function injectHideUrlStyles() {
             
             /* 確保iframe容器不顯示任何文字內容 */
             .iframe-container .d-flex.justify-content-between,
-            .iframe-container .bg-light.border-bottom {
+            .iframe-container .bg-light.border-bottom,
+            .border.rounded .bg-light.border-bottom,
+            .border-bottom {
                 display: none !important;
+            }
+            
+            /* 隱藏可能的邊框線 */
+            .iframe-container .border,
+            .iframe-container .border-top,
+            .iframe-container .border-bottom,
+            .html-iframe-block .border {
+                border: none !important;
             }
             
             /* 強制隱藏包含globe圖標的父元素 */
@@ -3634,7 +3685,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.05) translateY(-60px) !important;
+                    transform: scale(1.05) translateY(-80px) !important;
                     transform-origin: top left !important;
                 }
                 
