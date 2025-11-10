@@ -111,37 +111,31 @@
 
           console.log(`E-announcement 重定向到: ${redirectUrl}`)
 
+          // 檢查是否為新開的視窗（從 user.js window.open 開啟）
+          const isNewWindow = window.opener !== null || window.name === "_blank"
+
+          if (isNewWindow) {
+            // 新視窗：直接替換當前頁面，避免留下 404
+            console.log("檢測到新視窗，直接替換頁面")
+            window.location.replace(redirectUrl)
+            return
+          }
+
           const env = detectEnvironment()
           console.log("環境檢測:", env)
 
           // 根據不同環境採用不同策略
-          if (env.isLineApp || env.isMobileApp) {
-            // LINE App 或行動App環境：直接重定向
+          if (env.isLineApp) {
+            // LINE App 環境：使用 replace 避免影響 LINE 的導航歷史
+            console.log("LINE App 環境，使用 replace 重定向")
+            window.location.replace(redirectUrl)
+          } else if (env.isMobileApp) {
+            // 其他行動App環境：直接重定向
             console.log("行動App環境，直接重定向")
             window.location.replace(redirectUrl)
-          } else if (env.canCloseWindow) {
-            // 可以關閉視窗的環境：先重定向，然後嘗試關閉
-            console.log("可關閉視窗環境，重定向後關閉")
-            window.location.href = redirectUrl
-
-            // 延遲關閉視窗，確保重定向有時間執行
-            setTimeout(() => {
-              try {
-                window.close()
-                // 如果無法關閉，顯示提示
-                setTimeout(() => {
-                  if (!window.closed) {
-                    showRedirectSuccess(redirectUrl)
-                  }
-                }, 100)
-              } catch (e) {
-                console.log("無法自動關閉視窗:", e)
-                showRedirectSuccess(redirectUrl)
-              }
-            }, 1000)
           } else {
-            // 獨立瀏覽器標籤：使用 replace 重定向
-            console.log("獨立瀏覽器標籤，使用 replace 重定向")
+            // 桌面瀏覽器：使用 replace 重定向，避免留在歷史記錄
+            console.log("桌面瀏覽器環境，使用 replace 重定向")
             window.location.replace(redirectUrl)
           }
         } catch (error) {
@@ -152,11 +146,17 @@
 
       // 檢測環境並決定重定向策略
       function detectEnvironment() {
-        const userAgent = navigator.userAgent.toLowerCase()
-        const isLineApp = userAgent.includes("line")
+        const userAgent = navigator.userAgent
+        // 改進 LINE 檢測邏輯，與 signature.js 保持一致
+        const isLineApp =
+          userAgent.includes("Line") ||
+          userAgent.toLowerCase().includes("line") ||
+          window.parent !== window ||
+          (window.opener === null && document.referrer.includes("line"))
         const isMobileApp =
-          userAgent.includes("mobile") &&
-          (userAgent.includes("app") || userAgent.includes("webview"))
+          userAgent.toLowerCase().includes("mobile") &&
+          (userAgent.toLowerCase().includes("app") ||
+            userAgent.toLowerCase().includes("webview"))
         const isStandaloneBrowser = !window.opener && window.history.length <= 1
 
         return {
@@ -286,4 +286,3 @@
     </script>
   </body>
 </html>
-
