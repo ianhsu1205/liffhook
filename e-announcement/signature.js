@@ -3321,7 +3321,41 @@ function openUrlInModal(url, title = '網頁內容') {
 let currentModalUrl = null;
 
 function closeWindow() {
-    window.close();
+    try {
+        // 嘗試關閉視窗
+        window.close();
+        
+        // 延遲檢查視窗是否真的關閉了
+        setTimeout(() => {
+            // 如果視窗沒有關閉（例如在LINE內建瀏覽器中），則返回上一頁
+            if (!window.closed) {
+                // 檢查是否有上一頁可以返回
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    // 如果沒有上一頁，嘗試跳轉到首頁或關閉頁面
+                    try {
+                        window.location.href = '/';
+                    } catch (e) {
+                        // 如果都無法執行，顯示提示訊息
+                        alert('請手動關閉此頁面');
+                    }
+                }
+            }
+        }, 100);
+        
+    } catch (error) {
+        // 如果 window.close() 失敗，直接返回上一頁
+        try {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        } catch (e) {
+            alert('請手動關閉此頁面');
+        }
+    }
 }
 
 // 統一的完整文件預覽功能
