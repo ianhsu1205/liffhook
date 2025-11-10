@@ -531,3 +531,67 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         document.body.appendChild(debugBtn);
     });
 }
+
+// 刷新宣導專案列表
+async function refreshAnnouncements() {
+    console.log('refreshAnnouncements 被呼叫');
+    
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = refreshBtn.querySelector('.fa-sync-alt');
+    
+    try {
+        // 更新按鈕狀態
+        refreshBtn.classList.add('refreshing');
+        refreshBtn.disabled = true;
+        
+        // 重新載入宣導專案
+        await loadUserAnnouncements();
+        
+        // 顯示成功提示（可選）
+        showTemporaryMessage('列表已更新', 'success');
+        
+    } catch (error) {
+        console.error('刷新失敗:', error);
+        showTemporaryMessage('更新失敗，請稍後再試', 'error');
+    } finally {
+        // 恢復按鈕狀態
+        setTimeout(() => {
+            refreshBtn.classList.remove('refreshing');
+            refreshBtn.disabled = false;
+        }, 500);
+    }
+}
+
+// 顯示臨時提示訊息
+function showTemporaryMessage(message, type = 'info') {
+    // 移除現有的提示
+    const existingAlert = document.querySelector('.temp-alert');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+    
+    // 創建新的提示
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} temp-alert`;
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.left = '50%';
+    alertDiv.style.transform = 'translateX(-50%)';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '200px';
+    alertDiv.style.textAlign = 'center';
+    alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    alertDiv.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-1"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // 3 秒後自動移除
+    setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}

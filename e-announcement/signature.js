@@ -8,6 +8,13 @@ function extractDomainName(url) {
     }
 }
 
+// 輔助函數：檢測是否為 LINE 環境
+function isLineEnvironment() {
+    const userAgent = navigator.userAgent || '';
+    return userAgent.includes('Line') || 
+           userAgent.toLowerCase().includes('line');
+}
+
 // 全域變數
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
@@ -824,17 +831,33 @@ function displaySignedDetails(signedData) {
         
         signedContent += `
             </div>
-            
-            <!-- 關閉視窗按鈕 -->
-            <div class="text-center mt-4">
-                <button type="button" 
-                        class="btn btn-outline-secondary btn-lg" 
-                        onclick="closeWindow()"
-                        style="min-width: 150px;">
-                    <i class="fas fa-times"></i> 關閉視窗
-                </button>
-            </div>
         `;
+        
+        // 檢測環境，只在非 LINE 環境中顯示關閉按鈕
+        if (!isLineEnvironment()) {
+            // 只在外部瀏覽器環境中顯示關閉視窗按鈕
+            signedContent += `
+                <!-- 關閉視窗按鈕 -->
+                <div class="text-center mt-4">
+                    <button type="button" 
+                            class="btn btn-outline-secondary btn-lg" 
+                            onclick="closeWindow()"
+                            style="min-width: 150px;">
+                        <i class="fas fa-times"></i> 關閉視窗
+                    </button>
+                </div>
+            `;
+        } else {
+            // LINE 環境中的提示文字
+            signedContent += `
+                <div class="text-center mt-4">
+                    <p class="text-muted small">
+                        <i class="fab fa-line text-success"></i> 
+                        請使用 LINE 的返回按鈕返回上一頁
+                    </p>
+                </div>
+            `;
+        }
         
         signedState.innerHTML = signedContent;
         
@@ -1007,15 +1030,32 @@ function showSubmissionSuccess() {
     
     const signatureCard = document.getElementById('signatureCard');
     if (signatureCard) {
+        // 檢測環境並生成對應的提示訊息
+        let successMessage = '';
+        if (isLineEnvironment()) {
+            // LINE 環境中的提示
+            successMessage = `
+                <div class="alert alert-success">
+                    <i class="fab fa-line text-success me-2"></i>
+                    請使用 LINE 的返回按鈕返回上一頁
+                </div>
+            `;
+        } else {
+            // 外部瀏覽器環境中的提示
+            successMessage = `
+                <div class="alert alert-success">
+                    <i class="fas fa-info-circle me-2"></i>
+                    您可以關閉此頁面。
+                </div>
+            `;
+        }
+        
         signatureCard.innerHTML = `
             <div class="text-center py-5">
                 <i class="fas fa-check-circle text-success" style="font-size: 4rem; margin-bottom: 1rem;"></i>
                 <h3 class="text-success mb-3">簽名確認完成</h3>
                 <p class="mb-4">感謝您的配合，簽名已成功提交。</p>
-                <div class="alert alert-success">
-                    <i class="fas fa-info-circle me-2"></i>
-                    您可以關閉此頁面。
-                </div>
+                ${successMessage}
             </div>
         `;
     }
@@ -3324,9 +3364,7 @@ function closeWindow() {
     console.log('closeWindow 被呼叫');
     
     // 檢測環境
-    const userAgent = navigator.userAgent || '';
-    const isLineApp = userAgent.includes('Line') || 
-                     userAgent.toLowerCase().includes('line');
+    const isLineApp = isLineEnvironment();
     const isPopupWindow = window.opener !== null;
     const hasHistory = window.history && window.history.length > 1;
     
@@ -3334,7 +3372,7 @@ function closeWindow() {
         isLineApp: isLineApp,
         isPopupWindow: isPopupWindow,
         hasHistory: hasHistory,
-        userAgent: userAgent,
+        userAgent: navigator.userAgent,
         historyLength: window.history.length
     });
     
