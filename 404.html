@@ -43,6 +43,26 @@
         max-width: 400px;
         margin: 20px;
       }
+      .alert {
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 400px;
+        margin: 20px;
+        text-align: center;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        border: none;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+      .btn:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
+      }
     </style>
   </head>
   <body>
@@ -75,7 +95,24 @@
           path !== "/liffhook/" &&
           path !== "/liffhook/index.html"
         ) {
-          window.location.href = "/liffhook/"
+          window.location.replace("/liffhook/") // 使用 replace 避免在歷史記錄中留下此頁面
+        }
+      }
+
+      // 檢測環境並決定重定向策略
+      function detectEnvironment() {
+        const userAgent = navigator.userAgent.toLowerCase()
+        const isLineApp = userAgent.includes("line")
+        const isMobileApp =
+          userAgent.includes("mobile") &&
+          (userAgent.includes("app") || userAgent.includes("webview"))
+        const isStandaloneBrowser = !window.opener && window.history.length <= 1
+
+        return {
+          isLineApp,
+          isMobileApp,
+          isStandaloneBrowser,
+          canCloseWindow: window.opener !== null || document.referrer !== "",
         }
       }
 
@@ -89,9 +126,43 @@
         try {
           // 呼叫後端API來解析縮網址
           const backendUrl = "https://35.221.146.143.nip.io/linehook"
+          const redirectUrl = `${backendUrl}/s/${shortCode}`
 
-          // 直接重定向到後端處理縮網址
-          window.location.href = `${backendUrl}/s/${shortCode}`
+          console.log(`重定向到: ${redirectUrl}`)
+
+          const env = detectEnvironment()
+          console.log("環境檢測:", env)
+
+          // 根據不同環境採用不同策略
+          if (env.isLineApp || env.isMobileApp) {
+            // LINE App 或行動App環境：直接重定向
+            console.log("行動App環境，直接重定向")
+            window.location.replace(redirectUrl) // 使用 replace 避免在歷史記錄中留下此頁面
+          } else if (env.canCloseWindow) {
+            // 可以關閉視窗的環境：先重定向，然後嘗試關閉
+            console.log("可關閉視窗環境，重定向後關閉")
+            window.location.href = redirectUrl
+
+            // 延遲關閉視窗，確保重定向有時間執行
+            setTimeout(() => {
+              try {
+                window.close()
+                // 如果無法關閉，顯示提示
+                setTimeout(() => {
+                  if (!window.closed) {
+                    showRedirectSuccess(redirectUrl)
+                  }
+                }, 100)
+              } catch (e) {
+                console.log("無法自動關閉視窗:", e)
+                showRedirectSuccess(redirectUrl)
+              }
+            }, 1000)
+          } else {
+            // 獨立瀏覽器標籤：使用 replace 重定向
+            console.log("獨立瀏覽器標籤，使用 replace 重定向")
+            window.location.replace(redirectUrl)
+          }
         } catch (error) {
           console.error("縮網址處理錯誤:", error)
           showError("縮網址處理失敗，請稍後再試")
@@ -104,13 +175,63 @@
                 <div class="error">
                     <h3>錯誤</h3>
                     <p>${message}</p>
-                    <button onclick="window.location.href='/liffhook/'" style="background: white; color: #dc3545; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">返回首頁</button>
+                    <button onclick="closeOrBack()" style="background: white; color: #dc3545; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">返回上一頁</button>
                 </div>
             `
       }
 
+      function showRedirectSuccess(url) {
+        const loader = document.getElementById("loader")
+        loader.innerHTML = `
+                <div class="alert" style="background: #28a745; color: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: 20px;">
+                    <h3>重定向完成</h3>
+                    <p>已成功重定向到目標頁面。如果頁面沒有自動跳轉，請點擊下方按鈕：</p>
+                    <div style="margin-top: 15px;">
+                        <button onclick="window.location.href='${url}'" 
+                                style="background: white; color: #28a745; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                            前往目標頁面
+                        </button>
+                        <button onclick="closeOrBack()" 
+                                style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                            關閉頁面
+                        </button>
+                    </div>
+                </div>
+            `
+      }
+
+      function closeOrBack() {
+        try {
+          // 嘗試關閉視窗
+          window.close()
+
+          // 如果無法關閉，返回上一頁或跳轉到首頁
+          setTimeout(() => {
+            if (!window.closed) {
+              if (window.history.length > 1) {
+                window.history.back()
+              } else {
+                window.location.href = "/liffhook/"
+              }
+            }
+          }, 100)
+        } catch (e) {
+          // 如果都失敗，返回上一頁
+          if (window.history.length > 1) {
+            window.history.back()
+          } else {
+            window.location.href = "/liffhook/"
+          }
+        }
+      }
+
       // 頁面載入時執行
       window.addEventListener("DOMContentLoaded", handleGitHubPagesRouting)
+
+      // 當頁面即將卸載時，清除任何定時器
+      window.addEventListener("beforeunload", function () {
+        console.log("頁面即將卸載")
+      })
     </script>
   </body>
 </html>
