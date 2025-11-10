@@ -3551,7 +3551,7 @@ function showCompleteDocumentPreview(signatureData) {
                 <!-- 數位簽名顯示 -->
                 <div class="row mb-4">
                     <div class="col-12 text-center">
-                        <div class="signature-display-container" style="transform: scale(3); margin: 4rem 0; padding: 2rem;">
+                        <div class="signature-display-container" style="transform: scale(3); margin: 2rem 0 1rem 0; padding: 1rem;">
                             <img src="${signatureData}" 
                                  alt="數位簽名" 
                                  class="signature-display"
@@ -3562,7 +3562,6 @@ function showCompleteDocumentPreview(signatureData) {
                 
                 <!-- 確認資訊 -->
                 <div class="mb-4 p-3 bg-light border-start border-5 border-success">
-                    <h6 class="text-success"><i class="fas fa-check-circle"></i> 簽名確認</h6>
                     <p class="mb-0 small text-muted">
                         本人已詳細閱讀上述宣導內容，並以數位簽名方式確認收悉。
                     </p>
@@ -3684,7 +3683,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.05) translateY(-80px) !important;
+                    transform: scale(1.03) translateY(-20px) !important;
                     transform-origin: top left !important;
                 }
                 
