@@ -69,42 +69,20 @@
         }
 
         try {
-          // 呼叫後端API來解析縮網址
-          const backendUrl =
-            window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"
-              ? "http://localhost:5000"
-              : "https://35.221.146.143.nip.io/linehook"
-
-          const response = await fetch(`${backendUrl}/s/${shortCode}`, {
-            method: "GET",
-            redirect: "manual", // 手動處理重定向
-          })
-
-          if (
-            response.type === "opaqueredirect" ||
-            response.status === 302 ||
-            response.status === 301
-          ) {
-            // 如果是重定向回應，取得Location標頭
-            const redirectUrl = response.headers.get("Location")
-            if (redirectUrl) {
-              window.location.href = redirectUrl
-              return
-            }
-          }
-
-          // 備用方法：直接重定向到後端縮網址處理
-          window.location.href = `${backendUrl}/s/${shortCode}`
+          console.log(`處理短網址: ${shortCode}`)
+          
+          // 根據nginx配置，直接重定向到正確的後端路由
+          // nginx會將 /linehook/s/{shortCode} 重寫為 /api/s/{shortCode}
+          const redirectUrl = `https://35.221.146.143.nip.io/linehook/s/${shortCode}`
+          
+          console.log(`重定向到: ${redirectUrl}`)
+          
+          // 直接重定向到nginx代理的後端路由
+          window.location.href = redirectUrl
+          
         } catch (error) {
           console.error("縮網址處理錯誤:", error)
-          // 備用方法：直接重定向到後端
-          const backendUrl =
-            window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"
-              ? "http://localhost:5000"
-              : "https://35.221.146.143.nip.io/linehook"
-          window.location.href = `${backendUrl}/s/${shortCode}`
+          showError(`處理縮網址時發生錯誤: ${error.message}`)
         }
       }
 
