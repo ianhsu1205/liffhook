@@ -11,8 +11,29 @@ function extractDomainName(url) {
 // 輔助函數：檢測是否為 LINE 環境
 function isLineEnvironment() {
     const userAgent = navigator.userAgent || '';
-    return userAgent.includes('Line') || 
-           userAgent.toLowerCase().includes('line');
+    
+    // 增強的 LINE 環境檢測
+    const isLine = (
+        userAgent.includes('Line') || 
+        userAgent.toLowerCase().includes('line') ||
+        userAgent.includes('LINE') ||
+        userAgent.includes('LIFF') ||
+        userAgent.toLowerCase().includes('liff') ||
+        window.liff !== undefined ||
+        document.location.href.includes('liff') ||
+        document.referrer.includes('line')
+    );
+    
+    // 調試信息（可在瀏覽器控制台中查看）
+    console.log('LINE環境檢測結果:', {
+        userAgent: userAgent,
+        isLine: isLine,
+        hasLiffWindow: window.liff !== undefined,
+        currentUrl: document.location.href,
+        referrer: document.referrer
+    });
+    
+    return isLine;
 }
 
 // 全域變數
@@ -834,7 +855,10 @@ function displaySignedDetails(signedData) {
         `;
         
         // 檢測環境，只在非 LINE 環境中顯示關閉按鈕
-        if (!isLineEnvironment()) {
+        const isLineEnv = isLineEnvironment();
+        console.log('displaySignedDetails - 環境檢測結果:', isLineEnv);
+        
+        if (!isLineEnv) {
             // 只在外部瀏覽器環境中顯示關閉視窗按鈕
             signedContent += `
                 <!-- 關閉視窗按鈕 -->
@@ -1031,8 +1055,11 @@ function showSubmissionSuccess() {
     const signatureCard = document.getElementById('signatureCard');
     if (signatureCard) {
         // 檢測環境並生成對應的提示訊息
+        const isLineEnv = isLineEnvironment();
+        console.log('showSubmissionSuccess - 環境檢測結果:', isLineEnv);
+        
         let successMessage = '';
-        if (isLineEnvironment()) {
+        if (isLineEnv) {
             // LINE 環境中的提示
             successMessage = `
                 <div class="alert alert-success">
@@ -3965,3 +3992,52 @@ document.addEventListener('contentUpdated', () => {
 
 // 立即執行一次
 injectHideUrlStyles();
+
+// 環境檢測診斷功能 - 在開發環境中顯示調試按鈕
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || 
+    window.location.search.includes('debug=1')) {
+    
+    // 創建調試按鈕
+    function createDebugButton() {
+        const debugBtn = document.createElement('button');
+        debugBtn.innerHTML = '🔍 環境檢測';
+        debugBtn.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 10px;
+            z-index: 9999;
+            padding: 8px 12px;
+            font-size: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        `;
+        
+        debugBtn.onclick = function() {
+            const isLineEnv = isLineEnvironment();
+            const debugInfo = {
+                '環境檢測結果': isLineEnv,
+                'User Agent': navigator.userAgent,
+                'LIFF 對象': window.liff !== undefined,
+                '當前URL': window.location.href,
+                '來源頁面': document.referrer,
+                'URL包含liff': window.location.href.includes('liff'),
+                '來源包含line': document.referrer.includes('line')
+            };
+            
+            console.log('=== 環境檢測診斷 ===', debugInfo);
+            alert(`環境檢測結果: ${isLineEnv ? 'LINE 環境' : '外部瀏覽器'}\n\n詳細信息請查看控制台`);
+        };
+        
+        document.body.appendChild(debugBtn);
+    }
+    
+    // 等待頁面載入完成後創建按鈕
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createDebugButton);
+    } else {
+        createDebugButton();
+    }
+}
