@@ -481,7 +481,7 @@ function renderContentBlocks(blocks) {
                         html += `<div class="content-block html-iframe-block mb-3">
                             <div class="border rounded position-relative" style="background-color: #f8f9fa;">
                                 <!-- 浮動控制按鈕 -->
-                                <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px);">
                                     <div class="btn-group" role="group">
                                         <button type="button" 
                                                 class="btn btn-primary btn-sm" 
@@ -505,12 +505,13 @@ function renderContentBlocks(blocks) {
                                     </small>
                                 </div>
                                 ` : ''}
-                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
+                                <div class="iframe-container position-relative" style="height: 800px; min-height: 85vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
                                     <iframe src="${linkData.url}" 
                                             style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-                                            loading="lazy">
+                                            loading="lazy"
+                                            onload="hideIframeUrlBars()">
                                         <div class="p-3 text-center">
                                             <p>您的瀏覽器不支援 iframe，請點擊以下連結：</p>
                                             <a href="${linkData.url}" target="_blank" class="btn btn-primary">
@@ -854,10 +855,10 @@ function initializeCanvas() {
         return false;
     }
     
-    // 設定畫布尺寸
+    // 設定畫布尺寸 - 最大化簽名區域
     const container = canvas.parentElement;
     canvas.width = container.clientWidth;
-    canvas.height = 200;
+    canvas.height = 300; // 增加高度從200到300
     
     
     // 設定繪製樣式
@@ -1571,7 +1572,7 @@ async function generateContent(contentBlocks) {
                     html += `<div class="content-block html-iframe-block mb-3">
                         <div class="border rounded position-relative" style="background-color: #f8f9fa;">
                             <!-- 浮動控制按鈕 -->
-                            <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px);">
                                 <div class="btn-group" role="group">
                                     <button type="button" 
                                             class="btn btn-primary btn-sm" 
@@ -1595,12 +1596,13 @@ async function generateContent(contentBlocks) {
                                 </small>
                             </div>
                             ` : ''}
-                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
+                            <div class="iframe-container position-relative" style="height: 800px; min-height: 85vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
                                 <iframe src="${linkData.url}" 
                                         style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-                                        loading="lazy">
+                                        loading="lazy"
+                                        onload="hideIframeUrlBars()">
                                         loading="lazy">
                                     <div class="p-3 text-center">
                                         <p>您的瀏覽器不支援 iframe，請點擊以下連結：</p>
@@ -2056,10 +2058,17 @@ function initializeNormalSignaturePad() {
         return;
     }
     
-    // 設定畫布尺寸
-    const canvasWidth = canvas.offsetWidth || 400;
+    // 設定畫布尺寸 - 完全最大化寬度
+    const container = canvas.parentElement;
+    const containerWidth = container ? container.offsetWidth : window.innerWidth;
+    // 使用容器的完整寬度，只保留5px的極小邊距
+    const canvasWidth = Math.max(containerWidth - 5, window.innerWidth - 30); 
     canvas.width = canvasWidth;
-    canvas.height = 200;
+    canvas.height = 350; // 保持高度不變
+    
+    // 確保畫布樣式也是100%寬度
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = 'none';
     
     
     // 設定繪製樣式
@@ -2076,6 +2085,27 @@ function initializeNormalSignaturePad() {
     
     // 設定事件監聽器
     setupSignaturePadEvents(canvas, ctx);
+    
+    // 添加視窗大小改變時的響應式調整
+    const resizeHandler = () => {
+        const container = canvas.parentElement;
+        const containerWidth = container ? container.offsetWidth : window.innerWidth;
+        const newCanvasWidth = Math.max(containerWidth - 5, window.innerWidth - 30);
+        
+        // 只有當寬度真的改變時才調整
+        if (Math.abs(canvas.width - newCanvasWidth) > 10) {
+            // 保存當前繪製內容
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            canvas.width = newCanvasWidth;
+            canvas.style.width = '100%';
+            // 恢復繪製內容
+            ctx.putImageData(imageData, 0, 0);
+        }
+    };
+    
+    // 綁定視窗調整事件
+    window.addEventListener('resize', resizeHandler);
+    window.addEventListener('orientationchange', resizeHandler);
     
     return true;
 }
@@ -2246,9 +2276,9 @@ async function enterFullscreenLandscapeMode() {
             display: flex;
             overflow: hidden;
         ">
-            <!-- 簽名區域（佔4/5） -->
+            <!-- 簽名區域（佔9/10） -->
             <div style="
-                width: 80%;
+                width: 90%;
                 height: 100%;
                 display: flex;
                 flex-direction: column;
@@ -3234,7 +3264,7 @@ function openUrlInModal(url, title = '網頁內容') {
                             <h5 class="modal-title" id="urlModalLabel">網頁檢視</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body p-0 position-relative" style="height: 80vh; overflow: hidden; clip-path: inset(50px 0 0 0);">
+                        <div class="modal-body p-0 position-relative" style="height: 90vh; overflow: hidden; clip-path: inset(50px 0 0 0);">
                             <iframe id="urlModalFrame" 
                                     style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                     frameborder="0"
@@ -3433,3 +3463,33 @@ function confirmSignature() {
         actuallySubmitSignature();
     }, 500);
 }
+
+// 清空iframe中的URL顯示函數
+function hideIframeUrlBars() {
+    // 等待iframe載入後再執行
+    setTimeout(() => {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            try {
+                // 嘗試操作iframe內部文檔
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                if (iframeDoc) {
+                    // 隱藏常見的URL顯示元素
+                    const urlElements = iframeDoc.querySelectorAll('input[type="url"], .url-bar, .address-bar, .location-bar');
+                    urlElements.forEach(el => {
+                        el.style.display = 'none';
+                    });
+                }
+            } catch (e) {
+                // 如果無法訪問iframe內容（跨域），就在父文檔中處理
+                console.log('跨域iframe，使用CSS隱藏方式');
+            }
+        });
+    }, 1000);
+}
+
+// 當文檔載入完成後執行
+document.addEventListener('DOMContentLoaded', hideIframeUrlBars);
+
+// 當內容更新後也執行
+document.addEventListener('contentUpdated', hideIframeUrlBars);
