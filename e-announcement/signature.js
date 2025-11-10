@@ -3534,29 +3534,22 @@ function showCompleteDocumentPreview(signatureData) {
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="signature-info bg-light p-3 rounded">
-                            <div class="row">
-                                <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
                                     <p class="mb-1"><strong>簽名人員：</strong></p>
                                     <p class="text-primary">${escapeHtml(userName)}</p>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <p class="mb-1"><strong>狀態：</strong></p>
                                     <p><span class="badge bg-success fs-6">已確認閱覽</span></p>
                                 </div>
+                                <div class="col-md-4 text-end">
+                                    <img src="${signatureData}" 
+                                         alt="數位簽名" 
+                                         class="signature-display"
+                                         style="max-width: 120px; max-height: 60px; min-width: 80px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 數位簽名顯示 -->
-                <div class="row mb-4">
-                    <div class="col-12 text-center">
-                        <div class="signature-display-container p-4 bg-white border rounded" style="transform: scale(1.5); margin: 2rem 0;">
-                            <p class="mb-3" style="font-size: 1.2em;"><strong>數位簽名：</strong></p>
-                            <img src="${signatureData}" 
-                                 alt="數位簽名" 
-                                 class="signature-display"
-                                 style="max-width: 225px; max-height: 112px; min-width: 150px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         </div>
                     </div>
                 </div>
@@ -3716,7 +3709,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.02) translateY(-40px) !important;
+                    transform: scale(1.02) translateY(-10px) !important;
                     transform-origin: top center !important;
                 }
             }
