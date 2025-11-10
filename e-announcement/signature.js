@@ -481,7 +481,7 @@ function renderContentBlocks(blocks) {
                         html += `<div class="content-block html-iframe-block mb-3">
                             <div class="border rounded position-relative" style="background-color: #f8f9fa;">
                                 <!-- 浮動控制按鈕 -->
-                                <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px);">
+                                <div class="iframe-floating-controls" style="position: sticky; top: 10px; right: 10px; float: right; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px); margin-bottom: 10px;">
                                     <div class="btn-group" role="group">
                                         <button type="button" 
                                                 class="btn btn-primary btn-sm" 
@@ -1572,7 +1572,7 @@ async function generateContent(contentBlocks) {
                     html += `<div class="content-block html-iframe-block mb-3">
                         <div class="border rounded position-relative" style="background-color: #f8f9fa;">
                             <!-- 浮動控制按鈕 -->
-                            <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px);">
+                            <div class="iframe-floating-controls" style="position: sticky; top: 10px; right: 10px; float: right; z-index: 1000; background: rgba(255,255,255,0.95); border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px); margin-bottom: 10px;">
                                 <div class="btn-group" role="group">
                                     <button type="button" 
                                             class="btn btn-primary btn-sm" 
@@ -3464,6 +3464,81 @@ function confirmSignature() {
     }, 500);
 }
 
+// 強制隱藏URL顯示的CSS注入函數
+function injectHideUrlStyles() {
+    // 創建強力隱藏URL的CSS樣式
+    const hideUrlCSS = `
+        <style id="hideUrlStyles">
+            /* 隱藏所有可能的URL顯示元素 */
+            .text-muted .fas.fa-globe,
+            .bg-light .text-muted,
+            .iframe-title,
+            .url-display,
+            .content-url,
+            .source-url {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
+            }
+            
+            /* 確保iframe容器不顯示任何文字內容 */
+            .iframe-container .d-flex.justify-content-between,
+            .iframe-container .bg-light.border-bottom {
+                display: none !important;
+            }
+            
+            /* 強制隱藏包含globe圖標的父元素 */
+            .fa-globe {
+                display: none !important;
+            }
+            
+            .fa-globe + span,
+            .fa-globe ~ span {
+                display: none !important;
+            }
+        </style>
+    `;
+    
+    // 注入到head
+    if (!document.getElementById('hideUrlStyles')) {
+        document.head.insertAdjacentHTML('beforeend', hideUrlCSS);
+    }
+    
+    // 也嘗試用JavaScript直接隱藏
+    const hideElements = () => {
+        // 隱藏任何包含URL的元素
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+            if (el.textContent && 
+                (el.textContent.includes('https://') || 
+                 el.textContent.includes('http://') ||
+                 el.textContent.includes('github.io') ||
+                 el.textContent.includes('.html'))) {
+                // 只隱藏小的文字元素，不隱藏iframe本身
+                if (el.tagName !== 'IFRAME' && el.offsetHeight < 50) {
+                    el.style.display = 'none';
+                }
+            }
+        });
+        
+        // 特別隱藏帶有地球圖標的元素
+        const globeElements = document.querySelectorAll('.fa-globe');
+        globeElements.forEach(globe => {
+            const parent = globe.closest('.text-muted') || globe.closest('small');
+            if (parent) {
+                parent.style.display = 'none';
+            }
+        });
+    };
+    
+    hideElements();
+    
+    // 設定定期檢查，因為內容可能動態載入
+    setInterval(hideElements, 1000);
+}
+
 // 清空iframe中的URL顯示函數
 function hideIframeUrlBars() {
     // 等待iframe載入後再執行
@@ -3489,7 +3564,16 @@ function hideIframeUrlBars() {
 }
 
 // 當文檔載入完成後執行
-document.addEventListener('DOMContentLoaded', hideIframeUrlBars);
+document.addEventListener('DOMContentLoaded', () => {
+    injectHideUrlStyles();
+    hideIframeUrlBars();
+});
 
 // 當內容更新後也執行
-document.addEventListener('contentUpdated', hideIframeUrlBars);
+document.addEventListener('contentUpdated', () => {
+    injectHideUrlStyles();
+    hideIframeUrlBars();
+});
+
+// 立即執行一次
+injectHideUrlStyles();
