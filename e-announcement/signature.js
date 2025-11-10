@@ -3321,39 +3321,59 @@ function openUrlInModal(url, title = '網頁內容') {
 let currentModalUrl = null;
 
 function closeWindow() {
-    try {
-        // 嘗試關閉視窗
-        window.close();
-        
-        // 延遲檢查視窗是否真的關閉了
-        setTimeout(() => {
-            // 如果視窗沒有關閉（例如在LINE內建瀏覽器中），則返回上一頁
-            if (!window.closed) {
-                // 檢查是否有上一頁可以返回
-                if (window.history.length > 1) {
-                    window.history.back();
-                } else {
-                    // 如果沒有上一頁，嘗試跳轉到首頁或關閉頁面
-                    try {
-                        window.location.href = '/';
-                    } catch (e) {
-                        // 如果都無法執行，顯示提示訊息
-                        alert('請手動關閉此頁面');
-                    }
-                }
-            }
-        }, 100);
-        
-    } catch (error) {
-        // 如果 window.close() 失敗，直接返回上一頁
+    console.log('closeWindow 被呼叫');
+    
+    // 檢測是否在LINE瀏覽器或其他嵌入式環境中
+    const isInLineApp = navigator.userAgent.includes('Line') || 
+                       window.parent !== window || 
+                       window.opener === null;
+    
+    if (isInLineApp) {
+        console.log('檢測到LINE環境，直接返回上一頁');
+        // 在LINE或嵌入式環境中，直接返回上一頁
         try {
             if (window.history.length > 1) {
                 window.history.back();
             } else {
+                // 如果沒有上一頁，嘗試跳轉到根目錄
                 window.location.href = '/';
             }
         } catch (e) {
-            alert('請手動關閉此頁面');
+            console.error('返回上一頁失敗:', e);
+            alert('請使用瀏覽器的返回按鈕');
+        }
+    } else {
+        console.log('一般瀏覽器環境，嘗試關閉視窗');
+        // 在一般瀏覽器中，先嘗試關閉視窗
+        try {
+            window.close();
+            
+            // 短暫延遲後檢查是否成功關閉
+            setTimeout(() => {
+                // 如果還能執行這段代碼，說明視窗沒有關閉，返回上一頁
+                try {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = '/';
+                    }
+                } catch (e) {
+                    alert('請手動關閉此頁面');
+                }
+            }, 50);
+            
+        } catch (error) {
+            console.error('window.close() 失敗:', error);
+            // 如果 window.close() 失敗，直接返回上一頁
+            try {
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                alert('請使用瀏覽器的返回按鈕');
+            }
         }
     }
 }
