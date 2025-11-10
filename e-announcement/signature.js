@@ -490,32 +490,9 @@ function renderContentBlocks(blocks) {
                                         </button>
                                     </div>
                                 </div>
-                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
-                                    <!-- 精準URL隱藏覆蓋層 - 只覆蓋頂部可能的URL區域 -->
-                                    <div style="
-                                        position: absolute;
-                                        top: 0;
-                                        left: 0;
-                                        right: 0;
-                                        height: 40px;
-                                        background: rgba(248, 249, 250, 0.95);
-                                        z-index: 10;
-                                        pointer-events: none;
-                                        border-bottom: 1px solid rgba(0, 123, 255, 0.2);
-                                    "></div>
-                                    <!-- 如果URL在更下方，增加一個小的遮罩 -->
-                                    <div style="
-                                        position: absolute;
-                                        top: 40px;
-                                        left: 0;
-                                        right: 0;
-                                        height: 20px;
-                                        background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
-                                        z-index: 9;
-                                        pointer-events: none;
-                                    "></div>
+                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(30px 0 30px 0);">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
+                                            style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy">
@@ -1598,34 +1575,12 @@ async function generateContent(contentBlocks) {
                                     </button>
                                 </div>
                             </div>
-                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
-                                <!-- 精準URL隱藏覆蓋層 - 只覆蓋頂部可能的URL區域 -->
-                                <div style="
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    right: 0;
-                                    height: 40px;
-                                    background: rgba(248, 249, 250, 0.95);
-                                    z-index: 10;
-                                    pointer-events: none;
-                                    border-bottom: 1px solid rgba(0, 123, 255, 0.2);
-                                "></div>
-                                <!-- 如果URL在更下方，增加一個小的遮罩 -->
-                                <div style="
-                                    position: absolute;
-                                    top: 40px;
-                                    left: 0;
-                                    right: 0;
-                                    height: 20px;
-                                    background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
-                                    z-index: 9;
-                                    pointer-events: none;
-                                "></div>
+                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(30px 0 30px 0);">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
+                                        style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
+                                        loading="lazy">
                                         loading="lazy">
                                     <div class="p-3 text-center">
                                         <p>您的瀏覽器不支援 iframe，請點擊以下連結：</p>
@@ -3259,31 +3214,9 @@ function openUrlInModal(url, title = '網頁內容') {
                             <h5 class="modal-title" id="urlModalLabel">網頁檢視</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body p-0 position-relative" style="height: 80vh;">
-                            <!-- 模態框精準URL隱藏覆蓋層 -->
-                            <div style="
-                                position: absolute;
-                                top: 0;
-                                left: 0;
-                                right: 0;
-                                height: 40px;
-                                background: rgba(248, 249, 250, 0.95);
-                                z-index: 10;
-                                pointer-events: none;
-                                border-bottom: 1px solid rgba(0, 123, 255, 0.2);
-                            "></div>
-                            <div style="
-                                position: absolute;
-                                top: 40px;
-                                left: 0;
-                                right: 0;
-                                height: 20px;
-                                background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
-                                z-index: 9;
-                                pointer-events: none;
-                            "></div>
+                        <div class="modal-body p-0 position-relative" style="height: 80vh; overflow: hidden; clip-path: inset(30px 0 30px 0);">
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: 100%; border: none;" 
+                                    style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
@@ -3391,7 +3324,7 @@ function generateCompleteDocumentPreview(signatureData) {
                         <img src="${signatureData}" 
                              alt="數位簽名" 
                              class="signature-display"
-                             style="max-width: 300px; max-height: 150px; min-width: 200px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                             style="max-width: 150px; max-height: 75px; min-width: 100px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     </div>
                 </div>
             </div>
