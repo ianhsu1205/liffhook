@@ -11,7 +11,6 @@
       document.open()
       document.write('<div style="display:none;">重定向中...</div>')
       document.close()
-
       ;(function () {
         var path = window.location.pathname
         var search = window.location.search || ""
@@ -33,60 +32,57 @@
             fromLine // 如果有 fromLine 參數，也視為 LINE 環境
 
           if ((isLineApp || fromLine) && window.opener) {
-            // LINE 彈出窗口：立即且激進的關閉策略
-            console.log("LINE 環境檢測到，執行激進關閉策略")
+            // LINE 彈出窗口：安全的關閉策略
+            console.log("LINE 環境檢測到，執行安全關閉策略")
 
-            var attempts = 0
-            var maxAttempts = 10 // 增加嘗試次數
+            // 先通知 opener 我們正在關閉
+            try {
+              if (window.opener && !window.opener.closed) {
+                window.opener.postMessage("child-closing", "*")
+              }
+            } catch (e) {
+              console.log("無法發送關閉消息:", e)
+            }
 
-            function aggressiveClose() {
-              attempts++
-              try {
-                // 立即清空頁面
-                document.documentElement.innerHTML = ""
+            // 延遲執行關閉，確保消息已發送
+            setTimeout(function () {
+              var attempts = 0
+              var maxAttempts = 5 // 減少嘗試次數，避免過度激進
 
-                // 嘗試多種關閉方法
-                window.close()
+              function safeClose() {
+                attempts++
+                try {
+                  window.close()
 
-                // 檢查是否成功關閉
-                setTimeout(function () {
-                  if (!window.closed && attempts < maxAttempts) {
-                    // 如果還沒關閉，繼續嘗試
-                    aggressiveClose()
-                  } else if (!window.closed) {
-                    // 最終手段：多重清理
-                    try {
-                      document.head.innerHTML = ""
-                      document.body.innerHTML = ""
-                      window.location.replace("javascript:void(0)")
+                  // 檢查是否成功關閉
+                  setTimeout(function () {
+                    if (!window.closed && attempts < maxAttempts) {
+                      // 如果還沒關閉，繼續嘗試
+                      safeClose()
+                    } else if (!window.closed) {
+                      // 溫和的清理：只隱藏內容，不刪除整個 DOM
+                      document.body.style.display = "none"
+                      document.documentElement.style.visibility = "hidden"
 
+                      // 最後嘗試：重定向到後端
                       setTimeout(function () {
-                        window.location.replace("about:blank")
-                      }, 10)
-                    } catch (e) {
-                      // 最後嘗試：強制隱藏所有內容
-                      document.documentElement.style.display = "none"
-                      window.location.href = "about:blank"
+                        window.location.replace(redirectUrl)
+                      }, 100)
                     }
-                  }
-                }, 10) // 更短的間隔
-              } catch (e) {
-                if (attempts < maxAttempts) {
-                  setTimeout(aggressiveClose, 5) // 更頻繁的重試
-                } else {
-                  // 最終清空頁面
-                  try {
-                    document.documentElement.innerHTML = ""
-                    window.location.replace("about:blank")
-                  } catch (finalError) {
-                    document.documentElement.style.display = "none"
+                  }, 50) // 增加間隔時間
+                } catch (e) {
+                  if (attempts < maxAttempts) {
+                    setTimeout(safeClose, 100) // 增加重試間隔
+                  } else {
+                    // 最終處理：重定向而不是清空頁面
+                    window.location.replace(redirectUrl)
                   }
                 }
               }
-            }
 
-            // 立即開始激進關閉
-            aggressiveClose()
+              // 開始安全關閉
+              safeClose()
+            }, 50) // 給消息傳送一些時間
           } else {
             // 非 LINE 彈出窗口：立即重定向
             window.location.replace(redirectUrl)
