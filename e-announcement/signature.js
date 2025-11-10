@@ -3549,9 +3549,9 @@ function showCompleteDocumentPreview(signatureData) {
                 </div>
                 
                 <!-- 數位簽名顯示 -->
-                <div class="row mb-4">
+                <div class="row mb-2">
                     <div class="col-12 text-center">
-                        <div class="signature-display-container" style="transform: scale(3); margin: 2rem 0 1rem 0; padding: 1rem;">
+                        <div class="signature-display-container" style="transform: scale(2); margin: 1rem 0 0.5rem 0; padding: 0.3rem;">
                             <img src="${signatureData}" 
                                  alt="數位簽名" 
                                  class="signature-display"
@@ -3561,14 +3561,14 @@ function showCompleteDocumentPreview(signatureData) {
                 </div>
                 
                 <!-- 確認資訊 -->
-                <div class="mb-4 p-3 bg-light border-start border-5 border-success">
+                <div class="mb-2 p-2 bg-light border-start border-5 border-success">
                     <p class="mb-0 small text-muted">
                         本人已詳細閱讀上述宣導內容，並以數位簽名方式確認收悉。
                     </p>
                 </div>
                 
                 <!-- 控制按鈕 -->
-                <div class="text-center">
+                <div class="text-center" style="margin-top: 3rem; padding-bottom: 4rem; clear: both;">
                     <button type="button" class="btn btn-success btn-lg me-3" onclick="confirmSignature()">
                         <i class="fas fa-check"></i> 確認送出
                     </button>
@@ -3678,13 +3678,15 @@ function injectHideUrlStyles() {
                     margin-right: -15px !important;
                     width: 100vw !important;
                     height: 90vh !important;
+                    overflow: hidden !important;
                 }
                 
                 .iframe-container iframe {
                     width: 100% !important;
-                    height: 100% !important;
-                    transform: scale(1.03) translateY(-20px) !important;
+                    height: 105% !important;
+                    transform: translateY(-30px) !important;
                     transform-origin: top left !important;
+                    border: none !important;
                 }
                 
                 /* 確保浮動按鈕在手機上正確顯示 */
