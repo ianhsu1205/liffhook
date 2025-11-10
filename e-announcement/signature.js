@@ -3323,14 +3323,52 @@ let currentModalUrl = null;
 function closeWindow() {
     console.log('closeWindow 被呼叫');
     
-    // 檢測是否在LINE瀏覽器或其他嵌入式環境中
-    const isInLineApp = navigator.userAgent.includes('Line') || 
-                       window.parent !== window || 
-                       window.opener === null;
+    // 改進 LINE 環境檢測邏輯
+    const userAgent = navigator.userAgent;
+    const isInLineApp = userAgent.includes('Line') || 
+                       userAgent.toLowerCase().includes('line') ||
+                       window.parent !== window;
     
-    if (isInLineApp) {
-        console.log('檢測到LINE環境，直接返回上一頁');
-        // 在LINE或嵌入式環境中，直接返回上一頁
+    // 檢查是否為彈出窗口
+    const isPopupWindow = window.opener !== null;
+    
+    console.log('環境檢測結果:', {
+        isInLineApp: isInLineApp,
+        isPopupWindow: isPopupWindow,
+        userAgent: userAgent,
+        hasParent: window.parent !== window,
+        historyLength: window.history.length
+    });
+    
+    if (isInLineApp && isPopupWindow) {
+        console.log('LINE 環境中的彈出窗口，嘗試關閉');
+        try {
+            // 通知 opener 窗口
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage('signature-closing', '*');
+            }
+            
+            // 嘗試關閉窗口
+            window.close();
+            
+            // 如果無法關閉，隱藏內容
+            setTimeout(() => {
+                if (!window.closed) {
+                    document.body.innerHTML = '<div style="text-align: center; padding: 50px;">窗口已關閉，請返回上一頁</div>';
+                }
+            }, 100);
+        } catch (e) {
+            console.error('LINE 環境關閉窗口失敗:', e);
+            // 後備方案：返回上一頁
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
+    } else if (isInLineApp && !isPopupWindow) {
+        console.log('LINE 環境中的主窗口，返回上一頁');
+        // 在LINE主窗口中，直接返回上一頁
         try {
             if (window.history.length > 1) {
                 window.history.back();
@@ -3342,9 +3380,9 @@ function closeWindow() {
             console.error('返回上一頁失敗:', e);
             alert('請使用瀏覽器的返回按鈕');
         }
-    } else {
-        console.log('一般瀏覽器環境，嘗試關閉視窗');
-        // 在一般瀏覽器中，先嘗試關閉視窗
+    } else if (isPopupWindow) {
+        console.log('一般瀏覽器彈出窗口，嘗試關閉視窗');
+        // 在一般瀏覽器中的彈出窗口，嘗試關閉視窗
         try {
             window.close();
             
@@ -3374,6 +3412,18 @@ function closeWindow() {
             } catch (e) {
                 alert('請使用瀏覽器的返回按鈕');
             }
+        }
+    } else {
+        console.log('一般瀏覽器主窗口，返回上一頁');
+        // 一般瀏覽器的主窗口，直接返回上一頁
+        try {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        } catch (e) {
+            alert('請使用瀏覽器的返回按鈕');
         }
     }
 }

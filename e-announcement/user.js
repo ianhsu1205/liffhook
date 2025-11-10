@@ -310,17 +310,65 @@ function updateStatistics() {
 // 開啟宣導專案
 async function openAnnouncement(announcementId, isCompleted) {
     try {
-        // 使用固定的前端網址，不再請求縮網址
-        let fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}`;
+        // 檢測環境並決定使用哪個URL
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const isGitHubPages = hostname === 'ianhsu1205.github.io';
+        const isBackendDomain = hostname.includes('35.221.146.143.nip.io');
+        
+        // 檢測是否為 LINE 環境
+        const userAgent = navigator.userAgent || "";
+        const isLineApp = userAgent.includes("Line") || 
+                         userAgent.toLowerCase().includes("line") ||
+                         currentUserInfo?.source === 'line';
+        
+        let fullSignatureUrl;
+        
+        if (isLocalhost) {
+            // 開發環境：使用本地URL
+            fullSignatureUrl = `${window.location.origin}/e-announcement/signature.html?id=${announcementId}`;
+            console.log('使用本地開發URL');
+        } else if (isLineApp) {
+            // LINE 環境：根據當前環境決定 URL
+            if (isGitHubPages) {
+                // 在 GitHub Pages 中，使用 GitHub Pages URL 但添加 LINE 標記
+                fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}&fromLine=true`;
+                console.log('LINE 環境在 GitHub Pages：使用 GitHub Pages URL 並添加 fromLine 參數');
+            } else {
+                // 在其他環境，使用後端 URL（後端有靜態檔案服務）
+                fullSignatureUrl = `https://35.221.146.143.nip.io/linehook/e-announcement/signature.html?id=${announcementId}`;
+                console.log('LINE 環境在其他環境：使用後端URL');
+            }
+        } else if (isGitHubPages) {
+            // 非 LINE 的 GitHub Pages 環境：使用 GitHub Pages URL
+            fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}`;
+            console.log('使用 GitHub Pages URL');
+        } else if (isBackendDomain) {
+            // 直接從後端域名存取：使用後端相對路徑
+            fullSignatureUrl = `${window.location.origin}/e-announcement/signature.html?id=${announcementId}`;
+            console.log('使用後端相對路徑URL');
+        } else {
+            // 其他環境：默認使用 GitHub Pages URL
+            fullSignatureUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}`;
+            console.log('使用默認 GitHub Pages URL');
+        }
         
         // 如果有用戶資訊，添加 userId 參數
         if (currentUserInfo && currentUserInfo.userId) {
             fullSignatureUrl += `&userId=${encodeURIComponent(currentUserInfo.userId)}`;
         }
         
-        // 直接使用前端網址，不通過縮網址轉換
-        if (currentUserInfo?.source === 'line') {
-            // 在 LINE 內瀏覽器中開啟
+        console.log('開啟宣導專案URL:', fullSignatureUrl);
+        console.log('當前環境資訊:', {
+            hostname: hostname,
+            isLineApp: isLineApp,
+            userAgent: userAgent,
+            userSource: currentUserInfo?.source
+        });
+        
+        // 根據來源環境決定開啟方式
+        if (isLineApp) {
+            // 在 LINE 內瀏覽器中開啟（使用後端URL）
             liff.openWindow({
                 url: fullSignatureUrl,
                 external: false
@@ -332,8 +380,18 @@ async function openAnnouncement(announcementId, isCompleted) {
         
     } catch (error) {
         console.error('開啟宣導專案失敗:', error);
-        // 備援方案：使用固定的前端網址
-        const backupUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}${currentUserInfo?.userId ? `&userId=${encodeURIComponent(currentUserInfo.userId)}` : ''}`;
+        
+        // 備援方案：優先使用 GitHub Pages URL，再用後端URL
+        const hostname = window.location.hostname;
+        let backupUrl;
+        
+        if (hostname === 'ianhsu1205.github.io') {
+            backupUrl = `https://ianhsu1205.github.io/liffhook/e-announcement/signature.html?id=${announcementId}${currentUserInfo?.userId ? `&userId=${encodeURIComponent(currentUserInfo.userId)}` : ''}`;
+        } else {
+            backupUrl = `https://35.221.146.143.nip.io/linehook/e-announcement/signature.html?id=${announcementId}${currentUserInfo?.userId ? `&userId=${encodeURIComponent(currentUserInfo.userId)}` : ''}`;
+        }
+        
+        console.log('使用備援URL:', backupUrl);
         
         if (currentUserInfo?.source === 'line') {
             liff.openWindow({
@@ -444,6 +502,22 @@ window.addEventListener('beforeunload', function() {
             // 通知 LIFF 應用即將關閉
         } catch (error) {
         }
+    }
+});
+
+// 監聽來自子窗口的消息（LINE 環境中的 404 頁面關閉通知）
+window.addEventListener('message', function(event) {
+    console.log('收到子窗口消息:', event.data);
+    
+    if (event.data === 'child-closing') {
+        // 404 子窗口即將關閉，不需要特別處理
+        console.log('404 子窗口正在關閉');
+    } else if (event.data === 'signature-closing') {
+        // signature 窗口即將關閉，重新載入列表
+        console.log('signature 窗口正在關閉，重新載入列表');
+        setTimeout(() => {
+            loadUserAnnouncements();
+        }, 500);
     }
 });
 
