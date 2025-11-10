@@ -470,14 +470,14 @@ function renderContentBlocks(blocks) {
                         // 創建iframe來載入網頁內容而不是外部連結
                         html += `<div class="content-block html-iframe-block mb-3">
                             <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
                                     <small class="text-muted">
                                         <i class="fas fa-globe me-1"></i>
                                         ${linkData.title || '網頁內容'}
                                     </small>
-                                    <div>
+                                    <div class="btn-group" role="group">
                                         <button type="button" 
-                                                class="btn btn-outline-primary btn-sm me-1" 
+                                                class="btn btn-outline-primary btn-sm" 
                                                 onclick="openUrlInModal('${linkData.url}', '${(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                                 title="放大檢視">
                                             <i class="fas fa-search-plus"></i>
@@ -491,46 +491,27 @@ function renderContentBlocks(blocks) {
                                     </div>
                                 </div>
                                 <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
-                                    <!-- 多層URL隱藏覆蓋層 - 加強版 -->
+                                    <!-- 精準URL隱藏覆蓋層 - 只覆蓋頂部可能的URL區域 -->
                                     <div style="
                                         position: absolute;
                                         top: 0;
                                         left: 0;
                                         right: 0;
-                                        height: 100px;
-                                        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-                                        color: white;
-                                        z-index: 30;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        font-weight: bold;
-                                        font-size: 16px;
+                                        height: 40px;
+                                        background: rgba(248, 249, 250, 0.95);
+                                        z-index: 10;
                                         pointer-events: none;
-                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                        border-radius: 4px 4px 0 0;
-                                    ">
-                                        <i class="fas fa-globe me-2"></i>${linkData.title || '📋 網頁內容'}
-                                    </div>
-                                    <div style="
-                                        position: absolute;
-                                        top: 0;
-                                        left: 0;
-                                        right: 0;
-                                        height: 150px;
-                                        background: rgba(255, 255, 255, 0.98);
-                                        z-index: 25;
-                                        pointer-events: none;
+                                        border-bottom: 1px solid rgba(0, 123, 255, 0.2);
                                     "></div>
-                                    <!-- 額外的底部覆蓋層，防止底部顯示URL -->
+                                    <!-- 如果URL在更下方，增加一個小的遮罩 -->
                                     <div style="
                                         position: absolute;
-                                        bottom: 0;
+                                        top: 40px;
                                         left: 0;
                                         right: 0;
-                                        height: 60px;
-                                        background: rgba(255, 255, 255, 0.95);
-                                        z-index: 20;
+                                        height: 20px;
+                                        background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
+                                        z-index: 9;
                                         pointer-events: none;
                                     "></div>
                                     <iframe src="${linkData.url}" 
@@ -1004,7 +985,8 @@ function clearSignature() {
     // 更新按鈕狀態
     updateButtonStates();
     updateSaveButton();
-    updateSignatureButton();
+    // 確保主頁面按鈕可用
+    ensureSignatureButtonEnabled();
     
 }
 
@@ -1596,14 +1578,14 @@ async function generateContent(contentBlocks) {
                     // 創建iframe來載入網頁內容而不是外部連結
                     html += `<div class="content-block html-iframe-block mb-3">
                         <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
                                 <small class="text-muted">
                                     <i class="fas fa-globe me-1"></i>
                                     ${escapeHtml(linkData.title || '網頁內容')}
                                 </small>
-                                <div>
+                                <div class="btn-group" role="group">
                                     <button type="button" 
-                                            class="btn btn-outline-primary btn-sm me-1" 
+                                            class="btn btn-outline-primary btn-sm" 
                                             onclick="openUrlInModal('${linkData.url}', '${escapeHtml(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                             title="放大檢視">
                                         <i class="fas fa-search-plus"></i>
@@ -1617,46 +1599,27 @@ async function generateContent(contentBlocks) {
                                 </div>
                             </div>
                             <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important;">
-                                <!-- 多層URL隱藏覆蓋層 - 加強版 -->
+                                <!-- 精準URL隱藏覆蓋層 - 只覆蓋頂部可能的URL區域 -->
                                 <div style="
                                     position: absolute;
                                     top: 0;
                                     left: 0;
                                     right: 0;
-                                    height: 100px;
-                                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-                                    color: white;
-                                    z-index: 30;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    font-weight: bold;
-                                    font-size: 16px;
+                                    height: 40px;
+                                    background: rgba(248, 249, 250, 0.95);
+                                    z-index: 10;
                                     pointer-events: none;
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                    border-radius: 4px 4px 0 0;
-                                ">
-                                    <i class="fas fa-globe me-2"></i>${escapeHtml(linkData.title || '📋 網頁內容')}
-                                </div>
-                                <div style="
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    right: 0;
-                                    height: 150px;
-                                    background: rgba(255, 255, 255, 0.98);
-                                    z-index: 25;
-                                    pointer-events: none;
+                                    border-bottom: 1px solid rgba(0, 123, 255, 0.2);
                                 "></div>
-                                <!-- 額外的底部覆蓋層，防止底部顯示URL -->
+                                <!-- 如果URL在更下方，增加一個小的遮罩 -->
                                 <div style="
                                     position: absolute;
-                                    bottom: 0;
+                                    top: 40px;
                                     left: 0;
                                     right: 0;
-                                    height: 60px;
-                                    background: rgba(255, 255, 255, 0.95);
-                                    z-index: 20;
+                                    height: 20px;
+                                    background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
+                                    z-index: 9;
                                     pointer-events: none;
                                 "></div>
                                 <iframe src="${linkData.url}" 
@@ -1920,7 +1883,19 @@ function handleTouchEnd(e) {
 function updateSignatureButton() {
     const button = document.getElementById('signatureButton');
     if (button) {
-        button.disabled = !hasSignatureContent;
+        // 「我已閱讀」按鈕應該始終可用，不依賴簽名狀態
+        // 除非是身份驗證失敗的情況
+        if (!button.innerHTML.includes('身份驗證失敗')) {
+            button.disabled = false;
+        }
+    }
+}
+
+// 確保按鈕狀態正確的輔助函數
+function ensureSignatureButtonEnabled() {
+    const button = document.getElementById('signatureButton');
+    if (button && !button.innerHTML.includes('身份驗證失敗')) {
+        button.disabled = false;
     }
 }
 
@@ -2066,9 +2041,12 @@ function closeSignatureModal() {
         const signatureModal = bootstrap.Modal.getInstance(signatureModalElement);
         if (signatureModal) {
             signatureModal.hide();
-        } else {
         }
+        
+        // 確保主頁面的「我已閱讀」按鈕保持可用
+        ensureSignatureButtonEnabled();
     } catch (error) {
+        console.error('關閉簽名模態框時發生錯誤:', error);
     }
 }
 
@@ -2190,7 +2168,12 @@ function getCanvasPos(canvas, e) {
 function updateSaveButton() {
     const saveBtn = document.getElementById('saveSignatureBtn');
     if (saveBtn) {
-        saveBtn.style.display = hasSignatureContent ? 'block' : 'none';
+        saveBtn.disabled = !hasSignatureContent;
+        if (hasSignatureContent) {
+            saveBtn.style.display = 'block';
+        } else {
+            saveBtn.style.display = 'none';
+        }
     }
 }
 
@@ -2642,9 +2625,44 @@ async function actuallySubmitLandscapeSignature() {
 }
 
 function confirmSignature() {
+    
+    if (!hasSignatureContent) {
+        showMessage('請先完成簽名', 'warning');
+        return;
+    }
+    
+    // 獲取簽名數據
+    const canvas = document.getElementById('signaturePad');
+    if (canvas) {
+        const signatureData = canvas.toDataURL('image/png');
+        
+        // 關閉簽名模態框
+        closeSignatureModal();
+        
+        // 延遲顯示完整文件預覽
+        setTimeout(() => {
+            showCompleteDocumentPreview(signatureData);
+        }, 500);
+    } else {
+        showMessage('無法獲取簽名數據', 'error');
+    }
 }
 
 function cancelPreview() {
+    
+    // 關閉預覽模態框
+    const previewModal = document.getElementById('previewModal');
+    if (previewModal) {
+        const bsPreviewModal = bootstrap.Modal.getInstance(previewModal);
+        if (bsPreviewModal) {
+            bsPreviewModal.hide();
+        }
+    }
+    
+    // 重新開啟簽名模態框讓用戶重新簽名
+    setTimeout(() => {
+        openSignatureModal();
+    }, 500);
 }
 
 function exportToPDF() {
@@ -3242,49 +3260,30 @@ function openUrlInModal(url, title = '網頁內容') {
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
                         <div class="modal-body p-0 position-relative" style="height: 80vh;">
-                            <!-- 模態框URL隱藏覆蓋層 - 加強版 -->
+                            <!-- 模態框精準URL隱藏覆蓋層 -->
                             <div style="
                                 position: absolute;
                                 top: 0;
                                 left: 0;
                                 right: 0;
-                                height: 100px;
-                                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-                                color: white;
-                                z-index: 30;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-weight: bold;
-                                font-size: 16px;
+                                height: 40px;
+                                background: rgba(248, 249, 250, 0.95);
+                                z-index: 10;
                                 pointer-events: none;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                            ">
-                                <i class="fas fa-globe me-2"></i>網頁內容
-                            </div>
-                            <div style="
-                                position: absolute;
-                                top: 0;
-                                left: 0;
-                                right: 0;
-                                height: 150px;
-                                background: rgba(255, 255, 255, 0.98);
-                                z-index: 25;
-                                pointer-events: none;
+                                border-bottom: 1px solid rgba(0, 123, 255, 0.2);
                             "></div>
-                            <!-- 額外的底部覆蓋層，防止底部顯示URL -->
                             <div style="
                                 position: absolute;
-                                bottom: 0;
+                                top: 40px;
                                 left: 0;
                                 right: 0;
-                                height: 80px;
-                                background: rgba(255, 255, 255, 0.95);
-                                z-index: 20;
+                                height: 20px;
+                                background: linear-gradient(to bottom, rgba(248, 249, 250, 0.8), transparent);
+                                z-index: 9;
                                 pointer-events: none;
                             "></div>
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: 100%; border: none; margin-top: -30px;" 
+                                    style="width: 100%; height: 100%; border: none;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
