@@ -505,9 +505,9 @@ function renderContentBlocks(blocks) {
                                     </small>
                                 </div>
                                 ` : ''}
-                                <div class="iframe-container position-relative" style="height: 800px; min-height: 85vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
+                                <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
+                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy"
@@ -1596,9 +1596,9 @@ async function generateContent(contentBlocks) {
                                 </small>
                             </div>
                             ` : ''}
-                            <div class="iframe-container position-relative" style="height: 800px; min-height: 85vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
+                            <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
+                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy"
@@ -3264,9 +3264,9 @@ function openUrlInModal(url, title = '網頁內容') {
                             <h5 class="modal-title" id="urlModalLabel">網頁檢視</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body p-0 position-relative" style="height: 90vh; overflow: hidden; clip-path: inset(50px 0 0 0);">
+                        <div class="modal-body p-0 position-relative" style="height: 95vh; overflow: hidden;">
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
+                                    style="width: 100%; height: 100%; border: none; transform: scale(1.1); transform-origin: top left;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
@@ -3497,6 +3497,38 @@ function injectHideUrlStyles() {
             .fa-globe + span,
             .fa-globe ~ span {
                 display: none !important;
+            }
+            
+            /* 手機優化 */
+            @media (max-width: 768px) {
+                .iframe-container {
+                    margin-left: -15px !important;
+                    margin-right: -15px !important;
+                    width: 100vw !important;
+                    height: 90vh !important;
+                }
+                
+                .iframe-container iframe {
+                    width: 100% !important;
+                    height: 100% !important;
+                    transform: scale(1.05) !important;
+                    transform-origin: top left !important;
+                }
+                
+                /* 確保浮動按鈕在手機上正確顯示 */
+                .iframe-floating-controls {
+                    position: fixed !important;
+                    top: 60px !important;
+                    right: 10px !important;
+                    z-index: 9999 !important;
+                }
+                
+                /* 隱藏可能影響iframe顯示的元素 */
+                .border.rounded {
+                    border: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
             }
         </style>
     `;
