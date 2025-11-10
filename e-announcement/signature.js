@@ -8,34 +8,6 @@ function extractDomainName(url) {
     }
 }
 
-// 輔助函數：檢測是否為 LINE 環境
-function isLineEnvironment() {
-    const userAgent = navigator.userAgent || '';
-    
-    // 增強的 LINE 環境檢測
-    const isLine = (
-        userAgent.includes('Line') || 
-        userAgent.toLowerCase().includes('line') ||
-        userAgent.includes('LINE') ||
-        userAgent.includes('LIFF') ||
-        userAgent.toLowerCase().includes('liff') ||
-        window.liff !== undefined ||
-        document.location.href.includes('liff') ||
-        document.referrer.includes('line')
-    );
-    
-    // 調試信息（可在瀏覽器控制台中查看）
-    console.log('LINE環境檢測結果:', {
-        userAgent: userAgent,
-        isLine: isLine,
-        hasLiffWindow: window.liff !== undefined,
-        currentUrl: document.location.href,
-        referrer: document.referrer
-    });
-    
-    return isLine;
-}
-
 // 全域變數
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
@@ -854,35 +826,6 @@ function displaySignedDetails(signedData) {
             </div>
         `;
         
-        // 檢測環境，只在非 LINE 環境中顯示關閉按鈕
-        const isLineEnv = isLineEnvironment();
-        console.log('displaySignedDetails - 環境檢測結果:', isLineEnv);
-        
-        if (!isLineEnv) {
-            // 只在外部瀏覽器環境中顯示關閉視窗按鈕
-            signedContent += `
-                <!-- 關閉視窗按鈕 -->
-                <div class="text-center mt-4">
-                    <button type="button" 
-                            class="btn btn-outline-secondary btn-lg" 
-                            onclick="closeWindow()"
-                            style="min-width: 150px;">
-                        <i class="fas fa-times"></i> 關閉視窗
-                    </button>
-                </div>
-            `;
-        } else {
-            // LINE 環境中的提示文字
-            signedContent += `
-                <div class="text-center mt-4">
-                    <p class="text-muted small">
-                        <i class="fab fa-line text-success"></i> 
-                        請使用 LINE 的返回按鈕返回上一頁
-                    </p>
-                </div>
-            `;
-        }
-        
         signedState.innerHTML = signedContent;
         
     } catch (error) {
@@ -1054,35 +997,11 @@ function showSubmissionSuccess() {
     
     const signatureCard = document.getElementById('signatureCard');
     if (signatureCard) {
-        // 檢測環境並生成對應的提示訊息
-        const isLineEnv = isLineEnvironment();
-        console.log('showSubmissionSuccess - 環境檢測結果:', isLineEnv);
-        
-        let successMessage = '';
-        if (isLineEnv) {
-            // LINE 環境中的提示
-            successMessage = `
-                <div class="alert alert-success">
-                    <i class="fab fa-line text-success me-2"></i>
-                    請使用 LINE 的返回按鈕返回上一頁
-                </div>
-            `;
-        } else {
-            // 外部瀏覽器環境中的提示
-            successMessage = `
-                <div class="alert alert-success">
-                    <i class="fas fa-info-circle me-2"></i>
-                    您可以關閉此頁面。
-                </div>
-            `;
-        }
-        
         signatureCard.innerHTML = `
             <div class="text-center py-5">
                 <i class="fas fa-check-circle text-success" style="font-size: 4rem; margin-bottom: 1rem;"></i>
                 <h3 class="text-success mb-3">簽名確認完成</h3>
                 <p class="mb-4">感謝您的配合，簽名已成功提交。</p>
-                ${successMessage}
             </div>
         `;
     }
@@ -2041,7 +1960,6 @@ window.saveLandscapeSignature = saveLandscapeSignature;
 window.confirmSignature = confirmSignature;
 window.cancelPreview = cancelPreview;
 window.exportToPDF = exportToPDF;
-window.closeWindow = closeWindow;
 window.showCompleteDocumentPreview = showCompleteDocumentPreview;
 
 // 模態框相關函數實作
@@ -3387,126 +3305,6 @@ function openUrlInModal(url, title = '網頁內容') {
 // 全域變數保存當前 modal 中的網址
 let currentModalUrl = null;
 
-function closeWindow() {
-    console.log('closeWindow 被呼叫');
-    
-    // 檢測環境
-    const isLineApp = isLineEnvironment();
-    const isPopupWindow = window.opener !== null;
-    const hasHistory = window.history && window.history.length > 1;
-    
-    console.log('環境檢測結果:', {
-        isLineApp: isLineApp,
-        isPopupWindow: isPopupWindow,
-        hasHistory: hasHistory,
-        userAgent: navigator.userAgent,
-        historyLength: window.history.length
-    });
-    
-    // 統一的關閉策略
-    if (isLineApp) {
-        // LINE 環境：優先返回上一頁
-        console.log('LINE 環境處理');
-        
-        // 如果是彈出窗口，先通知 opener
-        if (isPopupWindow) {
-            try {
-                if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage('signature-closing', '*');
-                }
-            } catch (e) {
-                console.log('無法發送關閉訊息:', e);
-            }
-        }
-        
-        // LINE 中的處理策略：返回或關閉
-        setTimeout(() => {
-            try {
-                // 1. 先嘗試關閉窗口（適用於某些 LINE 彈出窗口）
-                if (isPopupWindow) {
-                    window.close();
-                }
-                
-                // 2. 延遲檢查，如果沒有關閉成功，則返回上一頁
-                setTimeout(() => {
-                    if (!window.closed) {
-                        if (hasHistory) {
-                            console.log('LINE 環境：返回上一頁');
-                            window.history.back();
-                        } else {
-                            // 沒有歷史記錄，導航到 user.html
-                            console.log('LINE 環境：導航到 user.html');
-                            const currentUrl = window.location.href;
-                            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-                            window.location.href = baseUrl + '/user.html';
-                        }
-                    }
-                }, 100);
-                
-            } catch (e) {
-                console.error('LINE 環境處理失敗:', e);
-                // 最終備援：導航到 user.html
-                try {
-                    const currentUrl = window.location.href;
-                    const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-                    window.location.href = baseUrl + '/user.html';
-                } catch (navError) {
-                    console.error('導航失敗:', navError);
-                    alert('請手動返回上一頁');
-                }
-            }
-        }, 50);
-        
-    } else {
-        // 外部瀏覽器環境
-        console.log('外部瀏覽器環境處理');
-        
-        if (isPopupWindow) {
-            // 外部瀏覽器的彈出窗口：嘗試關閉
-            console.log('嘗試關閉彈出窗口');
-            try {
-                window.close();
-                
-                // 檢查是否成功關閉
-                setTimeout(() => {
-                    if (!window.closed) {
-                        // 無法關閉，返回上一頁
-                        console.log('無法關閉窗口，返回上一頁');
-                        if (hasHistory) {
-                            window.history.back();
-                        } else {
-                            window.location.href = '/';
-                        }
-                    }
-                }, 100);
-                
-            } catch (e) {
-                console.error('關閉窗口失敗:', e);
-                // 備援：返回上一頁
-                if (hasHistory) {
-                    window.history.back();
-                } else {
-                    window.location.href = '/';
-                }
-            }
-        } else {
-            // 外部瀏覽器的主窗口：返回上一頁
-            console.log('外部瀏覽器主窗口：返回上一頁');
-            try {
-                if (hasHistory) {
-                    window.history.back();
-                } else {
-                    // 沒有歷史記錄，導航到主頁
-                    window.location.href = '/';
-                }
-            } catch (e) {
-                console.error('返回上一頁失敗:', e);
-                alert('請使用瀏覽器的返回按鈕');
-            }
-        }
-    }
-}
-
 // 統一的完整文件預覽功能
 function generateCompleteDocumentPreview(signatureData) {
     
@@ -3992,52 +3790,3 @@ document.addEventListener('contentUpdated', () => {
 
 // 立即執行一次
 injectHideUrlStyles();
-
-// 環境檢測診斷功能 - 在開發環境中顯示調試按鈕
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || 
-    window.location.search.includes('debug=1')) {
-    
-    // 創建調試按鈕
-    function createDebugButton() {
-        const debugBtn = document.createElement('button');
-        debugBtn.innerHTML = '🔍 環境檢測';
-        debugBtn.style.cssText = `
-            position: fixed;
-            bottom: 80px;
-            right: 10px;
-            z-index: 9999;
-            padding: 8px 12px;
-            font-size: 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        `;
-        
-        debugBtn.onclick = function() {
-            const isLineEnv = isLineEnvironment();
-            const debugInfo = {
-                '環境檢測結果': isLineEnv,
-                'User Agent': navigator.userAgent,
-                'LIFF 對象': window.liff !== undefined,
-                '當前URL': window.location.href,
-                '來源頁面': document.referrer,
-                'URL包含liff': window.location.href.includes('liff'),
-                '來源包含line': document.referrer.includes('line')
-            };
-            
-            console.log('=== 環境檢測診斷 ===', debugInfo);
-            alert(`環境檢測結果: ${isLineEnv ? 'LINE 環境' : '外部瀏覽器'}\n\n詳細信息請查看控制台`);
-        };
-        
-        document.body.appendChild(debugBtn);
-    }
-    
-    // 等待頁面載入完成後創建按鈕
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', createDebugButton);
-    } else {
-        createDebugButton();
-    }
-}
