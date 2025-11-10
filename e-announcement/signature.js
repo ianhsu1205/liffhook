@@ -2241,11 +2241,14 @@ async function actuallySubmitSignature() {
         if (response.ok && result.success) {
             showMessage('簽名確認完成！感謝您的配合。', 'success');
             
-            // 獲取新建立的記錄ID並顯示已簽名狀態
-            const newRecordId = result.data?.id;
+            // 清除預覽狀態並重新整理頁面
             setTimeout(() => {
-                showSignedState(newRecordId);
-            }, 1000);
+                // 清除所有簽名相關的暫存數據
+                currentSignatureData = null;
+                
+                // 重新載入頁面以顯示正確的簽名完成狀態
+                window.location.reload();
+            }, 1500);
             
         } else {
             throw new Error(result.message || '提交失敗');
@@ -3676,21 +3679,21 @@ function injectHideUrlStyles() {
                 display: none !important;
             }
             
-            /* 手機優化 - 徹底解決方案 */
+            /* 手機優化 - 完全不遮蔽內容 */
             @media (max-width: 768px) {
                 .iframe-container {
                     margin: 0 !important;
                     width: 100vw !important;
-                    height: 85vh !important;
+                    height: 90vh !important;
                     position: relative !important;
-                    overflow: hidden !important;
+                    overflow: visible !important;
                 }
                 
                 .iframe-container iframe {
                     width: 100vw !important;
-                    height: calc(100vh + 60px) !important;
-                    position: absolute !important;
-                    top: -60px !important;
+                    height: 90vh !important;
+                    position: relative !important;
+                    top: 0 !important;
                     left: 0 !important;
                     border: none !important;
                     transform: none !important;
