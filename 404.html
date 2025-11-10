@@ -4,6 +4,42 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>重定向中...</title>
+
+    <!-- 立即執行重定向檢查 -->
+    <script>
+      // 立即檢查是否需要重定向，避免顯示 404 頁面
+      ;(function () {
+        const path = window.location.pathname
+        const search = window.location.search || ""
+
+        console.log("立即重定向檢查:", path)
+
+        // 如果是 e-announcement 路徑，立即重定向
+        if (path.includes("/e-announcement/")) {
+          const backendUrl = "https://35.221.146.143.nip.io/linehook"
+          const redirectUrl = `${backendUrl}${path}${search}`
+
+          console.log("立即重定向到:", redirectUrl)
+
+          // 檢查是否為新窗口
+          const isNewWindow =
+            window.opener !== null ||
+            window.name === "_blank" ||
+            document.referrer.includes("ianhsu1205.github.io")
+
+          if (isNewWindow) {
+            console.log("新窗口立即重定向")
+            window.location.replace(redirectUrl)
+          } else {
+            // 延遲極短時間確保頁面初始化
+            setTimeout(() => {
+              window.location.replace(redirectUrl)
+            }, 10)
+          }
+        }
+      })()
+    </script>
+
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -79,6 +115,12 @@
 
         console.log("404.html 處理路徑:", path)
 
+        // 立即隱藏載入畫面，減少視覺停留
+        const loader = document.getElementById("loader")
+        if (loader) {
+          loader.style.opacity = "0.5"
+        }
+
         // 檢查是否為縮網址路徑 (/s/{shortCode})
         const shortUrlMatch = path.match(/\/s\/([^\/]+)/)
         if (shortUrlMatch) {
@@ -88,8 +130,12 @@
 
         // 檢查是否為 e-announcement 路徑，需要重定向到後端
         if (path.includes("/e-announcement/")) {
-          console.log("檢測到 e-announcement 路徑，重定向到後端")
-          handleEAnnouncementRedirect(path, search)
+          console.log("檢測到 e-announcement 路徑，立即重定向到後端")
+
+          // 立即開始重定向，不等待其他邏輯
+          setTimeout(() => {
+            handleEAnnouncementRedirect(path, search)
+          }, 50) // 極短延遲，確保頁面已初始化
           return
         }
 
@@ -111,12 +157,31 @@
 
           console.log(`E-announcement 重定向到: ${redirectUrl}`)
 
-          // 檢查是否為新開的視窗（從 user.js window.open 開啟）
-          const isNewWindow = window.opener !== null || window.name === "_blank"
+          // 強化新視窗檢測邏輯
+          const isNewWindow =
+            window.opener !== null ||
+            window.name === "_blank" ||
+            document.referrer.includes("ianhsu1205.github.io") ||
+            (window.history.length === 1 && window.opener === null)
+
+          console.log("新視窗檢測結果:", {
+            hasOpener: window.opener !== null,
+            windowName: window.name,
+            referrer: document.referrer,
+            historyLength: window.history.length,
+            isNewWindow: isNewWindow,
+          })
 
           if (isNewWindow) {
-            // 新視窗：直接替換當前頁面，避免留下 404
-            console.log("檢測到新視窗，直接替換頁面")
+            // 新視窗：立即替換並清理歷史記錄
+            console.log("檢測到新視窗，立即替換頁面")
+
+            // 先清除當前頁面歷史記錄
+            if (window.history.replaceState) {
+              window.history.replaceState(null, null, redirectUrl)
+            }
+
+            // 立即重定向
             window.location.replace(redirectUrl)
             return
           }
@@ -278,6 +343,21 @@
 
       // 頁面載入時執行
       window.addEventListener("DOMContentLoaded", handleGitHubPagesRouting)
+
+      // 也在 load 事件時執行，確保完全載入後處理
+      window.addEventListener("load", function () {
+        console.log("頁面完全載入，再次檢查路由")
+        // 如果 500ms 後還在 404 頁面，強制重新處理
+        setTimeout(() => {
+          if (
+            window.location.hostname === "ianhsu1205.github.io" &&
+            window.location.pathname.includes("/e-announcement/")
+          ) {
+            console.log("延遲檢測到需要重定向，強制執行")
+            handleGitHubPagesRouting()
+          }
+        }, 500)
+      })
 
       // 當頁面即將卸載時，清除任何定時器
       window.addEventListener("beforeunload", function () {
