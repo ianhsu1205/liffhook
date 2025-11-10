@@ -368,11 +368,27 @@ async function openAnnouncement(announcementId, isCompleted) {
         
         // 根據來源環境決定開啟方式
         if (isLineApp) {
-            // 在 LINE 內瀏覽器中開啟（使用後端URL）
-            liff.openWindow({
-                url: fullSignatureUrl,
-                external: false
-            });
+            // 在 LINE 內瀏覽器中開啟，使用 try-catch 和 Promise 處理
+            try {
+                console.log('使用 LIFF openWindow 開啟:', fullSignatureUrl);
+                
+                // 使用 Promise 包裝 LIFF 調用，避免異步錯誤
+                Promise.resolve().then(() => {
+                    return liff.openWindow({
+                        url: fullSignatureUrl,
+                        external: false
+                    });
+                }).catch(liffError => {
+                    console.error('LIFF openWindow 失敗:', liffError);
+                    // 備援：嘗試使用普通的 window.open
+                    console.log('嘗試使用 window.open 作為備援');
+                    window.open(fullSignatureUrl, '_blank');
+                });
+            } catch (syncError) {
+                console.error('同步 LIFF 調用失敗:', syncError);
+                // 立即備援
+                window.open(fullSignatureUrl, '_blank');
+            }
         } else {
             // 在新分頁中開啟（開發環境或其他瀏覽器）
             window.open(fullSignatureUrl, '_blank');
@@ -393,11 +409,22 @@ async function openAnnouncement(announcementId, isCompleted) {
         
         console.log('使用備援URL:', backupUrl);
         
+        // 安全的備援調用
         if (currentUserInfo?.source === 'line') {
-            liff.openWindow({
-                url: backupUrl,
-                external: false
-            });
+            try {
+                Promise.resolve().then(() => {
+                    return liff.openWindow({
+                        url: backupUrl,
+                        external: false
+                    });
+                }).catch(liffError => {
+                    console.error('備援 LIFF openWindow 失敗:', liffError);
+                    window.open(backupUrl, '_blank');
+                });
+            } catch (syncError) {
+                console.error('備援同步 LIFF 調用失敗:', syncError);
+                window.open(backupUrl, '_blank');
+            }
         } else {
             window.open(backupUrl, '_blank');
         }
@@ -509,15 +536,25 @@ window.addEventListener('beforeunload', function() {
 window.addEventListener('message', function(event) {
     console.log('收到子窗口消息:', event.data);
     
-    if (event.data === 'child-closing') {
-        // 404 子窗口即將關閉，不需要特別處理
-        console.log('404 子窗口正在關閉');
-    } else if (event.data === 'signature-closing') {
-        // signature 窗口即將關閉，重新載入列表
-        console.log('signature 窗口正在關閉，重新載入列表');
-        setTimeout(() => {
-            loadUserAnnouncements();
-        }, 500);
+    try {
+        if (event.data === 'child-closing') {
+            // 404 子窗口即將關閉，不需要特別處理
+            console.log('404 子窗口正在關閉');
+        } else if (event.data === 'signature-closing') {
+            // signature 窗口即將關閉，重新載入列表
+            console.log('signature 窗口正在關閉，重新載入列表');
+            
+            // 延遲重新載入，確保窗口已完全關閉
+            setTimeout(() => {
+                try {
+                    loadUserAnnouncements();
+                } catch (error) {
+                    console.error('重新載入列表失敗:', error);
+                }
+            }, 500);
+        }
+    } catch (error) {
+        console.error('處理子窗口消息時發生錯誤:', error);
     }
 });
 
