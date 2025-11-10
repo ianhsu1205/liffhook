@@ -507,7 +507,7 @@ function renderContentBlocks(blocks) {
                                 ` : ''}
                                 <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-30px); transform-origin: top left;" 
+                                            style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-60px); transform-origin: top left;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy"
@@ -1598,7 +1598,7 @@ async function generateContent(contentBlocks) {
                             ` : ''}
                             <div class="iframe-container position-relative" style="height: 90vh; width: 100vw; margin-left: -15px; margin-right: -15px; overflow: hidden !important;">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-30px); transform-origin: top left;" 
+                                        style="width: 100%; height: 100%; border: none; transform: scale(1.1) translateY(-60px); transform-origin: top left;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy"
@@ -3396,68 +3396,106 @@ function generateCompleteDocumentPreview(signatureData) {
 function renderContentBlocksForPreview(blocks) {
     let html = '';
     
+    if (!blocks || !Array.isArray(blocks)) {
+        return '<p class="text-muted">無內容可顯示</p>';
+    }
+    
     blocks.forEach((block, index) => {
+        console.log('Processing block:', block); // 調試用
+        
+        // 處理文字內容
         if (block.text && block.text.trim()) {
             html += `<div class="content-block text-block mb-3">
                 <div class="border rounded p-3" style="background-color: #f8f9fa;">
-                    <p class="mb-0">${block.text}</p>
+                    <p class="mb-0">${escapeHtml(block.text)}</p>
                 </div>
             </div>`;
         }
+        // 處理圖片內容
         else if (block.type === 'image' && block.content) {
             html += `<div class="content-block image-block mb-3 text-center">
                 <img src="${block.content}" 
                      class="img-fluid content-image" 
                      alt="宣導圖片" 
-                     style="max-width: 100%; height: auto; border-radius: 8px;">
+                     style="max-width: 100%; height: auto; border-radius: 8px; max-height: 400px;">
             </div>`;
         }
-        else if (block.type === 'html' && block.content) {
-            // 檢查是否為HTML內容
-            let isLikelyHtml = block.content.includes('<') && block.content.includes('>');
+        // 處理影片內容（YouTube等）
+        else if (block.type === 'video' && block.content) {
+            html += `<div class="content-block video-block mb-3">
+                <div class="border rounded p-3" style="background-color: #f0f0f0;">
+                    <div class="text-center">
+                        <i class="fas fa-play-circle me-2" style="color: #ff0000;"></i>
+                        <span class="text-muted">影片內容：${block.title || '影片'}</span>
+                        <br><small class="text-muted">${block.content}</small>
+                    </div>
+                </div>
+            </div>`;
+        }
+        // 處理HTML/網頁內容
+        else if ((block.type === 'html' || block.type === 'iframe') && block.content) {
+            // 檢查內容類型
+            let content = block.content;
+            let isLikelyHtml = content.includes('<') && content.includes('>');
+            let isUrlLike = content.startsWith('http://') || content.startsWith('https://');
             let isJsonLike = false;
-            let isUrlLike = block.content.startsWith('http://') || block.content.startsWith('https://');
             
-            if (!isUrlLike) {
+            // 嘗試解析JSON
+            if (!isUrlLike && !isLikelyHtml) {
                 try {
-                    JSON.parse(block.content);
-                    isJsonLike = true;
-                } catch {
-                    // 不是 JSON
+                    const parsed = JSON.parse(content);
+                    if (parsed.url) {
+                        isJsonLike = true;
+                        html += `<div class="content-block iframe-block mb-3">
+                            <div class="border rounded p-3" style="background-color: #f0f0f0;">
+                                <div class="text-center">
+                                    <i class="fas fa-globe me-2"></i>
+                                    <span class="text-muted">網頁內容：${parsed.title || parsed.url}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+                } catch (e) {
+                    // 不是有效的JSON
                 }
             }
             
-            if (isLikelyHtml || (!isUrlLike && !isJsonLike)) {
-                // 直接顯示HTML內容（預覽版，無按鈕）
+            // 如果是HTML內容，直接顯示
+            if (isLikelyHtml && !isJsonLike) {
                 html += `<div class="content-block html-block mb-3">
                     <div class="border rounded p-3" style="background-color: #f8f9fa;">
-                        ${block.content}
+                        ${content}
                     </div>
                 </div>`;
-            } else if (isUrlLike || isJsonLike) {
-                // 顯示為iframe連結（預覽版，簡化）
-                let linkData;
-                if (isUrlLike) {
-                    linkData = { url: block.content, title: '網頁內容' };
-                } else {
-                    try {
-                        linkData = JSON.parse(block.content);
-                    } catch (error) {
-                        linkData = { url: block.content, title: '內容連結' };
-                    }
-                }
-                
+            }
+            // 如果是URL，顯示連結信息
+            else if (isUrlLike && !isJsonLike) {
                 html += `<div class="content-block iframe-block mb-3">
                     <div class="border rounded p-3" style="background-color: #f0f0f0;">
                         <div class="text-center">
                             <i class="fas fa-globe me-2"></i>
-                            <span class="text-muted">網頁內容：${linkData.title || '外部連結'}</span>
+                            <span class="text-muted">網頁內容：${content}</span>
                         </div>
                     </div>
                 </div>`;
             }
         }
+        // 處理其他任何內容類型
+        else if (block.content) {
+            html += `<div class="content-block other-block mb-3">
+                <div class="border rounded p-3" style="background-color: #f9f9f9;">
+                    <p class="mb-0 text-muted">內容類型：${block.type || '未知'}</p>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <pre style="font-size: 12px; margin: 0;">${escapeHtml(block.content.toString().substring(0, 500))}${block.content.length > 500 ? '...' : ''}</pre>
+                    </div>
+                </div>
+            </div>`;
+        }
     });
+    
+    if (html === '') {
+        html = '<p class="text-muted text-center">無內容可顯示</p>';
+    }
     
     return html;
 }
@@ -3596,7 +3634,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.05) translateY(-40px) !important;
+                    transform: scale(1.05) translateY(-60px) !important;
                     transform-origin: top left !important;
                 }
                 
