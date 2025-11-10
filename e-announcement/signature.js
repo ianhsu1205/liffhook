@@ -3549,33 +3549,38 @@ function showCompleteDocumentPreview(signatureData) {
                 </div>
                 
                 <!-- 數位簽名顯示 -->
-                <div class="row mb-2">
+                <div class="row">
                     <div class="col-12 text-center">
-                        <div class="signature-display-container" style="transform: scale(2); margin: 1rem 0 0.5rem 0; padding: 0.3rem;">
+                        <div class="signature-display-container" style="transform: scale(1.8); margin: 0.5rem auto; padding: 0.2rem; max-width: 200px;">
                             <img src="${signatureData}" 
                                  alt="數位簽名" 
                                  class="signature-display"
-                                 style="max-width: 150px; max-height: 75px; min-width: 100px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                 style="max-width: 120px; max-height: 60px; min-width: 80px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         </div>
                     </div>
                 </div>
                 
                 <!-- 確認資訊 -->
-                <div class="mb-2 p-2 bg-light border-start border-5 border-success">
+                <div class="p-2 bg-light border-start border-4 border-success" style="margin: 1rem 0;">
                     <p class="mb-0 small text-muted">
                         本人已詳細閱讀上述宣導內容，並以數位簽名方式確認收悉。
                     </p>
                 </div>
                 
-                <!-- 控制按鈕 -->
-                <div class="text-center" style="margin-top: 3rem; padding-bottom: 4rem; clear: both;">
-                    <button type="button" class="btn btn-success btn-lg me-3" onclick="confirmSignature()">
-                        <i class="fas fa-check"></i> 確認送出
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-lg" onclick="cancelSignaturePreview()">
-                        <i class="fas fa-times"></i> 取消重簽
-                    </button>
+                <!-- 控制按鈕 - 固定在底部 -->
+                <div class="fixed-bottom bg-white p-3 border-top" style="z-index: 1000;">
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success btn-lg me-3" onclick="confirmSignature()">
+                            <i class="fas fa-check"></i> 確認送出
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-lg" onclick="cancelSignaturePreview()">
+                            <i class="fas fa-times"></i> 取消重簽
+                        </button>
+                    </div>
                 </div>
+                
+                <!-- 為固定按鈕預留空間 -->
+                <div style="height: 100px;"></div>
             </div>
         `;
     }
@@ -3671,28 +3676,30 @@ function injectHideUrlStyles() {
                 display: none !important;
             }
             
-            /* 手機優化 */
+            /* 手機優化 - 徹底解決方案 */
             @media (max-width: 768px) {
                 .iframe-container {
-                    margin-left: -15px !important;
-                    margin-right: -15px !important;
+                    margin: 0 !important;
                     width: 100vw !important;
-                    height: 90vh !important;
+                    height: 85vh !important;
+                    position: relative !important;
                     overflow: hidden !important;
                 }
                 
                 .iframe-container iframe {
-                    width: 100% !important;
-                    height: 105% !important;
-                    transform: translateY(-30px) !important;
-                    transform-origin: top left !important;
+                    width: 100vw !important;
+                    height: calc(100vh + 60px) !important;
+                    position: absolute !important;
+                    top: -60px !important;
+                    left: 0 !important;
                     border: none !important;
+                    transform: none !important;
                 }
                 
                 /* 確保浮動按鈕在手機上正確顯示 */
                 .iframe-floating-controls {
                     position: fixed !important;
-                    top: 60px !important;
+                    top: 20px !important;
                     right: 10px !important;
                     z-index: 9999 !important;
                 }
