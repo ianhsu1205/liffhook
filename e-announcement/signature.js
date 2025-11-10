@@ -1,4 +1,14 @@
-﻿// 全域變數
+﻿// 輔助函數：從URL提取域名
+function extractDomainName(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch (e) {
+        return '網頁內容';
+    }
+}
+
+// 全域變數
 const API_BASE = (() => {
     // 檢查是否為本地開發環境
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -470,29 +480,34 @@ function renderContentBlocks(blocks) {
                         // 創建iframe來載入網頁內容而不是外部連結
                         html += `<div class="content-block html-iframe-block mb-3">
                             <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
-                                    <small class="text-muted">
-                                        <i class="fas fa-globe me-1"></i>
-                                        ${linkData.title || '網頁內容'}
-                                    </small>
+                                <!-- 浮動控制按鈕 -->
+                                <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                                     <div class="btn-group" role="group">
                                         <button type="button" 
-                                                class="btn btn-outline-primary btn-sm" 
+                                                class="btn btn-primary btn-sm" 
                                                 onclick="openUrlInModal('${linkData.url}', '${(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                                 title="放大檢視">
                                             <i class="fas fa-search-plus"></i>
                                         </button>
                                         <button type="button" 
-                                                class="btn btn-outline-secondary btn-sm" 
+                                                class="btn btn-secondary btn-sm" 
                                                 onclick="window.open('${linkData.url}', '_blank')"
                                                 title="新視窗開啟">
                                             <i class="fas fa-external-link-alt"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(30px 0 30px 0);">
+                                ${linkData.title ? `
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
+                                    <small class="text-muted">
+                                        <i class="fas fa-globe me-1"></i>
+                                        ${linkData.title}
+                                    </small>
+                                </div>
+                                ` : ''}
+                                <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
                                     <iframe src="${linkData.url}" 
-                                            style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
+                                            style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                             frameborder="0"
                                             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                             loading="lazy">
@@ -1555,29 +1570,34 @@ async function generateContent(contentBlocks) {
                     // 創建iframe來載入網頁內容而不是外部連結
                     html += `<div class="content-block html-iframe-block mb-3">
                         <div class="border rounded position-relative" style="background-color: #f8f9fa;">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
-                                <small class="text-muted">
-                                    <i class="fas fa-globe me-1"></i>
-                                    ${escapeHtml(linkData.title || '網頁內容')}
-                                </small>
+                            <!-- 浮動控制按鈕 -->
+                            <div class="iframe-floating-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                                 <div class="btn-group" role="group">
                                     <button type="button" 
-                                            class="btn btn-outline-primary btn-sm" 
+                                            class="btn btn-primary btn-sm" 
                                             onclick="openUrlInModal('${linkData.url}', '${escapeHtml(linkData.title || '網頁內容').replace(/'/g, '\\\'')}')"
                                             title="放大檢視">
                                         <i class="fas fa-search-plus"></i>
                                     </button>
                                     <button type="button" 
-                                            class="btn btn-outline-secondary btn-sm" 
+                                            class="btn btn-secondary btn-sm" 
                                             onclick="window.open('${linkData.url}', '_blank')"
                                             title="新視窗開啟">
                                         <i class="fas fa-external-link-alt"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(30px 0 30px 0);">
+                            ${linkData.title ? `
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light border-bottom" style="position: relative; z-index: 100;">
+                                <small class="text-muted">
+                                    <i class="fas fa-globe me-1"></i>
+                                    ${escapeHtml(linkData.title)}
+                                </small>
+                            </div>
+                            ` : ''}
+                            <div class="iframe-container position-relative" style="height: 600px; min-height: 70vh; overflow: hidden !important; clip-path: inset(50px 0 0 0);">
                                 <iframe src="${linkData.url}" 
-                                        style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
+                                        style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                         frameborder="0"
                                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                                         loading="lazy">
@@ -3214,9 +3234,9 @@ function openUrlInModal(url, title = '網頁內容') {
                             <h5 class="modal-title" id="urlModalLabel">網頁檢視</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
-                        <div class="modal-body p-0 position-relative" style="height: 80vh; overflow: hidden; clip-path: inset(30px 0 30px 0);">
+                        <div class="modal-body p-0 position-relative" style="height: 80vh; overflow: hidden; clip-path: inset(50px 0 0 0);">
                             <iframe id="urlModalFrame" 
-                                    style="width: 100%; height: calc(100% + 60px); border: none; margin-top: -30px;" 
+                                    style="width: 100%; height: calc(100% + 50px); border: none; margin-top: -50px;" 
                                     frameborder="0"
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation">
                             </iframe>
