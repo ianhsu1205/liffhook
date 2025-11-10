@@ -75,6 +75,9 @@
       // GitHub Pages 路由處理
       function handleGitHubPagesRouting() {
         const path = window.location.pathname
+        const search = window.location.search || ""
+
+        console.log("404.html 處理路徑:", path)
 
         // 檢查是否為縮網址路徑 (/s/{shortCode})
         const shortUrlMatch = path.match(/\/s\/([^\/]+)/)
@@ -83,9 +86,10 @@
           return
         }
 
-        // 檢查是否為其他已知路徑
+        // 檢查是否為 e-announcement 路徑，需要重定向到後端
         if (path.includes("/e-announcement/")) {
-          // 這是正常的宣導頁面，不需要處理
+          console.log("檢測到 e-announcement 路徑，重定向到後端")
+          handleEAnnouncementRedirect(path, search)
           return
         }
 
@@ -96,6 +100,53 @@
           path !== "/liffhook/index.html"
         ) {
           window.location.replace("/liffhook/") // 使用 replace 避免在歷史記錄中留下此頁面
+        }
+      }
+
+      // 處理 e-announcement 重定向
+      function handleEAnnouncementRedirect(path, search) {
+        try {
+          const backendUrl = "https://35.221.146.143.nip.io/linehook"
+          const redirectUrl = `${backendUrl}${path}${search}`
+
+          console.log(`E-announcement 重定向到: ${redirectUrl}`)
+
+          const env = detectEnvironment()
+          console.log("環境檢測:", env)
+
+          // 根據不同環境採用不同策略
+          if (env.isLineApp || env.isMobileApp) {
+            // LINE App 或行動App環境：直接重定向
+            console.log("行動App環境，直接重定向")
+            window.location.replace(redirectUrl)
+          } else if (env.canCloseWindow) {
+            // 可以關閉視窗的環境：先重定向，然後嘗試關閉
+            console.log("可關閉視窗環境，重定向後關閉")
+            window.location.href = redirectUrl
+
+            // 延遲關閉視窗，確保重定向有時間執行
+            setTimeout(() => {
+              try {
+                window.close()
+                // 如果無法關閉，顯示提示
+                setTimeout(() => {
+                  if (!window.closed) {
+                    showRedirectSuccess(redirectUrl)
+                  }
+                }, 100)
+              } catch (e) {
+                console.log("無法自動關閉視窗:", e)
+                showRedirectSuccess(redirectUrl)
+              }
+            }, 1000)
+          } else {
+            // 獨立瀏覽器標籤：使用 replace 重定向
+            console.log("獨立瀏覽器標籤，使用 replace 重定向")
+            window.location.replace(redirectUrl)
+          }
+        } catch (error) {
+          console.error("E-announcement 重定向錯誤:", error)
+          showError("頁面重定向失敗，請稍後再試")
         }
       }
 
