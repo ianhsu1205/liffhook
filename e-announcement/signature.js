@@ -3534,22 +3534,28 @@ function showCompleteDocumentPreview(signatureData) {
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="signature-info bg-light p-3 rounded">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
+                            <div class="row">
+                                <div class="col-md-6">
                                     <p class="mb-1"><strong>簽名人員：</strong></p>
                                     <p class="text-primary">${escapeHtml(userName)}</p>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <p class="mb-1"><strong>狀態：</strong></p>
                                     <p><span class="badge bg-success fs-6">已確認閱覽</span></p>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <img src="${signatureData}" 
-                                         alt="數位簽名" 
-                                         class="signature-display"
-                                         style="max-width: 120px; max-height: 60px; min-width: 80px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 數位簽名顯示 -->
+                <div class="row mb-4">
+                    <div class="col-12 text-center">
+                        <div class="signature-display-container" style="transform: scale(3); margin: 4rem 0; padding: 2rem;">
+                            <img src="${signatureData}" 
+                                 alt="數位簽名" 
+                                 class="signature-display"
+                                 style="max-width: 150px; max-height: 75px; min-width: 100px; border: 1px solid #dee2e6; border-radius: 4px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         </div>
                     </div>
                 </div>
@@ -3709,7 +3715,7 @@ function injectHideUrlStyles() {
                 .iframe-container iframe {
                     width: 100% !important;
                     height: 100% !important;
-                    transform: scale(1.02) translateY(-10px) !important;
+                    transform: scale(1.01) translateY(0px) !important;
                     transform-origin: top center !important;
                 }
             }
