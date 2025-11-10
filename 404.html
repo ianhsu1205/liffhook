@@ -21,13 +21,50 @@
 
           console.log("立即重定向到:", redirectUrl)
 
+          // 檢查是否為 LINE 環境
+          const isLineApp =
+            navigator.userAgent.includes("Line") ||
+            navigator.userAgent.toLowerCase().includes("line")
+
           // 檢查是否為新窗口
           const isNewWindow =
             window.opener !== null ||
             window.name === "_blank" ||
             document.referrer.includes("ianhsu1205.github.io")
 
-          if (isNewWindow) {
+          console.log("環境檢測:", {
+            isLineApp: isLineApp,
+            isNewWindow: isNewWindow,
+            userAgent: navigator.userAgent,
+          })
+
+          if (isLineApp) {
+            // LINE 環境中的特殊處理
+            console.log("LINE 環境中，使用特殊處理")
+
+            // 嘗試立即關閉窗口，如果失敗則重定向
+            try {
+              if (window.opener) {
+                // 有 opener 表示是彈出窗口，嘗試關閉
+                console.log("嘗試在 LINE 中關閉彈出窗口")
+                window.close()
+
+                // 如果 100ms 後還沒關閉，強制重定向
+                setTimeout(() => {
+                  if (!window.closed) {
+                    console.log("無法關閉窗口，強制重定向")
+                    window.location.replace(redirectUrl)
+                  }
+                }, 100)
+              } else {
+                // 直接重定向
+                window.location.replace(redirectUrl)
+              }
+            } catch (e) {
+              console.log("LINE 環境關閉窗口失敗:", e)
+              window.location.replace(redirectUrl)
+            }
+          } else if (isNewWindow) {
             console.log("新窗口立即重定向")
             window.location.replace(redirectUrl)
           } else {
@@ -157,6 +194,9 @@
 
           console.log(`E-announcement 重定向到: ${redirectUrl}`)
 
+          const env = detectEnvironment()
+          console.log("環境檢測:", env)
+
           // 強化新視窗檢測邏輯
           const isNewWindow =
             window.opener !== null ||
@@ -170,8 +210,52 @@
             referrer: document.referrer,
             historyLength: window.history.length,
             isNewWindow: isNewWindow,
+            isLineApp: env.isLineApp,
           })
 
+          // LINE 環境的特殊處理
+          if (env.isLineApp) {
+            console.log("LINE App 環境處理")
+
+            if (window.opener !== null) {
+              // LINE 中的彈出窗口，嘗試關閉
+              console.log("LINE 中的彈出窗口，嘗試關閉")
+
+              // 設定一個標記，表示這個窗口應該被關閉
+              try {
+                // 通知 opener 窗口我們即將關閉
+                if (window.opener && !window.opener.closed) {
+                  window.opener.postMessage("child-closing", "*")
+                }
+              } catch (e) {
+                console.log("無法向 opener 發送消息:", e)
+              }
+
+              // 嘗試多種關閉方法
+              setTimeout(() => {
+                try {
+                  window.close()
+                } catch (e) {
+                  console.log("window.close() 失敗:", e)
+                  // 如果無法關閉，隱藏頁面內容
+                  document.body.innerHTML =
+                    '<div style="display:none;">頁面已關閉</div>'
+
+                  // 最後手段：重定向到空頁面
+                  setTimeout(() => {
+                    window.location.replace("about:blank")
+                  }, 100)
+                }
+              }, 50)
+            } else {
+              // LINE 中的主窗口，直接重定向
+              console.log("LINE 中的主窗口，直接重定向")
+              window.location.replace(redirectUrl)
+            }
+            return
+          }
+
+          // 一般新視窗處理
           if (isNewWindow) {
             // 新視窗：立即替換並清理歷史記錄
             console.log("檢測到新視窗，立即替換頁面")
@@ -186,15 +270,8 @@
             return
           }
 
-          const env = detectEnvironment()
-          console.log("環境檢測:", env)
-
-          // 根據不同環境採用不同策略
-          if (env.isLineApp) {
-            // LINE App 環境：使用 replace 避免影響 LINE 的導航歷史
-            console.log("LINE App 環境，使用 replace 重定向")
-            window.location.replace(redirectUrl)
-          } else if (env.isMobileApp) {
+          // 其他環境的處理
+          if (env.isMobileApp) {
             // 其他行動App環境：直接重定向
             console.log("行動App環境，直接重定向")
             window.location.replace(redirectUrl)
