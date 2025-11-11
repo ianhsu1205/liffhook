@@ -225,7 +225,7 @@
       .policy-links a {
         color: #06c755;
         text-decoration: none;
-        font-size: 14px;
+        font-size: 16px;
         padding: 5px 10px;
       }
 
@@ -421,6 +421,13 @@
             否，保持綁定
           </button>
         </div>
+
+        <!-- 已綁定狀態下的政策連結 -->
+        <div class="policy-links" style="margin-top: 15px">
+          <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
+          <span class="separator">|</span>
+          <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
+        </div>
       </div>
 
       <!-- 註冊表單 -->
@@ -598,7 +605,7 @@
 
         <!-- 版本資訊和政策連結移動到表單底部 -->
         <div class="line-brand" style="margin-top: 20px">
-          多功能平台-綁定與解除-v1.0.1.7
+          多功能平台-綁定與解除-v1.0.1.8
         </div>
 
         <!-- 政策連結 -->
@@ -606,10 +613,6 @@
           <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
           <span class="separator">|</span>
           <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
-          <span class="separator">|</span>
-          <a href="#" onclick="clearPolicyStatus()" style="color: #dc3545"
-            >清除政策狀態</a
-          >
         </div>
       </form>
       <div id="debugInfo" class="debug-info"></div>
