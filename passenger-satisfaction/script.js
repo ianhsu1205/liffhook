@@ -135,8 +135,8 @@
         try {
             routeLoading.style.display = 'block';
             
-            // 使用統一的 API 路徑
-            const apiPath = `${API_BASE}/TdxRouteInfo/names?operatorNameZh=大都會客運&take=100`;
+            // 使用統一的 API 路徑，包含特定路線
+            const apiPath = `${API_BASE}/TdxRouteInfo/names?operatorNameZh=大都會客運&includeSpecialRoutes=true&take=200`;
                 
             const response = await fetch(apiPath);
             const data = await response.json();
@@ -144,12 +144,40 @@
             if (data.success && data.data) {
                 routeSelect.innerHTML = '<option value="">請選擇路線</option>';
                 
-                data.data.forEach(routeName => {
+                // 將路線按名稱排序
+                const sortedRoutes = data.data.sort((a, b) => {
+                    // 將數字路線和中文路線分開排序
+                    const aIsNumber = /^\d/.test(a);
+                    const bIsNumber = /^\d/.test(b);
+                    
+                    if (aIsNumber && bIsNumber) {
+                        // 都是數字開頭，按數字排序
+                        return parseInt(a) - parseInt(b);
+                    } else if (aIsNumber && !bIsNumber) {
+                        // 數字路線排在前面
+                        return -1;
+                    } else if (!aIsNumber && bIsNumber) {
+                        // 中文路線排在後面
+                        return 1;
+                    } else {
+                        // 都是中文，按字母排序
+                        return a.localeCompare(b, 'zh-TW');
+                    }
+                });
+                
+                sortedRoutes.forEach(routeName => {
                     const option = document.createElement('option');
                     option.value = routeName;
                     option.textContent = routeName;
                     routeSelect.appendChild(option);
                 });
+
+                console.log(`✅ 成功載入 ${data.data.length} 條路線 (包含大都會客運+特定路線)`);
+                
+                // 顯示載入的路線類型資訊
+                if (data.includeSpecialRoutes) {
+                    console.log('📍 已包含特定路線: 299、安坑線、內科通勤專車8、982、市民小巴6、823、1551');
+                }
             } else {
                 throw new Error('載入路線失敗');
             }
