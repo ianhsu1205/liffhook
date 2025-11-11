@@ -264,7 +264,7 @@
         border-left: 4px solid #06c755;
       }
 
-      /* 個人資料搜集政策 - 藍色主題 */
+      /* 個資搜集政策 - 藍色主題 */
       #dataCollectionModal .modal-overlay {
         background-color: rgba(0, 123, 255, 0.1);
       }
@@ -426,7 +426,7 @@
         <div class="policy-links" style="margin-top: 15px">
           <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
           <span class="separator">|</span>
-          <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
+          <a href="#" onclick="showDataCollectionPolicy()">個資搜集政策</a>
         </div>
       </div>
 
@@ -605,24 +605,24 @@
 
         <!-- 版本資訊和政策連結移動到表單底部 -->
         <div class="line-brand" style="margin-top: 20px">
-          多功能平台-綁定與解除-v1.0.1.8
+          多功能平台-綁定與解除-v1.0.1.9
         </div>
 
         <!-- 政策連結 -->
         <div class="policy-links" style="margin-top: 10px">
           <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
           <span class="separator">|</span>
-          <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
+          <a href="#" onclick="showDataCollectionPolicy()">個資搜集政策</a>
         </div>
       </form>
       <div id="debugInfo" class="debug-info"></div>
     </div>
 
-    <!-- 個人資料搜集政策彈出視窗 -->
+    <!-- 個資搜集政策彈出視窗 -->
     <div id="dataCollectionModal" class="modal-overlay hidden">
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <h3>個人資料搜集政策</h3>
+          <h3>個資搜集政策</h3>
           <button
             style="
               position: absolute;
@@ -779,12 +779,12 @@
 
           <h4>八、政策更新</h4>
           <p>
-            本政策內容可能隨法規異動或營運需要進行修正，修正後的政策將公告於系統中。建議您定期查閱最新版本的個人資料搜集政策。
+            本政策內容可能隨法規異動或營運需要進行修正，修正後的政策將公告於系統中。建議您定期查閱最新版本的個資搜集政策。
           </p>
 
           <h4>九、聯絡方式</h4>
           <p>
-            如您對本個人資料搜集政策有任何疑問，或欲行使個人資料保護法賦予您的相關權利，請聯繫：
+            如您對本個資搜集政策有任何疑問，或欲行使個人資料保護法賦予您的相關權利，請聯繫：
           </p>
           <ul>
             <li><strong>聯絡部門：</strong>資訊中心</li>
@@ -804,23 +804,21 @@
             "
           >
             <strong>同意聲明：</strong
-            >當您點擊「同意」按鈕或繼續使用本系統服務時，即表示您已詳細閱讀、充分了解並同意本個人資料搜集政策之所有內容。
+            >當您點擊「同意」按鈕或繼續使用本系統服務時，即表示您已詳細閱讀、充分了解並同意本個資搜集政策之所有內容。
           </div>
         </div>
         <div id="dataCollectionConsentSection" class="consent-checkbox hidden">
           <input type="checkbox" id="dataCollectionConsent" />
-          <label for="dataCollectionConsent"
-            >我已閱讀並同意個人資料搜集政策</label
-          >
+          <label for="dataCollectionConsent">我已閱讀並同意個資搜集政策</label>
         </div>
         <div class="modal-footer">
           <button
             id="dataCollectionCancelBtn"
             class="secondary-button"
-            onclick="cancelBinding()"
+            onclick="closePolicyModal()"
             style="background-color: #dc3545; color: white"
           >
-            取消綁定
+            關閉
           </button>
           <button
             id="dataCollectionAgreeBtn"
@@ -932,10 +930,10 @@
           <button
             id="privacyCancelBtn"
             class="secondary-button"
-            onclick="cancelBinding()"
+            onclick="closePolicyModal()"
             style="background-color: #dc3545; color: white"
           >
-            取消綁定
+            關閉
           </button>
           <button
             id="privacyAgreeBtn"
@@ -952,7 +950,7 @@
     <script>
       // 全局變量記錄初始化狀態
       let liffInitialized = false
-      let dataCollectionAgreed = false // 記錄是否已同意個人資料搜集政策
+      let dataCollectionAgreed = false // 記錄是否已同意個資搜集政策
       let privacyPolicyAgreed = false // 記錄是否已同意隱私權政策
 
       const base_url = (() => {
@@ -1009,7 +1007,7 @@
           dataCollectionCheckbox.addEventListener("change", function () {
             dataCollectionAgreeBtn.disabled = !this.checked
             dataCollectionAgreeBtn.style.opacity = this.checked ? "1" : "0.6"
-            console.log("個人資料搜集政策checkbox狀態:", this.checked)
+            console.log("個資搜集政策checkbox狀態:", this.checked)
           })
         }
       }
@@ -1057,7 +1055,7 @@
 
         if (previousDataAgreement === "true") {
           dataCollectionAgreed = true
-          console.log("已載入個人資料搜集政策同意狀態: true")
+          console.log("已載入個資搜集政策同意狀態: true")
         }
         if (previousPrivacyAgreement === "true") {
           privacyPolicyAgreed = true
@@ -1169,7 +1167,7 @@
         }
       }
 
-      // 顯示個人資料搜集政策
+      // 顯示個資搜集政策
       function showDataCollectionPolicy() {
         console.log("=== showDataCollectionPolicy 被調用 ===")
         console.log("調用堆棧:", new Error().stack)
@@ -1199,7 +1197,7 @@
           modal.style.zIndex = ""
 
           document.body.style.overflow = "hidden"
-          console.log("個人資料搜集政策彈出視窗已顯示")
+          console.log("個資搜集政策彈出視窗已顯示")
         }
 
         // 檢查是否在註冊流程中（註冊表單可見且需要同意政策）
@@ -1243,7 +1241,7 @@
 
         // 不自動跳轉，讓用戶手動點擊下一個政策
         showStatusMessage(
-          "隱私權政策同意成功！請點擊「個人資料搜集政策」繼續",
+          "隱私權政策同意成功！請點擊「個資搜集政策」繼續",
           "success"
         )
       }
@@ -1299,9 +1297,9 @@
         }
       }
 
-      // 關閉個人資料搜集政策彈出視窗
+      // 關閉個資搜集政策彈出視窗
       function closeDataCollectionModal() {
-        console.log("關閉個人資料搜集政策")
+        console.log("關閉個資搜集政策")
 
         // 不在關閉時重置狀態，保持用戶的選擇
         const modal = document.getElementById("dataCollectionModal")
@@ -1317,12 +1315,12 @@
           modal.classList.remove("show", "visible", "active")
 
           document.body.style.overflow = ""
-          console.log("個人資料搜集政策彈出視窗已關閉")
+          console.log("個資搜集政策彈出視窗已關閉")
           console.log("模態框當前樣式:", modal.style.cssText)
         }
       }
 
-      // 點擊背景關閉個人資料搜集政策彈出視窗（已移除功能）
+      // 點擊背景關閉個資搜集政策彈出視窗（已移除功能）
       function closeDataCollectionModalIfBackground(event) {
         // 移除背景點擊關閉功能
         return false
@@ -1357,17 +1355,17 @@
         return false
       }
 
-      // 同意個人資料搜集政策
+      // 同意個資搜集政策
       function agreeDataCollection() {
         const checkbox = document.getElementById("dataCollectionConsent")
         if (!checkbox.checked) {
-          alert("請先勾選同意個人資料搜集政策")
+          alert("請先勾選同意個資搜集政策")
           return
         }
 
         dataCollectionAgreed = true
         localStorage.setItem("dataCollectionAgreed", "true") // 儲存同意狀態
-        console.log("個人資料搜集政策同意狀態已設置為 true")
+        console.log("個資搜集政策同意狀態已設置為 true")
         closeDataCollectionModal()
 
         // 檢查是否兩個政策都已同意
@@ -1378,7 +1376,7 @@
           )
         } else {
           showStatusMessage(
-            "個人資料搜集政策同意成功！請點擊「隱私權政策」繼續",
+            "個資搜集政策同意成功！請點擊「隱私權政策」繼續",
             "success"
           )
         }
@@ -1386,7 +1384,7 @@
 
       // 監聽同意勾選框變化
       document.addEventListener("DOMContentLoaded", function () {
-        // 個人資料搜集政策勾選框
+        // 個資搜集政策勾選框
         const dataCheckbox = document.getElementById("dataCollectionConsent")
         const dataAgreeBtn = document.getElementById("dataCollectionAgreeBtn")
 
@@ -1560,6 +1558,26 @@
         }, 1500)
       }
 
+      // 關閉政策modal - 根據用戶綁定狀態決定行為
+      function closePolicyModal() {
+        const unbindConfirmation = document.getElementById("unbindConfirmation")
+        const registerForm = document.getElementById("registerForm")
+
+        // 檢查當前顯示的是哪個區域來判斷用戶狀態
+        const isUserBound = !unbindConfirmation.classList.contains("hidden")
+
+        console.log("關閉政策modal，用戶綁定狀態:", isUserBound)
+
+        if (isUserBound) {
+          // 已綁定用戶：只關閉modal，不返回聊天室
+          resetAllModals()
+          console.log("已綁定用戶，僅關閉modal")
+        } else {
+          // 未綁定用戶：執行原本的取消綁定流程
+          cancelBinding()
+        }
+      }
+
       // 安全地關閉視窗
       function closeWindowSafely() {
         console.log("嘗試關閉窗口...")
@@ -1619,7 +1637,7 @@
         if (!dataCollectionAgreed || !privacyPolicyAgreed) {
           console.log("政策檢查失敗，阻止提交")
           showStatusMessage(
-            "請先同意隱私權政策和個人資料搜集政策後再提交表單",
+            "請先同意隱私權政策和個資搜集政策後再提交表單",
             "error"
           )
           return
