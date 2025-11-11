@@ -311,6 +311,31 @@
         min-width: 80px;
         font-size: 16px;
         touch-action: manipulation;
+        z-index: 10001;
+        position: relative;
+        pointer-events: auto;
+      }
+
+      /* 確保彈出視窗在最上層 */
+      .modal-overlay {
+        z-index: 10000;
+      }
+
+      .modal-content {
+        z-index: 10001;
+        position: relative;
+      }
+
+      /* 調試樣式 - 讓關閉按鈕更明顯 */
+      .modal-footer .secondary-button {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border: 2px solid #dc3545 !important;
+      }
+
+      .modal-footer .secondary-button:hover {
+        background-color: #c82333 !important;
+        border-color: #c82333 !important;
       }
     </style>
   </head>
@@ -335,7 +360,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.0</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.1</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -529,36 +554,189 @@
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>個人資料搜集政策</h3>
+          <button
+            style="
+              position: absolute;
+              top: 10px;
+              right: 15px;
+              background: #dc3545;
+              color: white;
+              border: none;
+              border-radius: 50%;
+              width: 30px;
+              height: 30px;
+              cursor: pointer;
+              font-size: 18px;
+              line-height: 1;
+            "
+            onclick="closeDataCollectionModal()"
+            title="關閉"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
+          <div
+            style="
+              background-color: #fff3cd;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #ffc107;
+              margin: 20px 0;
+            "
+          >
+            <strong>重要提醒：</strong
+            >本公司依據「個人資料保護法」規定，向您說明搜集、處理及利用個人資料之相關事項。請您詳細閱讀以下內容。
+          </div>
+
           <h4>一、個人資料搜集目的</h4>
-          <p>本系統依據個人資料保護法規定，向您搜集個人資料，搜集目的如下：</p>
-          <p>1. 員工身分確認與權限管控</p>
-          <p>2. 內部系統功能使用與管理</p>
-          <p>3. 業務聯繫與通知服務</p>
-          <p>4. 統計分析與服務改善</p>
+          <p>
+            本系統依據個人資料保護法第8條及第9條規定，基於以下目的搜集您的個人資料：
+          </p>
+          <ul>
+            <li>
+              <strong>員工身分確認與權限管控：</strong
+              >確認您的員工身分，提供相應的系統功能權限
+            </li>
+            <li>
+              <strong>內部系統功能使用與管理：</strong
+              >維護系統正常運作，提供個人化服務
+            </li>
+            <li>
+              <strong>業務聯繫與通知服務：</strong
+              >透過LINE等通訊管道提供重要業務通知
+            </li>
+            <li>
+              <strong>問卷調查及電子公告等宣達文宣：</strong
+              >透過LINE等通訊管道提供重要業務通知、問卷調查及相關資訊及教育宣導
+            </li>
+            <li>
+              <strong>統計分析與服務改善：</strong
+              >分析使用情形以改善系統功能與服務品質
+            </li>
+            <li>
+              <strong>法令遵循與內控管理：</strong
+              >配合相關法規要求及內部控制需要
+            </li>
+          </ul>
 
           <h4>二、搜集的個人資料類別</h4>
-          <p>1. 識別資料：姓名、員工編號</p>
-          <p>2. 特徵資料：公司別、部門、職稱</p>
-          <p>3. 技術性資料：LINE 用戶識別碼、頻道識別碼</p>
+          <p>本系統可能搜集以下類別的個人資料：</p>
+          <ul>
+            <li><strong>識別資料：</strong>姓名、員工編號</li>
+            <li><strong>特徵資料：</strong>公司別、部門、職稱</li>
+            <li><strong>聯絡資料：</strong>電話號碼（如有提供）</li>
+            <li>
+              <strong>技術性資料：</strong
+              >LINE用戶識別碼、頻道識別碼、裝置資訊、使用記錄
+            </li>
+            <li>
+              <strong>其他：</strong>與業務相關之必要資訊，包括但不限於電子簽名
+            </li>
+          </ul>
 
-          <h4>三、個人資料利用期間</h4>
-          <p>自搜集之日起至您主動解除綁定或離職為止。</p>
+          <h4>三、個人資料來源</h4>
+          <p>本系統個人資料的來源包括：</p>
+          <ul>
+            <li>您主動於系統中填寫、輸入或上傳的資料</li>
+            <li>系統自動記錄的使用行為與技術資訊</li>
+            <li>經您同意後，從第三方平台（如LINE）取得的基本資料</li>
+            <li>公司內部相關系統或人力資源部門提供的員工資料</li>
+          </ul>
 
-          <h4>四、個人資料利用地區</h4>
-          <p>台灣地區。</p>
-
-          <h4>五、個人資料利用對象</h4>
-          <p>本公司及其關係企業。</p>
-
-          <h4>六、當事人權利</h4>
+          <h4>四、個人資料利用期間、地區、對象及方式</h4>
           <p>
-            您對於本系統蒐集之個人資料，得依個人資料保護法規定，行使查詢、閱覽、複製、補充、更正、刪除及停止搜集、處理或利用之權利。
+            <strong>利用期間：</strong
+            >自搜集之日起至您主動解除綁定、離職或法定保存期限屆滿為止。
+          </p>
+          <p><strong>利用地區：</strong>中華民國境內。</p>
+          <p>
+            <strong>利用對象：</strong
+            >本公司及其關係企業、經授權之系統管理人員、法定職權機關。
+          </p>
+          <p>
+            <strong>利用方式：</strong
+            >透過資訊系統、人工處理等方式，在法定目的範圍內進行處理及利用。
           </p>
 
-          <h4>七、聯絡方式</h4>
-          <p>如您對本政策有任何疑問，請聯繫資訊中心。</p>
+          <h4>五、當事人依個人資料保護法第3條規定得行使之權利</h4>
+          <p>
+            依據個人資料保護法規定，您對於本系統蒐集之個人資料，得行使以下權利：
+          </p>
+          <ul>
+            <li>
+              <strong>查詢或請求閱覽：</strong>您可要求查詢或閱覽您的個人資料
+            </li>
+            <li><strong>請求製給複製本：</strong>您可要求提供個人資料複本</li>
+            <li>
+              <strong>請求補充或更正：</strong
+              >當您的個人資料不正確或不完整時，可要求補充或更正
+            </li>
+            <li>
+              <strong>請求停止蒐集、處理或利用：</strong
+              >在特定情況下，您可要求停止處理您的個人資料
+            </li>
+            <li>
+              <strong>請求刪除：</strong
+              >在法定事由下，您可要求刪除您的個人資料，或自行刪除。
+            </li>
+          </ul>
+          <p>
+            <em
+              >註：依法行使上述權利時，在法律允許範圍內，可能拒絕您的請求。</em
+            >
+          </p>
+
+          <h4>六、不提供個人資料之影響</h4>
+          <p>若您選擇不提供個人資料，可能導致以下影響：</p>
+          <ul>
+            <li>無法進行身分確認，無法使用本系統相關功能</li>
+            <li>無法接收重要的業務通知或系統更新訊息</li>
+            <li>無法享受個人化的服務內容</li>
+            <li>可能影響業務流程的順利進行</li>
+          </ul>
+
+          <h4>七、資料安全維護措施</h4>
+          <p>
+            本公司採取適當的技術上及組織上措施，以防止個人資料被竊取、竄改、毀損、滅失或洩漏：
+          </p>
+          <ul>
+            <li>實施存取控制機制，限制個人資料的存取權限</li>
+            <li>建置資訊安全設備與防護措施</li>
+            <li>定期進行系統安全檢測與更新</li>
+            <li>對處理個人資料之人員進行教育訓練</li>
+            <li>制定個人資料安全維護計畫與應變程序</li>
+          </ul>
+
+          <h4>八、政策更新</h4>
+          <p>
+            本政策內容可能隨法規異動或營運需要進行修正，修正後的政策將公告於系統中。建議您定期查閱最新版本的個人資料搜集政策。
+          </p>
+
+          <h4>九、聯絡方式</h4>
+          <p>
+            如您對本個人資料搜集政策有任何疑問，或欲行使個人資料保護法賦予您的相關權利，請聯繫：
+          </p>
+          <ul>
+            <li><strong>聯絡部門：</strong>資訊中心</li>
+            <li><strong>聯絡方式：</strong>02-87920358 #622~625</li>
+            <li>
+              <strong>服務時間：</strong>週一至週五 08:00-17:00（國定假日除外）
+            </li>
+          </ul>
+
+          <div
+            style="
+              background-color: #fff3cd;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #ffc107;
+              margin: 20px 0;
+            "
+          >
+            <strong>同意聲明：</strong
+            >當您點擊「同意」按鈕或繼續使用本系統服務時，即表示您已詳細閱讀、充分了解並同意本個人資料搜集政策之所有內容。
+          </div>
         </div>
         <div id="dataCollectionConsentSection" class="consent-checkbox hidden">
           <input type="checkbox" id="dataCollectionConsent" />
@@ -595,19 +773,43 @@
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>隱私權政策</h3>
+          <button
+            style="
+              position: absolute;
+              top: 10px;
+              right: 15px;
+              background: #dc3545;
+              color: white;
+              border: none;
+              border-radius: 50%;
+              width: 30px;
+              height: 30px;
+              cursor: pointer;
+              font-size: 18px;
+              line-height: 1;
+            "
+            onclick="closePrivacyModal()"
+            title="關閉"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <h4>一、隱私權保護政策適用範圍</h4>
           <p>
-            本隱私權保護政策適用於本多功能平台系統內所有相關的網頁與應用程式。
+            本隱私權保護政策適用於本多功能平台系統內所有相關的網頁與應用程式。當您使用本系統服務，即表示您已閱讀、了解並同意本政策之所有內容。
           </p>
 
           <h4>二、個人資料的搜集、處理及利用方式</h4>
           <p>
-            當您使用本系統服務時，我們會依據服務功能需要，搜集您的個人資料，並在合理範圍內處理及利用您的個人資料。
+            當您使用本系統服務時，我們會依據服務功能需要，搜集您的個人資料，並在合理範圍內處理及利用您的個人資料。我們搜集個人資料的方式包括：
           </p>
+          <p>• 您主動提供的資料（如註冊資訊、聯絡資訊）</p>
+          <p>• 系統自動收集的資料（如使用紀錄、裝置資訊）</p>
+          <p>• 透過合法途徑從第三方取得的資料</p>
 
           <h4>三、資料之保護</h4>
+          <p>本公司十分重視您個人資料的安全，採取以下措施保護您的個人資料：</p>
           <p>
             1.
             本系統主機設有防火牆、防毒系統等相關的各項資訊安全設備及必要的安全防護措施。
@@ -620,6 +822,7 @@
             3.
             如因業務需要有必要委託相關單位提供服務時，本公司亦會嚴格要求其遵守保密義務。
           </p>
+          <p>4. 定期進行資訊安全檢測與更新，確保系統安全性。</p>
 
           <h4>四、網站對外的相關連結</h4>
           <p>
@@ -628,18 +831,32 @@
 
           <h4>五、與第三人共用個人資料之政策</h4>
           <p>
-            本系統絕不會提供、交換、出租或出售任何您的個人資料給其他個人、團體、私人企業或公務機關，但有法律依據或合約義務者，不在此限。
+            本系統絕不會提供、交換、出租或出售任何您的個人資料給其他個人、團體、私人企業或公務機關，但有法律依據或合約義務者，不在此限。前述法律依據包括但不限於：
           </p>
+          <p>• 司法機關或政府機關基於法定程序要求提供</p>
+          <p>• 為保護本公司或第三人之權利、財產或安全</p>
+          <p>• 與業務相關之合作夥伴，但僅限於提供服務所必要之範圍</p>
 
           <h4>六、Cookie之使用</h4>
           <p>
             為了提供您最佳的服務，本系統會在您的電腦中放置並取用Cookie，若您不願接受Cookie的寫入，您可在您使用的瀏覽器功能項中設定隱私權等級為高，即可拒絕Cookie的寫入，但可能會導致網站某些功能無法正常執行。
           </p>
 
-          <h4>七、隱私權保護政策之修正</h4>
+          <h4>七、個人資料之查詢、更正與刪除</h4>
           <p>
-            本系統隱私權保護政策將因應需求隨時進行修正，修正後的條款將刊登於網站上。
+            您可以隨時要求查詢、更正或刪除您的個人資料。如有相關需求，請透過系統功能或聯繫客服人員處理。
           </p>
+
+          <h4>八、隱私權保護政策之修正</h4>
+          <p>
+            本系統隱私權保護政策將因應需求隨時進行修正，修正後的條款將刊登此頁。當您繼續使用本系統服務時，即表示您已閱讀、了解並同意修正後的隱私權保護政策。
+          </p>
+
+          <h4>九、聯絡資訊</h4>
+          <p>若您對本隱私權保護政策有任何疑問或建議，請聯繫我們：</p>
+          <p>• 聯繫部門：資訊中心</p>
+          <p>• 聯絡電話：02-87920358 #622~625</p>
+          <p>• 服務時間：週一至週五 08:00-17:00</p>
         </div>
         <div class="modal-footer">
           <button class="secondary-button" onclick="closePrivacyModal()">
@@ -679,6 +896,79 @@
         }
       }
 
+      // 顯示載入中
+      function showLoading() {
+        document.getElementById("loading-overlay").classList.remove("hidden")
+      }
+
+      // 隱藏載入中
+      function hideLoading() {
+        document.getElementById("loading-overlay").classList.add("hidden")
+      }
+
+      // 顯示調試信息
+      function showDebugInfo(info) {
+        const debugElement = document.getElementById("debugInfo")
+        debugElement.style.display = "block"
+        debugElement.innerHTML += info + "<br>"
+      }
+
+      // 初始化 LIFF SDK
+      async function initLIFF() {
+        try {
+          // 確保 LIFF ID 格式正確（去除可能的空格）
+          await liff.init({ liffId: liffId })
+
+          // 記錄初始化成功
+          liffInitialized = true
+          console.log("LIFF 初始化成功")
+          console.log("是否在 LINE 瀏覽器中:", liff.isInClient())
+          console.log("LIFF SDK 版本:", liff.getVersion())
+          console.log("裝置資訊:", navigator.userAgent)
+
+          if (!liff.isLoggedIn()) {
+            console.log("用戶未登入，引導登入...")
+            // 如果用戶尚未登入 LINE，則引導登入
+            liff.login()
+            // 登入後會重新載入頁面，所以下面的代碼不會執行
+            return
+          }
+
+          // 用戶已登入，獲取用戶資料
+          try {
+            const profile = await liff.getProfile()
+
+            showDebugInfo("ChannelId: " + channelId)
+
+            const userId = profile.userId
+            document.getElementById("userId").value = userId
+            document.getElementById("channelId").value = channelId
+
+            // 自動填入姓名
+            document.getElementById("name").value = profile.displayName || ""
+
+            console.log("用戶已登入:", profile.displayName)
+
+            // 檢查用戶是否已存在
+            await checkUserExists(userId, channelId)
+          } catch (profileError) {
+            console.error("獲取用戶資料失敗:", profileError)
+            showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error")
+            showDebugInfo("獲取用戶資料失敗: " + profileError.message)
+            hideLoading()
+          }
+        } catch (error) {
+          console.error("LIFF 初始化失敗:", error)
+          showStatusMessage(
+            "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
+            "error"
+          )
+          showDebugInfo("LIFF 初始化失敗: " + error.message)
+          liffInitialized = false
+          hideLoading()
+        }
+      }
+
       // 顯示個人資料搜集政策
       function showDataCollectionPolicy() {
         console.log("顯示個人資料搜集政策")
@@ -688,6 +978,13 @@
           // 防止背景滾動
           document.body.style.overflow = "hidden"
           console.log("個人資料搜集政策彈出視窗已顯示")
+
+          // 顯示關閉提示
+          setTimeout(function () {
+            console.log(
+              "提示：您可以按 ESC 鍵、雙擊頁面、或長按 1.5 秒來關閉視窗"
+            )
+          }, 2000)
         } else {
           console.error("找不到個人資料搜集政策彈出視窗元素")
         }
@@ -717,8 +1014,42 @@
           // 防止背景滾動
           document.body.style.overflow = "hidden"
           console.log("隱私權政策彈出視窗已顯示")
+
+          // 顯示關閉提示
+          setTimeout(function () {
+            console.log(
+              "提示：您可以按 ESC 鍵、雙擊頁面、或長按 1.5 秒來關閉視窗"
+            )
+          }, 2000)
+
+          // 添加一個臨時的全域點擊監聽器來強制關閉
+          setTimeout(() => {
+            document.addEventListener("click", forceCloseOnClick, true)
+          }, 100)
         } else {
           console.error("找不到隱私權政策彈出視窗元素")
+        }
+      }
+
+      // 強制點擊關閉處理器
+      function forceCloseOnClick(event) {
+        const modal = document.getElementById("privacyModal")
+        const dataModal = document.getElementById("dataCollectionModal")
+
+        if (modal && !modal.classList.contains("hidden")) {
+          const modalContent = modal.querySelector(".modal-content")
+          if (!modalContent.contains(event.target)) {
+            closePrivacyModal()
+            document.removeEventListener("click", forceCloseOnClick, true)
+          }
+        }
+
+        if (dataModal && !dataModal.classList.contains("hidden")) {
+          const modalContent = dataModal.querySelector(".modal-content")
+          if (!modalContent.contains(event.target)) {
+            closeDataCollectionModal()
+            document.removeEventListener("click", forceCloseOnClick, true)
+          }
         }
       }
 
@@ -751,6 +1082,8 @@
           modal.classList.add("hidden")
           // 恢復背景滾動
           document.body.style.overflow = ""
+          // 移除全域點擊監聽器
+          document.removeEventListener("click", forceCloseOnClick, true)
           console.log("隱私權政策彈出視窗已關閉")
         } else {
           console.error("找不到隱私權政策彈出視窗元素")
@@ -806,11 +1139,103 @@
         // 添加 ESC 鍵關閉彈出視窗功能
         document.addEventListener("keydown", function (event) {
           if (event.key === "Escape") {
+            console.log("檢測到ESC鍵，關閉所有模態框")
             // 關閉所有開啟的彈出視窗
             closeDataCollectionModal()
             closePrivacyModal()
           }
         })
+
+        // 雙擊頁面任何地方關閉模態框（應急機制）
+        let clickCount = 0
+        document.addEventListener("click", function () {
+          clickCount++
+          setTimeout(function () {
+            if (clickCount >= 2) {
+              console.log("檢測到雙擊，應急關閉所有模態框")
+              closePrivacyModal()
+              closeDataCollectionModal()
+            }
+            clickCount = 0
+          }, 300)
+        })
+
+        // 長按應急關閉（移動裝置）
+        let touchTimeout
+        document.addEventListener("touchstart", function (event) {
+          touchTimeout = setTimeout(function () {
+            console.log("檢測到長按，應急關閉所有模態框")
+            closePrivacyModal()
+            closeDataCollectionModal()
+          }, 1500) // 1.5秒長按
+        })
+
+        document.addEventListener("touchend", function () {
+          if (touchTimeout) {
+            clearTimeout(touchTimeout)
+            touchTimeout = null
+          }
+        })
+
+        // 為關閉按鈕添加額外的事件監聽器，確保能夠關閉
+        const dataCloseBtn = document.getElementById("dataCollectionCloseBtn")
+        if (dataCloseBtn) {
+          dataCloseBtn.addEventListener("click", function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("個人資料搜集政策關閉按鈕被點擊")
+            closeDataCollectionModal()
+          })
+        }
+
+        const privacyCloseBtn = document.querySelector(
+          "#privacyModal .secondary-button"
+        )
+        if (privacyCloseBtn) {
+          privacyCloseBtn.addEventListener("click", function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("隱私權政策關閉按鈕被點擊")
+            closePrivacyModal()
+          })
+
+          // 添加雙擊事件作為備用
+          privacyCloseBtn.addEventListener("dblclick", function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("隱私權政策關閉按鈕被雙擊")
+            closePrivacyModal()
+          })
+
+          // 添加觸摸事件
+          privacyCloseBtn.addEventListener("touchend", function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("隱私權政策關閉按鈕被觸摸")
+            closePrivacyModal()
+          })
+        }
+
+        // 為整個彈出視窗添加應急關閉方法
+        const privacyModal = document.getElementById("privacyModal")
+        if (privacyModal) {
+          privacyModal.addEventListener("dblclick", function (e) {
+            if (e.target === privacyModal) {
+              console.log("隱私權政策彈出視窗背景被雙擊")
+              closePrivacyModal()
+            }
+          })
+        }
+
+        const dataModal = document.getElementById("dataCollectionModal")
+        if (dataModal) {
+          dataModal.addEventListener("dblclick", function (e) {
+            if (e.target === dataModal) {
+              console.log("個人資料搜集政策彈出視窗背景被雙擊")
+              closeDataCollectionModal()
+            }
+          })
+        }
       })
 
       // 檢查用戶是否已經存在（修改版本）
