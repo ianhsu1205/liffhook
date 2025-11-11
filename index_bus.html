@@ -415,7 +415,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.4</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.5</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -1092,8 +1092,8 @@
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
-        if (isRegisterFormVisible) {
-          // 在註冊流程中，需要同意才能繼續
+        if (isRegisterFormVisible && !dataCollectionAgreed) {
+          // 在註冊流程中且尚未同意，需要同意才能繼續
           document
             .getElementById("dataCollectionConsentSection")
             .classList.remove("hidden")
@@ -1103,7 +1103,7 @@
           document.getElementById("dataCollectionCloseBtn").style.display =
             "none"
         } else {
-          // 純瀏覽模式，只顯示關閉按鈕
+          // 純瀏覽模式或已經同意過，只顯示關閉按鈕
           document
             .getElementById("dataCollectionConsentSection")
             .classList.add("hidden")
@@ -1165,15 +1165,15 @@
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
-        if (isRegisterFormVisible) {
-          // 在註冊流程中，需要同意才能繼續
+        if (isRegisterFormVisible && !privacyPolicyAgreed) {
+          // 在註冊流程中且尚未同意，需要同意才能繼續
           document
             .getElementById("privacyConsentSection")
             .classList.remove("hidden")
           document.getElementById("privacyAgreeBtn").classList.remove("hidden")
           document.getElementById("privacyCloseBtn").style.display = "none"
         } else {
-          // 純瀏覽模式，只顯示關閉按鈕
+          // 純瀏覽模式或已經同意過，只顯示關閉按鈕
           document
             .getElementById("privacyConsentSection")
             .classList.add("hidden")
@@ -1186,7 +1186,7 @@
       function closeDataCollectionModal() {
         console.log("關閉個人資料搜集政策")
 
-        // 檢查是否在註冊流程中關閉
+        // 檢查是否在註冊流程中關閉且需要同意
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
@@ -1194,8 +1194,12 @@
           .getElementById("dataCollectionConsentSection")
           .classList.contains("hidden")
 
-        if (isRegisterFormVisible && consentSectionVisible) {
-          // 在註冊流程中關閉，重置所有同意狀態
+        if (
+          isRegisterFormVisible &&
+          consentSectionVisible &&
+          !dataCollectionAgreed
+        ) {
+          // 在註冊流程中關閉且尚未同意，重置所有同意狀態
           dataCollectionAgreed = false
           privacyPolicyAgreed = false
           localStorage.removeItem("dataCollectionAgreed")
@@ -1234,7 +1238,7 @@
       function closePrivacyModal() {
         console.log("關閉隱私權政策")
 
-        // 檢查是否在註冊流程中關閉
+        // 檢查是否在註冊流程中關閉且需要同意
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
@@ -1242,8 +1246,12 @@
           .getElementById("privacyConsentSection")
           .classList.contains("hidden")
 
-        if (isRegisterFormVisible && consentSectionVisible) {
-          // 在註冊流程中關閉，重置所有同意狀態
+        if (
+          isRegisterFormVisible &&
+          consentSectionVisible &&
+          !privacyPolicyAgreed
+        ) {
+          // 在註冊流程中關閉且尚未同意，重置所有同意狀態
           dataCollectionAgreed = false
           privacyPolicyAgreed = false
           localStorage.removeItem("dataCollectionAgreed")
@@ -1326,8 +1334,7 @@
           })
         }
 
-        // 檢查是否已經同意過政策（暫時註解，每次都需要重新同意）
-        /*
+        // 檢查是否已經同意過政策
         const previousDataAgreement = localStorage.getItem(
           "dataCollectionAgreed"
         )
@@ -1337,11 +1344,19 @@
 
         if (previousDataAgreement === "true") {
           dataCollectionAgreed = true
+          console.log("已載入個人資料搜集政策同意狀態: true")
         }
         if (previousPrivacyAgreement === "true") {
           privacyPolicyAgreed = true
+          console.log("已載入隱私權政策同意狀態: true")
         }
-        */
+
+        console.log(
+          "當前政策狀態 - 個人資料:",
+          dataCollectionAgreed,
+          "隱私權:",
+          privacyPolicyAgreed
+        )
       })
 
       // 檢查用戶是否已經存在（修改版本）
