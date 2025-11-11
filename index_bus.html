@@ -371,6 +371,13 @@
         pointer-events: auto;
       }
 
+      /* disabled按鈕樣式 */
+      .modal-footer button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
       /* 確保彈出視窗在最上層 */
       .modal-overlay {
         z-index: 10000;
@@ -414,14 +421,6 @@
             否，保持綁定
           </button>
         </div>
-      </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.6</div>
-
-      <!-- 政策連結 -->
-      <div class="policy-links">
-        <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
-        <span class="separator">|</span>
-        <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
       </div>
 
       <!-- 註冊表單 -->
@@ -596,6 +595,22 @@
         <input type="hidden" id="channelId" />
 
         <button type="button" onclick="submitForm()">提交資料</button>
+
+        <!-- 版本資訊和政策連結移動到表單底部 -->
+        <div class="line-brand" style="margin-top: 20px">
+          多功能平台-綁定與解除-v1.0.1.7
+        </div>
+
+        <!-- 政策連結 -->
+        <div class="policy-links" style="margin-top: 10px">
+          <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
+          <span class="separator">|</span>
+          <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
+          <span class="separator">|</span>
+          <a href="#" onclick="clearPolicyStatus()" style="color: #dc3545"
+            >清除政策狀態</a
+          >
+        </div>
       </form>
       <div id="debugInfo" class="debug-info"></div>
     </div>
@@ -797,15 +812,15 @@
         </div>
         <div class="modal-footer">
           <button
-            id="dataCollectionCloseBtn"
+            id="dataCollectionCancelBtn"
             class="secondary-button"
-            onclick="closeDataCollectionModal()"
+            onclick="cancelBinding()"
+            style="background-color: #dc3545; color: white"
           >
-            關閉
+            取消綁定
           </button>
           <button
             id="dataCollectionAgreeBtn"
-            class="hidden"
             onclick="agreeDataCollection()"
             disabled
             style="background-color: #007bff"
@@ -912,15 +927,15 @@
         </div>
         <div class="modal-footer">
           <button
-            id="privacyCloseBtn"
+            id="privacyCancelBtn"
             class="secondary-button"
-            onclick="closePrivacyModal()"
+            onclick="cancelBinding()"
+            style="background-color: #dc3545; color: white"
           >
-            關閉
+            取消綁定
           </button>
           <button
             id="privacyAgreeBtn"
-            class="hidden"
             onclick="agreePrivacyPolicy()"
             disabled
             style="background-color: #06c755"
@@ -957,11 +972,42 @@
           // 確保模態框在頁面加載時完全隱藏
           resetAllModals()
 
+          // 設置checkbox監聽器
+          setupCheckboxListeners()
+
           await initLIFF()
         } catch (error) {
           console.error("頁面載入時發生錯誤:", error)
           showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error")
           hideLoading()
+        }
+      }
+
+      // 設置checkbox監聽器來控制按鈕狀態
+      function setupCheckboxListeners() {
+        const privacyCheckbox = document.getElementById("privacyConsent")
+        const dataCollectionCheckbox = document.getElementById(
+          "dataCollectionConsent"
+        )
+        const privacyAgreeBtn = document.getElementById("privacyAgreeBtn")
+        const dataCollectionAgreeBtn = document.getElementById(
+          "dataCollectionAgreeBtn"
+        )
+
+        if (privacyCheckbox && privacyAgreeBtn) {
+          privacyCheckbox.addEventListener("change", function () {
+            privacyAgreeBtn.disabled = !this.checked
+            privacyAgreeBtn.style.opacity = this.checked ? "1" : "0.6"
+            console.log("隱私權政策checkbox狀態:", this.checked)
+          })
+        }
+
+        if (dataCollectionCheckbox && dataCollectionAgreeBtn) {
+          dataCollectionCheckbox.addEventListener("change", function () {
+            dataCollectionAgreeBtn.disabled = !this.checked
+            dataCollectionAgreeBtn.style.opacity = this.checked ? "1" : "0.6"
+            console.log("個人資料搜集政策checkbox狀態:", this.checked)
+          })
         }
       }
 
@@ -1021,6 +1067,27 @@
           "隱私權:",
           privacyPolicyAgreed
         )
+      }
+
+      // 清除政策狀態（測試用）
+      function clearPolicyStatus() {
+        if (confirm("確定要清除所有政策同意狀態嗎？這將需要重新同意政策。")) {
+          dataCollectionAgreed = false
+          privacyPolicyAgreed = false
+          localStorage.removeItem("dataCollectionAgreed")
+          localStorage.removeItem("privacyPolicyAgreed")
+          showStatusMessage("政策狀態已清除", "info")
+          console.log("政策狀態已清除")
+        }
+      }
+
+      // 靜默清除政策狀態（不顯示訊息）- 用於未綁定用戶進入時自動清除
+      function clearPolicyStatusSilently() {
+        dataCollectionAgreed = false
+        privacyPolicyAgreed = false
+        localStorage.removeItem("dataCollectionAgreed")
+        localStorage.removeItem("privacyPolicyAgreed")
+        console.log("政策狀態已自動清除（未綁定用戶）")
       }
 
       // 顯示載入中
@@ -1103,10 +1170,17 @@
       function showDataCollectionPolicy() {
         console.log("=== showDataCollectionPolicy 被調用 ===")
         console.log("調用堆棧:", new Error().stack)
+
+        // 重新檢查localStorage狀態，確保同步
+        const dataCollectionFromStorage =
+          localStorage.getItem("dataCollectionAgreed") === "true"
+        if (dataCollectionFromStorage) dataCollectionAgreed = true
+
         console.log(
           "當前政策狀態 - dataCollectionAgreed:",
           dataCollectionAgreed
         )
+        console.log("localStorage中的狀態:", dataCollectionFromStorage)
 
         // 先重置所有模態框
         resetAllModals()
@@ -1164,26 +1238,25 @@
         console.log("隱私權政策同意狀態已設置為 true")
         closePrivacyModal()
 
-        // 檢查是否兩個政策都已同意
-        if (dataCollectionAgreed) {
-          showStatusMessage(
-            "感謝您同意所有政策，現在可以提交表單進行綁定",
-            "success"
-          )
-        } else {
-          showStatusMessage("請繼續同意個人資料搜集政策", "info")
-          // 只在用戶手動點擊同意時才自動跳轉到下一個政策
-          setTimeout(() => {
-            showDataCollectionPolicy()
-          }, 1000)
-        }
+        // 不自動跳轉，讓用戶手動點擊下一個政策
+        showStatusMessage(
+          "隱私權政策同意成功！請點擊「個人資料搜集政策」繼續",
+          "success"
+        )
       }
 
       // 顯示隱私權政策
       function showPrivacyPolicy() {
         console.log("=== showPrivacyPolicy 被調用 ===")
         console.log("調用堆棧:", new Error().stack)
+
+        // 重新檢查localStorage狀態，確保同步
+        const privacyFromStorage =
+          localStorage.getItem("privacyPolicyAgreed") === "true"
+        if (privacyFromStorage) privacyPolicyAgreed = true
+
         console.log("當前政策狀態 - privacyPolicyAgreed:", privacyPolicyAgreed)
+        console.log("localStorage中的狀態:", privacyFromStorage)
 
         // 先重置所有模態框
         resetAllModals()
@@ -1227,30 +1300,7 @@
       function closeDataCollectionModal() {
         console.log("關閉個人資料搜集政策")
 
-        // 檢查是否在註冊流程中關閉且需要同意
-        const isRegisterFormVisible = !document
-          .getElementById("registerForm")
-          .classList.contains("hidden")
-        const consentSectionVisible = !document
-          .getElementById("dataCollectionConsentSection")
-          .classList.contains("hidden")
-
-        if (
-          isRegisterFormVisible &&
-          consentSectionVisible &&
-          !dataCollectionAgreed
-        ) {
-          // 在註冊流程中關閉且尚未同意，重置所有同意狀態
-          dataCollectionAgreed = false
-          privacyPolicyAgreed = false
-          localStorage.removeItem("dataCollectionAgreed")
-          localStorage.removeItem("privacyPolicyAgreed")
-          showStatusMessage(
-            "您已取消政策同意流程，如需綁定請重新點擊政策連結並同意",
-            "info"
-          )
-        }
-
+        // 不在關閉時重置狀態，保持用戶的選擇
         const modal = document.getElementById("dataCollectionModal")
         if (modal) {
           // 使用多種方式確保模態框被隱藏
@@ -1279,30 +1329,7 @@
       function closePrivacyModal() {
         console.log("關閉隱私權政策")
 
-        // 檢查是否在註冊流程中關閉且需要同意
-        const isRegisterFormVisible = !document
-          .getElementById("registerForm")
-          .classList.contains("hidden")
-        const consentSectionVisible = !document
-          .getElementById("privacyConsentSection")
-          .classList.contains("hidden")
-
-        if (
-          isRegisterFormVisible &&
-          consentSectionVisible &&
-          !privacyPolicyAgreed
-        ) {
-          // 在註冊流程中關閉且尚未同意，重置所有同意狀態
-          dataCollectionAgreed = false
-          privacyPolicyAgreed = false
-          localStorage.removeItem("dataCollectionAgreed")
-          localStorage.removeItem("privacyPolicyAgreed")
-          showStatusMessage(
-            "您已取消政策同意流程，如需綁定請重新點擊政策連結並同意",
-            "info"
-          )
-        }
-
+        // 不在關閉時重置狀態，保持用戶的選擇
         const modal = document.getElementById("privacyModal")
         if (modal) {
           // 使用多種方式確保模態框被隱藏
@@ -1347,11 +1374,10 @@
             "success"
           )
         } else {
-          showStatusMessage("請繼續同意隱私權政策", "info")
-          // 只在用戶手動點擊同意時才自動跳轉到下一個政策
-          setTimeout(() => {
-            showPrivacyPolicy()
-          }, 1000)
+          showStatusMessage(
+            "個人資料搜集政策同意成功！請點擊「隱私權政策」繼續",
+            "success"
+          )
         }
       }
 
@@ -1415,11 +1441,19 @@
           } else if (response.status === 404) {
             // 用戶不存在，直接顯示註冊表單（等待用戶點擊政策連結）
             console.log("用戶不存在，顯示註冊表單")
+
+            // 自動清除政策狀態（需求第4點）
+            clearPolicyStatusSilently()
+
             document.getElementById("registerForm").classList.remove("hidden")
           } else {
             // 其他錯誤情況
             console.error("檢查用戶存在性返回非預期狀態:", response.status)
             showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error")
+
+            // 自動清除政策狀態（需求第4點）
+            clearPolicyStatusSilently()
+
             document.getElementById("registerForm").classList.remove("hidden")
           }
 
@@ -1428,6 +1462,10 @@
           console.error("檢查用戶存在性失敗:", error)
           showStatusMessage("檢查用戶信息時發生錯誤，請重新嘗試", "error")
           showDebugInfo("檢查用戶存在性失敗: " + error.message)
+
+          // 自動清除政策狀態（需求第4點）
+          clearPolicyStatusSilently()
+
           // 默認顯示註冊表單
           document.getElementById("registerForm").classList.remove("hidden")
           hideLoading()
@@ -1505,6 +1543,20 @@
         }
       }
 
+      // 取消綁定 - 關閉模態窗口並返回聊天室
+      function cancelBinding() {
+        console.log("用戶取消政策同意，關閉視窗並返回聊天室")
+
+        // 關閉所有模態窗口
+        resetAllModals()
+
+        // 顯示取消訊息並關閉視窗
+        showStatusMessage("已取消政策同意，返回聊天室...", "info")
+        setTimeout(() => {
+          closeWindowSafely()
+        }, 1500)
+      }
+
       // 安全地關閉視窗
       function closeWindowSafely() {
         console.log("嘗試關閉窗口...")
@@ -1536,15 +1588,28 @@
       // 提交表單
       async function submitForm() {
         console.log("提交表單 - 檢查政策狀態...")
-        console.log("dataCollectionAgreed:", dataCollectionAgreed)
-        console.log("privacyPolicyAgreed:", privacyPolicyAgreed)
+
+        // 重新從 localStorage 讀取最新狀態，確保沒有同步問題
+        const dataCollectionFromStorage =
+          localStorage.getItem("dataCollectionAgreed") === "true"
+        const privacyFromStorage =
+          localStorage.getItem("privacyPolicyAgreed") === "true"
+
+        // 更新記憶體中的變數
+        if (dataCollectionFromStorage) dataCollectionAgreed = true
+        if (privacyFromStorage) privacyPolicyAgreed = true
+
         console.log(
-          "localStorage dataCollectionAgreed:",
-          localStorage.getItem("dataCollectionAgreed")
+          "記憶體狀態 - dataCollectionAgreed:",
+          dataCollectionAgreed,
+          "privacyPolicyAgreed:",
+          privacyPolicyAgreed
         )
         console.log(
-          "localStorage privacyPolicyAgreed:",
-          localStorage.getItem("privacyPolicyAgreed")
+          "localStorage狀態 - dataCollectionAgreed:",
+          dataCollectionFromStorage,
+          "privacyPolicyAgreed:",
+          privacyFromStorage
         )
 
         // 檢查是否已同意兩個政策
@@ -1556,6 +1621,8 @@
           )
           return
         }
+
+        console.log("政策檢查通過，繼續表單驗證...")
 
         // 進行詳細表單驗證
         let isValid = true
