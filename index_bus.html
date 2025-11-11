@@ -415,7 +415,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.3</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.4</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -1088,11 +1088,12 @@
           console.log("個人資料搜集政策彈出視窗已顯示")
         }
 
-        // 檢查是否需要顯示同意機制
+        // 檢查是否在註冊流程中（註冊表單可見且需要同意政策）
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
-        if (isRegisterFormVisible && !dataCollectionAgreed) {
+        if (isRegisterFormVisible) {
+          // 在註冊流程中，需要同意才能繼續
           document
             .getElementById("dataCollectionConsentSection")
             .classList.remove("hidden")
@@ -1101,6 +1102,15 @@
             .classList.remove("hidden")
           document.getElementById("dataCollectionCloseBtn").style.display =
             "none"
+        } else {
+          // 純瀏覽模式，只顯示關閉按鈕
+          document
+            .getElementById("dataCollectionConsentSection")
+            .classList.add("hidden")
+          document
+            .getElementById("dataCollectionAgreeBtn")
+            .classList.add("hidden")
+          document.getElementById("dataCollectionCloseBtn").style.display = ""
         }
       }
 
@@ -1119,13 +1129,9 @@
         // 檢查是否兩個政策都已同意
         if (dataCollectionAgreed) {
           showStatusMessage(
-            "感謝您同意所有政策，現在可以開始使用服務",
+            "感謝您同意所有政策，現在可以提交表單進行綁定",
             "success"
           )
-          // 顯示註冊表單
-          setTimeout(() => {
-            document.getElementById("registerForm").classList.remove("hidden")
-          }, 1000)
         } else {
           showStatusMessage("請繼續同意個人資料搜集政策", "info")
           setTimeout(() => {
@@ -1155,22 +1161,51 @@
           console.log("隱私權政策彈出視窗已顯示")
         }
 
-        // 檢查是否需要顯示同意機制
+        // 檢查是否在註冊流程中（註冊表單可見且需要同意政策）
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
-        if (isRegisterFormVisible && !privacyPolicyAgreed) {
+        if (isRegisterFormVisible) {
+          // 在註冊流程中，需要同意才能繼續
           document
             .getElementById("privacyConsentSection")
             .classList.remove("hidden")
           document.getElementById("privacyAgreeBtn").classList.remove("hidden")
           document.getElementById("privacyCloseBtn").style.display = "none"
+        } else {
+          // 純瀏覽模式，只顯示關閉按鈕
+          document
+            .getElementById("privacyConsentSection")
+            .classList.add("hidden")
+          document.getElementById("privacyAgreeBtn").classList.add("hidden")
+          document.getElementById("privacyCloseBtn").style.display = ""
         }
       }
 
       // 關閉個人資料搜集政策彈出視窗
       function closeDataCollectionModal() {
         console.log("關閉個人資料搜集政策")
+
+        // 檢查是否在註冊流程中關閉
+        const isRegisterFormVisible = !document
+          .getElementById("registerForm")
+          .classList.contains("hidden")
+        const consentSectionVisible = !document
+          .getElementById("dataCollectionConsentSection")
+          .classList.contains("hidden")
+
+        if (isRegisterFormVisible && consentSectionVisible) {
+          // 在註冊流程中關閉，重置所有同意狀態
+          dataCollectionAgreed = false
+          privacyPolicyAgreed = false
+          localStorage.removeItem("dataCollectionAgreed")
+          localStorage.removeItem("privacyPolicyAgreed")
+          showStatusMessage(
+            "您已取消政策同意流程，如需綁定請重新點擊政策連結並同意",
+            "info"
+          )
+        }
+
         const modal = document.getElementById("dataCollectionModal")
         if (modal) {
           // 使用多種方式確保模態框被隱藏
@@ -1198,6 +1233,27 @@
       // 關閉隱私權政策彈出視窗
       function closePrivacyModal() {
         console.log("關閉隱私權政策")
+
+        // 檢查是否在註冊流程中關閉
+        const isRegisterFormVisible = !document
+          .getElementById("registerForm")
+          .classList.contains("hidden")
+        const consentSectionVisible = !document
+          .getElementById("privacyConsentSection")
+          .classList.contains("hidden")
+
+        if (isRegisterFormVisible && consentSectionVisible) {
+          // 在註冊流程中關閉，重置所有同意狀態
+          dataCollectionAgreed = false
+          privacyPolicyAgreed = false
+          localStorage.removeItem("dataCollectionAgreed")
+          localStorage.removeItem("privacyPolicyAgreed")
+          showStatusMessage(
+            "您已取消政策同意流程，如需綁定請重新點擊政策連結並同意",
+            "info"
+          )
+        }
+
         const modal = document.getElementById("privacyModal")
         if (modal) {
           // 使用多種方式確保模態框被隱藏
@@ -1237,13 +1293,9 @@
         // 檢查是否兩個政策都已同意
         if (privacyPolicyAgreed) {
           showStatusMessage(
-            "感謝您同意所有政策，現在可以開始使用服務",
+            "感謝您同意所有政策，現在可以提交表單進行綁定",
             "success"
           )
-          // 顯示註冊表單
-          setTimeout(() => {
-            document.getElementById("registerForm").classList.remove("hidden")
-          }, 1000)
         } else {
           showStatusMessage("請繼續同意隱私權政策", "info")
           setTimeout(() => {
@@ -1274,7 +1326,8 @@
           })
         }
 
-        // 檢查是否已經同意過政策
+        // 檢查是否已經同意過政策（暫時註解，每次都需要重新同意）
+        /*
         const previousDataAgreement = localStorage.getItem(
           "dataCollectionAgreed"
         )
@@ -1288,6 +1341,7 @@
         if (previousPrivacyAgreement === "true") {
           privacyPolicyAgreed = true
         }
+        */
       })
 
       // 檢查用戶是否已經存在（修改版本）
@@ -1323,21 +1377,9 @@
               .getElementById("unbindConfirmation")
               .classList.remove("hidden")
           } else if (response.status === 404) {
-            // 用戶不存在，檢查是否需要顯示政策同意
-            console.log("用戶不存在，需要先同意政策")
-
-            // 檢查是否已同意兩個政策
-            if (!dataCollectionAgreed || !privacyPolicyAgreed) {
-              // 先顯示隱私權政策
-              if (!privacyPolicyAgreed) {
-                showPrivacyPolicy()
-              } else if (!dataCollectionAgreed) {
-                showDataCollectionPolicy()
-              }
-            } else {
-              // 已同意所有政策，直接顯示註冊表單
-              document.getElementById("registerForm").classList.remove("hidden")
-            }
+            // 用戶不存在，直接顯示註冊表單（等待用戶點擊政策連結）
+            console.log("用戶不存在，顯示註冊表單")
+            document.getElementById("registerForm").classList.remove("hidden")
           } else {
             // 其他錯誤情況
             console.error("檢查用戶存在性返回非預期狀態:", response.status)
