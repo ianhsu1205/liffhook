@@ -251,6 +251,49 @@
         z-index: 10000;
       }
 
+      /* 隱私權政策 - 綠色主題 */
+      #privacyModal .modal-overlay {
+        background-color: rgba(6, 199, 85, 0.1);
+      }
+
+      #privacyModal .modal-header h3 {
+        color: #06c755;
+      }
+
+      #privacyModal .modal-content {
+        border-left: 4px solid #06c755;
+      }
+
+      /* 個人資料搜集政策 - 藍色主題 */
+      #dataCollectionModal .modal-overlay {
+        background-color: rgba(0, 123, 255, 0.1);
+      }
+
+      #dataCollectionModal .modal-header h3 {
+        color: #007bff;
+      }
+
+      #dataCollectionModal .modal-content {
+        border-left: 4px solid #007bff;
+      }
+
+      /* 政策同意按鈕顏色 */
+      #privacyAgreeBtn {
+        background-color: #06c755 !important;
+      }
+
+      #privacyAgreeBtn:hover {
+        background-color: #04a73e !important;
+      }
+
+      #dataCollectionAgreeBtn {
+        background-color: #007bff !important;
+      }
+
+      #dataCollectionAgreeBtn:hover {
+        background-color: #0056b3 !important;
+      }
+
       .modal-content {
         background: white;
         border-radius: 12px;
@@ -372,7 +415,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.2</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.3</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -558,11 +601,7 @@
     </div>
 
     <!-- 個人資料搜集政策彈出視窗 -->
-    <div
-      id="dataCollectionModal"
-      class="modal-overlay hidden"
-      onclick="closeDataCollectionModalIfBackground(event)"
-    >
+    <div id="dataCollectionModal" class="modal-overlay hidden">
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>個人資料搜集政策</h3>
@@ -769,6 +808,7 @@
             class="hidden"
             onclick="agreeDataCollection()"
             disabled
+            style="background-color: #007bff"
           >
             同意並繼續
           </button>
@@ -777,11 +817,7 @@
     </div>
 
     <!-- 隱私權政策彈出視窗 -->
-    <div
-      id="privacyModal"
-      class="modal-overlay hidden"
-      onclick="closePrivacyModalIfBackground(event)"
-    >
+    <div id="privacyModal" class="modal-overlay hidden">
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>隱私權政策</h3>
@@ -870,9 +906,26 @@
           <p>• 聯絡電話：02-87920358 #622~625</p>
           <p>• 服務時間：週一至週五 08:00-17:00</p>
         </div>
+        <div id="privacyConsentSection" class="consent-checkbox hidden">
+          <input type="checkbox" id="privacyConsent" />
+          <label for="privacyConsent">我已閱讀並同意隱私權政策</label>
+        </div>
         <div class="modal-footer">
-          <button class="secondary-button" onclick="closePrivacyModal()">
+          <button
+            id="privacyCloseBtn"
+            class="secondary-button"
+            onclick="closePrivacyModal()"
+          >
             關閉
+          </button>
+          <button
+            id="privacyAgreeBtn"
+            class="hidden"
+            onclick="agreePrivacyPolicy()"
+            disabled
+            style="background-color: #06c755"
+          >
+            同意並繼續
           </button>
         </div>
       </div>
@@ -882,6 +935,7 @@
       // 全局變量記錄初始化狀態
       let liffInitialized = false
       let dataCollectionAgreed = false // 記錄是否已同意個人資料搜集政策
+      let privacyPolicyAgreed = false // 記錄是否已同意隱私權政策
 
       const base_url = (() => {
         // 檢查是否為本地開發環境
@@ -1050,6 +1104,36 @@
         }
       }
 
+      // 同意隱私權政策
+      function agreePrivacyPolicy() {
+        const checkbox = document.getElementById("privacyConsent")
+        if (!checkbox.checked) {
+          alert("請先勾選同意隱私權政策")
+          return
+        }
+
+        privacyPolicyAgreed = true
+        localStorage.setItem("privacyPolicyAgreed", "true") // 儲存同意狀態
+        closePrivacyModal()
+
+        // 檢查是否兩個政策都已同意
+        if (dataCollectionAgreed) {
+          showStatusMessage(
+            "感謝您同意所有政策，現在可以開始使用服務",
+            "success"
+          )
+          // 顯示註冊表單
+          setTimeout(() => {
+            document.getElementById("registerForm").classList.remove("hidden")
+          }, 1000)
+        } else {
+          showStatusMessage("請繼續同意個人資料搜集政策", "info")
+          setTimeout(() => {
+            showDataCollectionPolicy()
+          }, 1000)
+        }
+      }
+
       // 顯示隱私權政策
       function showPrivacyPolicy() {
         console.log("顯示隱私權政策")
@@ -1069,6 +1153,18 @@
 
           document.body.style.overflow = "hidden"
           console.log("隱私權政策彈出視窗已顯示")
+        }
+
+        // 檢查是否需要顯示同意機制
+        const isRegisterFormVisible = !document
+          .getElementById("registerForm")
+          .classList.contains("hidden")
+        if (isRegisterFormVisible && !privacyPolicyAgreed) {
+          document
+            .getElementById("privacyConsentSection")
+            .classList.remove("hidden")
+          document.getElementById("privacyAgreeBtn").classList.remove("hidden")
+          document.getElementById("privacyCloseBtn").style.display = "none"
         }
       }
 
@@ -1093,11 +1189,10 @@
         }
       }
 
-      // 點擊背景關閉個人資料搜集政策彈出視窗
+      // 點擊背景關閉個人資料搜集政策彈出視窗（已移除功能）
       function closeDataCollectionModalIfBackground(event) {
-        if (event.target === event.currentTarget) {
-          closeDataCollectionModal()
-        }
+        // 移除背景點擊關閉功能
+        return false
       }
 
       // 關閉隱私權政策彈出視窗
@@ -1121,11 +1216,10 @@
         }
       }
 
-      // 點擊背景關閉隱私權政策彈出視窗
+      // 點擊背景關閉隱私權政策彈出視窗（已移除功能）
       function closePrivacyModalIfBackground(event) {
-        if (event.target === event.currentTarget) {
-          closePrivacyModal()
-        }
+        // 移除背景點擊關閉功能
+        return false
       }
 
       // 同意個人資料搜集政策
@@ -1139,32 +1233,60 @@
         dataCollectionAgreed = true
         localStorage.setItem("dataCollectionAgreed", "true") // 儲存同意狀態
         closeDataCollectionModal()
-        showStatusMessage(
-          "感謝您同意個人資料搜集政策，現在可以開始使用服務",
-          "success"
-        )
 
-        // 顯示註冊表單
-        setTimeout(() => {
-          document.getElementById("registerForm").classList.remove("hidden")
-        }, 1000)
+        // 檢查是否兩個政策都已同意
+        if (privacyPolicyAgreed) {
+          showStatusMessage(
+            "感謝您同意所有政策，現在可以開始使用服務",
+            "success"
+          )
+          // 顯示註冊表單
+          setTimeout(() => {
+            document.getElementById("registerForm").classList.remove("hidden")
+          }, 1000)
+        } else {
+          showStatusMessage("請繼續同意隱私權政策", "info")
+          setTimeout(() => {
+            showPrivacyPolicy()
+          }, 1000)
+        }
       }
 
       // 監聽同意勾選框變化
       document.addEventListener("DOMContentLoaded", function () {
-        const checkbox = document.getElementById("dataCollectionConsent")
-        const agreeBtn = document.getElementById("dataCollectionAgreeBtn")
+        // 個人資料搜集政策勾選框
+        const dataCheckbox = document.getElementById("dataCollectionConsent")
+        const dataAgreeBtn = document.getElementById("dataCollectionAgreeBtn")
 
-        if (checkbox && agreeBtn) {
-          checkbox.addEventListener("change", function () {
-            agreeBtn.disabled = !this.checked
+        if (dataCheckbox && dataAgreeBtn) {
+          dataCheckbox.addEventListener("change", function () {
+            dataAgreeBtn.disabled = !this.checked
           })
         }
 
-        // 檢查是否已經同意過
-        const previousAgreement = localStorage.getItem("dataCollectionAgreed")
-        if (previousAgreement === "true") {
+        // 隱私權政策勾選框
+        const privacyCheckbox = document.getElementById("privacyConsent")
+        const privacyAgreeBtn = document.getElementById("privacyAgreeBtn")
+
+        if (privacyCheckbox && privacyAgreeBtn) {
+          privacyCheckbox.addEventListener("change", function () {
+            privacyAgreeBtn.disabled = !this.checked
+          })
+        }
+
+        // 檢查是否已經同意過政策
+        const previousDataAgreement = localStorage.getItem(
+          "dataCollectionAgreed"
+        )
+        const previousPrivacyAgreement = localStorage.getItem(
+          "privacyPolicyAgreed"
+        )
+
+        if (previousDataAgreement === "true") {
           dataCollectionAgreed = true
+        }
+        if (previousPrivacyAgreement === "true") {
+          privacyPolicyAgreed = true
         }
       })
 
@@ -1202,14 +1324,18 @@
               .classList.remove("hidden")
           } else if (response.status === 404) {
             // 用戶不存在，檢查是否需要顯示政策同意
-            console.log("用戶不存在，顯示註冊表單")
+            console.log("用戶不存在，需要先同意政策")
 
-            // 檢查是否已同意個人資料搜集政策
-            if (!dataCollectionAgreed) {
-              // 顯示個人資料搜集政策並要求同意
-              showDataCollectionPolicy()
+            // 檢查是否已同意兩個政策
+            if (!dataCollectionAgreed || !privacyPolicyAgreed) {
+              // 先顯示隱私權政策
+              if (!privacyPolicyAgreed) {
+                showPrivacyPolicy()
+              } else if (!dataCollectionAgreed) {
+                showDataCollectionPolicy()
+              }
             } else {
-              // 已同意，直接顯示註冊表單
+              // 已同意所有政策，直接顯示註冊表單
               document.getElementById("registerForm").classList.remove("hidden")
             }
           } else {
@@ -1331,10 +1457,17 @@
 
       // 提交表單
       async function submitForm() {
-        // 檢查是否已同意個人資料搜集政策
-        if (!dataCollectionAgreed) {
-          showStatusMessage("請先同意個人資料搜集政策後再提交表單", "error")
-          showDataCollectionPolicy()
+        // 檢查是否已同意兩個政策
+        if (!dataCollectionAgreed || !privacyPolicyAgreed) {
+          showStatusMessage(
+            "請先同意隱私權政策和個人資料搜集政策後再提交表單",
+            "error"
+          )
+          if (!privacyPolicyAgreed) {
+            showPrivacyPolicy()
+          } else if (!dataCollectionAgreed) {
+            showDataCollectionPolicy()
+          }
           return
         }
 
