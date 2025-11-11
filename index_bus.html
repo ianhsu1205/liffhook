@@ -415,7 +415,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.5</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.6</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -994,6 +994,35 @@
         console.log("所有模態框已重置為隱藏狀態")
       }
 
+      // 初始化政策狀態
+      function initializePolicyStatus() {
+        console.log("初始化政策狀態...")
+
+        // 檢查是否已經同意過政策
+        const previousDataAgreement = localStorage.getItem(
+          "dataCollectionAgreed"
+        )
+        const previousPrivacyAgreement = localStorage.getItem(
+          "privacyPolicyAgreed"
+        )
+
+        if (previousDataAgreement === "true") {
+          dataCollectionAgreed = true
+          console.log("已載入個人資料搜集政策同意狀態: true")
+        }
+        if (previousPrivacyAgreement === "true") {
+          privacyPolicyAgreed = true
+          console.log("已載入隱私權政策同意狀態: true")
+        }
+
+        console.log(
+          "政策狀態初始化完成 - 個人資料:",
+          dataCollectionAgreed,
+          "隱私權:",
+          privacyPolicyAgreed
+        )
+      }
+
       // 顯示載入中
       function showLoading() {
         document.getElementById("loading-overlay").classList.remove("hidden")
@@ -1049,6 +1078,9 @@
 
             // 檢查用戶是否已存在
             await checkUserExists(userId, channelId)
+
+            // 在 LIFF 初始化完成後檢查政策狀態
+            initializePolicyStatus()
           } catch (profileError) {
             console.error("獲取用戶資料失敗:", profileError)
             showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error")
@@ -1069,7 +1101,12 @@
 
       // 顯示個人資料搜集政策
       function showDataCollectionPolicy() {
-        console.log("顯示個人資料搜集政策")
+        console.log("=== showDataCollectionPolicy 被調用 ===")
+        console.log("調用堆棧:", new Error().stack)
+        console.log(
+          "當前政策狀態 - dataCollectionAgreed:",
+          dataCollectionAgreed
+        )
 
         // 先重置所有模態框
         resetAllModals()
@@ -1124,6 +1161,7 @@
 
         privacyPolicyAgreed = true
         localStorage.setItem("privacyPolicyAgreed", "true") // 儲存同意狀態
+        console.log("隱私權政策同意狀態已設置為 true")
         closePrivacyModal()
 
         // 檢查是否兩個政策都已同意
@@ -1134,6 +1172,7 @@
           )
         } else {
           showStatusMessage("請繼續同意個人資料搜集政策", "info")
+          // 只在用戶手動點擊同意時才自動跳轉到下一個政策
           setTimeout(() => {
             showDataCollectionPolicy()
           }, 1000)
@@ -1142,7 +1181,9 @@
 
       // 顯示隱私權政策
       function showPrivacyPolicy() {
-        console.log("顯示隱私權政策")
+        console.log("=== showPrivacyPolicy 被調用 ===")
+        console.log("調用堆棧:", new Error().stack)
+        console.log("當前政策狀態 - privacyPolicyAgreed:", privacyPolicyAgreed)
 
         // 先重置所有模態框
         resetAllModals()
@@ -1296,6 +1337,7 @@
 
         dataCollectionAgreed = true
         localStorage.setItem("dataCollectionAgreed", "true") // 儲存同意狀態
+        console.log("個人資料搜集政策同意狀態已設置為 true")
         closeDataCollectionModal()
 
         // 檢查是否兩個政策都已同意
@@ -1306,6 +1348,7 @@
           )
         } else {
           showStatusMessage("請繼續同意隱私權政策", "info")
+          // 只在用戶手動點擊同意時才自動跳轉到下一個政策
           setTimeout(() => {
             showPrivacyPolicy()
           }, 1000)
@@ -1334,29 +1377,7 @@
           })
         }
 
-        // 檢查是否已經同意過政策
-        const previousDataAgreement = localStorage.getItem(
-          "dataCollectionAgreed"
-        )
-        const previousPrivacyAgreement = localStorage.getItem(
-          "privacyPolicyAgreed"
-        )
-
-        if (previousDataAgreement === "true") {
-          dataCollectionAgreed = true
-          console.log("已載入個人資料搜集政策同意狀態: true")
-        }
-        if (previousPrivacyAgreement === "true") {
-          privacyPolicyAgreed = true
-          console.log("已載入隱私權政策同意狀態: true")
-        }
-
-        console.log(
-          "當前政策狀態 - 個人資料:",
-          dataCollectionAgreed,
-          "隱私權:",
-          privacyPolicyAgreed
-        )
+        // 政策狀態將在 LIFF 初始化完成後由 initializePolicyStatus() 函數處理
       })
 
       // 檢查用戶是否已經存在（修改版本）
@@ -1514,17 +1535,25 @@
 
       // 提交表單
       async function submitForm() {
+        console.log("提交表單 - 檢查政策狀態...")
+        console.log("dataCollectionAgreed:", dataCollectionAgreed)
+        console.log("privacyPolicyAgreed:", privacyPolicyAgreed)
+        console.log(
+          "localStorage dataCollectionAgreed:",
+          localStorage.getItem("dataCollectionAgreed")
+        )
+        console.log(
+          "localStorage privacyPolicyAgreed:",
+          localStorage.getItem("privacyPolicyAgreed")
+        )
+
         // 檢查是否已同意兩個政策
         if (!dataCollectionAgreed || !privacyPolicyAgreed) {
+          console.log("政策檢查失敗，阻止提交")
           showStatusMessage(
             "請先同意隱私權政策和個人資料搜集政策後再提交表單",
             "error"
           )
-          if (!privacyPolicyAgreed) {
-            showPrivacyPolicy()
-          } else if (!dataCollectionAgreed) {
-            showDataCollectionPolicy()
-          }
           return
         }
 
