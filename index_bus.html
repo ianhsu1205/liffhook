@@ -202,6 +202,108 @@
         color: #666;
         display: none;
       }
+
+      .policy-links {
+        text-align: center;
+        margin-top: 15px;
+        padding: 10px 0;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .policy-links a {
+        color: #06c755;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+
+      .policy-links a:hover {
+        text-decoration: underline;
+      }
+
+      .policy-links .separator {
+        color: #ccc;
+        margin: 0 5px;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        max-width: 90%;
+        max-height: 80%;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .modal-header h3 {
+        color: #06c755;
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .modal-body {
+        line-height: 1.6;
+        margin-bottom: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .modal-body h4 {
+        color: #333;
+        margin: 20px 0 10px 0;
+        font-weight: 500;
+      }
+
+      .modal-body p {
+        margin: 10px 0;
+        color: #555;
+      }
+
+      .modal-footer {
+        text-align: center;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 15px;
+      }
+
+      .consent-checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 15px 0;
+        gap: 10px;
+      }
+
+      .consent-checkbox input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      .consent-checkbox label {
+        margin: 0;
+        font-weight: normal;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -226,6 +328,16 @@
         </div>
       </div>
       <div class="line-brand">多功能平台-綁定與解除-v1.0.0.9</div>
+
+      <!-- 政策連結 -->
+      <div class="policy-links">
+        <a href="privacy-policy.html" target="_blank">隱私權政策</a>
+        <span class="separator">|</span>
+        <a href="data-collection-policy.html" target="_blank"
+          >個人資料搜集政策</a
+        >
+      </div>
+
       <!-- 註冊表單 -->
       <form id="registerForm" class="hidden">
         <div class="form-group">
@@ -402,9 +514,132 @@
       <div id="debugInfo" class="debug-info"></div>
     </div>
 
+    <!-- 個人資料搜集政策彈出視窗 -->
+    <div id="dataCollectionModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>個人資料搜集政策</h3>
+        </div>
+        <div class="modal-body">
+          <h4>一、個人資料搜集目的</h4>
+          <p>本系統依據個人資料保護法規定，向您搜集個人資料，搜集目的如下：</p>
+          <p>1. 員工身分確認與權限管控</p>
+          <p>2. 內部系統功能使用與管理</p>
+          <p>3. 業務聯繫與通知服務</p>
+          <p>4. 統計分析與服務改善</p>
+
+          <h4>二、搜集的個人資料類別</h4>
+          <p>1. 識別資料：姓名、員工編號</p>
+          <p>2. 特徵資料：公司別、部門、職稱</p>
+          <p>3. 技術性資料：LINE 用戶識別碼、頻道識別碼</p>
+
+          <h4>三、個人資料利用期間</h4>
+          <p>自搜集之日起至您主動解除綁定或離職為止。</p>
+
+          <h4>四、個人資料利用地區</h4>
+          <p>台灣地區。</p>
+
+          <h4>五、個人資料利用對象</h4>
+          <p>本公司及其關係企業。</p>
+
+          <h4>六、當事人權利</h4>
+          <p>
+            您對於本系統蒐集之個人資料，得依個人資料保護法規定，行使查詢、閱覽、複製、補充、更正、刪除及停止搜集、處理或利用之權利。
+          </p>
+
+          <h4>七、聯絡方式</h4>
+          <p>如您對本政策有任何疑問，請聯繫資訊中心。</p>
+        </div>
+        <div id="dataCollectionConsentSection" class="consent-checkbox hidden">
+          <input type="checkbox" id="dataCollectionConsent" />
+          <label for="dataCollectionConsent"
+            >我已閱讀並同意個人資料搜集政策</label
+          >
+        </div>
+        <div class="modal-footer">
+          <button
+            id="dataCollectionCloseBtn"
+            class="secondary-button"
+            onclick="closeDataCollectionModal()"
+          >
+            關閉
+          </button>
+          <button
+            id="dataCollectionAgreeBtn"
+            class="hidden"
+            onclick="agreeDataCollection()"
+            disabled
+          >
+            同意並繼續
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 隱私權政策彈出視窗 -->
+    <div id="privacyModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>隱私權政策</h3>
+        </div>
+        <div class="modal-body">
+          <h4>一、隱私權保護政策適用範圍</h4>
+          <p>
+            本隱私權保護政策適用於本多功能平台系統內所有相關的網頁與應用程式。
+          </p>
+
+          <h4>二、個人資料的搜集、處理及利用方式</h4>
+          <p>
+            當您使用本系統服務時，我們會依據服務功能需要，搜集您的個人資料，並在合理範圍內處理及利用您的個人資料。
+          </p>
+
+          <h4>三、資料之保護</h4>
+          <p>
+            1.
+            本系統主機設有防火牆、防毒系統等相關的各項資訊安全設備及必要的安全防護措施。
+          </p>
+          <p>
+            2.
+            僅有經過授權的人員才能接觸您的個人資料，相關處理人員皆簽有保密合約。
+          </p>
+          <p>
+            3.
+            如因業務需要有必要委託相關單位提供服務時，本公司亦會嚴格要求其遵守保密義務。
+          </p>
+
+          <h4>四、網站對外的相關連結</h4>
+          <p>
+            本系統網頁提供其他網站的網路連結，您也可經由本系統連結至其他網站。但該連結網站不適用本系統的隱私權保護政策，您必須參考該連結網站中的隱私權保護政策。
+          </p>
+
+          <h4>五、與第三人共用個人資料之政策</h4>
+          <p>
+            本系統絕不會提供、交換、出租或出售任何您的個人資料給其他個人、團體、私人企業或公務機關，但有法律依據或合約義務者，不在此限。
+          </p>
+
+          <h4>六、Cookie之使用</h4>
+          <p>
+            為了提供您最佳的服務，本系統會在您的電腦中放置並取用Cookie，若您不願接受Cookie的寫入，您可在您使用的瀏覽器功能項中設定隱私權等級為高，即可拒絕Cookie的寫入，但可能會導致網站某些功能無法正常執行。
+          </p>
+
+          <h4>七、隱私權保護政策之修正</h4>
+          <p>
+            本系統隱私權保護政策將因應需求隨時進行修正，修正後的條款將刊登於網站上。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-button" onclick="closePrivacyModal()">
+            關閉
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // 全局變量記錄初始化狀態
       let liffInitialized = false
+      let dataCollectionAgreed = false // 記錄是否已同意個人資料搜集政策
+
       const base_url = (() => {
         // 檢查是否為本地開發環境
         if (
@@ -418,6 +653,7 @@
       })()
       const channelId = "2006992891" //不同的服務要修改
       const liffId = "2006993665-PVAXZjA1".trim()
+
       // 初始化 LIFF
       window.onload = async function () {
         try {
@@ -429,80 +665,84 @@
         }
       }
 
-      // 顯示載入中
-      function showLoading() {
-        document.getElementById("loading-overlay").classList.remove("hidden")
-      }
+      // 顯示個人資料搜集政策
+      function showDataCollectionPolicy() {
+        document
+          .getElementById("dataCollectionModal")
+          .classList.remove("hidden")
 
-      // 隱藏載入中
-      function hideLoading() {
-        document.getElementById("loading-overlay").classList.add("hidden")
-      }
-
-      // 顯示調試信息
-      function showDebugInfo(info) {
-        const debugElement = document.getElementById("debugInfo")
-        debugElement.style.display = "block"
-        debugElement.innerHTML += info + "<br>"
-      }
-
-      // 初始化 LIFF SDK
-      async function initLIFF() {
-        try {
-          // 確保 LIFF ID 格式正確（去除可能的空格）
-          await liff.init({ liffId: liffId })
-
-          // 記錄初始化成功
-          liffInitialized = true
-          console.log("LIFF 初始化成功")
-          console.log("是否在 LINE 瀏覽器中:", liff.isInClient())
-          console.log("LIFF SDK 版本:", liff.getVersion())
-          console.log("裝置資訊:", navigator.userAgent)
-
-          if (!liff.isLoggedIn()) {
-            console.log("用戶未登入，引導登入...")
-            // 如果用戶尚未登入 LINE，則引導登入
-            liff.login()
-            // 登入後會重新載入頁面，所以下面的代碼不會執行
-            return
-          }
-
-          // 用戶已登入，獲取用戶資料
-          try {
-            const profile = await liff.getProfile()
-
-            showDebugInfo("ChannelId: " + channelId)
-
-            const userId = profile.userId
-            document.getElementById("userId").value = userId
-            document.getElementById("channelId").value = channelId
-
-            // 自動填入姓名
-            document.getElementById("name").value = profile.displayName || ""
-
-            console.log("用戶已登入:", profile.displayName)
-
-            // 檢查用戶是否已存在
-            await checkUserExists(userId, channelId)
-          } catch (profileError) {
-            console.error("獲取用戶資料失敗:", profileError)
-            showStatusMessage("無法獲取用戶資料，請確保已授權應用程式", "error")
-            showDebugInfo("獲取用戶資料失敗: " + profileError.message)
-            hideLoading()
-          }
-        } catch (error) {
-          console.error("LIFF 初始化失敗:", error)
-          showStatusMessage(
-            "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
-            "error"
-          )
-          showDebugInfo("LIFF 初始化失敗: " + error.message)
-          liffInitialized = false
-          hideLoading()
+        // 檢查是否需要顯示同意機制（未綁定且未同意）
+        const isRegisterFormVisible = !document
+          .getElementById("registerForm")
+          .classList.contains("hidden")
+        if (isRegisterFormVisible && !dataCollectionAgreed) {
+          document
+            .getElementById("dataCollectionConsentSection")
+            .classList.remove("hidden")
+          document
+            .getElementById("dataCollectionAgreeBtn")
+            .classList.remove("hidden")
+          document.getElementById("dataCollectionCloseBtn").style.display =
+            "none"
         }
       }
 
-      // 檢查用戶是否已經存在
+      // 顯示隱私權政策
+      function showPrivacyPolicy() {
+        document.getElementById("privacyModal").classList.remove("hidden")
+      }
+
+      // 關閉個人資料搜集政策彈出視窗
+      function closeDataCollectionModal() {
+        document.getElementById("dataCollectionModal").classList.add("hidden")
+      }
+
+      // 關閉隱私權政策彈出視窗
+      function closePrivacyModal() {
+        document.getElementById("privacyModal").classList.add("hidden")
+      }
+
+      // 同意個人資料搜集政策
+      function agreeDataCollection() {
+        const checkbox = document.getElementById("dataCollectionConsent")
+        if (!checkbox.checked) {
+          alert("請先勾選同意個人資料搜集政策")
+          return
+        }
+
+        dataCollectionAgreed = true
+        localStorage.setItem("dataCollectionAgreed", "true") // 儲存同意狀態
+        closeDataCollectionModal()
+        showStatusMessage(
+          "感謝您同意個人資料搜集政策，現在可以開始使用服務",
+          "success"
+        )
+
+        // 顯示註冊表單
+        setTimeout(() => {
+          document.getElementById("registerForm").classList.remove("hidden")
+        }, 1000)
+      }
+
+      // 監聽同意勾選框變化
+      document.addEventListener("DOMContentLoaded", function () {
+        const checkbox = document.getElementById("dataCollectionConsent")
+        const agreeBtn = document.getElementById("dataCollectionAgreeBtn")
+
+        if (checkbox && agreeBtn) {
+          checkbox.addEventListener("change", function () {
+            agreeBtn.disabled = !this.checked
+          })
+        }
+
+        // 檢查是否已經同意過
+        const previousAgreement = localStorage.getItem("dataCollectionAgreed")
+        if (previousAgreement === "true") {
+          dataCollectionAgreed = true
+        }
+      })
+
+      // 檢查用戶是否已經存在（修改版本）
       async function checkUserExists(userId, channelId) {
         try {
           const response = await fetch(base_url + "User/checkUser", {
@@ -535,9 +775,17 @@
               .getElementById("unbindConfirmation")
               .classList.remove("hidden")
           } else if (response.status === 404) {
-            // 用戶不存在，顯示註冊表單
+            // 用戶不存在，檢查是否需要顯示政策同意
             console.log("用戶不存在，顯示註冊表單")
-            document.getElementById("registerForm").classList.remove("hidden")
+
+            // 檢查是否已同意個人資料搜集政策
+            if (!dataCollectionAgreed) {
+              // 顯示個人資料搜集政策並要求同意
+              showDataCollectionPolicy()
+            } else {
+              // 已同意，直接顯示註冊表單
+              document.getElementById("registerForm").classList.remove("hidden")
+            }
           } else {
             // 其他錯誤情況
             console.error("檢查用戶存在性返回非預期狀態:", response.status)
@@ -657,6 +905,13 @@
 
       // 提交表單
       async function submitForm() {
+        // 檢查是否已同意個人資料搜集政策
+        if (!dataCollectionAgreed) {
+          showStatusMessage("請先同意個人資料搜集政策後再提交表單", "error")
+          showDataCollectionPolicy()
+          return
+        }
+
         // 進行詳細表單驗證
         let isValid = true
 
