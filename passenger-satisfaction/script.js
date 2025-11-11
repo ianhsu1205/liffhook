@@ -6,7 +6,7 @@
             return window.location.origin + '/api';
         }
         // 生產環境使用指定的後端地址（包含 /api）
-        return 'https://35.221.146.143.nip.io/linehook/api';
+        return 'https://35.221.146.143.nip.io/linehook';
     })();
     
     // 自動偵測可用的 API 路徑（僅生產環境）
