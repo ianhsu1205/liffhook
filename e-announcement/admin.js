@@ -2332,8 +2332,14 @@ async function viewSignatureDetail(recordId) {
     }
 }
 
-// 匯出單一記錄PDF
+// 匯出單一記錄PDF - 暫時停用功能
 async function exportRecordPdf(recordId) {
+    // 暫時停用PDF匯出功能，防止誤點導致後端問題
+    showAlert('PDF 匯出功能暫時停用中，請稍後再試', 'warning');
+    return;
+    
+    /*
+    // 原始代碼已暫時註解，待後端修復後恢復
     try {
         // 顯示開始匯出訊息
         showAlert('正在匯出PDF，請稍候...', 'info');
@@ -2378,10 +2384,17 @@ async function exportRecordPdf(recordId) {
         console.error('匯出PDF失敗:', error);
         showAlert('PDF匯出失敗，請重新嘗試', 'error');
     }
+    */
 }
 
-// 下載所有記錄的PDF
+// 下載所有記錄的PDF - 暫時停用功能
 async function downloadRecordsPDF() {
+    // 暫時停用PDF匯出功能，防止誤點導致後端問題
+    showAlert('PDF 匯出功能暫時停用中，請稍後再試', 'warning');
+    return;
+    
+    /*
+    // 原始代碼已暫時註解，待後端修復後恢復
     if (!currentAnnouncementId) {
         showAlert('無法取得宣導專案資訊', 'error');
         return;
@@ -2431,6 +2444,7 @@ async function downloadRecordsPDF() {
         console.error('下載PDF失敗:', error);
         showAlert('下載失敗，請重新嘗試', 'error');
     }
+    */
 }
 
 // 記錄管理相關事件處理函數
