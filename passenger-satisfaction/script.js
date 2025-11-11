@@ -1,43 +1,13 @@
 (() => {
-    // API 基礎 URL - 支援分離式部署
-    let API_BASE = (() => {
+    // API 基礎 URL
+    const API_BASE = (() => {
         // 檢查是否為本地開發環境
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return window.location.origin + '/api';
         }
-        // 生產環境使用指定的後端地址（包含 /api）
+        // 生產環境使用指定的後端地址
         return 'https://35.221.146.143.nip.io/linehook';
     })();
-    
-    // 自動偵測可用的 API 路徑（僅生產環境）
-    async function detectApiBase() {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return; // 本地環境不需要偵測
-        }
-        
-        const possiblePaths = [
-            'https://35.221.146.143.nip.io/linehook/api',
-            'https://35.221.146.143.nip.io/api',
-            'https://35.221.146.143.nip.io/linehook',
-            'https://35.221.146.143.nip.io'
-        ];
-        
-        for (const basePath of possiblePaths) {
-            try {
-                const testUrl = `${basePath}/TdxRouteInfo/names?take=1`;
-                const response = await fetch(testUrl);
-                if (response.ok) {
-                    console.log(`✅ 找到可用的 API 路徑: ${basePath}`);
-                    API_BASE = basePath;
-                    return;
-                }
-            } catch (error) {
-                console.log(`❌ 無法連接: ${basePath}`);
-            }
-        }
-        
-        console.warn('⚠️ 無法找到可用的 API 路徑，使用預設路徑');
-    }
     
     // DOM 元素
     const form = document.getElementById('satisfactionForm');
@@ -58,9 +28,6 @@
 
     async function initializePage() {
         try {
-            // 自動偵測 API 路徑（生產環境）
-            await detectApiBase();
-            
             // 設置預設日期為今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('searchDate').value = today;
