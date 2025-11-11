@@ -304,6 +304,14 @@
         font-weight: normal;
         cursor: pointer;
       }
+
+      /* 確保彈出視窗中的按鈕在移動端容易點擊 */
+      .modal-footer button {
+        min-height: 44px;
+        min-width: 80px;
+        font-size: 16px;
+        touch-action: manipulation;
+      }
     </style>
   </head>
   <body>
@@ -327,15 +335,13 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.0.9</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.0</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
-        <a href="privacy-policy.html" target="_blank">隱私權政策</a>
+        <a href="#" onclick="showPrivacyPolicy()">隱私權政策</a>
         <span class="separator">|</span>
-        <a href="data-collection-policy.html" target="_blank"
-          >個人資料搜集政策</a
-        >
+        <a href="#" onclick="showDataCollectionPolicy()">個人資料搜集政策</a>
       </div>
 
       <!-- 註冊表單 -->
@@ -515,8 +521,12 @@
     </div>
 
     <!-- 個人資料搜集政策彈出視窗 -->
-    <div id="dataCollectionModal" class="modal-overlay hidden">
-      <div class="modal-content">
+    <div
+      id="dataCollectionModal"
+      class="modal-overlay hidden"
+      onclick="closeDataCollectionModalIfBackground(event)"
+    >
+      <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>個人資料搜集政策</h3>
         </div>
@@ -577,8 +587,12 @@
     </div>
 
     <!-- 隱私權政策彈出視窗 -->
-    <div id="privacyModal" class="modal-overlay hidden">
-      <div class="modal-content">
+    <div
+      id="privacyModal"
+      class="modal-overlay hidden"
+      onclick="closePrivacyModalIfBackground(event)"
+    >
+      <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <h3>隱私權政策</h3>
         </div>
@@ -667,9 +681,16 @@
 
       // 顯示個人資料搜集政策
       function showDataCollectionPolicy() {
-        document
-          .getElementById("dataCollectionModal")
-          .classList.remove("hidden")
+        console.log("顯示個人資料搜集政策")
+        const modal = document.getElementById("dataCollectionModal")
+        if (modal) {
+          modal.classList.remove("hidden")
+          // 防止背景滾動
+          document.body.style.overflow = "hidden"
+          console.log("個人資料搜集政策彈出視窗已顯示")
+        } else {
+          console.error("找不到個人資料搜集政策彈出視窗元素")
+        }
 
         // 檢查是否需要顯示同意機制（未綁定且未同意）
         const isRegisterFormVisible = !document
@@ -689,17 +710,58 @@
 
       // 顯示隱私權政策
       function showPrivacyPolicy() {
-        document.getElementById("privacyModal").classList.remove("hidden")
+        console.log("顯示隱私權政策")
+        const modal = document.getElementById("privacyModal")
+        if (modal) {
+          modal.classList.remove("hidden")
+          // 防止背景滾動
+          document.body.style.overflow = "hidden"
+          console.log("隱私權政策彈出視窗已顯示")
+        } else {
+          console.error("找不到隱私權政策彈出視窗元素")
+        }
       }
 
       // 關閉個人資料搜集政策彈出視窗
       function closeDataCollectionModal() {
-        document.getElementById("dataCollectionModal").classList.add("hidden")
+        console.log("關閉個人資料搜集政策")
+        const modal = document.getElementById("dataCollectionModal")
+        if (modal) {
+          modal.classList.add("hidden")
+          // 恢復背景滾動
+          document.body.style.overflow = ""
+          console.log("個人資料搜集政策彈出視窗已關閉")
+        } else {
+          console.error("找不到個人資料搜集政策彈出視窗元素")
+        }
+      }
+
+      // 點擊背景關閉個人資料搜集政策彈出視窗
+      function closeDataCollectionModalIfBackground(event) {
+        if (event.target === event.currentTarget) {
+          closeDataCollectionModal()
+        }
       }
 
       // 關閉隱私權政策彈出視窗
       function closePrivacyModal() {
-        document.getElementById("privacyModal").classList.add("hidden")
+        console.log("關閉隱私權政策")
+        const modal = document.getElementById("privacyModal")
+        if (modal) {
+          modal.classList.add("hidden")
+          // 恢復背景滾動
+          document.body.style.overflow = ""
+          console.log("隱私權政策彈出視窗已關閉")
+        } else {
+          console.error("找不到隱私權政策彈出視窗元素")
+        }
+      }
+
+      // 點擊背景關閉隱私權政策彈出視窗
+      function closePrivacyModalIfBackground(event) {
+        if (event.target === event.currentTarget) {
+          closePrivacyModal()
+        }
       }
 
       // 同意個人資料搜集政策
@@ -740,6 +802,15 @@
         if (previousAgreement === "true") {
           dataCollectionAgreed = true
         }
+
+        // 添加 ESC 鍵關閉彈出視窗功能
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+            // 關閉所有開啟的彈出視窗
+            closeDataCollectionModal()
+            closePrivacyModal()
+          }
+        })
       })
 
       // 檢查用戶是否已經存在（修改版本）
