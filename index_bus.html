@@ -191,7 +191,19 @@
         }
       }
       .hidden {
-        display: none;
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+
+      /* 確保模態框隱藏時完全不可見 */
+      .modal-overlay.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -9999 !important;
       }
       .debug-info {
         margin-top: 20px;
@@ -360,7 +372,7 @@
           </button>
         </div>
       </div>
-      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.1</div>
+      <div class="line-brand">多功能平台-綁定與解除-v1.0.1.2</div>
 
       <!-- 政策連結 -->
       <div class="policy-links">
@@ -888,12 +900,44 @@
       // 初始化 LIFF
       window.onload = async function () {
         try {
+          // 確保模態框在頁面加載時完全隱藏
+          resetAllModals()
+
           await initLIFF()
         } catch (error) {
           console.error("頁面載入時發生錯誤:", error)
           showStatusMessage("載入頁面時發生錯誤，請重新整理頁面", "error")
           hideLoading()
         }
+      }
+
+      // 重置所有模態框狀態
+      function resetAllModals() {
+        console.log("重置所有模態框狀態")
+
+        const privacyModal = document.getElementById("privacyModal")
+        const dataModal = document.getElementById("dataCollectionModal")
+
+        if (privacyModal) {
+          privacyModal.classList.add("hidden")
+          privacyModal.style.display = "none"
+          privacyModal.style.visibility = "hidden"
+          privacyModal.style.opacity = "0"
+          privacyModal.style.pointerEvents = "none"
+          privacyModal.style.zIndex = "-9999"
+        }
+
+        if (dataModal) {
+          dataModal.classList.add("hidden")
+          dataModal.style.display = "none"
+          dataModal.style.visibility = "hidden"
+          dataModal.style.opacity = "0"
+          dataModal.style.pointerEvents = "none"
+          dataModal.style.zIndex = "-9999"
+        }
+
+        document.body.style.overflow = ""
+        console.log("所有模態框已重置為隱藏狀態")
       }
 
       // 顯示載入中
@@ -972,24 +1016,25 @@
       // 顯示個人資料搜集政策
       function showDataCollectionPolicy() {
         console.log("顯示個人資料搜集政策")
+
+        // 先重置所有模態框
+        resetAllModals()
+
         const modal = document.getElementById("dataCollectionModal")
         if (modal) {
+          // 清除所有隱藏樣式
           modal.classList.remove("hidden")
-          // 防止背景滾動
+          modal.style.display = ""
+          modal.style.visibility = ""
+          modal.style.opacity = ""
+          modal.style.pointerEvents = ""
+          modal.style.zIndex = ""
+
           document.body.style.overflow = "hidden"
           console.log("個人資料搜集政策彈出視窗已顯示")
-
-          // 顯示關閉提示
-          setTimeout(function () {
-            console.log(
-              "提示：您可以按 ESC 鍵、雙擊頁面、或長按 1.5 秒來關閉視窗"
-            )
-          }, 2000)
-        } else {
-          console.error("找不到個人資料搜集政策彈出視窗元素")
         }
 
-        // 檢查是否需要顯示同意機制（未綁定且未同意）
+        // 檢查是否需要顯示同意機制
         const isRegisterFormVisible = !document
           .getElementById("registerForm")
           .classList.contains("hidden")
@@ -1008,48 +1053,22 @@
       // 顯示隱私權政策
       function showPrivacyPolicy() {
         console.log("顯示隱私權政策")
+
+        // 先重置所有模態框
+        resetAllModals()
+
         const modal = document.getElementById("privacyModal")
         if (modal) {
+          // 清除所有隱藏樣式
           modal.classList.remove("hidden")
-          // 防止背景滾動
+          modal.style.display = ""
+          modal.style.visibility = ""
+          modal.style.opacity = ""
+          modal.style.pointerEvents = ""
+          modal.style.zIndex = ""
+
           document.body.style.overflow = "hidden"
           console.log("隱私權政策彈出視窗已顯示")
-
-          // 顯示關閉提示
-          setTimeout(function () {
-            console.log(
-              "提示：您可以按 ESC 鍵、雙擊頁面、或長按 1.5 秒來關閉視窗"
-            )
-          }, 2000)
-
-          // 添加一個臨時的全域點擊監聽器來強制關閉
-          setTimeout(() => {
-            document.addEventListener("click", forceCloseOnClick, true)
-          }, 100)
-        } else {
-          console.error("找不到隱私權政策彈出視窗元素")
-        }
-      }
-
-      // 強制點擊關閉處理器
-      function forceCloseOnClick(event) {
-        const modal = document.getElementById("privacyModal")
-        const dataModal = document.getElementById("dataCollectionModal")
-
-        if (modal && !modal.classList.contains("hidden")) {
-          const modalContent = modal.querySelector(".modal-content")
-          if (!modalContent.contains(event.target)) {
-            closePrivacyModal()
-            document.removeEventListener("click", forceCloseOnClick, true)
-          }
-        }
-
-        if (dataModal && !dataModal.classList.contains("hidden")) {
-          const modalContent = dataModal.querySelector(".modal-content")
-          if (!modalContent.contains(event.target)) {
-            closeDataCollectionModal()
-            document.removeEventListener("click", forceCloseOnClick, true)
-          }
         }
       }
 
@@ -1058,12 +1077,19 @@
         console.log("關閉個人資料搜集政策")
         const modal = document.getElementById("dataCollectionModal")
         if (modal) {
+          // 使用多種方式確保模態框被隱藏
           modal.classList.add("hidden")
-          // 恢復背景滾動
+          modal.style.display = "none"
+          modal.style.visibility = "hidden"
+          modal.style.opacity = "0"
+          modal.setAttribute("aria-hidden", "true")
+
+          // 強制移除所有可能的顯示類
+          modal.classList.remove("show", "visible", "active")
+
           document.body.style.overflow = ""
           console.log("個人資料搜集政策彈出視窗已關閉")
-        } else {
-          console.error("找不到個人資料搜集政策彈出視窗元素")
+          console.log("模態框當前樣式:", modal.style.cssText)
         }
       }
 
@@ -1079,14 +1105,19 @@
         console.log("關閉隱私權政策")
         const modal = document.getElementById("privacyModal")
         if (modal) {
+          // 使用多種方式確保模態框被隱藏
           modal.classList.add("hidden")
-          // 恢復背景滾動
+          modal.style.display = "none"
+          modal.style.visibility = "hidden"
+          modal.style.opacity = "0"
+          modal.setAttribute("aria-hidden", "true")
+
+          // 強制移除所有可能的顯示類
+          modal.classList.remove("show", "visible", "active")
+
           document.body.style.overflow = ""
-          // 移除全域點擊監聽器
-          document.removeEventListener("click", forceCloseOnClick, true)
           console.log("隱私權政策彈出視窗已關閉")
-        } else {
-          console.error("找不到隱私權政策彈出視窗元素")
+          console.log("模態框當前樣式:", modal.style.cssText)
         }
       }
 
@@ -1134,107 +1165,6 @@
         const previousAgreement = localStorage.getItem("dataCollectionAgreed")
         if (previousAgreement === "true") {
           dataCollectionAgreed = true
-        }
-
-        // 添加 ESC 鍵關閉彈出視窗功能
-        document.addEventListener("keydown", function (event) {
-          if (event.key === "Escape") {
-            console.log("檢測到ESC鍵，關閉所有模態框")
-            // 關閉所有開啟的彈出視窗
-            closeDataCollectionModal()
-            closePrivacyModal()
-          }
-        })
-
-        // 雙擊頁面任何地方關閉模態框（應急機制）
-        let clickCount = 0
-        document.addEventListener("click", function () {
-          clickCount++
-          setTimeout(function () {
-            if (clickCount >= 2) {
-              console.log("檢測到雙擊，應急關閉所有模態框")
-              closePrivacyModal()
-              closeDataCollectionModal()
-            }
-            clickCount = 0
-          }, 300)
-        })
-
-        // 長按應急關閉（移動裝置）
-        let touchTimeout
-        document.addEventListener("touchstart", function (event) {
-          touchTimeout = setTimeout(function () {
-            console.log("檢測到長按，應急關閉所有模態框")
-            closePrivacyModal()
-            closeDataCollectionModal()
-          }, 1500) // 1.5秒長按
-        })
-
-        document.addEventListener("touchend", function () {
-          if (touchTimeout) {
-            clearTimeout(touchTimeout)
-            touchTimeout = null
-          }
-        })
-
-        // 為關閉按鈕添加額外的事件監聽器，確保能夠關閉
-        const dataCloseBtn = document.getElementById("dataCollectionCloseBtn")
-        if (dataCloseBtn) {
-          dataCloseBtn.addEventListener("click", function (e) {
-            e.preventDefault()
-            e.stopPropagation()
-            console.log("個人資料搜集政策關閉按鈕被點擊")
-            closeDataCollectionModal()
-          })
-        }
-
-        const privacyCloseBtn = document.querySelector(
-          "#privacyModal .secondary-button"
-        )
-        if (privacyCloseBtn) {
-          privacyCloseBtn.addEventListener("click", function (e) {
-            e.preventDefault()
-            e.stopPropagation()
-            console.log("隱私權政策關閉按鈕被點擊")
-            closePrivacyModal()
-          })
-
-          // 添加雙擊事件作為備用
-          privacyCloseBtn.addEventListener("dblclick", function (e) {
-            e.preventDefault()
-            e.stopPropagation()
-            console.log("隱私權政策關閉按鈕被雙擊")
-            closePrivacyModal()
-          })
-
-          // 添加觸摸事件
-          privacyCloseBtn.addEventListener("touchend", function (e) {
-            e.preventDefault()
-            e.stopPropagation()
-            console.log("隱私權政策關閉按鈕被觸摸")
-            closePrivacyModal()
-          })
-        }
-
-        // 為整個彈出視窗添加應急關閉方法
-        const privacyModal = document.getElementById("privacyModal")
-        if (privacyModal) {
-          privacyModal.addEventListener("dblclick", function (e) {
-            if (e.target === privacyModal) {
-              console.log("隱私權政策彈出視窗背景被雙擊")
-              closePrivacyModal()
-            }
-          })
-        }
-
-        const dataModal = document.getElementById("dataCollectionModal")
-        if (dataModal) {
-          dataModal.addEventListener("dblclick", function (e) {
-            if (e.target === dataModal) {
-              console.log("個人資料搜集政策彈出視窗背景被雙擊")
-              closeDataCollectionModal()
-            }
-          })
         }
       })
 
