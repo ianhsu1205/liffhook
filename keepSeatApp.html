@@ -1614,7 +1614,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.30
+      保留座位申請 v1.0.0.31
     </footer>
 
     <script>
@@ -1701,9 +1701,6 @@
         // 關閉modal
         const modal = document.getElementById("dataCollectionModal")
         modal.classList.add("hidden")
-
-        // 顯示成功訊息
-        showSuccess("政策同意成功，您現在可以使用保留座位功能")
       }
 
       function handlePolicyReject() {
@@ -1713,21 +1710,16 @@
         const modal = document.getElementById("dataCollectionModal")
         modal.classList.add("hidden")
 
-        // 顯示訊息並關閉視窗
+        // 關閉視窗
         setTimeout(() => {
           if (liffInitialized && liff.isInClient()) {
             try {
               liff.closeWindow()
             } catch (e) {
               console.error("關閉視窗失敗:", e)
-              alert("請手動關閉此視窗")
             }
-          } else {
-            alert(
-              "由於您不同意個人資料收集政策，將關閉此功能。請手動關閉此視窗。"
-            )
           }
-        }, 1000)
+        }, 500)
       }
 
       function showPolicyOnPageLoad() {
