@@ -1014,10 +1014,282 @@
           height: 4px;
         }
       }
+
+      /* 個人資料收集政策Modal樣式 */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .modal-overlay.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 90%;
+        width: 480px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-header {
+        padding: 20px 20px 10px;
+        border-bottom: 2px solid #f0f0f0;
+        position: relative;
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 20px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .modal-body {
+        padding: 20px;
+        line-height: 1.6;
+        color: #444;
+        font-size: 14px;
+      }
+
+      .modal-body h4 {
+        color: #2c3e50;
+        font-size: 16px;
+        margin: 20px 0 10px 0;
+        font-weight: 600;
+      }
+
+      .modal-body p {
+        margin: 10px 0;
+      }
+
+      .modal-body ul {
+        margin: 10px 0;
+        padding-left: 20px;
+      }
+
+      .modal-body li {
+        margin: 5px 0;
+      }
+
+      .consent-checkbox {
+        padding: 15px 20px;
+        border-top: 2px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .consent-checkbox.hidden {
+        display: none;
+      }
+
+      .consent-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .consent-checkbox label {
+        font-size: 16px;
+        color: #333;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .modal-footer {
+        padding: 15px 20px;
+        border-top: 2px solid #f0f0f0;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .modal-footer button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        min-width: 120px;
+        color: white;
+      }
+
+      .modal-footer button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .secondary-button {
+        background-color: #6c757d;
+      }
+
+      .secondary-button:hover:not(:disabled) {
+        background-color: #5a6268;
+      }
     </style>
   </head>
 
   <body>
+    <!-- 個人資料收集政策彈出視窗 -->
+    <div
+      id="dataCollectionModal"
+      class="modal-overlay hidden"
+      onclick="event.preventDefault(); event.stopPropagation();"
+    >
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>個人資料收集政策</h3>
+          <button
+            style="
+              position: absolute;
+              top: 10px;
+              right: 15px;
+              background: #dc3545;
+              color: white;
+              border: none;
+              border-radius: 50%;
+              width: 30px;
+              height: 30px;
+              cursor: pointer;
+              font-size: 18px;
+              line-height: 1;
+            "
+            onclick="handlePolicyReject()"
+            title="關閉"
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div
+            style="
+              background-color: #fff3cd;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #ffc107;
+              margin: 20px 0;
+            "
+          >
+            <strong>重要提醒：</strong
+            >本系統於保留座位服務中需要收集您的個人資料（包含手機號碼、姓名、性別等），依據「個人資料保護法」規定，向您說明收集、處理及利用個人資料之相關事項。
+          </div>
+
+          <h4>一、個人資料收集目的</h4>
+          <p>本系統基於以下目的收集您的個人資料：</p>
+          <ul>
+            <li>
+              <strong>保留座位服務提供：</strong>處理您的座位保留申請與管理
+            </li>
+            <li><strong>身分確認：</strong>確認申請人身分以提供相應服務</li>
+            <li>
+              <strong>聯絡通知：</strong>透過手機號碼進行身份確認及重要通知/li>
+            </li>
+            <li><strong>服務統計分析：</strong>分析使用情形以改善服務品質</li>
+          </ul>
+
+          <h4>二、收集的個人資料類別</h4>
+          <p>保留座位服務將收集以下個人資料：</p>
+          <ul>
+            <li><strong>基本識別資料：</strong>姓名、性別</li>
+            <li><strong>聯絡資料：</strong>手機號碼</li>
+            <li><strong>技術性資料：</strong>LINE用戶識別碼、使用記錄</li>
+            <li><strong>服務相關資料：</strong>座位偏好、申請記錄</li>
+          </ul>
+
+          <h4>三、個人資料利用期間、地區、對象及方式</h4>
+          <p>
+            <strong>利用期間：</strong>自收集之日起至服務結束或您要求刪除為止。
+          </p>
+          <p><strong>利用地區：</strong>中華民國境內。</p>
+          <p><strong>利用對象：</strong>本公司及其授權之系統管理人員。</p>
+          <p><strong>利用方式：</strong>透過資訊系統進行自動化處理。</p>
+
+          <h4>四、當事人權利</h4>
+          <p>您對於個人資料享有以下權利：</p>
+          <ul>
+            <li>查詢或請求閱覽您的個人資料</li>
+            <li>請求製給複製本</li>
+            <li>請求補充或更正不正確的資料</li>
+            <li>請求停止收集、處理或利用</li>
+            <li>請求刪除個人資料</li>
+          </ul>
+
+          <h4>五、不提供個人資料之影響</h4>
+          <p>若您選擇不提供個人資料，將無法使用保留座位服務功能。</p>
+
+          <h4>六、聯絡方式</h4>
+          <p>如有任何疑問，請聯絡：</p>
+          <ul>
+            <li><strong>聯絡部門：</strong>資訊中心</li>
+            <li><strong>聯絡方式：</strong>02-87920358 #622~625</li>
+            <li>
+              <strong>服務時間：</strong>週一至週五 08:00-17:00（國定假日除外）
+            </li>
+          </ul>
+
+          <div
+            style="
+              background-color: #fff3cd;
+              padding: 15px;
+              border-radius: 8px;
+              border-left: 4px solid #ffc107;
+              margin: 20px 0;
+            "
+          >
+            <strong>同意聲明：</strong
+            >當您點擊「同意並繼續」按鈕時，即表示您已詳細閱讀、充分了解並同意本個人資料收集政策之所有內容。
+          </div>
+        </div>
+
+        <div class="consent-checkbox">
+          <input type="checkbox" id="dataCollectionConsent" />
+          <label for="dataCollectionConsent"
+            >我已閱讀並同意個人資料收集政策</label
+          >
+        </div>
+
+        <div class="modal-footer">
+          <button
+            id="dataCollectionRejectBtn"
+            class="secondary-button"
+            onclick="handlePolicyReject()"
+            style="background-color: #dc3545; color: white"
+          >
+            不同意並關閉
+          </button>
+          <button
+            id="dataCollectionAgreeBtn"
+            onclick="handlePolicyAgree()"
+            disabled
+            style="background-color: #28a745; color: white"
+          >
+            我已同意並確認
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 自訂確認對話方塊 -->
     <div id="confirmOverlay" class="confirm-overlay hidden">
       <div class="confirm-dialog">
@@ -1342,7 +1614,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.29
+      保留座位申請 v1.0.0.30
     </footer>
 
     <script>
@@ -1365,6 +1637,106 @@
       let currentUser = null
       let currentReservation = null
 
+      // 個人資料收集政策相關變數
+      let policyAgreed = false // 每次進入頁面都重置為false
+      let liffInitialized = false
+
+      // 個人資料收集政策相關函數
+      function showDataCollectionPolicy() {
+        console.log("顯示個人資料收集政策")
+        const modal = document.getElementById("dataCollectionModal")
+        const checkbox = document.getElementById("dataCollectionConsent")
+        const agreeBtn = document.getElementById("dataCollectionAgreeBtn")
+
+        // 重置checkbox和按鈕狀態
+        checkbox.checked = false
+        agreeBtn.disabled = true
+
+        modal.classList.remove("hidden")
+
+        // 設置checkbox事件監聽器
+        setupPolicyCheckboxListener()
+      }
+
+      // 儲存checkbox處理函數，避免重複綁定
+      let checkboxHandler = null
+
+      function setupPolicyCheckboxListener() {
+        const checkbox = document.getElementById("dataCollectionConsent")
+        const agreeBtn = document.getElementById("dataCollectionAgreeBtn")
+
+        // 移除之前的事件監聽器（如果存在）
+        if (checkboxHandler) {
+          checkbox.removeEventListener("change", checkboxHandler)
+        }
+
+        // 定義處理函數
+        checkboxHandler = function () {
+          agreeBtn.disabled = !checkbox.checked
+          console.log(
+            "Checkbox狀態:",
+            checkbox.checked,
+            "按鈕disabled:",
+            agreeBtn.disabled
+          )
+        }
+
+        // 添加新的事件監聽器
+        checkbox.addEventListener("change", checkboxHandler)
+
+        // 立即執行一次以確保初始狀態正確
+        checkboxHandler()
+      }
+
+      function handlePolicyAgree() {
+        const checkbox = document.getElementById("dataCollectionConsent")
+        if (!checkbox.checked) {
+          alert("請先勾選同意個人資料收集政策")
+          return
+        }
+
+        policyAgreed = true
+        console.log("用戶同意個人資料收集政策")
+
+        // 關閉modal
+        const modal = document.getElementById("dataCollectionModal")
+        modal.classList.add("hidden")
+
+        // 顯示成功訊息
+        showSuccess("政策同意成功，您現在可以使用保留座位功能")
+      }
+
+      function handlePolicyReject() {
+        console.log("用戶拒絕個人資料收集政策，關閉視窗")
+
+        // 關閉modal
+        const modal = document.getElementById("dataCollectionModal")
+        modal.classList.add("hidden")
+
+        // 顯示訊息並關閉視窗
+        setTimeout(() => {
+          if (liffInitialized && liff.isInClient()) {
+            try {
+              liff.closeWindow()
+            } catch (e) {
+              console.error("關閉視窗失敗:", e)
+              alert("請手動關閉此視窗")
+            }
+          } else {
+            alert(
+              "由於您不同意個人資料收集政策，將關閉此功能。請手動關閉此視窗。"
+            )
+          }
+        }, 1000)
+      }
+
+      function showPolicyOnPageLoad() {
+        // 每次進入頁面都顯示政策modal
+        setTimeout(() => {
+          showDataCollectionPolicy()
+        }, 500)
+      }
+
       // 調試函數
       // 初始化
       document.addEventListener("DOMContentLoaded", async function () {
@@ -1376,6 +1748,9 @@
           await loadStops()
           initializeEventListeners()
           await checkExistingReservation()
+
+          // 每次進入頁面都顯示個人資料收集政策
+          showPolicyOnPageLoad()
 
           showLoading(false)
         } catch (error) {
@@ -1389,9 +1764,11 @@
       async function initializeLiff() {
         try {
           await liff.init({ liffId: "2007942695-GA2M48Aj" })
+          liffInitialized = true
           console.log("LIFF 初始化成功")
         } catch (error) {
           console.error("LIFF 初始化失敗:", error)
+          liffInitialized = false
           throw error
         }
       }
@@ -2355,6 +2732,13 @@
       async function handleFormSubmit(e) {
         e.preventDefault()
 
+        // 檢查個人資料收集政策是否同意
+        if (!policyAgreed) {
+          showError("請先同意個人資料收集政策才能使用保留座位功能")
+          showDataCollectionPolicy()
+          return
+        }
+
         // 驗證所有欄位
         const isNameValid = validateName()
         const isPhoneValid = validatePhone()
@@ -2539,6 +2923,11 @@
         }
       }
 
+      // 顯示成功訊息
+      function showSuccess(message) {
+        alert(message)
+      }
+
       // 清除錯誤訊息
       function clearError(errorId, inputId) {
         const errorElement = document.getElementById(errorId)
@@ -2598,6 +2987,13 @@
 
       // 初始化座位顯示
       updateSeatDisplay()
+
+      // 開發者工具：重置政策同意狀態（可在瀏覽器控制台使用）
+      window.resetPolicyStatus = function () {
+        policyAgreed = false
+        console.log("政策同意狀態已重置")
+        showDataCollectionPolicy()
+      }
     </script>
 
     <!-- 站牌選取全頁視窗 -->
