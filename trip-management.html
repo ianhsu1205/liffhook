@@ -206,6 +206,25 @@
         color: white;
       }
 
+      /* 列印和通知次數徽章 */
+      .count-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+      }
+
       /* 停用動畫/轉場以避免重渲染時的抖動 */
       .no-anim,
       .no-anim * {
@@ -1225,7 +1244,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.41</h1>
+        <h1>都會之星座位保留系統 v1.0.0.42</h1>
         <p><span id="currentDate"></span></p>
       </div>
 
@@ -1761,6 +1780,9 @@
       }
 
       function initializePage() {
+        // 清除今日以前的趟次記錄
+        cleanupOldTripRecords()
+
         // 顯示當前日期
         updateCurrentDate()
 
@@ -1779,6 +1801,133 @@
             showError("載入資料失敗: " + error.message)
             showLoading(false)
           })
+      }
+
+      // 清除今日以前的趟次列印及通知次數記錄
+      function cleanupOldTripRecords() {
+        try {
+          const today = new Date().toISOString().split("T")[0] // 格式: YYYY-MM-DD
+          const keysToRemove = []
+
+          // 遍歷 localStorage 找出所有趟次計數記錄
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key && key.startsWith("trip_count_")) {
+              try {
+                const data = JSON.parse(localStorage.getItem(key))
+                // 如果記錄日期早於今天，標記為待刪除
+                if (data && data.date && data.date < today) {
+                  keysToRemove.push(key)
+                }
+              } catch (e) {
+                // 如果解析失敗，也刪除這個異常記錄
+                keysToRemove.push(key)
+              }
+            }
+          }
+
+          // 刪除過期記錄
+          keysToRemove.forEach((key) => {
+            localStorage.removeItem(key)
+            console.log(`已清除過期記錄: ${key}`)
+          })
+
+          if (keysToRemove.length > 0) {
+            console.log(`共清除 ${keysToRemove.length} 筆過期趟次計數記錄`)
+          }
+        } catch (error) {
+          console.error("清除舊記錄時發生錯誤:", error)
+        }
+      }
+
+      // 記錄趟次的列印或通知次數
+      function recordTripAction(tripId, actionType) {
+        try {
+          const today = new Date().toISOString().split("T")[0]
+          const key = `trip_count_${tripId}`
+          let data = { date: today, printCount: 0, notifyCount: 0 }
+
+          // 讀取現有記錄
+          const existing = localStorage.getItem(key)
+          if (existing) {
+            try {
+              data = JSON.parse(existing)
+              // 確保日期是今天的，否則重置
+              if (data.date !== today) {
+                data = { date: today, printCount: 0, notifyCount: 0 }
+              }
+            } catch (e) {
+              data = { date: today, printCount: 0, notifyCount: 0 }
+            }
+          }
+
+          // 增加對應的計數
+          if (actionType === "print") {
+            data.printCount = (data.printCount || 0) + 1
+          } else if (actionType === "notify") {
+            data.notifyCount = (data.notifyCount || 0) + 1
+          }
+
+          // 保存記錄
+          localStorage.setItem(key, JSON.stringify(data))
+          console.log(`記錄趟次 ${tripId} 的 ${actionType} 次數:`, data)
+        } catch (error) {
+          console.error("記錄趟次動作時發生錯誤:", error)
+        }
+      }
+
+      // 讀取趟次的列印和通知次數
+      function getTripActionCounts(tripId) {
+        try {
+          const today = new Date().toISOString().split("T")[0]
+          const key = `trip_count_${tripId}`
+          const existing = localStorage.getItem(key)
+
+          if (existing) {
+            const data = JSON.parse(existing)
+            // 只返回今天的記錄
+            if (data.date === today) {
+              return {
+                printCount: data.printCount || 0,
+                notifyCount: data.notifyCount || 0,
+              }
+            }
+          }
+        } catch (error) {
+          console.error("讀取趟次計數時發生錯誤:", error)
+        }
+        return { printCount: 0, notifyCount: 0 }
+      }
+
+      // 更新按鈕上的計數徽章
+      function updateCountBadge(tripId, actionType, count) {
+        const badgeId = `${actionType}-count-${tripId}`
+        const badge = document.getElementById(badgeId)
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count
+            badge.style.display = "inline-block"
+          } else {
+            badge.style.display = "none"
+          }
+        }
+      }
+
+      // 同步版本的 renderTrips，用於快速更新徽章
+      function renderTripsSync() {
+        const displayTrips = showCompletedTrips
+          ? trips.filter(
+              (t) => (t.status || "").toLowerCase().trim() === "completed"
+            )
+          : trips.filter(
+              (t) => (t.status || "").toLowerCase().trim() !== "completed"
+            )
+
+        displayTrips.forEach((trip) => {
+          const counts = getTripActionCounts(trip.tripId)
+          updateCountBadge(trip.tripId, "print", counts.printCount)
+          updateCountBadge(trip.tripId, "notify", counts.notifyCount)
+        })
       }
 
       function updateCurrentDate() {
@@ -2811,18 +2960,21 @@
                         <button class="btn btn-danger" onclick="deleteTrip('${trip.tripId}')">
                             🗑️ 刪除
                         </button>
-                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}')">
+                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}')" style="position: relative;">
                             🖨️ 列印
+                            <span id="print-count-${trip.tripId}" class="count-badge" style="display: none;"></span>
                         </button>
-                        <button class="btn btn-primary" onclick="notifyPassengers('${trip.tripId}')">
+                        <button class="btn btn-primary" onclick="notifyPassengers('${trip.tripId}')" style="position: relative;">
                             📱 通知
+                            <span id="notify-count-${trip.tripId}" class="count-badge" style="display: none;"></span>
                         </button>
                         <button class="btn btn-secondary" onclick="markTripCompleted('${trip.tripId}')">
                             ✅ 發車
                         </button>`
                             : `
-                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}', window.enableBrowserFallback)">
+                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}', window.enableBrowserFallback)" style="position: relative;">
                             🖨️ 列印
+                            <span id="print-count-${trip.tripId}" class="count-badge" style="display: none;"></span>
                         </button>
                         <button class="btn btn-secondary" disabled title="此趟已發車">
                             ✅ 已發車
@@ -2884,6 +3036,13 @@
         // 等待所有更新完成
         await Promise.all(updatePromises)
         console.log("所有趟次乘客資料更新完成")
+
+        // 更新所有趟次的列印和通知次數徽章
+        displayTrips.forEach((trip) => {
+          const counts = getTripActionCounts(trip.tripId)
+          updateCountBadge(trip.tripId, "print", counts.printCount)
+          updateCountBadge(trip.tripId, "notify", counts.notifyCount)
+        })
 
         // 重新初始化拖拽功能
         setTimeout(() => {
@@ -4169,6 +4328,10 @@
                 ? `通知發送成功：${result.message}`
                 : "通知發送成功！"
             )
+
+            // 記錄通知次數
+            recordTripAction(tripId, "notify")
+
             // 更新趟次狀態為已通知
             //await updateTripStatus(tripId, "notified")
 
@@ -4187,6 +4350,9 @@
                 console.log(`趟次 ${tripId} 的乘客列表已更新`)
               }
             }
+
+            // 更新徽章顯示
+            renderTripsSync()
           } else {
             throw new Error(response.statusText || "通知發送失敗")
           }
@@ -4354,6 +4520,13 @@
             window.addEventListener("afterprint", afterPrintHandler)
             // showNotification("正在使用瀏覽器列印...", "info")
             window.print()
+
+            // 記錄列印次數（在列印完成後）
+            setTimeout(() => {
+              recordTripAction(tripId, "print")
+              // 重新渲染趟次以更新顯示的計數
+              renderTripsSync()
+            }, 1000)
             setTimeout(() => {
               if (printContent.style.display !== "none") {
                 printContent.style.display = "none"
