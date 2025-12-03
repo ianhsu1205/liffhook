@@ -201,6 +201,10 @@
         color: white;
       }
 
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
       .btn-info {
         background: #17a2b8;
         color: white;
@@ -1244,7 +1248,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.42</h1>
+        <h1>都會之星座位保留系統 v1.0.0.43</h1>
         <p><span id="currentDate"></span></p>
       </div>
 
@@ -3177,7 +3181,8 @@
                           ? `<button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">手動分配</button>
                              <button class="btn btn-secondary btn-xs" disabled title="顯示已發車模式下不可排班">自動分配</button>`
                           : `<button class=\"btn btn-info btn-xs\" onclick=\"showManualAssignModal('${passenger.id}')\">手動分配</button>
-                             <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動分配</button>`
+                             <button class=\"btn btn-info btn-xs\" onclick=\"autoAssignSinglePassenger('${passenger.id}')\">自動分配</button>
+                             <button class=\"btn btn-danger btn-xs\" onclick=\"adminCancelReservation('${passenger.id}', null, '${passenger.name}')\" style=\"font-weight:bold;background:#e74c3c;border:1px solid #c0392b;\" title=\"服務人員代替乘客取消預約並發送LINE通知\">🚫 代取消</button>`
                       }
                   </div>
               </div>
@@ -3426,11 +3431,13 @@
                 ${
                   isCompletedView
                     ? ""
-                    : `<button class="btn btn-danger" onclick="removePassengerFromTrip('${
-                        passenger.id
-                      }', '${tripId}', ${
+                    : `<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:4px;">
+                        <button class="btn btn-danger" onclick="removePassengerFromTrip('${
+                          passenger.id
+                        }', '${tripId}', ${
                         passenger.seatCount || passenger.SeatCount || 1
-                      })" style="position:absolute;bottom:8px;right:8px;font-size:11px;padding:2px 6px;line-height:1;border-radius:4px;">移除</button>`
+                      })" style="font-size:11px;padding:2px 6px;line-height:1;border-radius:4px;" title="將乘客移回待分配（不會發送通知）">移除</button>
+                      </div>`
                 }
               </div>
             `
@@ -5098,6 +5105,71 @@
           updateStatistics() // 目前統計已移除，留存占位
         } catch (error) {
           showError("移除失敗: " + error.message)
+        }
+      }
+
+      /**
+       * 服務人員代替乘客取消預約
+       * @param {string} keepSeatId - 預約 ID
+       * @param {string} tripId - 趟次 ID
+       * @param {string} passengerName - 乘客姓名
+       */
+      async function adminCancelReservation(keepSeatId, tripId, passengerName) {
+        // 顯示確認對話框，要求輸入取消原因
+        const reason = prompt(
+          `確定要代替「${passengerName}」取消預約嗎？\n\n系統將自動發送 LINE 通知給乘客。\n請輸入取消原因（可選）：`,
+          "已電話通知乘客同意取消"
+        )
+
+        // 如果用戶按下取消，則不執行
+        if (reason === null) {
+          return
+        }
+
+        try {
+          const response = await fetch(
+            `${BASE_URL}/KeepSeat/admin-cancel-reservation`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                keepSeatId: keepSeatId,
+                reason: reason || "服務人員協助取消",
+              }),
+            }
+          )
+
+          if (response.ok) {
+            const result = await response.json()
+            showSuccess(
+              result?.message
+                ? `${result.message}\n乘客：${result.passengerName}`
+                : "已成功代替乘客取消預約並發送通知"
+            )
+
+            // 重新載入趟次和待分配乘客列表
+            await loadTrips()
+            await loadPendingPassengers()
+
+            // 如果有提供 tripId，則更新該趟次的乘客列表顯示
+            if (tripId) {
+              const passengersHtml = await renderTripPassengers(tripId)
+              const passengersContainer = document.getElementById(
+                `passengers-${tripId}`
+              )
+              if (passengersContainer) {
+                passengersContainer.innerHTML = passengersHtml
+              }
+            }
+          } else {
+            const errorText = await response.text()
+            throw new Error(errorText || "代替取消預約失敗")
+          }
+        } catch (error) {
+          console.error("代替取消預約錯誤:", error)
+          showError("代替取消預約失敗: " + error.message)
         }
       }
 
