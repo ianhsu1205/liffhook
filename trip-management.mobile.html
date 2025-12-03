@@ -515,7 +515,7 @@
         class="sub"
         style="text-align: center; font-size: 11px; color: var(--muted)"
       >
-        v1.0.0.18
+        v1.0.0.19
       </div>
     </div>
 
@@ -964,7 +964,15 @@
             '<div class="sub" style="text-align:center;padding:20px">目前沒有趟次</div>'
           return
         }
-        root.innerHTML = (trips || [])
+
+        // 按發車時間排序（由小至大）
+        const sortedTrips = [...trips].sort((a, b) => {
+          const timeA = a.departureTime || a.DepartureTime || ""
+          const timeB = b.departureTime || b.DepartureTime || ""
+          return timeA.localeCompare(timeB)
+        })
+
+        root.innerHTML = (sortedTrips || [])
           .map((t) => {
             const s = (t.status || t.Status || "").toLowerCase()
             const statusChip =
@@ -1047,7 +1055,7 @@
             </div>`
           })
           .join("")
-        ;(trips || []).forEach((t) => {
+        ;(sortedTrips || []).forEach((t) => {
           const id = t.tripId || t.TripId
           const s = (t.status || t.Status || "").toLowerCase()
           const readOnly = s === "completed"
