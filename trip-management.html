@@ -1248,7 +1248,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.43</h1>
+        <h1>都會之星座位保留系統 v1.0.0.44</h1>
         <p><span id="currentDate"></span></p>
       </div>
 
@@ -1758,6 +1758,18 @@
       let pendingPassengers = []
       // 顯示已發車趟次的偏好
       let showCompletedTrips = false
+
+      // 路線 ID 對應顯示名稱的全域映射
+      const ROUTE_DISPLAY_NAMES = {
+        208802: "基隆女中",
+        "2088A2": "海科館",
+        "2088B2": "深澳坑",
+      }
+
+      // 路線名稱轉換函數：將路線 ID 轉換為顯示名稱
+      function getRouteDisplayName(routeId) {
+        return ROUTE_DISPLAY_NAMES[routeId] || routeId
+      }
 
       // 車輛自動完成相關變數
       let vehicleData = []
@@ -2752,17 +2764,15 @@
         const editSelector = document.getElementById("editRouteSelector")
 
         const routeHtml = routes
-          .map(
-            (route) => `
+          .map((route) => {
+            const displayName = getRouteDisplayName(route.subRouteId)
+            return `
                 <div class="route-option" data-route="${route.subRouteId}"
-                     onclick="selectRoute('${route.subRouteId}', '${
-              route.routeName
-            }')">
-                    ${route.routeName}
-                    <br><small>${route.operatorName.substring(0, 3)}</small>
+                     onclick="selectRoute('${route.subRouteId}', '${route.routeName}')">
+                    ${displayName}
                 </div>
             `
-          )
+          })
           .join("")
 
         selector.innerHTML = routeHtml
@@ -2903,9 +2913,9 @@
                                 <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
                                     <span class="route-badge ${getRouteColorClass(
                                       trip.route
-                                    )}" style="font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; color: white;">${
+                                    )}" style="font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; color: white;">${getRouteDisplayName(
               trip.route
-            }</span>
+            )}</span>
                                     <span style="font-size: 14px; color: #666;">｜</span>
                                     <span style="font-size: 16px; font-weight: bold; color: #333;">${
                                       trip.vehicleNumber
@@ -3017,7 +3027,9 @@
         // 異步加載所有趟次的乘客資料
         const updatePromises = displayTrips.map(async (trip) => {
           console.log(
-            `開始處理趟次 ${trip.tripId} (${trip.vehicleNumber}, 路線: ${trip.route})`
+            `開始處理趟次 ${trip.tripId} (${
+              trip.vehicleNumber
+            }, 路線: ${getRouteDisplayName(trip.route)})`
           )
 
           try {
@@ -3129,7 +3141,9 @@
             routeInfo = relatedRoutes
               .map(
                 (r) =>
-                  `<span class="route-badge route-${r.subRouteId}">${r.subRouteId}</span>`
+                  `<span class="route-badge route-${
+                    r.subRouteId
+                  }">${getRouteDisplayName(r.subRouteId)}</span>`
               )
               .join(" ")
           } else {
@@ -4573,7 +4587,7 @@
           })
           .join("<br/>")
 
-        const route = tripData.trip.route || "未知"
+        const route = getRouteDisplayName(tripData.trip.route) || "未知"
         const car = tripData.trip.vehicleNumber || "未知"
         const time = tripData.trip.departureTime || "未知"
         const now = new Date().toLocaleString()
@@ -4838,7 +4852,11 @@
             if (result.availableTrips && result.availableTrips.length > 0) {
               detailMessage += `\n\n目前可用趟次：`
               result.availableTrips.forEach((trip) => {
-                detailMessage += `\n• ${trip.vehicleNumber} (${trip.route}) ${trip.departureTime} - 座位：${trip.availableSeats}/${trip.totalSeats} 可用`
+                detailMessage += `\n• ${
+                  trip.vehicleNumber
+                } (${getRouteDisplayName(trip.route)}) ${
+                  trip.departureTime
+                } - 座位：${trip.availableSeats}/${trip.totalSeats} 可用`
               })
             }
 
