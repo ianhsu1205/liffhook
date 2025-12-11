@@ -1614,7 +1614,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.33
+      保留座位申請 v1.0.0.34
     </footer>
 
     <script>
@@ -2016,16 +2016,33 @@
           if (response.ok) {
             showCancelSuccessAnimation()
             setTimeout(() => {
-              document
-                .getElementById("cancelSuccessAnimation")
-                .classList.add("hidden")
-              hideExistingReservation()
-              showReservationForm()
-              currentReservation = null
-
-              // 取消預約後，重新顯示政策確認框（因為要重新申請）
-              policyAgreed = false
-              showDataCollectionPolicy()
+              // 取消成功後，直接關閉視窗
+              if (liffInitialized && liff.isInClient()) {
+                try {
+                  liff.closeWindow()
+                } catch (e) {
+                  console.error("關閉視窗失敗:", e)
+                  // 如果關閉失敗，則顯示預約表單
+                  document
+                    .getElementById("cancelSuccessAnimation")
+                    .classList.add("hidden")
+                  hideExistingReservation()
+                  showReservationForm()
+                  currentReservation = null
+                  policyAgreed = false
+                  showDataCollectionPolicy()
+                }
+              } else {
+                // 不在 LINE 環境中，顯示預約表單
+                document
+                  .getElementById("cancelSuccessAnimation")
+                  .classList.add("hidden")
+                hideExistingReservation()
+                showReservationForm()
+                currentReservation = null
+                policyAgreed = false
+                showDataCollectionPolicy()
+              }
             }, 2000)
           } else {
             let errorText = ""
