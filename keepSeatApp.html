@@ -1614,7 +1614,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.32
+      保留座位申請 v1.0.0.33
     </footer>
 
     <script>
@@ -1741,8 +1741,14 @@
           initializeEventListeners()
           await checkExistingReservation()
 
-          // 每次進入頁面都顯示個人資料收集政策
-          showPolicyOnPageLoad()
+          // 只在沒有現有預約時才顯示個人資料收集政策
+          if (!currentReservation) {
+            showPolicyOnPageLoad()
+          } else {
+            // 如果有現有預約，自動視為已同意政策（因為之前申請時已同意過）
+            policyAgreed = true
+            console.log("檢測到現有預約，自動設定政策為已同意")
+          }
 
           showLoading(false)
         } catch (error) {
@@ -2016,6 +2022,10 @@
               hideExistingReservation()
               showReservationForm()
               currentReservation = null
+
+              // 取消預約後，重新顯示政策確認框（因為要重新申請）
+              policyAgreed = false
+              showDataCollectionPolicy()
             }, 2000)
           } else {
             let errorText = ""
