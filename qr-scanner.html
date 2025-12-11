@@ -1222,8 +1222,10 @@
 
           // 🚀 優化：批次處理 DOM 更新，減少重排
           requestAnimationFrame(() => {
-            updateStatusIndicator("📱 開啟掃描中...", "info")
-            showLoading("開啟相機...")
+            updateStatusIndicator("📱 開啟相機中...", "info")
+            showLoading(
+              "開啟相機...<br><small style='font-size:12px;color:#666;margin-top:5px;'>💡 請選擇「僅在使用該應用程式時允許」</small>"
+            )
 
             // 提前進入掃描模式以優化性能
             prepareForScan()
@@ -1238,14 +1240,19 @@
             return
           }
 
-          // 檢查LIFF是否支援掃描功能
-          if (!liff.isApiAvailable || !liff.isApiAvailable("scanCodeV2")) {
+          // 🚀 檢查LIFF是否支援掃描功能（支援雙版本API）
+          const hasScanCode =
+            liff.isApiAvailable && liff.isApiAvailable("scanCode")
+          const hasScanCodeV2 =
+            liff.isApiAvailable && liff.isApiAvailable("scanCodeV2")
+
+          if (!hasScanCode && !hasScanCodeV2) {
             hideLoading()
             scannerStarted = false
-            console.error("❌ LINE版本不支援掃描功能", {
-              scanMethod: typeof liff.scanCodeV2,
+            logError("❌ LINE版本不支援掃描功能", {
+              scanCode: hasScanCode,
+              scanCodeV2: hasScanCodeV2,
               isApiAvailable: typeof liff.isApiAvailable,
-              liffObject: typeof liff,
             })
             updateStatusIndicator("❌ LINE版本不支援掃描", "error")
             showStatusMessageWithClose(
@@ -1263,10 +1270,25 @@
           // 使用 RAF 和 setTimeout 確保 UI 線程釋放
           setTimeout(() => {
             try {
-              // 使用LIFF掃描QR Code
-              log("呼叫 liff.scanCodeV2...")
-              liff
-                .scanCodeV2()
+              // 🚀 雙重備援：優先嘗試舊版 scanCode，失敗時使用 scanCodeV2
+              let scanPromise
+
+              if (hasScanCode) {
+                log("⚡ 嘗試使用舊版 scanCode API（可能較快）...")
+                scanPromise = liff.scanCode().catch((error) => {
+                  logWarn("舊版 scanCode 失敗，切換到 scanCodeV2:", error)
+                  if (hasScanCodeV2) {
+                    log("📱 回退到新版 scanCodeV2 API")
+                    return liff.scanCodeV2()
+                  }
+                  throw error
+                })
+              } else {
+                log("📱 使用新版 scanCodeV2 API")
+                scanPromise = liff.scanCodeV2()
+              }
+
+              scanPromise
                 .then((result) => {
                   // 重置掃描器狀態
                   scannerStarted = false
@@ -1289,7 +1311,7 @@
                   // 重置掃描器狀態
                   scannerStarted = false
 
-                  if (DEBUG) console.error("掃描失敗:", error)
+                  logError("掃描失敗:", error)
                   hideLoading()
 
                   if (error.code === "USER_CANCEL") {
