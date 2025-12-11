@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+      content="width=device-width, initial-scale=0.85, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -15,6 +15,15 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>🎫 保留座位搭乘確認</title>
+    <!-- 🚀 優化：DNS預解析和資源預載 -->
+    <link rel="dns-prefetch" href="//static.line-scdn.net" />
+    <link rel="preconnect" href="https://static.line-scdn.net" crossorigin />
+    <link
+      rel="preload"
+      href="https://static.line-scdn.net/liff/edge/2/sdk.js"
+      as="script"
+      crossorigin="anonymous"
+    />
     <!-- 載入最新版本的 LIFF SDK -->
     <script
       src="https://static.line-scdn.net/liff/edge/2/sdk.js"
@@ -81,6 +90,9 @@
         padding: 0;
         color: #333;
         min-height: 100vh;
+        /* 🚀 優化：減少 repaint/reflow */
+        contain: layout style paint;
+        will-change: transform;
       }
 
       .container {
@@ -569,13 +581,18 @@
       let viewportMetaElement = null // 存儲視口元素以便動態調整
       let rafId = null // requestAnimationFrame ID
 
+      // 🚀 優化：包裝 console.log，非 DEBUG 模式下不輸出以提升性能
+      const log = DEBUG ? console.log.bind(console) : () => {}
+      const logError = console.error.bind(console) // 錯誤訊息保留
+      const logWarn = console.warn.bind(console) // 警告訊息保留
+
       // 統一的等待時間設定 (毫秒)
       const AUTO_CLOSE_DELAY = 20000 // 20秒
       const AUTO_CLOSE_COUNTDOWN = 20 // 20秒倒數
 
       // 緊急重啟功能
       function restartLiff() {
-        console.log("🔄 緊急重啟 LIFF...")
+        log("🔄 緊急重啟 LIFF...")
         // 重置標記
         liffInitialized = false
         initializationInProgress = false
@@ -672,7 +689,7 @@
         }
         window.__closingInProgress = true
         window.__closingStartedAt = Date.now()
-        console.log("[closePage] 嘗試關閉頁面, force=", !!force)
+        log("[closePage] 嘗試關閉頁面, force=", !!force)
 
         // 主要：LIFF 內關閉
         try {
@@ -804,8 +821,17 @@
         // 儲存viewport元素，以便動態調整縮放
         viewportMetaElement = document.querySelector('meta[name="viewport"]')
 
-        // 初始化 LIFF
+        // 🚀 優化：立即初始化 LIFF 並準備掃描
         initLiff()
+          .then(() => {
+            // LIFF 初始化成功後立即啟動掃描器
+            if (liffInitialized) {
+              setTimeout(() => startScanner(), 100)
+            }
+          })
+          .catch((err) => {
+            console.error("LIFF 初始化失敗:", err)
+          })
 
         // 事件委派 - 一次性綁定事件以減少事件監聽器數量
         document.body.addEventListener("click", function (e) {
@@ -891,24 +917,13 @@
         isScanning = true
       }
 
-      // 強制釋放可能占用記憶體的對象
+      // 🚀 優化：簡化記憶體清理，只釋放大型對象
       function clearMemory() {
         // 釋放大型變數
         if (reservationData) {
           reservationData = null
         }
-
-        // 移除不必要的事件監聽器（若有）
-        // ...
-
-        // 幫助 GC
-        if (window.gc) window.gc()
-
-        // 試著讓系統釋放一些記憶體
-        setTimeout(() => {
-          const arr = new Array(1000).fill("x")
-          arr.length = 0
-        }, 0)
+        // 移除不必要的創建新陣列操作，減少 GC 負擔
       }
 
       // 掃描完成後，恢復完整 UI 體驗
@@ -1202,20 +1217,17 @@
             return
           }
 
-          console.log("開始啟動掃描器...")
+          log("開始啟動掃描器...")
           scannerStarted = true
 
-          // 減少 DOM 改變以避免引發重排
-          updateStatusIndicator("📱 開啟掃描中...", "info")
-          showLoading("開啟相機...")
+          // 🚀 優化：批次處理 DOM 更新，減少重排
+          requestAnimationFrame(() => {
+            updateStatusIndicator("📱 開啟掃描中...", "info")
+            showLoading("開啟相機...")
 
-          // 確保低解析度模式
-          if (viewportMetaElement) {
-            viewportMetaElement.setAttribute(
-              "content",
-              "width=device-width, initial-scale=0.8, maximum-scale=0.8"
-            )
-          }
+            // 提前進入掃描模式以優化性能
+            prepareForScan()
+          })
 
           if (!liff.isInClient()) {
             hideLoading()
@@ -1246,13 +1258,13 @@
           }
 
           updateStatusIndicator("📸 請對準QR Code", "success")
-          if (DEBUG) console.log("開始掃描QR Code...")
+          log("開始掃描QR Code...")
 
           // 使用 RAF 和 setTimeout 確保 UI 線程釋放
           setTimeout(() => {
             try {
               // 使用LIFF掃描QR Code
-              console.log("呼叫 liff.scanCodeV2...")
+              log("呼叫 liff.scanCodeV2...")
               liff
                 .scanCodeV2()
                 .then((result) => {
@@ -1260,7 +1272,7 @@
                   scannerStarted = false
 
                   if (result) {
-                    if (DEBUG) console.log("掃描結果:", result.value)
+                    log("掃描結果:", result.value)
                     updateStatusIndicator("✅ 掃描成功", "success")
                     hideLoading()
 
@@ -1308,7 +1320,7 @@
                 true
               )
             }
-          }, 50) // 短暫延遲以讓 UI 更新
+          }, 0) // 🚀 優化：立即執行以減少延遲
         } catch (error) {
           if (DEBUG) console.error("掃描失敗:", error)
           hideLoading()
@@ -1336,20 +1348,19 @@
           // 獲取當前用戶ID
           let userId
           try {
-            if (DEBUG) console.log("獲取當前用戶ID...")
+            log("獲取當前用戶ID...")
             const profile = await liff.getProfile()
             userId = profile.userId
-            if (DEBUG) console.log("成功獲取當前用戶ID:", userId)
+            log("成功獲取當前用戶ID:", userId)
           } catch (error) {
-            console.error("獲取用戶資料失敗:", error)
+            logError("獲取用戶資料失敗:", error)
             updateStatusIndicator("❌ 獲取用戶資料失敗", "error")
             showStatusMessage("無法獲取用戶資料，請確認LIFF環境正常", "error")
             setTimeout(closePage, AUTO_CLOSE_DELAY)
             return
           }
 
-          if (DEBUG)
-            console.log("掃描結果 - TripId:", tripId, "UserId:", userId)
+          if (DEBUG) log("掃描結果 - TripId:", tripId, "UserId:", userId)
 
           // 先查詢預約狀態
           await checkReservationStatus(tripId, userId)
@@ -1881,7 +1892,7 @@
         })
       }
     </script>
-    <!-- 版本標記：v1.0.0.20250909-4 -->
+    <!-- 版本標記：v1.0.0.30250909-4 -->
     <div
       style="
         position: fixed;
