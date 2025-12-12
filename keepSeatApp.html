@@ -1614,7 +1614,7 @@
         font-size: 12px;
       "
     >
-      保留座位申請 v1.0.0.34
+      保留座位申請 v1.0.0.35
     </footer>
 
     <script>
@@ -1804,8 +1804,17 @@
         console.log("開始檢查現有預約，用戶ID:", currentUser.userId)
 
         try {
+          // 添加時間戳記和 cache-control 標頭防止快取
+          const timestamp = new Date().getTime()
           const response = await fetch(
-            `${API_BASE_URL}/check-existing/${currentUser.userId}`
+            `${API_BASE_URL}/check-existing/${currentUser.userId}?t=${timestamp}`,
+            {
+              headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+              },
+            }
           )
 
           console.log("預約檢查回應狀態:", response.status)
@@ -2871,16 +2880,8 @@
               } catch (_) {}
               return
             }
-            if (
-              errorMessage.includes("未搭乘") ||
-              errorMessage.includes("已有預約")
-            ) {
-              // 有現有預約，重新檢查預約狀態
-              await checkExistingReservation()
-              showError("您已有未完成的預約，請先處理現有預約")
-            } else {
-              showError(errorMessage)
-            }
+            // 直接顯示後端返回的錯誤訊息，不在前端重複檢查
+            showError(errorMessage)
           }
         } catch (error) {
           console.error("提交預約失敗:", error)
