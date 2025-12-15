@@ -295,10 +295,15 @@
       .status-message.error {
         background: rgba(231, 76, 60, 0.95);
         color: white;
-        padding: 15px;
+        padding: 30px 25px;
         text-align: center;
-        font-size: 16px;
-        line-height: 1.4;
+        font-size: 22px;
+        line-height: 1.8;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 85%;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       }
 
       .status-message.error button {
@@ -1065,13 +1070,13 @@
 
           // 檢查是否在 LINE 客戶端中
           if (!liff.isInClient()) {
-            updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
+            hideStatusIndicator()
             showStatusMessageWithClose(
-              "請在LINE應用程式中開啟此頁面",
+              "親愛的乘客您好：<br><br>搭乘確認掃描功能請使用大都會官方Line好友功能中的<strong>（搭乘確認）</strong>功能，以識別是您的搭乘，謝謝您",
               "error",
               true
             )
-            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            // 不自動關閉，讓用戶看完訊息後手動點擊關閉按鈕
             return false
           }
 
@@ -1149,13 +1154,16 @@
 
           // 檢查是否在 LINE 客戶端中
           if (!liff.isInClient()) {
-            updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
+            hideStatusIndicator()
+            // 隱藏頁面主體內容
+            const container = document.querySelector(".container")
+            if (container) container.style.display = "none"
             showStatusMessageWithClose(
-              "請在LINE應用程式中開啟此頁面",
+              "親愛的乘客您好：<br><br>搭乘確認掃描功能請使用大都會官方Line好友功能中的<strong>（搭乘確認）</strong>功能，以識別是您的搭乘，謝謝您",
               "error",
               true
             )
-            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            // 不自動關閉，讓用戶看完訊息後手動點擊關閉按鈕
             return false
           }
 
@@ -1238,7 +1246,10 @@
           if (!liff.isInClient()) {
             hideLoading()
             scannerStarted = false
-            updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
+            hideStatusIndicator()
+            // 隱藏頁面主體內容
+            const container = document.querySelector(".container")
+            if (container) container.style.display = "none"
             showStatusMessageWithClose(
               "親愛的乘客您好：<br><br>搭乘確認掃描功能請使用大都會官方Line好友功能中的<strong>（搭乘確認）</strong>功能，以識別是您的搭乘，謝謝您",
               "error",
@@ -1820,8 +1831,8 @@
         showCloseButton = false
       ) {
         // 避免重複顯示訊息
-        // 1. 掃描中避免創建太多 DOM 元素
-        if (isScanning && !message.includes("錯誤")) return
+        // 1. 掃描中避免創建太多 DOM 元素（但 error 類型訊息必須顯示）
+        if (isScanning && type !== "error" && !message.includes("錯誤")) return
 
         // 2. 檢查是否已經有相同訊息正在顯示
         const existingMessage = document.querySelector(".status-message")
@@ -1924,7 +1935,7 @@
         })
       }
     </script>
-    <!-- 版本標記：v1.0.0.30250909-5 -->
+    <!-- 版本標記：v1.0.0.30250909-6 -->
     <div
       style="
         position: fixed;
