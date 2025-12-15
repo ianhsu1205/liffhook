@@ -734,10 +734,14 @@
         } else {
           // 顯示提示讓使用者手動關閉
           console.log("[closePage] 無法自動關閉，提示使用者手動關閉頁面")
+          // 清除可能存在的舊訊息
+          const oldMessages = document.querySelectorAll(".status-message")
+          oldMessages.forEach((msg) => msg.remove())
+
           showStatusMessageWithClose(
-            "請手動關閉此視窗返回 LINE 聊天室",
+            "因瀏覽器安全限制，無法自動關閉視窗<br><br>請手動關閉此分頁或視窗",
             "warning",
-            true
+            false // 不顯示關閉按鈕，因為按鈕也無法關閉視窗
           )
           setTimeout(() => {
             window.__closingInProgress = false
@@ -1235,8 +1239,12 @@
             hideLoading()
             scannerStarted = false
             updateStatusIndicator("❌ 請在LINE應用程式中開啟", "error")
-            showStatusMessage("請在LINE應用程式中開啟此頁面", "error")
-            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            showStatusMessageWithClose(
+              "親愛的乘客您好：<br><br>搭乘確認掃描功能請使用大都會官方Line好友功能中的<strong>（搭乘確認）</strong>功能，以識別是您的搭乘，謝謝您",
+              "error",
+              true
+            )
+            // 不自動關閉，讓用戶看完訊息後手動點擊關閉按鈕
             return
           }
 
@@ -1841,10 +1849,12 @@
         if (showCloseButton) {
           // 簡化按鈕樣式，使用基本樣式
           messageElement.innerHTML = `
-            <div>${message}</div>
+            <div style="margin-bottom: 15px; line-height: 1.6;">${message}</div>
             <button 
               data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
-              style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-top: 8px; cursor: pointer;"
+              style="background: white; color: #333; border: none; padding: 12px 32px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); min-width: 120px;"
+              onmouseover="this.style.background='#f0f0f0'" 
+              onmouseout="this.style.background='white'"
             >
               關閉
             </button>
@@ -1914,7 +1924,7 @@
         })
       }
     </script>
-    <!-- 版本標記：v1.0.0.30250909-4 -->
+    <!-- 版本標記：v1.0.0.30250909-5 -->
     <div
       style="
         position: fixed;
