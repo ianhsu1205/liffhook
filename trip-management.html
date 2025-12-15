@@ -1255,7 +1255,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.45</h1>
+        <h1>都會之星座位保留系統 v1.0.0.46</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -4633,7 +4633,7 @@
         try {
           console.log("=== 從後端取得今日統計 ===")
 
-          const response = await fetch("/api/Trip/statistics/today")
+          const response = await fetch(`${BASE_URL}/Trip/statistics/today`)
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
