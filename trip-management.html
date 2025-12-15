@@ -1206,6 +1206,13 @@
         font-weight: 600;
       }
 
+      /* 全局統計數字動畫 */
+      #totalReservedCount,
+      #totalBoardedCount {
+        transition: transform 0.2s ease;
+        display: inline-block;
+      }
+
       /* 頂部工具列：統一控制尺寸與視覺層級 */
       .top-toolbar .form-control {
         height: 44px;
@@ -1248,8 +1255,56 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.44</h1>
+        <h1>都會之星座位保留系統 v1.0.0.45</h1>
         <p><span id="currentDate"></span></p>
+        <div
+          style="
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+          "
+        >
+          <div
+            style="
+              background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+              padding: 8px 16px;
+              border-radius: 8px;
+              border: 2px solid #90caf9;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <span style="font-size: 14px; color: #1565c0; font-weight: bold"
+              >📋 今日已預約：</span
+            >
+            <span
+              id="totalReservedCount"
+              style="font-size: 20px; font-weight: bold; color: #0d47a1"
+              >0</span
+            >
+            <span style="font-size: 14px; color: #1565c0">人</span>
+          </div>
+          <div
+            style="
+              background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+              padding: 8px 16px;
+              border-radius: 8px;
+              border: 2px solid #81c784;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <span style="font-size: 14px; color: #2e7d32; font-weight: bold"
+              >✅ 今日已上車：</span
+            >
+            <span
+              id="totalBoardedCount"
+              style="font-size: 20px; font-weight: bold; color: #1b5e20"
+              >0</span
+            >
+            <span style="font-size: 14px; color: #2e7d32">人</span>
+          </div>
+        </div>
       </div>
 
       <!-- 頂部新增趟次工具列 -->
@@ -1334,7 +1389,7 @@
         <!-- 顯示已發車開關 -->
         <div
           class="show-completed-wrapper"
-          style="display: flex; align-items: center; gap: 6px"
+          style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap"
         >
           <label
             for="showCompletedToggle"
@@ -1354,6 +1409,19 @@
             />
             顯示已發車趟次
           </label>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 14px;
+            "
+          >
+            🔄 自動更新
+            <span style="font-size: 12px; color: #28a745; font-weight: bold"
+              >(永久啟用)</span
+            >
+          </div>
         </div>
       </div>
 
@@ -1777,6 +1845,12 @@
       let visibleSuggestions = []
       let lastInputValue = ""
 
+      // 自動更新控制
+      let autoRefreshEnabled = true
+      let autoRefreshInterval = null
+      let statisticsRefreshInterval = null
+      let autoRefreshIntervalSeconds = 10 // 10秒更新一次
+
       // 初始化
       document.addEventListener("DOMContentLoaded", function () {
         // 先顯示音頻啟用 modal，然後再初始化頁面
@@ -1809,9 +1883,14 @@
           loadPendingPassengers(),
           loadVehicleData(),
         ])
-          .then(() => {
+          .then(async () => {
             showLoading(false)
-            // 統計區已移除
+            // 載入完成後更新統計
+            await updateTodayStatistics()
+            // 啟動趟次自動更新
+            startAutoRefresh()
+            // 啟動統計永久輪詢（每10秒）
+            startStatisticsPolling()
           })
           .catch((error) => {
             showError("載入資料失敗: " + error.message)
@@ -1930,6 +2009,7 @@
       }
 
       // 同步版本的 renderTrips，用於快速更新徽章
+      // 註：renderTrips 會在結束時自動調用 updateTodayStatistics()
       function renderTripsSync() {
         const displayTrips = showCompletedTrips
           ? trips.filter(
@@ -1958,6 +2038,35 @@
       }
 
       function setupEventListeners() {
+        // 趟次自動更新開關
+        const autoRefreshToggle = document.getElementById("autoRefreshToggle")
+        if (autoRefreshToggle) {
+          autoRefreshToggle.addEventListener("change", (e) => {
+            autoRefreshEnabled = e.target.checked
+            const statusEl = document.getElementById("autoRefreshStatus")
+            if (autoRefreshEnabled) {
+              startAutoRefresh()
+              if (statusEl) {
+                statusEl.textContent = "(已啟用)"
+                statusEl.style.color = "#28a745"
+              }
+              showNotification(
+                "已啟用趟次自動更新，每" +
+                  autoRefreshIntervalSeconds +
+                  "秒更新一次",
+                "success"
+              )
+            } else {
+              stopAutoRefresh()
+              if (statusEl) {
+                statusEl.textContent = "(已關閉)"
+                statusEl.style.color = "#dc3545"
+              }
+              showNotification("已關閉趟次自動更新", "info")
+            }
+          })
+        }
+
         // 新增趟次表單
         document
           .getElementById("newTripForm")
@@ -1986,8 +2095,20 @@
             } catch (_) {}
             const mode = showCompletedTrips ? "completed" : "active"
             showDisplayModeBanner(showCompletedTrips)
+
+            // 切換到已發車模式時停止趟次自動更新，切回未發車模式時恢復
+            if (showCompletedTrips) {
+              stopAutoRefresh()
+              console.log("切換至已發車模式，已停止趟次自動更新")
+            } else if (autoRefreshEnabled) {
+              startAutoRefresh()
+              console.log("切換至未發車模式，已恢復趟次自動更新")
+            }
+
             loadTrips(mode)
-              .then(() => {
+              .then(async () => {
+                // 立即更新統計
+                await updateTodayStatistics()
                 // 重新載入待排乘客以刷新按鈕狀態 / draggable
                 return loadPendingPassengers()
               })
@@ -2903,7 +3024,7 @@
                     <button class="toggle-btn" onclick="toggleTripDetails('${
                       trip.tripId
                     }')">🔽</button>
-                    
+
                     <div class="trip-header" onclick="toggleTripDetails('${
                       trip.tripId
                     }')">
@@ -2945,7 +3066,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="trip-quick-stats">
                             <div class="seat-indicator ${seatStatus}">
                                 🪑 ${currentSeats}/${trip.keepCount}
@@ -2992,6 +3113,9 @@
                         </button>
                         <button class="btn btn-secondary" disabled title="此趟已發車">
                             ✅ 已發車
+                        </button>
+                        <button class="btn btn-warning" onclick="revertTripDeparture('${trip.tripId}')">
+                            ↩️ 改為未發車
                         </button>`
                         }
                         </div>
@@ -3064,6 +3188,9 @@
         setTimeout(() => {
           makeDraggable()
         }, 100)
+
+        // 計算並更新今日全局統計
+        updateTodayStatistics()
 
         // 還原滾動位置並解除 no-anim
         if (container) {
@@ -3368,10 +3495,12 @@
             (sum, p) => sum + (p.seatCount || p.SeatCount || 1),
             0
           )
+
           const tripRefForCount = trips.find((t) => t.tripId === tripId)
           if (tripRefForCount) {
             tripRefForCount.assignedSeats = totalSeatsNow
           }
+
           updateTripSeatDisplay(tripId, totalSeatsNow)
 
           if (assignedPassengers.length === 0) {
@@ -3923,7 +4052,7 @@
 
             await loadTrips()
             await loadPendingPassengers()
-            // 統計區已移除
+            // renderTrips 會自動更新統計
             return result
           } else {
             throw new Error(result.message || "分配乘客失敗")
@@ -4027,7 +4156,8 @@
             showSuccess(`自動排班完成，已指派 ${assignedCount} 個座位到此趟次`)
             await loadTrips()
             await loadPendingPassengers()
-            // 統計區已移除
+            // 更新統計
+            updateTodayStatistics()
           } else {
             showNotification("沒有符合條件或座位的乘客可分配到此趟次", "info")
           }
@@ -4090,6 +4220,9 @@
                 if (passengersContainer)
                   passengersContainer.innerHTML = passengersHtml
 
+                // 更新今日統計
+                updateTodayStatistics()
+
                 // 刷新待排清單即可（整體 trips 不重繪）
                 await loadPendingPassengers()
               } finally {
@@ -4107,6 +4240,8 @@
             await loadPendingPassengers()
             trips.forEach((trip) => updateTripSeatDisplay(trip.tripId))
             renderTripsSync()
+            // 更新今日統計
+            updateTodayStatistics()
             return result
           } else {
             throw new Error(result.message || "取消分配失敗")
@@ -4449,6 +4584,191 @@
           showError("標記已發車失敗: " + error.message)
         }
       }
+
+      // 回復已發車趟次（從 completed 回復到 notified）
+      async function revertTripDeparture(tripId) {
+        try {
+          // 確認對話框
+          const reason = prompt(
+            "確定要將此趟次改為未發車嗎？\n\n若確定，請輸入回復原因（選填）：",
+            "誤按發車按鈕"
+          )
+
+          // 如果用戶點擊取消，reason 會是 null
+          if (reason === null) {
+            return
+          }
+
+          // 調用後端 API
+          const response = await fetch(
+            `${BASE_URL}/Trip/${tripId}/revert-departure`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ reason: reason || "管理員回復發車狀態" }),
+            }
+          )
+
+          const result = await response.json()
+
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || "回復發車狀態失敗")
+          }
+
+          showSuccess("趟次已成功改為未發車！")
+
+          // 重新載入趟次列表
+          await loadTrips()
+          await renderTripsSync()
+        } catch (error) {
+          console.error("回復發車狀態失敗:", error)
+          showError("回復發車狀態失敗: " + error.message)
+        }
+      }
+
+      // 計算並更新今日全局統計
+      async function updateTodayStatistics() {
+        try {
+          console.log("=== 從後端取得今日統計 ===")
+
+          const response = await fetch("/api/Trip/statistics/today")
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
+          const result = await response.json()
+          console.log("統計 API 完整響應:", result)
+
+          if (result.success && result.data) {
+            const { totalReservedCount, totalBoardedCount, tripCount } =
+              result.data
+
+            console.log(
+              `=== 統計結果: 今日趟次=${tripCount}, 已預約=${totalReservedCount}人, 已上車=${totalBoardedCount}人 ===`
+            )
+
+            // 更新頁面顯示
+            const reservedEl = document.getElementById("totalReservedCount")
+            const boardedEl = document.getElementById("totalBoardedCount")
+
+            if (reservedEl) {
+              reservedEl.textContent = totalReservedCount
+              // 添加動畫效果
+              reservedEl.style.transform = "scale(1.2)"
+              setTimeout(() => {
+                reservedEl.style.transform = "scale(1)"
+              }, 200)
+            }
+
+            if (boardedEl) {
+              boardedEl.textContent = totalBoardedCount
+              // 添加動畫效果
+              boardedEl.style.transform = "scale(1.2)"
+              setTimeout(() => {
+                boardedEl.style.transform = "scale(1)"
+              }, 200)
+            }
+          } else {
+            console.warn("統計 API 返回失敗:", result.message)
+          }
+        } catch (error) {
+          console.error("更新今日統計失敗:", error)
+        }
+      }
+
+      // 啟動統計永久輪詢（獨立於趟次更新）
+      function startStatisticsPolling() {
+        // 清除舊的計時器
+        if (statisticsRefreshInterval) {
+          clearInterval(statisticsRefreshInterval)
+        }
+
+        console.log("統計數據永久輪詢已啟動，每10秒更新一次")
+
+        statisticsRefreshInterval = setInterval(async () => {
+          try {
+            await updateTodayStatistics()
+          } catch (error) {
+            console.error("統計自動更新失敗:", error)
+          }
+        }, 10000)
+      }
+
+      // 啟動趟次自動更新
+      function startAutoRefresh() {
+        // 先清除舊的計時器
+        stopAutoRefresh()
+
+        if (!autoRefreshEnabled) {
+          return
+        }
+
+        console.log(
+          `趟次自動更新已啟動，每 ${autoRefreshIntervalSeconds} 秒更新一次`
+        )
+
+        autoRefreshInterval = setInterval(async () => {
+          // 只在顯示今日趟次時才自動更新（不在顯示已發車時更新）
+          if (!showCompletedTrips && autoRefreshEnabled) {
+            try {
+              console.log("🔄 自動更新趟次資料...")
+              // 靜默更新，不顯示載入動畫
+              const loadingEl = document.getElementById("loading")
+              const wasVisible = loadingEl && loadingEl.style.display !== "none"
+
+              await loadTrips()
+
+              // 如果原本沒有顯示載入動畫，保持隱藏
+              if (!wasVisible && loadingEl) {
+                loadingEl.style.display = "none"
+              }
+            } catch (error) {
+              console.error("趟次自動更新失敗:", error)
+            }
+          }
+        }, autoRefreshIntervalSeconds * 1000)
+      }
+
+      // 停止趟次自動更新（統計更新不受影響）
+      function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval)
+          autoRefreshInterval = null
+          console.log("趟次自動更新已停止")
+        }
+      }
+
+      // 當頁面可見性改變時，控制趟次自動更新
+      document.addEventListener("visibilitychange", async () => {
+        if (document.hidden) {
+          // 頁面隱藏時停止趟次自動更新（但待排乘客和統計輪詢仍會繼續）
+          stopAutoRefresh()
+          console.log(
+            "頁面已隱藏，暫停趟次自動更新（待排乘客和統計輪詢繼續運行）"
+          )
+        } else {
+          // 頁面重新顯示時：立即更新一次，然後恢復定時更新
+          console.log("頁面已顯示，立即更新資料...")
+          if (autoRefreshEnabled && !showCompletedTrips) {
+            try {
+              // 立即更新一次
+              await loadTrips()
+              await updateTodayStatistics()
+              console.log("✅ 立即更新完成")
+            } catch (error) {
+              console.error("立即更新失敗:", error)
+            }
+          }
+          // 恢復定時更新
+          if (autoRefreshEnabled) {
+            startAutoRefresh()
+            console.log("恢復趟次定時自動更新")
+          }
+        }
+      })
 
       // 列印趟次預約單
       async function printReservation(tripId, useBrowserFallback = false) {
@@ -5120,7 +5440,7 @@
 
           // 強制重新載入和渲染
           // 已改為局部更新，這裡無需整體重載
-          updateStatistics() // 目前統計已移除，留存占位
+          // 更新統計（在 unassignPassenger 中已更新）
         } catch (error) {
           showError("移除失敗: " + error.message)
         }
@@ -5704,74 +6024,78 @@
         })
       }
 
-      function pollPendingPassengers() {
-        fetch(`${BASE_URL}/Trip/pending-passengers`)
-          .then((res) => res.json())
-          .then((result) => {
-            if (!result.success || !Array.isArray(result.data)) return
+      async function pollPendingPassengers() {
+        try {
+          const response = await fetch(`${BASE_URL}/Trip/pending-passengers`)
 
-            const todayPassengers = result.data // 直接使用 API 返回的資料
+          if (!response.ok) {
+            console.error(`待排乘客輪詢 HTTP 錯誤: ${response.status}`)
+            return
+          }
 
-            // 若資料無變更，避免重繪以減少抖動
-            try {
-              const currentKey = JSON.stringify(pendingPassengers)
-              const incomingKey = JSON.stringify(todayPassengers)
-              if (currentKey === incomingKey) {
-                return
-              }
-            } catch (_) {
-              // 比對失敗時，繼續走差異流程
+          const result = await response.json()
+
+          if (!result.success || !Array.isArray(result.data)) {
+            console.warn("待排乘客輪詢返回無效數據:", result)
+            return
+          }
+
+          const todayPassengers = result.data
+
+          // 若資料無變更，避免重繪以減少抖動
+          try {
+            const currentKey = JSON.stringify(pendingPassengers)
+            const incomingKey = JSON.stringify(todayPassengers)
+            if (currentKey === incomingKey) {
+              return
             }
+          } catch (_) {
+            // 比對失敗時，繼續走差異流程
+          }
 
-            const removedReservations = pendingPassengers.filter(
-              (oldPassenger) =>
-                !todayPassengers.some(
-                  (newPassenger) => newPassenger.id === oldPassenger.id
-                )
-            )
+          const removedReservations = pendingPassengers.filter(
+            (oldPassenger) =>
+              !todayPassengers.some(
+                (newPassenger) => newPassenger.id === oldPassenger.id
+              )
+          )
 
-            const addedReservations = todayPassengers.filter(
-              (newPassenger) =>
-                !pendingPassengers.some(
-                  (oldPassenger) => oldPassenger.id === newPassenger.id
-                )
-            )
+          const addedReservations = todayPassengers.filter(
+            (newPassenger) =>
+              !pendingPassengers.some(
+                (oldPassenger) => oldPassenger.id === newPassenger.id
+              )
+          )
 
-            if (removedReservations.length > 0) {
-              removedReservations.forEach((removedPassenger) => {
-                trips.forEach((trip) => {
-                  if (trip.passengers) {
-                    trip.passengers = trip.passengers.filter(
-                      (passenger) => passenger.id !== removedPassenger.id
-                    )
-                  }
-                  // 僅更新受影響的座位顯示
-                  updateTripSeatDisplay(trip.tripId)
-                })
+          if (removedReservations.length > 0) {
+            removedReservations.forEach((removedPassenger) => {
+              trips.forEach((trip) => {
+                if (trip.passengers) {
+                  trip.passengers = trip.passengers.filter(
+                    (passenger) => passenger.id !== removedPassenger.id
+                  )
+                }
+                // 僅更新受影響的座位顯示
+                updateTripSeatDisplay(trip.tripId)
               })
-              showNotification("有乘客取消預約，已自動移除！")
+            })
+            showNotification("有乘客取消預約，已自動移除！")
+            playNotificationSound()
+          }
 
-              // 使用安全的方式播放音效
-              playNotificationSound()
-            }
+          if (addedReservations.length > 0) {
+            showNotification("有新的預約進入待排！")
+            playNotificationSound()
+          }
 
-            if (addedReservations.length > 0) {
-              showNotification("有新的預約進入待排！")
+          pendingPassengers = todayPassengers
 
-              // 使用安全的方式播放音效
-              playNotificationSound()
-            }
-
-            pendingPassengers = todayPassengers
-
-            // 僅在有差異時進行必要的重繪
-            renderPendingPassengers()
-            renderTripsSync()
-            updateStatistics()
-          })
-          .catch((error) => {
-            console.error("API request failed:", error)
-          })
+          // 僅在有差異時進行必要的重繪
+          await renderPendingPassengers()
+          renderTripsSync()
+        } catch (error) {
+          console.error("待排乘客輪詢失敗:", error)
+        }
       }
 
       // 使用 WebAudio 播放，避免 HTMLAudio 可能的分段/延遲；並加上節流避免短時間連續播放卡頓
