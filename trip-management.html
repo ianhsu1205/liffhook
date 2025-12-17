@@ -1255,7 +1255,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.46</h1>
+        <h1>都會之星座位保留系統 v1.0.0.47</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -2105,8 +2105,14 @@
               console.log("切換至未發車模式，已恢復趟次自動更新")
             }
 
-            loadTrips(mode)
+            // 載入趟次但不自動渲染，統一在 then 中渲染
+            loadTrips(mode, false)
               .then(async () => {
+                // 切換顯示模式時需要強制完全渲染（因為過濾條件改變）
+                console.log(
+                  `切換至${mode}模式，強制完全渲染，趟次數量: ${trips.length}`
+                )
+                await renderTrips(true)
                 // 立即更新統計
                 await updateTodayStatistics()
                 // 重新載入待排乘客以刷新按鈕狀態 / draggable
@@ -2115,8 +2121,9 @@
               .then(() => {
                 applyAssignUIState()
               })
-              .catch(() => {
-                renderTripsSync()
+              .catch((err) => {
+                console.error("切換顯示模式失敗:", err)
+                renderTripsSync(true)
                 applyAssignUIState()
               })
           })
@@ -2760,8 +2767,9 @@
         }
       }
 
-      async function loadTrips(mode) {
+      async function loadTrips(mode, autoRender = true) {
         // mode: 'completed' | 'active' | undefined (全部)
+        // autoRender: 是否在載入後自動渲染
         const viewMode = mode || (showCompletedTrips ? "completed" : "active")
         let url = `${BASE_URL}/Trip`
         if (viewMode === "completed") {
@@ -2791,7 +2799,10 @@
               )
             }
             console.log(`載入成功 (${viewMode}) : ${trips.length} 筆`)
-            renderTripsSync()
+            // 根據參數決定是否自動渲染
+            if (autoRender) {
+              renderTripsSync(false)
+            }
           } else {
             console.error("載入趟次失敗:", result.message)
             trips = []
@@ -2932,15 +2943,126 @@
       }
 
       // 包裝 renderTrips 的同步調用函數
-      function renderTripsSync() {
-        renderTrips().catch((error) => {
+      function renderTripsSync(forceFullRender = false) {
+        renderTrips(forceFullRender).catch((error) => {
           console.error("渲染趟次時發生錯誤:", error)
           showError("渲染趟次時發生錯誤")
         })
       }
 
-      async function renderTrips() {
-        console.log("Rendering trips...")
+      // 增量更新趟次卡片，避免閃動
+      async function updateTripsIncremental(displayTrips, expandedTrips) {
+        const container = document.getElementById("tripsContainer")
+        const tripCards = container.querySelectorAll(".trip-card")
+
+        // 更新每個趟次卡片
+        displayTrips.forEach((trip, index) => {
+          if (index >= tripCards.length) return
+
+          const card = tripCards[index]
+          const currentSeats = trip.assignedSeats || 0
+          const totalSeats = trip.keepCount || 0
+          const seatStatus =
+            currentSeats >= totalSeats
+              ? "full"
+              : currentSeats > 0
+              ? "partial"
+              : "empty"
+
+          // 更新時間
+          const timeEl = card.querySelector(".time")
+          if (timeEl && timeEl.textContent !== trip.departureTime) {
+            timeEl.textContent = trip.departureTime
+          }
+
+          // 更新路線
+          const routeEl = card.querySelector(".route")
+          if (routeEl) {
+            const newRoute = getRouteDisplayName(trip.route)
+            if (routeEl.textContent !== newRoute) {
+              routeEl.textContent = newRoute
+            }
+          }
+
+          // 更新車號
+          const vehicleEl = card.querySelector(".vehicle")
+          if (vehicleEl && vehicleEl.textContent !== trip.vehicleNumber) {
+            vehicleEl.textContent = trip.vehicleNumber
+          }
+
+          // 更新座位指示器
+          const seatIndicator = card.querySelector(".seat-indicator")
+          if (seatIndicator) {
+            const newSeatText = `🪑 ${currentSeats}/${totalSeats}`
+            if (seatIndicator.textContent.trim() !== newSeatText) {
+              seatIndicator.textContent = newSeatText
+            }
+            // 更新座位狀態class
+            if (!seatIndicator.classList.contains(seatStatus)) {
+              seatIndicator.className = `seat-indicator ${seatStatus}`
+            }
+          }
+
+          // 更新狀態badge
+          const statusBadge = card.querySelector(".status-badge")
+          if (statusBadge) {
+            const statusText =
+              trip.status === "ready"
+                ? "準備發車"
+                : trip.status === "notified"
+                ? "已通知乘客"
+                : trip.status === "completed"
+                ? "已發車"
+                : "分配中…"
+            const statusColor =
+              trip.status === "ready"
+                ? "#28a745"
+                : trip.status === "notified"
+                ? "#007bff"
+                : trip.status === "completed"
+                ? "#6c757d"
+                : "#000000"
+
+            if (statusBadge.textContent.trim() !== statusText) {
+              statusBadge.textContent = statusText
+            }
+            if (statusBadge.style.backgroundColor !== statusColor) {
+              statusBadge.style.backgroundColor = statusColor
+            }
+          }
+
+          // 異步更新乘客列表（只在內容變化時更新）
+          renderTripPassengers(trip.tripId)
+            .then((passengersHtml) => {
+              const passengersContainer = document.getElementById(
+                `passengers-${trip.tripId}`
+              )
+              if (
+                passengersContainer &&
+                passengersContainer.innerHTML !== passengersHtml
+              ) {
+                passengersContainer.innerHTML = passengersHtml
+              }
+            })
+            .catch((err) => {
+              console.error(`更新趟次 ${trip.tripId} 乘客列表失敗:`, err)
+            })
+
+          // 更新徽章計數
+          const counts = getTripActionCounts(trip.tripId)
+          updateCountBadge(trip.tripId, "print", counts.printCount)
+          updateCountBadge(trip.tripId, "notify", counts.notifyCount)
+        })
+
+        // 計算並更新今日全局統計
+        updateTodayStatistics()
+      }
+
+      async function renderTrips(forceFullRender = false) {
+        console.log(
+          "Rendering trips...",
+          forceFullRender ? "(強制完全渲染)" : "(檢查是否需要完全渲染)"
+        )
         const container = document.getElementById("tripsContainer")
         const prevScrollTop = container ? container.scrollTop : 0
         if (container) container.classList.add("no-anim")
@@ -2953,6 +3075,7 @@
         if (trips.length === 0) {
           container.innerHTML =
             '<p style="text-align: center; color: #666; padding: 40px;">尚未建立任何趟次</p>'
+          window._lastTripIds = []
           return
         }
 
@@ -2995,8 +3118,35 @@
             </div>
             <p style=\"text-align:center;color:#666;padding:40px;\">${msg}</p>`
           container.innerHTML = finalHtmlEmpty
+          window._lastTripIds = []
           return
         }
+
+        // 差異檢測：檢查是否需要完全重新渲染
+        const currentTripIds = displayTrips.map((t) => t.tripId)
+        const existingTripCards = container.querySelectorAll(".trip-card")
+
+        const hasSameTripIds =
+          window._lastTripIds &&
+          existingTripCards.length === displayTrips.length &&
+          JSON.stringify(currentTripIds) === JSON.stringify(window._lastTripIds)
+
+        const needsFullRender = forceFullRender || !hasSameTripIds
+
+        if (!needsFullRender) {
+          // 使用增量更新，保持DOM結構和展開狀態
+          console.log("使用增量更新模式")
+          await updateTripsIncremental(displayTrips, expandedTrips)
+          if (container) {
+            container.scrollTop = prevScrollTop
+            requestAnimationFrame(() => container.classList.remove("no-anim"))
+          }
+          return
+        }
+
+        // 記錄當前趟次ID順序
+        console.log("使用完全渲染模式")
+        window._lastTripIds = currentTripIds
 
         const tripsHtml = displayTrips
           .map((trip) => {
@@ -3951,6 +4101,7 @@
             }
 
             await loadTrips()
+            await renderTrips(true) // 新增趟次後強制完全渲染
             // 統計區已移除
           } else {
             throw new Error("建立趟次失敗")
@@ -4273,6 +4424,8 @@
               `${result.data.departureTime}的${result.data.vehicleNumber}狀態已更新！`
             )
             await loadTrips()
+            // 狀態更新使用增量渲染，避免閃動
+            await renderTrips(false)
             // 統計區已移除
           } else {
             throw new Error(result.message || "更新狀態失敗")
@@ -4398,6 +4551,7 @@
             showSuccess("趟次更新成功！")
             closeEditModal()
             await loadTrips()
+            await renderTrips(true) // 編輯後強制完全渲染
             await loadPendingPassengers()
             // 統計區已移除
           } else {
@@ -4421,6 +4575,7 @@
           if (response.ok) {
             showSuccess("趟次刪除成功！")
             await loadTrips()
+            await renderTrips(true) // 刪除後強制完全渲染
             await loadPendingPassengers()
             updateStatistics()
           } else {
@@ -4621,7 +4776,8 @@
 
           // 重新載入趟次列表
           await loadTrips()
-          await renderTripsSync()
+          // 狀態回復使用增量渲染
+          await renderTrips(false)
         } catch (error) {
           console.error("回復發車狀態失敗:", error)
           showError("回復發車狀態失敗: " + error.message)
@@ -4895,7 +5051,20 @@
 
       // 建立列印 HTML（80mm 寬紙張，內容高度自適應）
       function buildReservationHtml(tripData, qrCodeUrl, totalSeats) {
-        const list = (tripData.passengers || [])
+        // 按預約時間排序 (早到晚)
+        const sortedPassengers = [...(tripData.passengers || [])].sort(
+          (a, b) => {
+            const timeA = extractTimeFromDateTime(
+              a.requestDateTime || a.RequestDateTime
+            )
+            const timeB = extractTimeFromDateTime(
+              b.requestDateTime || b.RequestDateTime
+            )
+            return timeA.localeCompare(timeB)
+          }
+        )
+
+        const list = sortedPassengers
           .map((p, i) => {
             const name = p.name || p.Name || "未知"
             const seats = p.seatCount || p.SeatCount || 1
