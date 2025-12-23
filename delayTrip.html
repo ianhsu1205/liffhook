@@ -411,7 +411,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1><i class="fas fa-bus"></i> 延遲班次回報</h1>
+        <h1><i class="fas fa-bus"></i> 班次延遲回報</h1>
         <p id="userInfo">載入中...</p>
       </div>
 
@@ -615,19 +615,19 @@
             const data = await response.json()
             currentUser = {
               userId: userId,
-              company: data.Company,
-              dept: data.Dept,
-              job: data.Job,
-              name: data.Name,
+              company: data.company,
+              dept: data.dept,
+              job: data.job,
+              name: data.name,
             }
 
             document.getElementById(
               "userInfo"
-            ).textContent = `${data.Company} - ${data.Dept} - ${data.Name}`
-            document.getElementById("company").value = data.Company
-            document.getElementById("dept").value = data.Dept
-            document.getElementById("job").value = data.Job
-            document.getElementById("name").value = data.Name
+            ).textContent = `${data.company} - ${data.dept} - ${data.name}`
+            document.getElementById("company").value = data.company
+            document.getElementById("dept").value = data.dept
+            document.getElementById("job").value = data.job
+            document.getElementById("name").value = data.name
           } else {
             throw new Error("無法取得使用者資訊")
           }
