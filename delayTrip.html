@@ -608,7 +608,7 @@
           const response = await fetch(`${BASE_URL}/User/checkUser`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: userId, channelId: "" }),
+            body: JSON.stringify({ userId: userId, channelId: channelId }),
           })
 
           if (response.ok) {
