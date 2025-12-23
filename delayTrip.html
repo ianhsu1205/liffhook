@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>延遲班次回報</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Noto Sans TC", Arial, sans-serif;
+        background-color: #f7f7f7;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #06c755, #04a043);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        margin-bottom: 5px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #555;
+      }
+
+      .required::after {
+        content: " *";
+        color: #e74c3c;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border 0.3s;
+        box-sizing: border-box;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #06c755;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+      }
+
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .btn-primary {
+        background-color: #06c755;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #05b04a;
+      }
+
+      .btn-secondary {
+        background-color: #2196f3;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background-color: #0b7dda;
+      }
+
+      .btn-danger {
+        background-color: #f44336;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background-color: #da190b;
+      }
+
+      .btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .search-section {
+        margin-bottom: 20px;
+      }
+
+      .search-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .search-row-full {
+        grid-column: 1 / -1;
+      }
+
+      .record-list {
+        margin-top: 20px;
+      }
+
+      .record-item {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #06c755;
+      }
+
+      .record-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+      }
+
+      .record-route {
+        font-size: 18px;
+        font-weight: 700;
+        color: #06c755;
+      }
+
+      .record-time {
+        font-size: 12px;
+        color: #999;
+      }
+
+      .record-content {
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+
+      .record-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 10px;
+      }
+
+      .record-info-item {
+        display: flex;
+        align-items: center;
+      }
+
+      .record-info-item i {
+        margin-right: 5px;
+        color: #06c755;
+        width: 16px;
+      }
+
+      .record-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 14px;
+        flex: 1;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #06c755;
+        padding-bottom: 10px;
+      }
+
+      .modal-header h2 {
+        color: #06c755;
+        font-size: 20px;
+      }
+
+      .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 20px;
+      }
+
+      .close:hover {
+        color: #000;
+      }
+
+      .alert {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+      }
+
+      .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+
+      .loading i {
+        font-size: 32px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+
+      .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        color: #ddd;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .badge-success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      .badge-warning {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+
+      .tab-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 12px;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s;
+      }
+
+      .tab-btn.active {
+        background: #06c755;
+        color: white;
+        border-color: #06c755;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 10px;
+        }
+
+        .search-row {
+          grid-template-columns: 1fr;
+        }
+
+        .record-info {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><i class="fas fa-bus"></i> 延遲班次回報</h1>
+        <p id="userInfo">載入中...</p>
+      </div>
+
+      <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('form')">
+          <i class="fas fa-plus-circle"></i> 新增回報
+        </button>
+        <button class="tab-btn" onclick="switchTab('list')">
+          <i class="fas fa-list"></i> 回報紀錄
+        </button>
+      </div>
+
+      <!-- 新增表單 Tab -->
+      <div id="formTab" class="tab-content active">
+        <div class="card">
+          <h2 style="margin-bottom: 20px; color: #06c755">
+            <i class="fas fa-edit"></i> 填寫回報資訊
+          </h2>
+          <form id="delayTripForm">
+            <div class="search-row">
+              <div class="form-group">
+                <label class="required">公司</label>
+                <input type="text" id="company" disabled />
+              </div>
+
+              <div class="form-group">
+                <label class="required">部門</label>
+                <input type="text" id="dept" disabled />
+              </div>
+            </div>
+
+            <div class="search-row">
+              <div class="form-group">
+                <label class="required">職稱</label>
+                <input type="text" id="job" disabled />
+              </div>
+
+              <div class="form-group">
+                <label class="required">姓名</label>
+                <input type="text" id="name" disabled />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="required">路線</label>
+              <input
+                type="text"
+                id="route"
+                placeholder="請輸入路線編號或名稱"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="required">說明</label>
+              <textarea
+                id="content"
+                placeholder="請詳細說明延遲情況..."
+                required
+              ></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane"></i> 送出回報
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 紀錄列表 Tab -->
+      <div id="listTab" class="tab-content">
+        <div class="card search-section">
+          <h3 style="margin-bottom: 15px; color: #06c755">
+            <i class="fas fa-search"></i> 查詢條件
+          </h3>
+          <div class="search-row">
+            <div class="form-group">
+              <label>起始日期</label>
+              <input type="date" id="searchStartDate" />
+            </div>
+            <div class="form-group">
+              <label>結束日期</label>
+              <input type="date" id="searchEndDate" />
+            </div>
+          </div>
+          <div class="search-row">
+            <div class="form-group">
+              <label>路線</label>
+              <input type="text" id="searchRoute" placeholder="路線關鍵字" />
+            </div>
+            <div class="form-group">
+              <label>說明關鍵字</label>
+              <input
+                type="text"
+                id="searchContent"
+                placeholder="搜尋說明內容..."
+              />
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="searchDelayTrips()">
+            <i class="fas fa-search"></i> 查詢
+          </button>
+        </div>
+
+        <div id="recordList" class="record-list"></div>
+      </div>
+    </div>
+
+    <!-- 編輯 Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-edit"></i> 編輯回報</h2>
+          <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editForm">
+          <input type="hidden" id="editId" />
+
+          <div class="form-group">
+            <label class="required">路線</label>
+            <input type="text" id="editRoute" required />
+          </div>
+
+          <div class="form-group">
+            <label class="required">說明</label>
+            <textarea id="editContent" required></textarea>
+          </div>
+
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              <i class="fas fa-save"></i> 儲存
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              style="flex: 1"
+              onclick="closeEditModal()"
+            >
+              <i class="fas fa-times"></i> 取消
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // API Base URL
+      const BASE_URL = (() => {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/api"
+        }
+        return "https://35.221.146.143.nip.io/linehook"
+      })()
+
+      // LIFF ID - 請替換為您的 LIFF ID
+      const channelId = "2006992891" // 服務 ID
+      const liffId = "2006993665-QOvTsfg6".trim() // LIFF ID
+      let currentUser = null
+      let currentRecords = []
+
+      // 初始化
+      async function init() {
+        try {
+          await liff.init({ liffId: LIFF_ID })
+
+          if (!liff.isLoggedIn()) {
+            liff.login()
+            return
+          }
+
+          const profile = await liff.getProfile()
+          await loadUserInfo(profile.userId)
+
+          // 設定今天日期為預設搜尋日期
+          const today = new Date()
+          document.getElementById("searchStartDate").valueAsDate = today
+          document.getElementById("searchEndDate").valueAsDate = today
+
+          // 載入今天的記錄
+          await searchDelayTrips()
+        } catch (error) {
+          console.error("初始化失敗:", error)
+          showAlert("初始化失敗，請重新整理頁面", "error")
+        }
+      }
+
+      // 載入使用者資訊
+      async function loadUserInfo(userId) {
+        try {
+          // 從 UserController 取得使用者資訊
+          const response = await fetch(`${BASE_URL}/User/checkUser`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: userId, channelId: "" }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            currentUser = {
+              userId: userId,
+              company: data.Company,
+              dept: data.Dept,
+              job: data.Job,
+              name: data.Name,
+            }
+
+            document.getElementById(
+              "userInfo"
+            ).textContent = `${data.Company} - ${data.Dept} - ${data.Name}`
+            document.getElementById("company").value = data.Company
+            document.getElementById("dept").value = data.Dept
+            document.getElementById("job").value = data.Job
+            document.getElementById("name").value = data.Name
+          } else {
+            throw new Error("無法取得使用者資訊")
+          }
+        } catch (error) {
+          console.error("載入使用者資訊失敗:", error)
+          showAlert("載入使用者資訊失敗", "error")
+        }
+      }
+
+      // 切換 Tab
+      function switchTab(tab) {
+        const tabs = document.querySelectorAll(".tab-btn")
+        const contents = document.querySelectorAll(".tab-content")
+
+        tabs.forEach((t) => t.classList.remove("active"))
+        contents.forEach((c) => c.classList.remove("active"))
+
+        if (tab === "form") {
+          tabs[0].classList.add("active")
+          document.getElementById("formTab").classList.add("active")
+        } else {
+          tabs[1].classList.add("active")
+          document.getElementById("listTab").classList.add("active")
+          searchDelayTrips()
+        }
+      }
+
+      // 送出新增表單
+      document
+        .getElementById("delayTripForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault()
+
+          if (!currentUser) {
+            showAlert("使用者資訊未載入", "error")
+            return
+          }
+
+          const formData = {
+            company: currentUser.company,
+            userId: currentUser.userId,
+            dept: currentUser.dept,
+            job: currentUser.job,
+            name: currentUser.name,
+            route: document.getElementById("route").value.trim(),
+            content: document.getElementById("content").value.trim(),
+          }
+
+          try {
+            const response = await fetch(`${BASE_URL}/DelayTrip`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(formData),
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+              showAlert("回報送出成功！", "success")
+              document.getElementById("delayTripForm").reset()
+              // 切換到列表 Tab
+              switchTab("list")
+            } else {
+              showAlert(result.message || "送出失敗", "error")
+            }
+          } catch (error) {
+            console.error("送出失敗:", error)
+            showAlert("送出失敗，請稍後再試", "error")
+          }
+        })
+
+      // 查詢延遲班次
+      async function searchDelayTrips() {
+        if (!currentUser) return
+
+        const searchStartDate = document.getElementById("searchStartDate").value
+        const searchEndDate = document.getElementById("searchEndDate").value
+        const searchRoute = document.getElementById("searchRoute").value.trim()
+        const searchContent = document
+          .getElementById("searchContent")
+          .value.trim()
+
+        const today = new Date().toISOString().split("T")[0]
+        const queryData = {
+          company: currentUser.company,
+          dept: currentUser.dept,
+          startDate: (searchStartDate || today) + " 00:00:00",
+          endDate: (searchEndDate || today) + " 23:59:59",
+          route: searchRoute || null,
+          contentKeyword: searchContent || null,
+        }
+
+        try {
+          document.getElementById("recordList").innerHTML =
+            '<div class="loading"><i class="fas fa-spinner"></i><p>載入中...</p></div>'
+
+          const response = await fetch(`${BASE_URL}/DelayTrip/advancedQuery`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(queryData),
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            currentRecords = result.data || []
+            displayRecords(currentRecords)
+          } else {
+            document.getElementById("recordList").innerHTML =
+              '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>查詢失敗</p></div>'
+          }
+        } catch (error) {
+          console.error("查詢失敗:", error)
+          document.getElementById("recordList").innerHTML =
+            '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>查詢失敗</p></div>'
+        }
+      }
+
+      // 顯示記錄
+      function displayRecords(records) {
+        const recordList = document.getElementById("recordList")
+
+        if (!records || records.length === 0) {
+          recordList.innerHTML =
+            '<div class="empty-state"><i class="fas fa-inbox"></i><p>查無資料</p></div>'
+          return
+        }
+
+        const today = new Date().toISOString().split("T")[0]
+        const html = records
+          .map((record) => {
+            const postDate = record.postDateTime.split(" ")[0]
+            const isToday = postDate === today
+            const canEdit = isToday
+
+            return `
+            <div class="record-item">
+              <div class="record-header">
+                <div class="record-route">
+                  <i class="fas fa-route"></i> ${record.route}
+                </div>
+                <div class="record-time">
+                  <i class="far fa-clock"></i> ${record.postDateTime}
+                </div>
+              </div>
+              <div class="record-content">
+                ${record.content}
+              </div>
+              <div class="record-info">
+                <div class="record-info-item">
+                  <i class="fas fa-user"></i> ${record.name}
+                </div>
+                <div class="record-info-item">
+                  <i class="fas fa-building"></i> ${record.dept}
+                </div>
+                <div class="record-info-item">
+                  <i class="fas fa-briefcase"></i> ${record.job}
+                </div>
+                <div class="record-info-item">
+                  <i class="fas fa-sync-alt"></i> ${record.updateDateTime}
+                </div>
+              </div>
+              ${
+                canEdit
+                  ? `
+              <div class="record-actions">
+                <button class="btn btn-secondary btn-small" onclick="editRecord('${record.id}')">
+                  <i class="fas fa-edit"></i> 編輯
+                </button>
+                <button class="btn btn-danger btn-small" onclick="deleteRecord('${record.id}')">
+                  <i class="fas fa-trash"></i> 刪除
+                </button>
+              </div>
+              `
+                  : `
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 此筆為跨日資料，無法編輯或刪除
+              </div>
+              `
+              }
+            </div>
+          `
+          })
+          .join("")
+
+        recordList.innerHTML = html
+      }
+
+      // 編輯記錄
+      function editRecord(id) {
+        const record = currentRecords.find((r) => r.id === id)
+        if (!record) return
+
+        document.getElementById("editId").value = record.id
+        document.getElementById("editRoute").value = record.route
+        document.getElementById("editContent").value = record.content
+        document.getElementById("editModal").style.display = "block"
+      }
+
+      // 關閉編輯 Modal
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none"
+      }
+
+      // 送出編輯
+      document
+        .getElementById("editForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault()
+
+          if (!currentUser) return
+
+          const updateData = {
+            id: document.getElementById("editId").value,
+            userId: currentUser.userId,
+            dept: currentUser.dept,
+            job: currentUser.job,
+            name: currentUser.name,
+            route: document.getElementById("editRoute").value.trim(),
+            content: document.getElementById("editContent").value.trim(),
+          }
+
+          try {
+            const response = await fetch(`${BASE_URL}/DelayTrip`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updateData),
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+              showAlert("更新成功！", "success")
+              closeEditModal()
+              await searchDelayTrips()
+            } else {
+              showAlert(result.message || "更新失敗", "error")
+            }
+          } catch (error) {
+            console.error("更新失敗:", error)
+            showAlert("更新失敗，請稍後再試", "error")
+          }
+        })
+
+      // 刪除記錄
+      async function deleteRecord(id) {
+        if (!confirm("確定要刪除這筆記錄嗎？")) return
+
+        try {
+          const response = await fetch(`${BASE_URL}/DelayTrip/${id}`, {
+            method: "DELETE",
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            showAlert("刪除成功！", "success")
+            await searchDelayTrips()
+          } else {
+            showAlert(result.message || "刪除失敗", "error")
+          }
+        } catch (error) {
+          console.error("刪除失敗:", error)
+          showAlert("刪除失敗，請稍後再試", "error")
+        }
+      }
+
+      // 顯示提示訊息
+      function showAlert(message, type) {
+        const alertDiv = document.createElement("div")
+        alertDiv.className = `alert alert-${type}`
+        alertDiv.innerHTML = `
+          <i class="fas fa-${
+            type === "success"
+              ? "check-circle"
+              : type === "error"
+              ? "exclamation-circle"
+              : "info-circle"
+          }"></i> ${message}
+        `
+        alertDiv.style.position = "fixed"
+        alertDiv.style.top = "20px"
+        alertDiv.style.left = "50%"
+        alertDiv.style.transform = "translateX(-50%)"
+        alertDiv.style.zIndex = "10000"
+        alertDiv.style.minWidth = "300px"
+        alertDiv.style.maxWidth = "90%"
+
+        document.body.appendChild(alertDiv)
+
+        setTimeout(() => {
+          alertDiv.remove()
+        }, 3000)
+      }
+
+      // 點擊 Modal 外部關閉
+      window.onclick = function (event) {
+        const modal = document.getElementById("editModal")
+        if (event.target === modal) {
+          closeEditModal()
+        }
+      }
+
+      // 啟動應用
+      init()
+    </script>
+  </body>
+</html>

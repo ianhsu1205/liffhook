@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>延遲班次查詢</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Noto Sans TC", Arial, sans-serif;
+        background-color: #f7f7f7;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #06c755, #04a043);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .card h2 {
+        color: #06c755;
+        margin-bottom: 20px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #555;
+      }
+
+      .required::after {
+        content: " *";
+        color: #e74c3c;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border 0.3s;
+        box-sizing: border-box;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #06c755;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(6, 199, 85, 0.1);
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background-color: #06c755;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #05b04a;
+      }
+
+      .btn-secondary {
+        background-color: #2196f3;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background-color: #0b7dda;
+      }
+
+      .btn-success {
+        background-color: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background-color: #218838;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-card.green {
+        background: linear-gradient(135deg, #06c755 0%, #04a043 100%);
+      }
+
+      .stat-card.blue {
+        background: linear-gradient(135deg, #2196f3 0%, #0b7dda 100%);
+      }
+
+      .stat-card.orange {
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      }
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .table-container {
+        overflow-x: auto;
+        margin-top: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      thead {
+        background: linear-gradient(135deg, #06c755, #04a043);
+        color: white;
+      }
+
+      th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+      }
+
+      tbody tr:hover {
+        background-color: #f8f9fa;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .route-badge {
+        display: inline-block;
+        background: #06c755;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 13px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 60px;
+        color: #999;
+      }
+
+      .loading i {
+        font-size: 48px;
+        animation: spin 1s linear infinite;
+        color: #06c755;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px;
+        color: #999;
+      }
+
+      .empty-state i {
+        font-size: 64px;
+        margin-bottom: 20px;
+        color: #ddd;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .content-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .content-cell:hover {
+        background-color: #e8f5e9;
+        color: #06c755;
+      }
+
+      .content-cell.expanded {
+        white-space: normal;
+        max-width: none;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .stats-container {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .table-container {
+          font-size: 12px;
+        }
+
+        th,
+        td {
+          padding: 8px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .stats-container {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-group {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><i class="fas fa-search"></i> 延遲班次查詢系統</h1>
+        <p>管理人員進階查詢介面</p>
+      </div>
+
+      <!-- 查詢條件 -->
+      <div class="card">
+        <h2><i class="fas fa-filter"></i> 查詢條件</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="required">公司別</label>
+            <select id="company" required>
+              <option value="">請選擇公司</option>
+              <option value="首都客運">首都客運</option>
+              <option value="臺北客運">臺北客運</option>
+              <option value="三重客運">三重客運</option>
+              <option value="大都會客運" selected>大都會客運</option>
+              <option value="台中客運">台中客運</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>場站</label>
+            <select id="dept">
+              <option value="">全部</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>起始日期</label>
+            <input type="date" id="startDate" />
+          </div>
+
+          <div class="form-group">
+            <label>結束日期</label>
+            <input type="date" id="endDate" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>路線</label>
+            <input type="text" id="route" placeholder="路線關鍵字" />
+          </div>
+
+          <div class="form-group">
+            <label>說明關鍵字</label>
+            <input type="text" id="contentKeyword" placeholder="搜尋說明內容" />
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="searchRecords()">
+            <i class="fas fa-search"></i> 查詢
+          </button>
+          <button class="btn btn-secondary" onclick="resetForm()">
+            <i class="fas fa-redo"></i> 重置
+          </button>
+          <button class="btn btn-success" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> 匯出 Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- 統計資訊 -->
+      <div id="statsContainer" style="display: none">
+        <div class="stats-container">
+          <div class="stat-card green">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">
+              <i class="fas fa-clipboard-list"></i> 總筆數
+            </div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-value" id="deptCount">0</div>
+            <div class="stat-label"><i class="fas fa-building"></i> 部門數</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-value" id="routeCount">0</div>
+            <div class="stat-label"><i class="fas fa-route"></i> 路線數</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dateRange">-</div>
+            <div class="stat-label">
+              <i class="fas fa-calendar-alt"></i> 日期範圍
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 查詢結果 -->
+      <div class="card">
+        <h2><i class="fas fa-table"></i> 查詢結果</h2>
+        <div id="resultContainer">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            請設定查詢條件後點擊「查詢」按鈕
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // API Base URL
+      const BASE_URL = (() => {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/api"
+        }
+        return "https://35.221.146.143.nip.io/linehook"
+      })()
+
+      let currentRecords = []
+      let companies = []
+      let departments = []
+
+      // 初始化
+      async function init() {
+        // 設定日期範圍預設值（最近7天）
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - 7)
+
+        document.getElementById("startDate").valueAsDate = startDate
+        document.getElementById("endDate").valueAsDate = endDate
+
+        // 監聽公司選擇變化
+        document
+          .getElementById("company")
+          .addEventListener("change", loadDepartments)
+
+        // 預設載入大都會客運的場站
+        loadDepartments()
+      }
+
+      // 載入場站列表（根據公司篩選包含公司名稱的場站）
+      function loadDepartments() {
+        const company = document.getElementById("company").value
+        const deptSelect = document.getElementById("dept")
+
+        deptSelect.innerHTML = '<option value="">全部</option>'
+
+        if (!company) return
+
+        // 所有場站列表
+        const allDepts = [
+          "董事長室",
+          "總經理室",
+          "企業工會",
+          "業務部",
+          "人資部",
+          "財務部",
+          "機務部",
+          "修理廠",
+          "總務部",
+          "資訊中心",
+          "勞安室",
+          "(三重客運)中港站",
+          "(三重客運)五股二站",
+          "(三重客運)五股站",
+          "(三重客運)八里站",
+          "(三重客運)公西站",
+          "(三重客運)南港站",
+          "(三重客運)土城站",
+          "(三重客運)新莊站",
+          "(三重客運)林口站",
+          "(三重客運)樹林站",
+          "(三重客運)淡水站",
+          "(三重客運)蘆一站",
+          "(三重客運)蘆二站",
+          "(三重客運)迴龍站",
+          "(大都會客運)中和站",
+          "(大都會客運)內湖站",
+          "(大都會客運)凌雲站",
+          "(大都會客運)建北站",
+          "(大都會客運)北客新店站",
+          "(大都會客運)吳興街站",
+          "(大都會客運)四海站",
+          "(大都會客運)士林站",
+          "(大都會客運)新莊站",
+          "(大都會客運)東園站",
+          "(大都會客運)東湖站",
+          "(大都會客運)松德站",
+          "(大都會客運)松職站",
+          "(大都會客運)林口站",
+          "(大都會客運)榮總站",
+          "(大都會客運)舊莊站",
+          "(大都會客運)萬芳站",
+          "(大都會客運)蘆洲站",
+          "(大都會客運)陽明山站",
+          "(大都會客運)麟光站",
+          "(大都會客運)基隆站",
+          "(大都會客運)蘇澳站",
+          "(臺北客運)三峡一站",
+          "(臺北客運)三峡二站",
+          "(臺北客運)中和站",
+          "(臺北客運)中華站",
+          "(臺北客運)五福站",
+          "(臺北客運)南雅站",
+          "(臺北客運)四海站",
+          "(臺北客運)新店站",
+          "(臺北客運)木柵站",
+          "(臺北客運)板橋前站",
+          "(臺北客運)板橋後站",
+          "(臺北客運)林口站",
+          "(臺北客運)樹林站",
+          "(臺北客運)歡仔園站",
+          "(臺北客運)民生站",
+          "(臺北客運)江子翠站",
+          "(臺北客運)瑞芳站",
+          "(臺北客運)蘆洲站",
+          "(首都客運)三峡一站",
+          "(首都客運)三重一站",
+          "(首都客運)三重二站",
+          "(首都客運)二重站",
+          "(首都客運)內湖站",
+          "(首都客運)南港站",
+          "(首都客運)士林站",
+          "(首都客運)安康站",
+          "(首都客運)新莊一站",
+          "(首都客運)新莊二站",
+          "(首都客運)東園站",
+          "(首都客運)板橋前站",
+          "(首都客運)板橋站",
+          "(首都客運)汐止一站",
+          "(首都客運)汐止二站",
+          "(首都客運)社子站",
+          "(首都客運)經貿站",
+          "(首都客運)安美站",
+          "其它單位",
+        ]
+
+        // 篩選包含公司名稱的場站
+        const filteredDepts = allDepts.filter(
+          (dept) =>
+            dept.includes(`(${company})`) ||
+            (!dept.includes("(") && !dept.includes(")"))
+        )
+
+        filteredDepts.forEach((dept) => {
+          const option = document.createElement("option")
+          option.value = dept
+          option.textContent = dept
+          deptSelect.appendChild(option)
+        })
+
+        departments = filteredDepts
+      }
+
+      // 查詢記錄
+      async function searchRecords() {
+        const company = document.getElementById("company").value
+
+        if (!company) {
+          showAlert("請選擇公司別", "error")
+          return
+        }
+
+        const queryData = {
+          company: company,
+          dept: document.getElementById("dept").value || null,
+          startDate:
+            document.getElementById("startDate").value +
+            (document.getElementById("startDate").value ? " 00:00:00" : ""),
+          endDate:
+            document.getElementById("endDate").value +
+            (document.getElementById("endDate").value ? " 23:59:59" : ""),
+          route: document.getElementById("route").value.trim() || null,
+          contentKeyword:
+            document.getElementById("contentKeyword").value.trim() || null,
+        }
+
+        try {
+          document.getElementById("resultContainer").innerHTML =
+            '<div class="loading"><i class="fas fa-spinner"></i><p>查詢中...</p></div>'
+
+          const response = await fetch(`${BASE_URL}/DelayTrip/advancedQuery`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(queryData),
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            currentRecords = result.data || []
+            displayResults(currentRecords)
+            updateStats(currentRecords)
+          } else {
+            document.getElementById("resultContainer").innerHTML =
+              '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>查詢失敗</p></div>'
+            showAlert(result.message || "查詢失敗", "error")
+          }
+        } catch (error) {
+          console.error("查詢失敗:", error)
+          document.getElementById("resultContainer").innerHTML =
+            '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>查詢失敗</p></div>'
+          showAlert("查詢失敗，請稍後再試", "error")
+        }
+      }
+
+      // 顯示查詢結果
+      function displayResults(records) {
+        const container = document.getElementById("resultContainer")
+
+        if (!records || records.length === 0) {
+          container.innerHTML =
+            '<div class="empty-state"><i class="fas fa-inbox"></i><p>查無資料</p></div>'
+          return
+        }
+
+        const html = `
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>路線</th>
+                  <th>部門</th>
+                  <th>姓名</th>
+                  <th>職稱</th>
+                  <th>說明</th>
+                  <th>回報時間</th>
+                  <th>更新時間</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${records
+                  .map(
+                    (record) => `
+                  <tr>
+                    <td><span class="route-badge">${record.route}</span></td>
+                    <td>${record.dept}</td>
+                    <td>${record.name}</td>
+                    <td>${record.job}</td>
+                    <td class="content-cell" onclick="toggleContent(this)">${record.content}</td>
+                    <td>${record.postDateTime}</td>
+                    <td>${record.updateDateTime}</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+
+        container.innerHTML = html
+      }
+
+      // 切換說明內容展開/收合
+      function toggleContent(element) {
+        element.classList.toggle("expanded")
+      }
+
+      // 更新統計資訊
+      function updateStats(records) {
+        if (!records || records.length === 0) {
+          document.getElementById("statsContainer").style.display = "none"
+          return
+        }
+
+        document.getElementById("statsContainer").style.display = "block"
+
+        // 總筆數
+        document.getElementById("totalCount").textContent = records.length
+
+        // 部門數
+        const depts = new Set(records.map((r) => r.dept))
+        document.getElementById("deptCount").textContent = depts.size
+
+        // 路線數
+        const routes = new Set(records.map((r) => r.route))
+        document.getElementById("routeCount").textContent = routes.size
+
+        // 日期範圍
+        if (records.length > 0) {
+          const dates = records.map((r) => r.postDateTime.split(" ")[0])
+          const minDate = dates.reduce((a, b) => (a < b ? a : b))
+          const maxDate = dates.reduce((a, b) => (a > b ? a : b))
+          document.getElementById("dateRange").textContent =
+            minDate === maxDate
+              ? minDate
+              : `${minDate} ~ ${maxDate}`.replace(/-/g, "/")
+          document.getElementById("dateRange").style.fontSize = "14px"
+        }
+      }
+
+      // 重置表單
+      function resetForm() {
+        document.getElementById("company").value = ""
+        document.getElementById("dept").innerHTML =
+          '<option value="">全部（有「站」字的部門）</option>'
+        document.getElementById("route").value = ""
+        document.getElementById("contentKeyword").value = ""
+
+        // 重設日期為最近7天
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - 7)
+
+        document.getElementById("startDate").valueAsDate = startDate
+        document.getElementById("endDate").valueAsDate = endDate
+
+        // 清空結果
+        document.getElementById("resultContainer").innerHTML =
+          '<div class="alert alert-info"><i class="fas fa-info-circle"></i> 請設定查詢條件後點擊「查詢」按鈕</div>'
+        document.getElementById("statsContainer").style.display = "none"
+        currentRecords = []
+      }
+
+      // 匯出 Excel
+      function exportToExcel() {
+        if (!currentRecords || currentRecords.length === 0) {
+          showAlert("沒有資料可匯出", "error")
+          return
+        }
+
+        try {
+          // 準備資料
+          const data = currentRecords.map((record) => ({
+            路線: record.route,
+            公司: record.company,
+            部門: record.dept,
+            姓名: record.name,
+            職稱: record.job,
+            說明: record.content,
+            回報時間: record.postDateTime,
+            更新時間: record.updateDateTime,
+          }))
+
+          // 建立工作表
+          const ws = XLSX.utils.json_to_sheet(data)
+
+          // 設定欄位寬度
+          ws["!cols"] = [
+            { wch: 15 }, // 路線
+            { wch: 20 }, // 公司
+            { wch: 20 }, // 部門
+            { wch: 10 }, // 姓名
+            { wch: 15 }, // 職稱
+            { wch: 50 }, // 說明
+            { wch: 20 }, // 回報時間
+            { wch: 20 }, // 更新時間
+          ]
+
+          // 建立工作簿
+          const wb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(wb, ws, "延遲班次")
+
+          // 產生檔案名稱
+          const fileName = `延遲班次查詢_${new Date()
+            .toISOString()
+            .slice(0, 10)}.xlsx`
+
+          // 匯出
+          XLSX.writeFile(wb, fileName)
+
+          showAlert("匯出成功！", "success")
+        } catch (error) {
+          console.error("匯出失敗:", error)
+          showAlert("匯出失敗，請稍後再試", "error")
+        }
+      }
+
+      // 顯示提示訊息
+      function showAlert(message, type) {
+        const alertDiv = document.createElement("div")
+        alertDiv.className = `alert alert-${type}`
+        alertDiv.innerHTML = `
+          <i class="fas fa-${
+            type === "success"
+              ? "check-circle"
+              : type === "error"
+              ? "exclamation-circle"
+              : "info-circle"
+          }"></i> ${message}
+        `
+        alertDiv.style.position = "fixed"
+        alertDiv.style.top = "20px"
+        alertDiv.style.left = "50%"
+        alertDiv.style.transform = "translateX(-50%)"
+        alertDiv.style.zIndex = "10000"
+        alertDiv.style.minWidth = "300px"
+        alertDiv.style.maxWidth = "90%"
+
+        document.body.appendChild(alertDiv)
+
+        setTimeout(() => {
+          alertDiv.remove()
+        }, 3000)
+      }
+
+      // 啟動應用
+      init()
+    </script>
+  </body>
+</html>
