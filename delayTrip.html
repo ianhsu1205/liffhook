@@ -411,7 +411,10 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1><i class="fas fa-bus"></i> 班次延遲回報</h1>
+        <h1>
+          <i class="fas fa-bus"></i> 班次延遲回報
+          <span style="font-size: 12px; opacity: 0.7">v1.0.0.2</span>
+        </h1>
         <p id="userInfo">載入中...</p>
       </div>
 
@@ -687,7 +690,9 @@
 
             if (response.ok) {
               showAlert("回報送出成功！", "success")
-              document.getElementById("delayTripForm").reset()
+              // 只清空路線和說明欄位，保留使用者資料以便連續回報
+              document.getElementById("route").value = ""
+              document.getElementById("content").value = ""
               // 切換到列表 Tab
               switchTab("list")
             } else {
