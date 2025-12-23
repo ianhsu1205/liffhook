@@ -365,7 +365,10 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1><i class="fas fa-search"></i> 班次延遲查詢系統</h1>
+        <h1>
+          <i class="fas fa-search"></i> 延遲班次查詢系統
+          <span style="font-size: 12px; opacity: 0.7">v1.0.0.2</span>
+        </h1>
         <p>管理人員進階查詢介面</p>
       </div>
 
@@ -625,10 +628,10 @@
           company: company,
           dept: document.getElementById("dept").value || null,
           startDate:
-            document.getElementById("startDate").value +
+            (document.getElementById("startDate").value || "") +
             (document.getElementById("startDate").value ? " 00:00:00" : ""),
           endDate:
-            document.getElementById("endDate").value +
+            (document.getElementById("endDate").value || "") +
             (document.getElementById("endDate").value ? " 23:59:59" : ""),
           route: document.getElementById("route").value.trim() || null,
           contentKeyword:
