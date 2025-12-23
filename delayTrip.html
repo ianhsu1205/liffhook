@@ -712,12 +712,12 @@
 
         const today = new Date().toISOString().split("T")[0]
         const queryData = {
-          Company: currentUser.company,
-          Dept: currentUser.dept,
-          StartDate: (searchStartDate || today) + " 00:00:00",
-          EndDate: (searchEndDate || today) + " 23:59:59",
-          Route: searchRoute || null,
-          ContentKeyword: searchContent || null,
+          company: currentUser.company,
+          dept: currentUser.dept,
+          startDate: (searchStartDate || today) + " 00:00:00",
+          endDate: (searchEndDate || today) + " 23:59:59",
+          route: searchRoute || null,
+          contentKeyword: searchContent || null,
         }
 
         try {
