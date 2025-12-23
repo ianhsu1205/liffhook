@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>延遲班次查詢</title>
+    <title>班次延遲查詢</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -365,7 +365,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1><i class="fas fa-search"></i> 延遲班次查詢系統</h1>
+        <h1><i class="fas fa-search"></i> 班次延遲查詢系統</h1>
         <p>管理人員進階查詢介面</p>
       </div>
 
@@ -810,10 +810,10 @@
 
           // 建立工作簿
           const wb = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(wb, ws, "延遲班次")
+          XLSX.utils.book_append_sheet(wb, ws, "班次延遲")
 
           // 產生檔案名稱
-          const fileName = `延遲班次查詢_${new Date()
+          const fileName = `班次延遲查詢_${new Date()
             .toISOString()
             .slice(0, 10)}.xlsx`
 
