@@ -600,10 +600,17 @@
           "其它單位",
         ]
 
-        // 篩選包含公司名稱的場站（只要有括號的）
-        const filteredDepts = allDepts.filter((dept) =>
-          dept.includes(`(${company})`)
-        )
+        // 篩選規則：
+        // 1. 沒有括號的部門（一般部門）全部顯示
+        // 2. 有括號的場站，必須符合公司名稱才顯示
+        const filteredDepts = allDepts.filter((dept) => {
+          if (!dept.includes("(")) {
+            // 沒有括號，是一般部門，全部顯示
+            return true
+          }
+          // 有括號，必須符合公司名稱
+          return dept.includes(`(${company})`)
+        })
 
         filteredDepts.forEach((dept) => {
           const option = document.createElement("option")
