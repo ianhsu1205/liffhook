@@ -485,13 +485,11 @@
 
       // 初始化
       async function init() {
-        // 設定日期範圍預設值（最近7天）
-        const endDate = new Date()
-        const startDate = new Date()
-        startDate.setDate(startDate.getDate() - 7)
+        // 設定日期範圍預設值為今天
+        const today = new Date()
 
-        document.getElementById("startDate").valueAsDate = startDate
-        document.getElementById("endDate").valueAsDate = endDate
+        document.getElementById("startDate").valueAsDate = today
+        document.getElementById("endDate").valueAsDate = today
 
         // 監聽公司選擇變化
         document
@@ -599,11 +597,9 @@
           "其它單位",
         ]
 
-        // 篩選包含公司名稱的場站
-        const filteredDepts = allDepts.filter(
-          (dept) =>
-            dept.includes(`(${company})`) ||
-            (!dept.includes("(") && !dept.includes(")"))
+        // 篩選包含公司名稱的場站（只要有括號的）
+        const filteredDepts = allDepts.filter((dept) =>
+          dept.includes(`(${company})`)
         )
 
         filteredDepts.forEach((dept) => {
