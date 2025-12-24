@@ -157,41 +157,32 @@
       }
 
       .stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-      }
-
-      .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #06c755 0%, #04a043 100%);
         color: white;
-        padding: 20px;
+        padding: 15px 20px;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: flex;
+        gap: 30px;
+        align-items: center;
+        flex-wrap: wrap;
       }
 
-      .stat-card.green {
-        background: linear-gradient(135deg, #06c755 0%, #04a043 100%);
-      }
-
-      .stat-card.blue {
-        background: linear-gradient(135deg, #2196f3 0%, #0b7dda 100%);
-      }
-
-      .stat-card.orange {
-        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
       .stat-value {
-        font-size: 32px;
+        font-size: 24px;
         font-weight: 700;
-        margin-bottom: 5px;
       }
 
       .stat-label {
         font-size: 14px;
-        opacity: 0.9;
+        opacity: 0.95;
       }
 
       .table-container {
@@ -236,12 +227,8 @@
 
       .route-badge {
         display: inline-block;
-        background: #06c755;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 500;
-        font-size: 13px;
+        font-weight: 600;
+        font-size: 14px;
       }
 
       .loading {
@@ -323,6 +310,66 @@
         max-width: none;
       }
 
+      /* 記錄卡片樣式 - 適合手機顯示 */
+      .record-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .record-row-1 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .record-row-2 {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .record-field {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .field-label {
+        color: #888;
+        margin-right: 4px;
+      }
+
+      .field-value {
+        font-weight: 500;
+      }
+
+      .dept-value {
+        color: #333;
+      }
+
+      .route-value {
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .content-text {
+        margin-bottom: 4px;
+        word-wrap: break-word;
+      }
+
+      .update-time {
+        font-size: 12px;
+        color: #999;
+      }
+
       @media (max-width: 768px) {
         .container {
           padding: 10px;
@@ -367,7 +414,7 @@
       <div class="header">
         <h1>
           <i class="fas fa-search"></i> 延遲班次查詢系統
-          <span style="font-size: 12px; opacity: 0.7">v1.0.0.2</span>
+          <span style="font-size: 12px; opacity: 0.7">v1.0.0.3</span>
         </h1>
         <p>管理人員進階查詢介面</p>
       </div>
@@ -435,24 +482,18 @@
       <!-- 統計資訊 -->
       <div id="statsContainer" style="display: none">
         <div class="stats-container">
-          <div class="stat-card green">
-            <div class="stat-value" id="totalCount">0</div>
-            <div class="stat-label">
-              <i class="fas fa-clipboard-list"></i> 總筆數
+          <div class="stat-item">
+            <i class="fas fa-clipboard-list" style="font-size: 20px"></i>
+            <div>
+              <div class="stat-value" id="totalCount">0</div>
+              <div class="stat-label">回報筆數</div>
             </div>
           </div>
-          <div class="stat-card blue">
-            <div class="stat-value" id="deptCount">0</div>
-            <div class="stat-label"><i class="fas fa-building"></i> 部門數</div>
-          </div>
-          <div class="stat-card orange">
-            <div class="stat-value" id="routeCount">0</div>
-            <div class="stat-label"><i class="fas fa-route"></i> 路線數</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="dateRange">-</div>
-            <div class="stat-label">
-              <i class="fas fa-calendar-alt"></i> 日期範圍
+          <div class="stat-item">
+            <i class="fas fa-building" style="font-size: 20px"></i>
+            <div>
+              <div class="stat-value" id="deptCount">0</div>
+              <div class="stat-label">單位數</div>
             </div>
           </div>
         </div>
@@ -684,38 +725,50 @@
           return
         }
 
+        // 依時間排序（最新的在前）
+        const sortedRecords = [...records].sort((a, b) => {
+          return new Date(b.postDateTime) - new Date(a.postDateTime)
+        })
+
         const html = `
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>路線</th>
-                  <th>部門</th>
-                  <th>姓名</th>
-                  <th>職稱</th>
-                  <th>說明</th>
-                  <th>回報時間</th>
-                  <th>更新時間</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${records
-                  .map(
-                    (record) => `
-                  <tr>
-                    <td><span class="route-badge">${record.route}</span></td>
-                    <td>${record.dept}</td>
-                    <td>${record.name}</td>
-                    <td>${record.job}</td>
-                    <td class="content-cell" onclick="toggleContent(this)">${record.content}</td>
-                    <td>${record.postDateTime}</td>
-                    <td>${record.updateDateTime}</td>
-                  </tr>
+          <div>
+            ${sortedRecords
+              .map((record) => {
+                // 移除場站中的括號內容（僅顯示用）
+                const displayDept = record.dept.replace(/\(大都會客運\)/g, "")
+
+                return `
+                  <div class="record-card">
+                    <div class="record-row-1">
+                      <span class="record-field">
+                        <span class="field-label">場站:</span>
+                        <span class="field-value dept-value">${displayDept}</span>
+                      </span>
+                      <span class="record-field">
+                        <span class="field-label">路線:</span>
+                        <span class="route-badge route-value" style="color: #06c755;">${record.route}</span>
+                      </span>
+                      <span class="record-field">
+                        <span class="field-label">姓名:</span>
+                        <span class="field-value">${record.name}</span>
+                      </span>
+                      <span class="record-field">
+                        <span class="field-label">職稱:</span>
+                        <span class="field-value">${record.job}</span>
+                      </span>
+                      <span class="record-field">
+                        <span class="field-label">回報時間:</span>
+                        <span class="field-value">${record.postDateTime}</span>
+                      </span>
+                    </div>
+                    <div class="record-row-2">
+                      <div class="content-text"><strong>說明：</strong>${record.content}</div>
+                      <div class="update-time">更新時間：${record.updateDateTime}</div>
+                    </div>
+                  </div>
                 `
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+              })
+              .join("")}
           </div>
         `
 
@@ -742,22 +795,6 @@
         // 部門數
         const depts = new Set(records.map((r) => r.dept))
         document.getElementById("deptCount").textContent = depts.size
-
-        // 路線數
-        const routes = new Set(records.map((r) => r.route))
-        document.getElementById("routeCount").textContent = routes.size
-
-        // 日期範圍
-        if (records.length > 0) {
-          const dates = records.map((r) => r.postDateTime.split(" ")[0])
-          const minDate = dates.reduce((a, b) => (a < b ? a : b))
-          const maxDate = dates.reduce((a, b) => (a > b ? a : b))
-          document.getElementById("dateRange").textContent =
-            minDate === maxDate
-              ? minDate
-              : `${minDate} ~ ${maxDate}`.replace(/-/g, "/")
-          document.getElementById("dateRange").style.fontSize = "14px"
-        }
       }
 
       // 重置表單
