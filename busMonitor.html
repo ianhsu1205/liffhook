@@ -275,13 +275,15 @@
 
       .quick-item {
   background-color: #f1f1f1;
-  border-radius: 20px;
+  border-radius: 4px;
   padding: 8px 14px; /* 放大按鈕尺寸 */
   font-size: 15px; /* 放大字體 */
   cursor: pointer;
   border: 1px solid #ddd;
   transition: all 0.2s ease;
   margin-bottom: 5px; /* 增加間距 */
+  flex: 0 0 auto; /* 不伸縮，自動寬度 */
+  white-space: nowrap; /* 文字不換行 */
       }
 
       .quick-item.selected {
@@ -1747,57 +1749,154 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 
   /* 左轉錯誤項目 - 紅色系背景 */
 .quick-item.left-turn-error {
-  background-color: #ffcccc; /* 淺紅色 */
-  border: 1px solid #ffaaaa;
+  background-color: #ff6b6b; /* 明顯紅色 */
+  border: 2px solid #ff5252;
+  color: #ffffff;
+  font-weight: 600;
 }
 .quick-item.left-turn-error.selected {
-  background-color: #ff9999;
-  color: #800000;
-  border-color: #ff6666;
+  background-color: #ff5252;
+  color: #ffffff;
+  border-color: #ff3838;
+  box-shadow: 0 3px 8px rgba(255, 82, 82, 0.4);
 }
 
-/* 左轉無缺失項目 - 綠色系背景 */
+/* 左轉無缺失項目 - 紅色系背景（圓角+綠框標識無缺失）*/
 .quick-item.left-turn-ok {
-  background-color: #ccffcc; /* 淺綠色 */
-  border: 1px solid #aaffaa;
+  background-color: #ff6b6b; /* 明顯紅色 */
+  border: 3px solid #51cf66; /* 粗綠色邊框 */
+  border-radius: 20px; /* 圓角標識無缺失 */
+  color: #ffffff;
+  font-weight: 600;
+  position: relative;
+}
+.quick-item.left-turn-ok::before {
+  content: '✓ ';
+  color: #51cf66;
+  font-weight: bold;
+  font-size: 16px;
 }
 .quick-item.left-turn-ok.selected {
-  background-color: #99ff99;
-  color: #008000;
-  border-color: #66ff66;
+  background-color: #ff5252;
+  color: #ffffff;
+  border-color: #37b24d;
+  box-shadow: 0 3px 8px rgba(81, 207, 102, 0.5);
 }
 
 /* 右轉錯誤項目 - 橙色系背景 */
 .quick-item.right-turn-error {
-  background-color: #ffe6cc; /* 淺橙色 */
-  border: 1px solid #ffd699;
+  background-color: #ff922b; /* 明顯橙色 */
+  border: 2px solid #ff8000;
+  color: #ffffff;
+  font-weight: 600;
 }
 .quick-item.right-turn-error.selected {
-  background-color: #ffc266;
-  color: #804000;
-  border-color: #ffaa33;
+  background-color: #ff8000;
+  color: #ffffff;
+  border-color: #ff6b00;
+  box-shadow: 0 3px 8px rgba(255, 128, 0, 0.4);
 }
 
-/* 右轉無缺失項目 - 青色系背景 */
+/* 右轉無缺失項目 - 橙色系背景（圓角+綠框標識無缺失）*/
 .quick-item.right-turn-ok {
-  background-color: #ccffee; /* 淺青色 */
-  border: 1px solid #99ffdd;
+  background-color: #ff922b; /* 明顯橙色 */
+  border: 3px solid #51cf66; /* 粗綠色邊框 */
+  border-radius: 20px; /* 圓角標識無缺失 */
+  color: #ffffff;
+  font-weight: 600;
+  position: relative;
+}
+.quick-item.right-turn-ok::before {
+  content: '✓ ';
+  color: #51cf66;
+  font-weight: bold;
+  font-size: 16px;
 }
 .quick-item.right-turn-ok.selected {
-  background-color: #66ffcc;
-  color: #006644;
-  border-color: #33ffbb;
+  background-color: #ff8000;
+  color: #ffffff;
+  border-color: #37b24d;
+  box-shadow: 0 3px 8px rgba(81, 207, 102, 0.5);
+}
+
+/* 主要項目按鈕 - 統一樣式 */
+.quick-item.main-item {
+  background-color: #f1f1f1;
+  border: 2px solid #ddd;
+  color: #333;
+  font-weight: 500;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.quick-item.main-item.selected {
+  background-color: #06c755;
+  color: white;
+  border-color: #04a73e;
+  box-shadow: 0 2px 6px rgba(6, 199, 85, 0.3);
+}
+
+/* 左轉項目 - 紅色邊框 */
+.quick-item.main-item.left-turn {
+  border-color: #ff6b6b;
+  background-color: #fff5f5;
+}
+.quick-item.main-item.left-turn.selected {
+  background-color: #06c755;
+  border-color: #04a73e;
+}
+
+/* 右轉項目 - 橙色邊框 */
+.quick-item.main-item.right-turn {
+  border-color: #ff922b;
+  background-color: #fff9f0;
+}
+.quick-item.main-item.right-turn.selected {
+  background-color: #06c755;
+  border-color: #04a73e;
+}
+
+/* 直行項目 - 藍色邊框 */
+.quick-item.main-item.straight {
+  border-color: #4dabf7;
+  background-color: #f0f8ff;
+  color: #000000;
+}
+.quick-item.main-item.straight.selected {
+  background-color: #06c755;
+  border-color: #04a73e;
+  color: white;
+}
+
+/* 無缺失項目 - 保持圓角 */
+.quick-item.no-defect {
+  border-radius: 20px;
+}
+
+/* 分組標題樣式 */
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  margin: 12px 0 8px 0;
+  padding: 4px 8px;
+  background-color: #f8f9fa;
+  border-left: 3px solid #06c755;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 直行項目 - 藍色系背景 */
 .quick-item.straight {
-  background-color: #e6f2ff; /* 淺藍色 */
-  border: 1px solid #cce6ff;
+  background-color: #4dabf7; /* 明顯藍色 */
+  border: 2px solid #339af0;
+  color: #ffffff;
+  font-weight: 600;
 }
 .quick-item.straight.selected {
-  background-color: #99ccff;
-  color: #004080;
-  border-color: #66aaff;
+  background-color: #339af0;
+  color: #ffffff;
+  border-color: #1c7ed6;
+  box-shadow: 0 3px 8px rgba(51, 154, 240, 0.4);
 }
  
     </style>
@@ -2052,7 +2151,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.2.1(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.2.2(瀏覽器模式)
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -2122,7 +2221,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
 const base_url = (() => {
   // 檢查是否為本地開發環境
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return window.location.origin + '/';
+    return window.location.origin + "/api/";
   }
   // 生產環境使用指定的後端地址
   return 'https://35.221.146.143.nip.io/linehook/';
@@ -2174,8 +2273,24 @@ const companies = [
 ];
 // 初始化所有選定的公司名稱
 let selectedCompanies = ["首都客運", "臺北客運", "大都會客運", "三重客運", "台中客運"];
-// 主要項目預設值
-const mainItems = ["左轉-未停","左轉-無缺失", "右轉-未停", "右轉-未指差", "右轉-未停未指差","右轉-無缺失","直行" ];
+// 主要項目預設值 - 按左轉/右轉分組，無缺失放第一個
+const mainItems = [
+  // 左轉項目
+  {
+    group: "左轉項目",
+    items: ["左轉-無缺失", "左轉-未停"]
+  },
+  // 右轉項目
+  {
+    group: "右轉項目",
+    items: ["右轉-無缺失", "右轉-未停", "右轉-未指差", "右轉-未停未指差"]
+  },
+  // 直行項目
+  {
+    group: "直行項目",
+    items: ["直行"]
+  }
+];
 const styleElement = document.createElement('style');
 styleElement.textContent = `
   .matching-vehicles-container {
@@ -7286,50 +7401,73 @@ function startAutoDetect() {
   runDetection();
 }
 
-// 生成带有不同背景颜色的主要项目
-// 生成帶有特定背景顏色的主要項目
+// 生成帶有不同背景颜色的主要项目
+// 生成帶有分組的主要項目
 function generateMainItems(selectedItem = null) {
     const container = document.getElementById("mainItemsContainer");
     container.innerHTML = "";
     
-    mainItems.forEach(item => {
-        const itemButton = document.createElement("div");
-        itemButton.className = "quick-item";
-        itemButton.textContent = item;
-        itemButton.dataset.value = item;
+    mainItems.forEach(groupData => {
+        // 創建分組標題
+        const groupTitle = document.createElement("div");
+        groupTitle.className = "group-title";
+        groupTitle.textContent = groupData.group;
+        container.appendChild(groupTitle);
         
-        // 只為左轉相關選項添加特定的CSS類別
-        if (item.includes("左轉-未停")) {
-            itemButton.classList.add("left-turn-error");
-        } else if (item.includes("左轉-無缺失")) {
-            itemButton.classList.add("left-turn-error");
-        }
-        // 其他選項不添加特殊類別，保持默認樣式
+        // 創建項目容器
+        const groupContainer = document.createElement("div");
+        groupContainer.style.display = "flex";
+        groupContainer.style.flexWrap = "wrap";
+        groupContainer.style.gap = "8px";
+        groupContainer.style.marginBottom = "10px";
         
-        // 如果是當前選中項目，添加選中樣式
-        if (item === selectedItem) {
-            itemButton.classList.add("selected");
-        }
-        
-        // 添加點擊事件
-        itemButton.onclick = function() {
-            const mainItemsContainer = document.getElementById("mainItemsContainer");
-            mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
-                el.classList.remove("selected");
-            });
-            this.classList.add("selected");
+        groupData.items.forEach(item => {
+            const itemButton = document.createElement("div");
+            itemButton.className = "quick-item main-item";
+            itemButton.textContent = item;
+            itemButton.dataset.value = item;
             
-            // 儲存選擇到當前編輯的車輛對象
-            if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
-                editingBuses[activeEditingBusIndex].selectedMainItem = this.dataset.value;
+            // 根據項目類型添加對應的 class
+            if (item.includes("左轉")) {
+                itemButton.classList.add("left-turn");
+            } else if (item.includes("右轉")) {
+                itemButton.classList.add("right-turn");
+            } else if (item.includes("直行")) {
+                itemButton.classList.add("straight");
             }
+            
+            // 如果是無缺失項目，添加圓角樣式
+            if (item.includes("無缺失")) {
+                itemButton.classList.add("no-defect");
+            }
+            
+            // 如果是當前選中項目，添加選中樣式
+            if (item === selectedItem) {
+                itemButton.classList.add("selected");
+            }
+            
+            // 添加點擊事件
+            itemButton.onclick = function() {
+                const mainItemsContainer = document.getElementById("mainItemsContainer");
+                mainItemsContainer.querySelectorAll(".quick-item").forEach(el => {
+                    el.classList.remove("selected");
+                });
+                this.classList.add("selected");
+                
+                // 儲存選擇到當前編輯的車輛對象
+                if (activeEditingBusIndex >= 0 && editingBuses[activeEditingBusIndex]) {
+                    editingBuses[activeEditingBusIndex].selectedMainItem = this.dataset.value;
+                }
 
-            // 更新編輯界面以反映項目計數變化
-            updateBusEditingInterface();
-            updateEditingTabs();
-        };
+                // 更新編輯界面以反映項目計數變化
+                updateBusEditingInterface();
+                updateEditingTabs();
+            };
+            
+            groupContainer.appendChild(itemButton);
+        });
         
-        container.appendChild(itemButton);
+        container.appendChild(groupContainer);
     });
 }
     </script>
