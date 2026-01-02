@@ -2198,7 +2198,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.7</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.8</div>
     </div>
 
     <!-- JavaScript -->
@@ -3734,8 +3734,8 @@
         // 重置表單
         document.getElementById("applicationForm").reset()
 
-        // 更新主管選擇下拉選單
-        updateApproverOptions()
+        // 載入預設的簽核人員（我的上級部門）
+        loadPotentialApprovers()
 
         // 顯示模態框
         const modal = document.getElementById("newApplicationModal")
