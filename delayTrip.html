@@ -413,7 +413,7 @@
       <div class="header">
         <h1>
           <i class="fas fa-bus"></i> 班次延遲回報
-          <span style="font-size: 12px; opacity: 0.7">v1.0.0.2</span>
+          <span style="font-size: 12px; opacity: 0.7">v1.0.0.3</span>
         </h1>
         <p id="userInfo">載入中...</p>
       </div>
@@ -434,50 +434,77 @@
             <i class="fas fa-edit"></i> 填寫回報資訊
           </h2>
           <form id="delayTripForm">
-            <div class="search-row">
-              <div class="form-group">
-                <label class="required">公司</label>
-                <input type="text" id="company" disabled />
+            <div class="form-group">
+              <label class="required">回報人資訊</label>
+              <div class="search-row" style="margin-bottom: 5px">
+                <input
+                  type="text"
+                  id="company"
+                  disabled
+                  placeholder="公司"
+                  style="font-size: 14px; padding: 10px"
+                />
+                <input
+                  type="text"
+                  id="dept"
+                  disabled
+                  placeholder="部門"
+                  style="font-size: 14px; padding: 10px"
+                />
               </div>
-
-              <div class="form-group">
-                <label class="required">部門</label>
-                <input type="text" id="dept" disabled />
-              </div>
-            </div>
-
-            <div class="search-row">
-              <div class="form-group">
-                <label class="required">職稱</label>
-                <input type="text" id="job" disabled />
-              </div>
-
-              <div class="form-group">
-                <label class="required">姓名</label>
-                <input type="text" id="name" disabled />
+              <div class="search-row" style="margin-bottom: 0">
+                <input
+                  type="text"
+                  id="job"
+                  disabled
+                  placeholder="職稱"
+                  style="font-size: 14px; padding: 10px"
+                />
+                <input
+                  type="text"
+                  id="name"
+                  disabled
+                  placeholder="姓名"
+                  style="font-size: 14px; padding: 10px"
+                />
               </div>
             </div>
 
             <div class="form-group">
-              <label class="required">路線</label>
+              <label class="required" style="font-size: 16px; font-weight: 600"
+                >路線</label
+              >
               <input
                 type="text"
                 id="route"
                 placeholder="請輸入路線編號或名稱"
                 required
+                style="font-size: 18px; padding: 14px; font-weight: 500"
               />
             </div>
 
             <div class="form-group">
-              <label class="required">說明</label>
+              <label class="required" style="font-size: 16px; font-weight: 600"
+                >說明</label
+              >
               <textarea
                 id="content"
                 placeholder="請詳細說明延遲情況..."
                 required
+                style="
+                  min-height: 120px;
+                  font-size: 16px;
+                  padding: 12px;
+                  line-height: 1.6;
+                "
               ></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              style="font-size: 18px; padding: 14px"
+            >
               <i class="fas fa-paper-plane"></i> 送出回報
             </button>
           </form>
