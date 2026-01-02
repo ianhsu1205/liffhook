@@ -2109,7 +2109,7 @@
               <div class="form-group">
                 <label for="approverType" class="required">簽核人員選擇</label>
                 <select id="approverType" required>
-                  <option value="same-dept">我的部門</option>
+                  <option value="same-dept">我的上級部門</option>
                   <option value="other-dept">其它部門</option>
                   <option value="other-company">其它公司(有兼任主管)</option>
                 </select>
@@ -2198,7 +2198,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.6</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.7</div>
     </div>
 
     <!-- JavaScript -->
@@ -2612,11 +2612,11 @@
             // 載入申請項目
             await loadEventItems()
 
-            // 載入潛在的核准主管
-            await loadPotentialApprovers()
-
             // 載入申請記錄
             await loadRecords()
+
+            // 注意：不在初始載入時查詢主管列表，避免錯誤訊息
+            // 用戶選擇簽核類型或部門時會自動載入
           } else {
             showStatusMessage("無法獲取用戶資訊，請先完成註冊", "error")
             setTimeout(() => {
