@@ -2198,7 +2198,7 @@
         </div>
       </div>
 
-      <div class="line-brand">多功能平台-線上簽核-v1.0.6.5</div>
+      <div class="line-brand">多功能平台-線上簽核-v1.0.6.6</div>
     </div>
 
     <!-- JavaScript -->
@@ -2799,10 +2799,12 @@
           console.log("當前用戶資訊:", currentUser)
 
           if (approverType === "same-dept") {
-            // 載入同部門主管
+            // 載入同部門主管（使用申請人的上級部門）
             url += `&company=${encodeURIComponent(
               currentUser.company
-            )}&dept=${encodeURIComponent(currentUser.dept)}`
+            )}&dept=${encodeURIComponent(
+              currentUser.superiorDept || currentUser.dept
+            )}`
           } else if (approverType === "other-dept") {
             // 載入其他部門主管
             const selectedDept = document.getElementById("otherDept").value
