@@ -14,7 +14,7 @@ const base_url = (() => {
 })();
 
 // API 端點
-const API_BASE = `${base_url}api/MessageAutoReply`;
+const API_BASE = `${base_url}MessageAutoReply`;
 
 // JWT Token (需要登入後取得)
 let authToken = '';
@@ -559,3 +559,4 @@ window.onclick = function(event) {
         closeModal();
     }
 }
+
