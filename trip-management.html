@@ -1255,7 +1255,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.47</h1>
+        <h1>都會之星座位保留系統 v1.0.0.48</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -4986,6 +4986,10 @@
             createPrintContentElement()
           printContent.innerHTML = html
           await waitForQRCodeLoading()
+
+          // 靜默列印專用：額外等待確保圖片完全渲染到列印緩衝區
+          await new Promise((resolve) => setTimeout(resolve, 1500))
+
           try {
             if (isPrinting) {
               console.warn("[PRINT] 上一次列印尚未完成，忽略本次呼叫。")
@@ -6102,6 +6106,10 @@
             createPrintContentElement()
           printContent.innerHTML = html
           await waitForQRCodeLoading()
+
+          // 靜默列印專用：額外等待確保圖片完全渲染到列印緩衝區
+          await new Promise((resolve) => setTimeout(resolve, 1500))
+
           if (isPrinting) {
             showNotification("上一份列印尚未完成", "info")
             return
