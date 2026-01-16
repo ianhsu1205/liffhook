@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Line 訊息自動回覆管理系統</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "Microsoft JhengHei", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #06c755 0%, #00b900 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+
+      .search-box {
+        flex: 1;
+        min-width: 250px;
+        position: relative;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 12px 40px 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #06c755;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: #06c755;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #00b900;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(6, 199, 85, 0.3);
+      }
+
+      .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+      }
+
+      .btn-secondary:hover {
+        background: #e0e0e0;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .btn-sm {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      thead {
+        background: #f8f9fa;
+      }
+
+      th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e0e0e0;
+        font-size: 14px;
+      }
+
+      td {
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+      }
+
+      tr:hover {
+        background: #f8f9fa;
+      }
+
+      .badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+      }
+
+      .badge-success {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+
+      .modal-content {
+        background: white;
+        max-width: 900px;
+        margin: 50px auto;
+        border-radius: 12px;
+        overflow: hidden;
+        animation: slideDown 0.3s;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .modal-header {
+        background: #06c755;
+        color: white;
+        padding: 25px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-header h2 {
+        font-size: 22px;
+      }
+
+      .close {
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        background: none;
+        border: none;
+      }
+
+      .close:hover {
+        transform: rotate(90deg);
+        transition: transform 0.3s;
+      }
+
+      .modal-body {
+        padding: 30px;
+        max-height: calc(100vh - 300px);
+        overflow-y: auto;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .form-group label .required {
+        color: #dc3545;
+        margin-left: 3px;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: all 0.3s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #06c755;
+      }
+
+      .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      .form-group small {
+        display: block;
+        margin-top: 5px;
+        color: #6c757d;
+        font-size: 12px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .modal-footer {
+        padding: 20px 30px;
+        background: #f8f9fa;
+        text-align: right;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 25px;
+      }
+
+      .tab {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        color: #6c757d;
+        transition: all 0.3s;
+      }
+
+      .tab:hover {
+        color: #06c755;
+      }
+
+      .tab.active {
+        color: #06c755;
+        border-bottom-color: #06c755;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .flex-preview {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        background: #f8f9fa;
+        margin-top: 15px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+      }
+
+      .empty svg {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-card h3 {
+        font-size: 32px;
+        margin-bottom: 5px;
+      }
+
+      .stat-card p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+      }
+
+      .icon-btn:hover {
+        transform: scale(1.1);
+      }
+
+      .icon-btn-edit {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .icon-btn-delete {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .icon-btn-toggle {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .code-editor {
+        font-family: "Courier New", monospace;
+        background: #282c34;
+        color: #abb2bf;
+        padding: 15px;
+        border-radius: 8px;
+        min-height: 200px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🤖 Line 訊息自動回覆管理系統</h1>
+        <p>輕鬆管理你的 Line Bot 自動回覆規則</p>
+      </div>
+
+      <div class="content">
+        <!-- 統計卡片 -->
+        <div class="stats" id="stats">
+          <div class="stat-card">
+            <h3 id="totalCount">0</h3>
+            <p>總規則數</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="activeCount">0</h3>
+            <p>啟用中</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="inactiveCount">0</h3>
+            <p>已停用</p>
+          </div>
+        </div>
+
+        <!-- 工具列 -->
+        <div class="toolbar">
+          <div class="search-box">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="🔍 搜尋關鍵字、描述..."
+            />
+          </div>
+          <button class="btn btn-primary" onclick="openModal()">
+            ➕ 新增規則
+          </button>
+          <button class="btn btn-secondary" onclick="loadRules()">
+            🔄 重新載入
+          </button>
+        </div>
+
+        <!-- 規則列表 -->
+        <div id="rulesTable">
+          <div class="loading">載入中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編輯/新增規則 Modal -->
+    <div id="ruleModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">新增規則</h2>
+          <button class="close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="ruleForm">
+            <input type="hidden" id="ruleId" />
+
+            <!-- 基本資訊 -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>關鍵字 <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="keyword"
+                  required
+                  placeholder="例如:天氣、匯率"
+                />
+                <small>使用者輸入的觸發詞</small>
+              </div>
+              <div class="form-group">
+                <label>匹配類型 <span class="required">*</span></label>
+                <select id="matchType" required>
+                  <option value="StartsWith">開頭符合 (StartsWith)</option>
+                  <option value="Contains">包含 (Contains)</option>
+                  <option value="Equals">完全符合 (Equals)</option>
+                  <option value="EndsWith">結尾符合 (EndsWith)</option>
+                  <option value="Regex">正則表達式 (Regex)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>處理器類型 <span class="required">*</span></label>
+                <select id="handlerType" required onchange="handleTypeChange()">
+                  <option value="Reply">直接回覆 (Reply)</option>
+                  <option value="Function">呼叫功能 (Function)</option>
+                  <option value="ApiCall">呼叫 API (ApiCall)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>優先順序 <span class="required">*</span></label>
+                <input
+                  type="number"
+                  id="priority"
+                  value="100"
+                  required
+                  min="1"
+                  max="999"
+                />
+                <small>數字越小優先順序越高</small>
+              </div>
+            </div>
+
+            <!-- Tabs for different handler types -->
+            <div class="tabs" id="handlerTabs">
+              <button
+                type="button"
+                class="tab active"
+                data-tab="reply"
+                onclick="switchTab('reply')"
+              >
+                💬 回覆設定
+              </button>
+              <button
+                type="button"
+                class="tab"
+                data-tab="function"
+                onclick="switchTab('function')"
+              >
+                ⚙️ 功能設定
+              </button>
+              <button
+                type="button"
+                class="tab"
+                data-tab="api"
+                onclick="switchTab('api')"
+              >
+                🌐 API 設定
+              </button>
+            </div>
+
+            <!-- Reply Tab -->
+            <div id="replyTab" class="tab-content active">
+              <div class="form-group">
+                <label>回覆訊息類型</label>
+                <select id="replyMessageType" onchange="replyTypeChange()">
+                  <option value="text">文字訊息</option>
+                  <option value="flex">Flex Message (Box + Button)</option>
+                </select>
+              </div>
+
+              <div id="textReplySection">
+                <div class="form-group">
+                  <label>回覆訊息 <span class="required">*</span></label>
+                  <textarea
+                    id="replyMessage"
+                    placeholder="輸入回覆的文字訊息"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div id="flexReplySection" style="display: none">
+                <div class="form-group">
+                  <label
+                    >Flex Message JSON <span class="required">*</span></label
+                  >
+                  <textarea
+                    id="flexMessageJson"
+                    class="code-editor"
+                    placeholder='{"altText":"訊息","contents":{"type":"bubble","body":{"type":"box","layout":"vertical","contents":[...]}}}'
+                  >
+                  </textarea>
+                  <small>
+                    <a
+                      href="https://developers.line.biz/flex-simulator/"
+                      target="_blank"
+                    >
+                      使用 Line Flex Message Simulator 設計
+                    </a>
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="loadFlexTemplate()"
+                >
+                  載入範本
+                </button>
+              </div>
+            </div>
+
+            <!-- Function Tab -->
+            <div id="functionTab" class="tab-content">
+              <div class="form-group">
+                <label>處理器動作</label>
+                <input
+                  type="text"
+                  id="handlerAction"
+                  placeholder="例如:HandleReportCommand"
+                />
+                <small>對應的處理函式名稱</small>
+              </div>
+              <div class="form-group">
+                <label>處理器參數 (JSON)</label>
+                <textarea
+                  id="handlerParameters"
+                  placeholder='{"key": "value"}'
+                ></textarea>
+                <small>JSON 格式的參數</small>
+              </div>
+            </div>
+
+            <!-- API Tab -->
+            <div id="apiTab" class="tab-content">
+              <div class="form-group">
+                <label>API 網址 <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="apiUrl"
+                  placeholder="https://api.example.com/data"
+                />
+                <small>可使用變數: {param1}, {userMessage}, {date} 等</small>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>HTTP Method</label>
+                  <select id="apiMethod">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>超時時間 (秒)</label>
+                  <input
+                    type="number"
+                    id="apiTimeout"
+                    value="30"
+                    min="5"
+                    max="60"
+                  />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Request Headers (JSON)</label>
+                <textarea
+                  id="apiHeaders"
+                  placeholder='{"Authorization": "Bearer TOKEN"}'
+                ></textarea>
+              </div>
+              <div class="form-group">
+                <label>Request Body</label>
+                <textarea
+                  id="apiBody"
+                  placeholder='{"key": "value"}'
+                ></textarea>
+              </div>
+              <div class="form-group">
+                <label>回應範本</label>
+                <textarea
+                  id="apiResponseTemplate"
+                  placeholder="結果: {$.data.value}"
+                ></textarea>
+                <small>使用 {$.path} 從 JSON 回應中提取資料</small>
+              </div>
+              <div class="form-group">
+                <label>錯誤訊息</label>
+                <input
+                  type="text"
+                  id="apiErrorMessage"
+                  placeholder="查詢失敗,請稍後再試"
+                />
+              </div>
+            </div>
+
+            <!-- 其他設定 -->
+            <div class="form-group">
+              <label>描述說明</label>
+              <textarea
+                id="description"
+                rows="2"
+                placeholder="此規則的用途說明"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="isActive" checked />
+                啟用此規則
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveRule()">💾 儲存</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
