@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>趟次訂位查詢系統</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .version {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 5px;
+      }
+
+      .search-section {
+        padding: 30px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+      }
+
+      .search-form {
+        display: flex;
+        gap: 15px;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+
+      .form-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+
+      .results-section {
+        padding: 30px;
+      }
+
+      .summary-box {
+        background: #e7f3ff;
+        border-left: 4px solid #2196f3;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+
+      .summary-box h3 {
+        color: #1976d2;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .summary-stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 14px;
+      }
+
+      .stat-item strong {
+        color: #1976d2;
+      }
+
+      .trip-card {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        transition: box-shadow 0.3s;
+      }
+
+      .trip-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .trip-header {
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 2px solid #e9ecef;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .trip-header:hover {
+        background: #e9ecef;
+      }
+
+      .trip-info {
+        flex: 1;
+      }
+
+      .trip-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .trip-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 13px;
+        color: #666;
+        flex-wrap: wrap;
+      }
+
+      .trip-meta span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .status-pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .status-notified {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .status-completed {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .trip-stats {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .stat-badge {
+        background: white;
+        padding: 8px 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .trip-details {
+        display: none;
+        padding: 20px;
+      }
+
+      .trip-details.expanded {
+        display: block;
+      }
+
+      .reservations-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+
+      .reservations-table th,
+      .reservations-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .reservations-table th {
+        background: #f8f9fa;
+        font-weight: bold;
+        color: #495057;
+        font-size: 13px;
+      }
+
+      .reservations-table td {
+        font-size: 13px;
+      }
+
+      .reservations-table tr:hover {
+        background: #f8f9fa;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+
+      .badge-success {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+      }
+
+      .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+      }
+
+      .loading::after {
+        content: "...";
+        animation: dots 1.5s infinite;
+      }
+
+      @keyframes dots {
+        0%,
+        20% {
+          content: ".";
+        }
+        40% {
+          content: "..";
+        }
+        60%,
+        100% {
+          content: "...";
+        }
+      }
+
+      .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+      }
+
+      .toggle-icon {
+        transition: transform 0.3s;
+      }
+
+      .toggle-icon.rotated {
+        transform: rotate(180deg);
+      }
+
+      .no-data {
+        color: #999;
+        font-style: italic;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .highlight-issue {
+        background: #fff3cd !important;
+      }
+
+      .phone-masked {
+        font-family: monospace;
+      }
+
+      .highlight-phone {
+        background: #fff9c4 !important;
+        border: 2px solid #fbc02d !important;
+      }
+
+      .phone-match-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #fbc02d;
+        border-radius: 50%;
+        margin-right: 5px;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔍 趟次訂位查詢系統</h1>
+        <p>查詢歷史趟次及訂位資料，協助排查預約問題</p>
+        <p class="version">v1.0.0.1</p>
+      </div>
+
+      <div class="search-section">
+        <form class="search-form" onsubmit="performSearch(event)">
+          <div class="form-group">
+            <label for="queryDate">📅 查詢日期</label>
+            <input type="date" id="queryDate" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label for="phoneSearch">📱 電話搜尋（選填）</label>
+            <input
+              type="text"
+              id="phoneSearch"
+              class="form-control"
+              placeholder="輸入電話號碼"
+            />
+          </div>
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary">🔍 查詢</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="resetForm()"
+            >
+              🔄 重置
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="results-section" id="resultsSection" style="display: none">
+        <div id="alertContainer"></div>
+        <div id="summaryContainer"></div>
+        <div id="resultsContainer"></div>
+      </div>
+    </div>
+
+    <script>
+      const BASE_URL = (() => {
+        // 檢查是否為本地開發環境
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/api"
+        }
+        // 生產環境使用指定的後端地址
+        return "https://35.221.146.143.nip.io/linehook"
+      })()
+
+      let currentData = null
+      let searchPhone = "" // 儲存搜尋的電話號碼
+
+      // 初始化：設定預設日期為今天
+      window.addEventListener("DOMContentLoaded", () => {
+        const today = new Date().toISOString().split("T")[0]
+        document.getElementById("queryDate").value = today
+      })
+
+      function resetForm() {
+        const today = new Date().toISOString().split("T")[0]
+        document.getElementById("queryDate").value = today
+        document.getElementById("phoneSearch").value = ""
+        document.getElementById("resultsSection").style.display = "none"
+        currentData = null
+        searchPhone = ""
+      }
+
+      function showAlert(message, type = "error") {
+        const container = document.getElementById("alertContainer")
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`
+        setTimeout(() => {
+          container.innerHTML = ""
+        }, 5000)
+      }
+
+      async function performSearch(event) {
+        event.preventDefault()
+
+        const queryDate = document.getElementById("queryDate").value
+        searchPhone = document.getElementById("phoneSearch").value.trim()
+
+        if (!queryDate) {
+          showAlert("請選擇查詢日期", "warning")
+          return
+        }
+
+        document.getElementById("resultsSection").style.display = "block"
+        document.getElementById("resultsContainer").innerHTML =
+          '<div class="loading">正在查詢資料</div>'
+        document.getElementById("summaryContainer").innerHTML = ""
+        document.getElementById("alertContainer").innerHTML = ""
+
+        try {
+          const response = await fetch(
+            `${BASE_URL}/Trip/query-reservations?startDate=${queryDate}&endDate=${queryDate}`,
+          )
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "查詢失敗")
+          }
+
+          const result = await response.json()
+
+          if (!result.success) {
+            throw new Error(result.message || "查詢失敗")
+          }
+
+          // 調試：查看返回的數據結構
+          console.log("API 返回結果:", result)
+          console.log("Summary:", result.summary)
+          console.log("Data:", result.data)
+
+          currentData = result.data
+
+          // 顯示查詢結果
+          displayResults(result)
+
+          // 如果有電話搜尋，滾動到匹配的乘客
+          if (searchPhone) {
+            setTimeout(() => {
+              scrollToPhoneMatch(searchPhone)
+            }, 300)
+          }
+        } catch (error) {
+          console.error("查詢錯誤:", error)
+          showAlert("查詢失敗: " + error.message, "error")
+          document.getElementById("resultsContainer").innerHTML = ""
+          document.getElementById("summaryContainer").innerHTML = ""
+        }
+      }
+
+      function scrollToPhoneMatch(phone) {
+        if (!phone || !currentData) return
+
+        let foundMatch = false
+        let matchedTripId = null
+
+        // 在數據中查找匹配的電話
+        for (const trip of currentData) {
+          if (trip.reservations && trip.reservations.length > 0) {
+            const hasMatch = trip.reservations.some(
+              (res) => res.phone && res.phone.includes(phone),
+            )
+            if (hasMatch) {
+              foundMatch = true
+              matchedTripId = trip.tripId
+              break
+            }
+          }
+        }
+
+        if (foundMatch && matchedTripId) {
+          // 等待 DOM 渲染完成後展開並滾動
+          setTimeout(() => {
+            // 展開該趟次
+            const details = document.getElementById(`details-${matchedTripId}`)
+            if (details && !details.classList.contains("expanded")) {
+              toggleTripDetails(matchedTripId)
+            }
+
+            // 滾動到該趟次卡片
+            setTimeout(() => {
+              const tripCard = details?.closest(".trip-card")
+              if (tripCard) {
+                tripCard.scrollIntoView({ behavior: "smooth", block: "start" })
+                showAlert(`找到電話 ${phone} 的預約記錄`, "success")
+              }
+            }, 100)
+          }, 100)
+        } else if (phone) {
+          showAlert(`未找到電話 ${phone} 的預約記錄`, "warning")
+        }
+      }
+
+      function displayResults(result) {
+        const { data, summary } = result
+
+        console.log("displayResults 收到 result:", result)
+        console.log("displayResults 收到 data:", data)
+        console.log("displayResults 收到 summary:", summary)
+        console.log(
+          "summary 的所有鍵:",
+          summary ? Object.keys(summary) : "summary is null/undefined",
+        )
+
+        // 顯示摘要
+        displaySummary(summary, data)
+
+        // 顯示趟次列表
+        if (data.length === 0) {
+          document.getElementById("resultsContainer").innerHTML = `
+                          <div class="empty-state">
+                              <div class="empty-state-icon">📭</div>
+                              <h3>查無資料</h3>
+                              <p>在所選日期範圍內沒有找到任何趟次</p>
+                          </div>
+                      `
+          return
+        }
+
+        // 排序趟次：優先使用實際發車時間，否則使用建立日期+預定發車時間
+        const sortedData = [...data].sort((a, b) => {
+          // 取得排序用的時間字串
+          const timeA = a.actualDepartureTime
+            ? a.actualDepartureTime
+            : a.createdAt
+              ? a.createdAt.substring(0, 10) + " " + a.departureTime
+              : a.departureTime
+
+          const timeB = b.actualDepartureTime
+            ? b.actualDepartureTime
+            : b.createdAt
+              ? b.createdAt.substring(0, 10) + " " + b.departureTime
+              : b.departureTime
+
+          return timeA.localeCompare(timeB)
+        })
+
+        const html = sortedData.map((trip) => renderTripCard(trip)).join("")
+        document.getElementById("resultsContainer").innerHTML = html
+      }
+
+      function displaySummary(summary, data) {
+        console.log("displaySummary 收到的 summary:", summary)
+        console.log("displaySummary 收到的 data:", data)
+
+        const totalReservations = data.reduce(
+          (sum, trip) => sum + (trip.statistics?.totalReserved || 0),
+          0,
+        )
+        const totalBoarded = data.reduce(
+          (sum, trip) => sum + (trip.statistics?.boardedCount || 0),
+          0,
+        )
+        const totalNotified = data.reduce(
+          (sum, trip) => sum + (trip.statistics?.notifiedCount || 0),
+          0,
+        )
+
+        const html = `
+                      <div class="summary-box">
+                          <h3>📊 查詢摘要</h3>
+                          <div class="summary-stats">
+                              <div class="stat-item">
+                                  <span>查詢期間:</span>
+                                  <strong>${summary?.startDate || "N/A"} ~ ${summary?.endDate || "N/A"}</strong>
+                              </div>
+                              <div class="stat-item">
+                                  <span>總趟次:</span>
+                                  <strong>${summary?.totalTrips || 0} 趟</strong>
+                              </div>
+                              <div class="stat-item">
+                                  <span>總預約人數:</span>
+                                  <strong>${totalReservations} 人</strong>
+                              </div>
+                              <div class="stat-item">
+                                  <span>已上車:</span>
+                                  <strong>${totalBoarded} 人</strong>
+                              </div>
+                              <div class="stat-item">
+                                  <span>已通知:</span>
+                                  <strong>${totalNotified} 筆</strong>
+                              </div>
+                              <div class="stat-item">
+                                  <span>查詢時間:</span>
+                                  <strong>${summary?.queryTime || "N/A"}</strong>
+                              </div>
+                          </div>
+                      </div>
+                  `
+        document.getElementById("summaryContainer").innerHTML = html
+      }
+
+      function renderTripCard(trip) {
+        const actualTime = trip.actualDepartureTime
+          ? `<span>✓ 實際發車: ${trip.actualDepartureTime}</span>`
+          : ""
+
+        const phoneMatch =
+          searchPhone &&
+          trip.reservations.some(
+            (res) => res.phone && res.phone.includes(searchPhone),
+          )
+
+        return `
+                  <div class="trip-card ${phoneMatch ? "highlight-phone" : ""}">
+                      <div class="trip-header" onclick="toggleTripDetails('${trip.tripId}')">
+                          <div class="trip-info">
+                              <div class="trip-route">
+                                  <h4>🚌 ${trip.route || "N/A"} | 車號: ${trip.vehicleNumber || "N/A"}</h4>
+                                  <span class="trip-status ${trip.status}">${getStatusText(trip.status)}</span>
+                              </div>
+                              <div class="trip-time">
+                                  <span>🕐 預定發車: ${trip.departureTime || "N/A"}</span>
+                                  ${actualTime}
+                                  ${trip.notifyTime ? `<span>📱 通知時間: ${trip.notifyTime}</span>` : ""}
+                              </div>
+                          </div>
+                          <div class="trip-stats">
+                              <div class="stat-badge">
+                                  🪑 ${trip.statistics?.totalReserved || 0}/${trip.keepCount}
+                              </div>
+                              <div class="stat-badge">
+                                  ✅ 已上車: ${trip.statistics?.boardedCount || 0}
+                              </div>
+                              <div class="stat-badge">
+                                  📱 已通知: ${trip.statistics?.notifiedCount || 0}
+                              </div>
+                              <span class="toggle-icon" id="toggle-${trip.tripId}">🔽</span>
+                          </div>
+                      </div>
+                      <div class="trip-details" id="details-${trip.tripId}">
+                          ${renderReservationsTable(trip)}
+                      </div>
+                  </div>
+              `
+      }
+
+      function renderReservationsTable(trip) {
+        if (!trip.reservations || trip.reservations.length === 0) {
+          return '<div class="no-data">此趟次無訂位資料</div>'
+        }
+
+        // 依預約時間排序乘客
+        const sortedReservations = [...trip.reservations].sort((a, b) => {
+          const timeA = a.requestDateTime || ""
+          const timeB = b.requestDateTime || ""
+          return timeA.localeCompare(timeB)
+        })
+
+        const rows = sortedReservations
+          .map((res) => {
+            const isAssigned = res.isAssigned
+            const isBoarded = res.isBoarded
+            const isNotified =
+              res.responseDateTime && res.responseDateTime !== ""
+
+            // 標記問題：已預約但未分配到趟次
+            const hasIssue = !isAssigned && res.requestDateTime
+
+            // 檢查是否匹配搜尋的電話
+            const phoneMatch =
+              searchPhone && res.phone && res.phone.includes(searchPhone)
+            const rowClass = phoneMatch
+              ? "highlight-phone"
+              : hasIssue
+                ? "highlight-issue"
+                : ""
+
+            const phoneMasked = res.phone
+              ? `${res.phone.substring(0, 4)}***${res.phone.substring(res.phone.length - 3)}`
+              : "N/A"
+
+            return `
+                      <tr class="${rowClass}">
+                          <td>${phoneMatch ? '<span class="phone-match-indicator"></span>' : ""}${res.name || "N/A"}</td>
+                          <td class="phone-masked">${phoneMasked}</td>
+                          <td>${res.keepStop || "N/A"}</td>
+                          <td>${res.destStop || "N/A"}</td>
+                          <td>${res.seatCount || 1}</td>
+                          <td>${res.requestDateTime || "N/A"}</td>
+                          <td>
+                              ${
+                                isAssigned
+                                  ? '<span class="badge badge-success">✓ 已分配</span>'
+                                  : '<span class="badge badge-danger">✗ 未分配</span>'
+                              }
+                          </td>
+                          <td>
+                              ${
+                                isNotified
+                                  ? `<span class="badge badge-info">✓ ${res.responseDateTime}</span>`
+                                  : '<span class="badge badge-warning">未通知</span>'
+                              }
+                          </td>
+                          <td>
+                              ${
+                                isBoarded
+                                  ? `<span class="badge badge-success">✓ ${res.boardedDateTime}</span>`
+                                  : '<span class="badge badge-warning">未上車</span>'
+                              }
+                          </td>
+                      </tr>
+                  `
+          })
+          .join("")
+
+        return `
+                  <h4 style="margin-bottom: 15px;">📋 訂位明細（${trip.reservations.length} 筆）${searchPhone ? " - 搜尋電話: " + searchPhone : ""}</h4>
+                  ${
+                    trip.lastChangeReason
+                      ? `<div style="background: #fff3cd; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-size: 13px;">
+                          <strong>⚠️ 變更記錄:</strong> ${trip.lastChangeReason}
+                      </div>`
+                      : ""
+                  }
+                  <table class="reservations-table">
+                      <thead>
+                          <tr>
+                              <th>乘客姓名</th>
+                              <th>電話</th>
+                              <th>上車站</th>
+                              <th>下車站</th>
+                              <th>人數</th>
+                              <th>預約時間</th>
+                              <th>分配狀態</th>
+                              <th>通知狀態</th>
+                              <th>上車狀態</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          ${rows}
+                      </tbody>
+                  </table>
+              `
+      }
+
+      function toggleTripDetails(tripId) {
+        const details = document.getElementById(`details-${tripId}`)
+        const icon = document.getElementById(`toggle-${tripId}`)
+
+        if (details.classList.contains("expanded")) {
+          details.classList.remove("expanded")
+          icon.classList.remove("rotated")
+        } else {
+          details.classList.add("expanded")
+          icon.classList.add("rotated")
+        }
+      }
+
+      function getStatusText(status) {
+        const statusMap = {
+          pending: "待分配",
+          notified: "已通知",
+          completed: "已發車",
+          ready: "準備發車",
+        }
+        return statusMap[status] || status
+      }
+    </script>
+  </body>
+</html>

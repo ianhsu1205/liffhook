@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
@@ -256,13 +256,16 @@
         padding: 10px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         /* 僅針對不影響排版的屬性做轉場，避免抖動 */
-        transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        transition:
+          box-shadow 0.25s ease,
+          border-color 0.25s ease;
         position: relative;
       }
 
       .trip-card:hover {
         /* 不做位移，使用更明顯的外環與陰影做高亮 */
-        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.35),
+        box-shadow:
+          0 0 0 3px rgba(77, 163, 255, 0.35),
           0 12px 24px rgba(0, 0, 0, 0.22);
         border-color: #3399ff;
         filter: brightness(1.02);
@@ -271,7 +274,8 @@
       /* 鍵盤可及性：focus 也有相同高亮 */
       .trip-card:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.45),
+        box-shadow:
+          0 0 0 3px rgba(77, 163, 255, 0.45),
           0 12px 24px rgba(0, 0, 0, 0.22);
         border-color: #3399ff;
         filter: brightness(1.02);
@@ -508,7 +512,9 @@
         margin-bottom: 10px;
         padding: 12px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        transition:
+          box-shadow 0.25s ease,
+          border-color 0.25s ease;
         cursor: grab;
       }
 
@@ -593,10 +599,12 @@
 
       .passenger-card:hover {
         /* 不做位移，使用外環 + 陰影 + 淡色底做高亮 */
-        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.28),
+        box-shadow:
+          0 0 0 3px rgba(77, 163, 255, 0.28),
           0 10px 20px rgba(0, 0, 0, 0.18);
         border-color: #99c8ff;
-        background: linear-gradient(
+        background:
+          linear-gradient(
             0deg,
             rgba(77, 163, 255, 0.06),
             rgba(77, 163, 255, 0.06)
@@ -606,10 +614,12 @@
 
       .passenger-card:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.38),
+        box-shadow:
+          0 0 0 3px rgba(77, 163, 255, 0.38),
           0 10px 20px rgba(0, 0, 0, 0.18);
         border-color: #66b3ff;
-        background: linear-gradient(
+        background:
+          linear-gradient(
             0deg,
             rgba(77, 163, 255, 0.08),
             rgba(77, 163, 255, 0.08)
@@ -688,7 +698,8 @@
       .passenger-card.pending-selected {
         border-color: #4caf50 !important;
         box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.25) !important;
-        background: linear-gradient(
+        background:
+          linear-gradient(
             0deg,
             rgba(76, 175, 80, 0.06),
             rgba(76, 175, 80, 0.06)
@@ -1255,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.48</h1>
+        <h1>都會之星座位保留系統 v1.0.0.49</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -1303,6 +1314,35 @@
               >0</span
             >
             <span style="font-size: 14px; color: #2e7d32">人</span>
+          </div>
+          <div
+            style="
+              background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+              padding: 8px 16px;
+              border-radius: 8px;
+              border: 2px solid #ffb74d;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <a
+              href="trip-reservation-query.html"
+              target="_blank"
+              style="
+                text-decoration: none;
+                color: #e65100;
+                font-size: 14px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+              "
+            >
+              🔍 趟次查詢
+            </a>
           </div>
         </div>
       </div>
@@ -1573,6 +1613,23 @@
           </div>
 
           <div class="form-group">
+            <div
+              id="actualDepartureInfo"
+              style="
+                display: none;
+                padding: 12px;
+                background-color: #d4edda;
+                border: 1px solid #c3e6cb;
+                border-radius: 5px;
+                color: #155724;
+                font-size: 14px;
+              "
+            >
+              <!-- 實際發車時間將在這裡顯示 -->
+            </div>
+          </div>
+
+          <div class="form-group">
             <button type="submit" class="btn btn-primary">💾 儲存</button>
             <button
               type="button"
@@ -1661,7 +1718,7 @@
       function showVisualNotification(message, type = "success") {
         // 移除先前的通知
         const oldNotifications = document.querySelectorAll(
-          ".visual-notification"
+          ".visual-notification",
         )
         oldNotifications.forEach((n) => n.remove())
 
@@ -1698,9 +1755,8 @@
           if (window.audioContext && window.audioContext.state === "running") {
             const res = await fetch(sound.src, { cache: "force-cache" })
             const arrayBuf = await res.arrayBuffer()
-            cachedAudioBuffer = await window.audioContext.decodeAudioData(
-              arrayBuf
-            )
+            cachedAudioBuffer =
+              await window.audioContext.decodeAudioData(arrayBuf)
             console.log("音效已預先載入(WebAudio Buffer)")
           }
         } catch (e) {
@@ -1780,8 +1836,9 @@
           }
 
           // 創建 AudioContext 並啟用
-          window.audioContext = new (window.AudioContext ||
-            window.webkitAudioContext)()
+          window.audioContext = new (
+            window.AudioContext || window.webkitAudioContext
+          )()
           if (window.audioContext.state === "suspended") {
             window.audioContext.resume()
           }
@@ -2013,10 +2070,10 @@
       function renderTripsSync() {
         const displayTrips = showCompletedTrips
           ? trips.filter(
-              (t) => (t.status || "").toLowerCase().trim() === "completed"
+              (t) => (t.status || "").toLowerCase().trim() === "completed",
             )
           : trips.filter(
-              (t) => (t.status || "").toLowerCase().trim() !== "completed"
+              (t) => (t.status || "").toLowerCase().trim() !== "completed",
             )
 
         displayTrips.forEach((trip) => {
@@ -2054,7 +2111,7 @@
                 "已啟用趟次自動更新，每" +
                   autoRefreshIntervalSeconds +
                   "秒更新一次",
-                "success"
+                "success",
               )
             } else {
               stopAutoRefresh()
@@ -2074,7 +2131,7 @@
 
         // 顯示已發車開關
         const showCompletedToggle = document.getElementById(
-          "showCompletedToggle"
+          "showCompletedToggle",
         )
         if (showCompletedToggle) {
           // 從 localStorage 還原
@@ -2090,7 +2147,7 @@
             try {
               localStorage.setItem(
                 "showCompletedTrips",
-                showCompletedTrips ? "true" : "false"
+                showCompletedTrips ? "true" : "false",
               )
             } catch (_) {}
             const mode = showCompletedTrips ? "completed" : "active"
@@ -2110,7 +2167,7 @@
               .then(async () => {
                 // 切換顯示模式時需要強制完全渲染（因為過濾條件改變）
                 console.log(
-                  `切換至${mode}模式，強制完全渲染，趟次數量: ${trips.length}`
+                  `切換至${mode}模式，強制完全渲染，趟次數量: ${trips.length}`,
                 )
                 await renderTrips(true)
                 // 立即更新統計
@@ -2263,8 +2320,8 @@
         // 僅取目前畫面上已勾選的卡片
         const cards = Array.from(
           document.querySelectorAll(
-            "#pendingPassengersList .passenger-card.pending-selected"
-          )
+            "#pendingPassengersList .passenger-card.pending-selected",
+          ),
         )
         const userIds = cards
           .map((c) => c.getAttribute("data-user-id"))
@@ -2290,7 +2347,7 @@
               `已發送久候通知 ${sent} 筆${
                 notFound.length ? `，找不到 ${notFound.length} 筆` : ""
               }`,
-              "success"
+              "success",
             )
             // 發送後保留選取，避免重複操作混淆；如需清除可改為 clearAllPending()
           } else {
@@ -2416,7 +2473,7 @@
               vehicleInput.focus()
               vehicleInput.setSelectionRange(
                 vehicleInput.value.length,
-                vehicleInput.value.length
+                vehicleInput.value.length,
               )
             }
           }
@@ -2433,7 +2490,7 @@
               hourInput.focus()
               hourInput.setSelectionRange(
                 hourInput.value.length,
-                hourInput.value.length
+                hourInput.value.length,
               )
             }
           } else if (e.key === "Backspace") {
@@ -2443,7 +2500,7 @@
               hourInput.focus()
               hourInput.setSelectionRange(
                 hourInput.value.length,
-                hourInput.value.length
+                hourInput.value.length,
               )
             }
           }
@@ -2506,7 +2563,7 @@
               editVehicleInput.focus()
               editVehicleInput.setSelectionRange(
                 editVehicleInput.value.length,
-                editVehicleInput.value.length
+                editVehicleInput.value.length,
               )
             }
           }
@@ -2522,7 +2579,7 @@
               editHourInput.focus()
               editHourInput.setSelectionRange(
                 editHourInput.value.length,
-                editHourInput.value.length
+                editHourInput.value.length,
               )
             }
           } else if (e.key === "Backspace") {
@@ -2531,7 +2588,7 @@
               editHourInput.focus()
               editHourInput.setSelectionRange(
                 editHourInput.value.length,
-                editHourInput.value.length
+                editHourInput.value.length,
               )
             }
           }
@@ -2566,7 +2623,7 @@
               } else {
                 selectedSuggestionIndex = Math.min(
                   selectedSuggestionIndex + 1,
-                  suggestions.length - 1
+                  suggestions.length - 1,
                 )
               }
               updateSuggestionSelection(suggestions)
@@ -2594,7 +2651,7 @@
               selectVehicle(
                 selectedVehicle.plateNumber,
                 inputElement,
-                nextFocusElement
+                nextFocusElement,
               )
             } else {
               hideVehicleSuggestions()
@@ -2616,7 +2673,7 @@
         }
 
         const matches = vehicleData.filter((vehicle) =>
-          vehicle.plateNumber.toUpperCase().includes(inputValue)
+          vehicle.plateNumber.toUpperCase().includes(inputValue),
         )
 
         if (matches.length === 0) {
@@ -2669,7 +2726,7 @@
       function selectVehicle(
         plateNumber,
         inputElement = null,
-        nextFocusElement = null
+        nextFocusElement = null,
       ) {
         const targetInput =
           inputElement || document.getElementById("vehicleNumber")
@@ -2699,7 +2756,7 @@
       async function loadVehicleData() {
         try {
           const response = await fetch(
-            `${BASE_URL}/BusVehicle/for-trips?operatorName=大都會客運`
+            `${BASE_URL}/BusVehicle/for-trips?operatorName=大都會客運`,
           )
           const result = await response.json()
           if (result.success && result.data) {
@@ -2739,7 +2796,7 @@
             "載入路線數量:",
             routes.length,
             "路線列表:",
-            routes.map((r) => r.subRouteId)
+            routes.map((r) => r.subRouteId),
           )
           renderRouteSelector()
         } catch (error) {
@@ -2791,11 +2848,11 @@
             // 後端若未處理 status 參數，這裡再做一次前端保險過濾
             if (viewMode === "completed") {
               trips = trips.filter(
-                (t) => (t.status || "").toLowerCase().trim() === "completed"
+                (t) => (t.status || "").toLowerCase().trim() === "completed",
               )
             } else if (viewMode === "active") {
               trips = trips.filter(
-                (t) => (t.status || "").toLowerCase().trim() !== "completed"
+                (t) => (t.status || "").toLowerCase().trim() !== "completed",
               )
             }
             console.log(`載入成功 (${viewMode}) : ${trips.length} 筆`)
@@ -2835,11 +2892,11 @@
 
             pendingPassengers = todayPassengers
             console.log(
-              `載入成功: ${pendingPassengers.length} 位當日待保留乘客`
+              `載入成功: ${pendingPassengers.length} 位當日待保留乘客`,
             )
             if (result.data.length !== pendingPassengers.length) {
               console.log(
-                `前端過濾: 原始 ${result.data.length} 筆 → 當日 ${pendingPassengers.length} 筆`
+                `前端過濾: 原始 ${result.data.length} 筆 → 當日 ${pendingPassengers.length} 筆`,
               )
             }
             if (result.filterDate) {
@@ -2850,7 +2907,7 @@
                 "乘客下車站牌範例:",
                 pendingPassengers
                   .slice(0, 3)
-                  .map((p) => `${p.name}: ${p.keepStop} → ${p.destStop}`)
+                  .map((p) => `${p.name}: ${p.keepStop} → ${p.destStop}`),
               )
             }
             await renderPendingPassengers()
@@ -2885,7 +2942,7 @@
           pendingPassengers.length < prevCount
         ) {
           showNotification(
-            "有乘客取消預約，已自動移除！--reloadPendingPassengersAndNotify"
+            "有乘客取消預約，已自動移除！--reloadPendingPassengersAndNotify",
           )
         }
       }
@@ -2910,7 +2967,7 @@
         selector.innerHTML = routeHtml
         editSelector.innerHTML = routeHtml.replace(
           /selectRoute/g,
-          "selectEditRoute"
+          "selectEditRoute",
         )
         // 渲染後還原先前選擇
         restoreSelectedRoute()
@@ -2931,14 +2988,14 @@
                     <strong>${vehicle.plateNumber}</strong>
                     <br><small>${vehicle.operatorName}</small>
                 </div>
-            `
+            `,
           )
           .join("")
 
         selector.innerHTML = vehicleHtml
         editSelector.innerHTML = vehicleHtml.replace(
           /selectVehicleFromList/g,
-          "selectEditVehicle"
+          "selectEditVehicle",
         )
       }
 
@@ -2966,8 +3023,8 @@
             currentSeats >= totalSeats
               ? "full"
               : currentSeats > 0
-              ? "partial"
-              : "empty"
+                ? "partial"
+                : "empty"
 
           // 更新時間
           const timeEl = card.querySelector(".time")
@@ -3010,18 +3067,18 @@
               trip.status === "ready"
                 ? "準備發車"
                 : trip.status === "notified"
-                ? "已通知乘客"
-                : trip.status === "completed"
-                ? "已發車"
-                : "分配中…"
+                  ? "已通知乘客"
+                  : trip.status === "completed"
+                    ? "已發車"
+                    : "分配中…"
             const statusColor =
               trip.status === "ready"
                 ? "#28a745"
                 : trip.status === "notified"
-                ? "#007bff"
-                : trip.status === "completed"
-                ? "#6c757d"
-                : "#000000"
+                  ? "#007bff"
+                  : trip.status === "completed"
+                    ? "#6c757d"
+                    : "#000000"
 
             if (statusBadge.textContent.trim() !== statusText) {
               statusBadge.textContent = statusText
@@ -3035,7 +3092,7 @@
           renderTripPassengers(trip.tripId)
             .then((passengersHtml) => {
               const passengersContainer = document.getElementById(
-                `passengers-${trip.tripId}`
+                `passengers-${trip.tripId}`,
               )
               if (
                 passengersContainer &&
@@ -3061,7 +3118,7 @@
       async function renderTrips(forceFullRender = false) {
         console.log(
           "Rendering trips...",
-          forceFullRender ? "(強制完全渲染)" : "(檢查是否需要完全渲染)"
+          forceFullRender ? "(強制完全渲染)" : "(檢查是否需要完全渲染)",
         )
         const container = document.getElementById("tripsContainer")
         const prevScrollTop = container ? container.scrollTop : 0
@@ -3069,7 +3126,7 @@
 
         // 保存展開的趟次 ID
         const expandedTrips = Array.from(
-          document.querySelectorAll(".trip-collapsible.expanded")
+          document.querySelectorAll(".trip-collapsible.expanded"),
         ).map((el) => el.id.replace("details-", ""))
 
         if (trips.length === 0) {
@@ -3090,10 +3147,10 @@
         const displayTrips = (function () {
           return showCompletedTrips
             ? sortedTrips.filter(
-                (t) => (t.status || "").toLowerCase().trim() === "completed"
+                (t) => (t.status || "").toLowerCase().trim() === "completed",
               )
             : sortedTrips.filter(
-                (t) => (t.status || "").toLowerCase().trim() !== "completed"
+                (t) => (t.status || "").toLowerCase().trim() !== "completed",
               )
         })()
 
@@ -3103,7 +3160,7 @@
             sortedTrips.length,
             "符合 completed 筆數:",
             displayTrips.length,
-            sortedTrips.map((t) => ({ id: t.tripId, status: t.status }))
+            sortedTrips.map((t) => ({ id: t.tripId, status: t.status })),
           )
         }
 
@@ -3152,25 +3209,25 @@
           .map((trip) => {
             const currentSeats = getTripPassengerCount(trip.tripId)
             console.log(
-              `Trip ID: ${trip.tripId}, Current Seats: ${currentSeats}`
+              `Trip ID: ${trip.tripId}, Current Seats: ${currentSeats}`,
             )
             const seatStatus =
               currentSeats >= trip.keepCount
                 ? "full"
                 : currentSeats > 0
-                ? "pending"
-                : ""
+                  ? "pending"
+                  : ""
 
             return `
                 <div class="trip-card ${trip.status} ${getRouteColorClass(
-              trip.route
-            )}" data-trip-id="${trip.tripId}" data-status="${
-              trip.status
-            }" title="${
-              (trip.status || "") === "completed"
-                ? "已發車：禁止拖放/新增乘客"
-                : "可拖放待分配乘客進入"
-            }">
+                  trip.route,
+                )}" data-trip-id="${trip.tripId}" data-status="${
+                  trip.status
+                }" title="${
+                  (trip.status || "") === "completed"
+                    ? "已發車：禁止拖放/新增乘客"
+                    : "可拖放待分配乘客進入"
+                }">
                     <button class="toggle-btn" onclick="toggleTripDetails('${
                       trip.tripId
                     }')">🔽</button>
@@ -3183,10 +3240,10 @@
                             <div class="trip-basic-info">
                                 <div style="display: flex; align-items: center; gap: 8px; margin: 0;">
                                     <span class="route-badge ${getRouteColorClass(
-                                      trip.route
+                                      trip.route,
                                     )}" style="font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 4px; color: white;">${getRouteDisplayName(
-              trip.route
-            )}</span>
+                                      trip.route,
+                                    )}</span>
                                     <span style="font-size: 14px; color: #666;">｜</span>
                                     <span style="font-size: 16px; font-weight: bold; color: #333;">${
                                       trip.vehicleNumber
@@ -3194,23 +3251,28 @@
                                 </div>
                                 <div style="display: flex; gap: 15px; font-size: 13px; color: #666; margin-top: 2px;">
                                     <span>🕐 ${trip.departureTime}</span>
+                                    ${
+                                      trip.actualDepartureTime
+                                        ? `<span style="color: #28a745; font-weight: 600;">✓ 實際發車: ${trip.actualDepartureTime.substring(11, 16)}</span>`
+                                        : ""
+                                    }
                                     <span style="color: ${
                                       trip.status === "ready"
                                         ? "#28a745"
                                         : trip.status === "notified"
-                                        ? "#007bff"
-                                        : trip.status === "completed"
-                                        ? "#6c757d"
-                                        : "#000000"
+                                          ? "#007bff"
+                                          : trip.status === "completed"
+                                            ? "#6c757d"
+                                            : "#000000"
                                     }">
                                         ${
                                           trip.status === "ready"
                                             ? "準備發車"
                                             : trip.status === "notified"
-                                            ? "已通知乘客"
-                                            : trip.status === "completed"
-                                            ? "已發車"
-                                            : "分配中…"
+                                              ? "已通知乘客"
+                                              : trip.status === "completed"
+                                                ? "已發車"
+                                                : "分配中…"
                                         }
                                     </span>
                                 </div>
@@ -3303,14 +3365,14 @@
           console.log(
             `開始處理趟次 ${trip.tripId} (${
               trip.vehicleNumber
-            }, 路線: ${getRouteDisplayName(trip.route)})`
+            }, 路線: ${getRouteDisplayName(trip.route)})`,
           )
 
           try {
             // 更新乘客列表
             const passengersHtml = await renderTripPassengers(trip.tripId)
             const passengersContainer = document.getElementById(
-              `passengers-${trip.tripId}`
+              `passengers-${trip.tripId}`,
             )
             if (passengersContainer) {
               passengersContainer.innerHTML = passengersHtml
@@ -3382,7 +3444,7 @@
             "下車站牌:",
             passenger.destStop,
             "預設路線:",
-            passenger.includeRoutes
+            passenger.includeRoutes,
           )
 
           // 使用乘客資料中預先計算的可用路線（IncludeRoutes 欄位）
@@ -3406,7 +3468,7 @@
               `乘客 ${passenger.name} 使用預設路線:`,
               availableRouteIds,
               "直接顯示:",
-              relatedRoutes.map((r) => r.subRouteId)
+              relatedRoutes.map((r) => r.subRouteId),
             )
           } else {
             console.log(`乘客 ${passenger.name} 沒有預設路線資訊，將顯示無路線`)
@@ -3420,7 +3482,7 @@
                 (r) =>
                   `<span class="route-badge route-${
                     r.subRouteId
-                  }">${getRouteDisplayName(r.subRouteId)}</span>`
+                  }">${getRouteDisplayName(r.subRouteId)}</span>`,
               )
               .join(" ")
           } else {
@@ -3441,8 +3503,8 @@
               <div class="passenger-card ${
                 selectedSet.has(passenger.userId) ? "pending-selected" : ""
               }" data-passenger-id="${passenger.id}" data-user-id="${
-            passenger.userId
-          }" draggable="true">
+                passenger.userId
+              }" draggable="true">
                   <div class="passenger-header">
                       <div style="display:flex;align-items:center;gap:6px;">
                         <input type="checkbox" class="pending-select-checkbox" ${
@@ -3565,7 +3627,7 @@
       async function loadTripPassengers(tripId) {
         try {
           console.log(
-            `loadTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`
+            `loadTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`,
           )
           const response = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
 
@@ -3586,7 +3648,7 @@
         } catch (error) {
           console.error(
             `loadTripPassengers: 載入趟次 ${tripId} 乘客出錯:`,
-            error
+            error,
           )
           return null
         }
@@ -3596,10 +3658,10 @@
       async function loadCompletedTripPassengers(tripId) {
         try {
           console.log(
-            `loadCompletedTripPassengers: 載入已發車趟次 ${tripId} 全部乘客...`
+            `loadCompletedTripPassengers: 載入已發車趟次 ${tripId} 全部乘客...`,
           )
           const response = await fetch(
-            `${BASE_URL}/Trip/${tripId}/passengers-all`
+            `${BASE_URL}/Trip/${tripId}/passengers-all`,
           )
           if (!response.ok) return null
           const result = await response.json()
@@ -3614,7 +3676,7 @@
       async function renderTripPassengers(tripId) {
         try {
           console.log(
-            `renderTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`
+            `renderTripPassengers: 開始載入趟次 ${tripId} 的乘客資料...`,
           )
           // 若目前為顯示已發車模式，改用 passengers-all 端點
           let tripData
@@ -3637,13 +3699,13 @@
 
           const assignedPassengers = tripData.passengers
           console.log(
-            `renderTripPassengers: 趟次 ${tripId} 有 ${assignedPassengers.length} 位乘客`
+            `renderTripPassengers: 趟次 ${tripId} 有 ${assignedPassengers.length} 位乘客`,
           )
 
           // 先計算總座位數（含 seatCount），並同步到 trips 陣列，更新座位指標
           const totalSeatsNow = assignedPassengers.reduce(
             (sum, p) => sum + (p.seatCount || p.SeatCount || 1),
-            0
+            0,
           )
 
           const tripRefForCount = trips.find((t) => t.tripId === tripId)
@@ -3697,8 +3759,8 @@
 
             passengersHtml += `
               <div class="passenger-card assigned ${statusClass}" data-passenger-id="${
-              passenger.id
-            }">
+                passenger.id
+              }">
                 <div class="passenger-header">
                   <div class="passenger-name">${
                     passenger.name
@@ -3707,10 +3769,10 @@
                 </div>
                 <div class="passenger-route">
                   📍 ${passenger.keepStop} → ${
-              passenger.destStop
-            }                  <span style="background:#eef5ff;border:1px solid #cfe2ff;color:#0a58ca;padding:1px 6px;border-radius:12px;font-weight:700;font-size:16px;white-space:nowrap;">🧍 ${
-              passenger.seatCount || 1
-            }</span>
+                    passenger.destStop
+                  }                  <span style="background:#eef5ff;border:1px solid #cfe2ff;color:#0a58ca;padding:1px 6px;border-radius:12px;font-weight:700;font-size:16px;white-space:nowrap;">🧍 ${
+                    passenger.seatCount || 1
+                  }</span>
                 </div>
                 <div class="passenger-contact" style="background:#fff3cd;padding:4px 8px;border-radius:4px;border-left:3px solid #ffc107;display:inline-block;">
                   📞 <strong style="color:#856404;font-size:16px;font-weight:800;">${
@@ -3728,8 +3790,8 @@
                         <button class="btn btn-danger" onclick="removePassengerFromTrip('${
                           passenger.id
                         }', '${tripId}', ${
-                        passenger.seatCount || passenger.SeatCount || 1
-                      })" style="font-size:11px;padding:2px 6px;line-height:1;border-radius:4px;" title="將乘客移回待分配（不會發送通知）">移除</button>
+                          passenger.seatCount || passenger.SeatCount || 1
+                        })" style="font-size:11px;padding:2px 6px;line-height:1;border-radius:4px;" title="將乘客移回待分配（不會發送通知）">移除</button>
                       </div>`
                 }
               </div>
@@ -3742,7 +3804,7 @@
         } catch (error) {
           console.error(
             `renderTripPassengers: 載入趟次 ${tripId} 乘客資料失敗:`,
-            error
+            error,
           )
           return '<p style="color: #999; font-style: italic;">載入乘客資料失敗</p>'
         }
@@ -3824,12 +3886,12 @@
             "route-208802",
             "route-2088A2",
             "route-2088B2",
-            "route-default"
+            "route-default",
           )
         })
         // 套用選取與對應配色
         const target = document.querySelector(
-          `#routeSelector [data-route="${routeId}"]`
+          `#routeSelector [data-route="${routeId}"]`,
         )
         if (target) {
           target.classList.add("selected")
@@ -3856,7 +3918,7 @@
 
       function selectEditRoute(routeId, routeName) {
         const all = document.querySelectorAll(
-          "#editRouteSelector .route-option"
+          "#editRouteSelector .route-option",
         )
         // 清除所有按鈕的選取與顏色類別
         all.forEach((el) => {
@@ -3865,12 +3927,12 @@
             "route-208802",
             "route-2088A2",
             "route-2088B2",
-            "route-default"
+            "route-default",
           )
         })
         // 套用選取與對應配色
         const target = document.querySelector(
-          `#editRouteSelector [data-route="${routeId}"]`
+          `#editRouteSelector [data-route="${routeId}"]`,
         )
         if (target) {
           target.classList.add("selected")
@@ -3916,7 +3978,7 @@
           }
 
           const selectedEl = document.querySelector(
-            "#routeSelector .route-option.selected"
+            "#routeSelector .route-option.selected",
           )
           const saved = localStorage.getItem("tm.selectedRoute") || ""
 
@@ -3926,7 +3988,7 @@
             "localStorage值:",
             saved,
             "有按鈕選中:",
-            !!selectedEl
+            !!selectedEl,
           )
 
           // 1) 若有選取按鈕但 hidden 為空，補上 data-route
@@ -3941,11 +4003,11 @@
           // 2) 若沒有選取按鈕但 hidden 有值，補上樣式
           if (!selectedEl && hidden.value) {
             const target = document.querySelector(
-              `#routeSelector [data-route="${hidden.value}"]`
+              `#routeSelector [data-route="${hidden.value}"]`,
             )
             if (target) {
               const all = document.querySelectorAll(
-                "#routeSelector .route-option"
+                "#routeSelector .route-option",
               )
               all.forEach((el) =>
                 el.classList.remove(
@@ -3953,8 +4015,8 @@
                   "route-208802",
                   "route-2088A2",
                   "route-2088B2",
-                  "route-default"
-                )
+                  "route-default",
+                ),
               )
               target.classList.add("selected")
               const colorClass =
@@ -3998,7 +4060,7 @@
       function filterVehiclesByOperator() {
         const selectedOperator = document.getElementById("operatorFilter").value
         const vehicleOptions = document.querySelectorAll(
-          "#vehicleSelector .vehicle-option"
+          "#vehicleSelector .vehicle-option",
         )
 
         vehicleOptions.forEach((option) => {
@@ -4015,7 +4077,7 @@
         const selectedOperator =
           document.getElementById("editOperatorFilter").value
         const vehicleOptions = document.querySelectorAll(
-          "#editVehicleSelector .vehicle-option"
+          "#editVehicleSelector .vehicle-option",
         )
 
         vehicleOptions.forEach((option) => {
@@ -4061,7 +4123,7 @@
 
         const departureTime = `${hour.padStart(2, "0")}:${minute.padStart(
           2,
-          "0"
+          "0",
         )}`
 
         try {
@@ -4137,7 +4199,7 @@
 
           if (result.success) {
             showSuccess(
-              `自動分配完成！成功分配 ${result.assignedCount || 0} 位乘客`
+              `自動分配完成！成功分配 ${result.assignedCount || 0} 位乘客`,
             )
             await loadTrips()
             await loadPendingPassengers()
@@ -4197,7 +4259,7 @@
               updateTripSeatDisplay(
                 tripId,
                 result.totalSeats,
-                result.tripCapacity
+                result.tripCapacity,
               )
             }
 
@@ -4285,7 +4347,7 @@
                   updateTripSeatDisplay(
                     tripId,
                     result.totalSeats,
-                    result.tripCapacity
+                    result.tripCapacity,
                   )
                 } else {
                   // 沒回傳統計時，按本次指派數估算更新指標
@@ -4321,7 +4383,7 @@
       async function unassignPassenger(
         passengerId,
         tripIdFromCaller = null,
-        seatCountFromCaller = 1
+        seatCountFromCaller = 1,
       ) {
         try {
           const response = await fetch(`${BASE_URL}/Trip/unassign-passenger`, {
@@ -4339,7 +4401,7 @@
           if (result.success) {
             showVisualNotification(
               `乘客 ${result.data.passengerName} 從${result.data.departureTime} ${result.data.vehicleNumber} 取消保留`,
-              "success"
+              "success",
             )
 
             // 優先使用呼叫端提供的 tripId/seatCount 進行局部更新，避免整體抖動
@@ -4366,7 +4428,7 @@
                 // 重新載入該趟次的乘客列表（而不是整體渲染）
                 const passengersHtml = await renderTripPassengers(tripId)
                 const passengersContainer = document.getElementById(
-                  `passengers-${tripId}`
+                  `passengers-${tripId}`,
                 )
                 if (passengersContainer)
                   passengersContainer.innerHTML = passengersHtml
@@ -4379,7 +4441,7 @@
               } finally {
                 if (container)
                   requestAnimationFrame(() =>
-                    container.classList.remove("no-anim")
+                    container.classList.remove("no-anim"),
                   )
               }
 
@@ -4421,7 +4483,7 @@
 
           if (result.success) {
             showSuccess(
-              `${result.data.departureTime}的${result.data.vehicleNumber}狀態已更新！`
+              `${result.data.departureTime}的${result.data.vehicleNumber}狀態已更新！`,
             )
             await loadTrips()
             // 狀態更新使用增量渲染，避免閃動
@@ -4475,18 +4537,28 @@
         document.getElementById("editKeepCountInput").min = minSeats
 
         // 更新提示信息
-        document.getElementById(
-          "seatCountHint"
-        ).innerHTML = `<i class="fa fa-info-circle"></i> 座位數不能小於 <strong>${minSeats}</strong> (原始: ${
-          trip.keepCount || 4
-        }, 已分配: ${currentAssignedSeats})`
+        document.getElementById("seatCountHint").innerHTML =
+          `<i class="fa fa-info-circle"></i> 座位數不能小於 <strong>${minSeats}</strong> (原始: ${
+            trip.keepCount || 4
+          }, 已分配: ${currentAssignedSeats})`
 
         const [hour, minute] = trip.departureTime.split(":")
         document.getElementById("editHourInput").value = hour.padStart(2, "0")
         document.getElementById("editMinuteInput").value = minute.padStart(
           2,
-          "0"
+          "0",
         )
+
+        // 顯示實際發車時間（如果有）
+        const actualDepartureInfo = document.getElementById(
+          "actualDepartureInfo",
+        )
+        if (trip.actualDepartureTime) {
+          actualDepartureInfo.innerHTML = `<i class="fa fa-check-circle" style="color: #28a745;"></i> 實際發車時間: <strong style="color: #28a745;">${trip.actualDepartureTime}</strong>`
+          actualDepartureInfo.style.display = "block"
+        } else {
+          actualDepartureInfo.style.display = "none"
+        }
 
         // 設定選中狀態
         setTimeout(() => {
@@ -4517,7 +4589,7 @@
         const minAllowedSeats = Math.max(originalCount, assignedSeats)
         if (keepCount < minAllowedSeats) {
           showError(
-            `座位數不能小於原始座位數 ${originalCount} 或已分配的座位數 ${assignedSeats}`
+            `座位數不能小於原始座位數 ${originalCount} 或已分配的座位數 ${assignedSeats}`,
           )
           keepCountInput.value = minAllowedSeats
           return
@@ -4530,7 +4602,7 @@
 
         const departureTime = `${hour.padStart(2, "0")}:${minute.padStart(
           2,
-          "0"
+          "0",
         )}`
 
         try {
@@ -4613,7 +4685,7 @@
             `${BASE_URL}/KeepSeat/confirm-departure/${tripId}`,
             {
               method: "POST",
-            }
+            },
           )
 
           if (response.ok) {
@@ -4628,7 +4700,7 @@
             if (result && typeof result.notifiedCount === "number") {
               if (result.notifiedCount === 0) {
                 showSuccess(
-                  result?.message ? `${result.message}` : "通知發送成功！"
+                  result?.message ? `${result.message}` : "通知發送成功！",
                 )
                 return
               }
@@ -4637,7 +4709,7 @@
             showSuccess(
               result?.message
                 ? `通知發送成功：${result.message}`
-                : "通知發送成功！"
+                : "通知發送成功！",
             )
 
             // 記錄通知次數
@@ -4654,7 +4726,7 @@
               // 手動更新該趟次的乘客列表顯示
               const passengersHtml = await renderTripPassengers(tripId)
               const passengersContainer = document.getElementById(
-                `passengers-${tripId}`
+                `passengers-${tripId}`,
               )
               if (passengersContainer) {
                 passengersContainer.innerHTML = passengersHtml
@@ -4692,12 +4764,12 @@
           if (unnotifiedCount > 0) {
             showNotification(
               `尚有 ${unnotifiedCount} 位乘客未通知，請先按「通知」再標記已發車`,
-              "warning"
+              "warning",
             )
             // 視覺提示通知按鈕
             try {
               const notifyBtn = document.querySelector(
-                `.trip-card[data-trip-id="${tripId}"] .trip-controls button.btn.btn-primary[onclick*="notifyPassengers('${tripId}')"]`
+                `.trip-card[data-trip-id="${tripId}"] .trip-controls button.btn.btn-primary[onclick*="notifyPassengers('${tripId}')"]`,
               )
               if (notifyBtn) {
                 const prevBoxShadow = notifyBtn.style.boxShadow
@@ -4746,7 +4818,7 @@
           // 確認對話框
           const reason = prompt(
             "確定要將此趟次改為未發車嗎？\n\n若確定，請輸入回復原因（選填）：",
-            "誤按發車按鈕"
+            "誤按發車按鈕",
           )
 
           // 如果用戶點擊取消，reason 會是 null
@@ -4763,7 +4835,7 @@
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({ reason: reason || "管理員回復發車狀態" }),
-            }
+            },
           )
 
           const result = await response.json()
@@ -4803,7 +4875,7 @@
               result.data
 
             console.log(
-              `=== 統計結果: 今日趟次=${tripCount}, 已預約=${totalReservedCount}人, 已上車=${totalBoardedCount}人 ===`
+              `=== 統計結果: 今日趟次=${tripCount}, 已預約=${totalReservedCount}人, 已上車=${totalBoardedCount}人 ===`,
             )
 
             // 更新頁面顯示
@@ -4863,7 +4935,7 @@
         }
 
         console.log(
-          `趟次自動更新已啟動，每 ${autoRefreshIntervalSeconds} 秒更新一次`
+          `趟次自動更新已啟動，每 ${autoRefreshIntervalSeconds} 秒更新一次`,
         )
 
         autoRefreshInterval = setInterval(async () => {
@@ -4903,7 +4975,7 @@
           // 頁面隱藏時停止趟次自動更新（但待排乘客和統計輪詢仍會繼續）
           stopAutoRefresh()
           console.log(
-            "頁面已隱藏，暫停趟次自動更新（待排乘客和統計輪詢繼續運行）"
+            "頁面已隱藏，暫停趟次自動更新（待排乘客和統計輪詢繼續運行）",
           )
         } else {
           // 頁面重新顯示時：立即更新一次，然後恢復定時更新
@@ -4936,7 +5008,7 @@
           const response = await fetch(`${BASE_URL}/Trip/${tripId}/passengers`)
           if (!response.ok) {
             throw new Error(
-              `無法取得趟次資料: ${response.status} ${response.statusText}`
+              `無法取得趟次資料: ${response.status} ${response.statusText}`,
             )
           }
 
@@ -4962,7 +5034,7 @@
           if (!tripData.passengers || tripData.passengers.length === 0) {
             showNotification(
               `${tripData.trip.vehicleNumber} 沒有排入任何保留位，未列印`,
-              "info"
+              "info",
             )
             return
           }
@@ -5003,8 +5075,8 @@
               const hMm = (hPx * 25.4) / 96
               console.log(
                 `[PRINT-DEBUG] reservation content height=${hPx}px (~${hMm.toFixed(
-                  1
-                )}mm)`
+                  1,
+                )}mm)`,
               )
             })
             const beforePrintHandler = () => {}
@@ -5014,7 +5086,7 @@
               window.removeEventListener("afterprint", afterPrintHandler)
               isPrinting = false
               showSuccess(
-                `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`
+                `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`,
               )
             }
             window.addEventListener("beforeprint", beforePrintHandler)
@@ -5059,13 +5131,13 @@
         const sortedPassengers = [...(tripData.passengers || [])].sort(
           (a, b) => {
             const timeA = extractTimeFromDateTime(
-              a.requestDateTime || a.RequestDateTime
+              a.requestDateTime || a.RequestDateTime,
             )
             const timeB = extractTimeFromDateTime(
-              b.requestDateTime || b.RequestDateTime
+              b.requestDateTime || b.RequestDateTime,
             )
             return timeA.localeCompare(timeB)
-          }
+          },
         )
 
         const list = sortedPassengers
@@ -5173,7 +5245,7 @@
             "PassengerId 類型:",
             typeof passengerId,
             "值:",
-            passengerId
+            passengerId,
           )
           console.log("完整乘客資料:", passenger)
           console.log("KeepStop:", passenger.keepStop)
@@ -5194,8 +5266,8 @@
             console.log(`⚠️ 降級處理：查詢可用路線...`)
             const routesResponse = await fetch(
               `${BASE_URL}/Trip/available-routes/${encodeURIComponent(
-                passenger.destStop
-              )}`
+                passenger.destStop,
+              )}`,
             )
 
             if (!routesResponse.ok) {
@@ -5220,8 +5292,8 @@
           // 顯示可用路線訊息
           showSuccess(
             `找到 ${availableRoutes.length} 條可用路線: ${availableRoutes.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           )
 
           const requestData = {
@@ -5234,7 +5306,7 @@
 
           console.log(
             "準備發送的請求資料:",
-            JSON.stringify(requestData, null, 2)
+            JSON.stringify(requestData, null, 2),
           )
 
           const response = await fetch(`${BASE_URL}/Trip/auto-assign-single`, {
@@ -5283,7 +5355,7 @@
 
           if (result.success) {
             showSuccess(
-              `乘客 ${passenger.name} 已保留 ${result.data.departureTime} 的 ${result.data.vehicleNumber} `
+              `乘客 ${passenger.name} 已保留 ${result.data.departureTime} 的 ${result.data.vehicleNumber} `,
             )
             await loadTrips()
             await loadPendingPassengers()
@@ -5370,7 +5442,7 @@
                 result.detail.availableRoutesToday.length > 0
               ) {
                 detailMessage += `\n• 可用路線：${result.detail.availableRoutesToday.join(
-                  ", "
+                  ", ",
                 )}`
               }
               if (
@@ -5378,7 +5450,7 @@
                 result.detail.requiredRoutes.length > 0
               ) {
                 detailMessage += `\n• 需要路線：${result.detail.requiredRoutes.join(
-                  ", "
+                  ", ",
                 )}`
               }
             }
@@ -5393,7 +5465,7 @@
                 result.passengerInfo.routes.length > 0
               ) {
                 detailMessage += `\n• 可搭路線：${result.passengerInfo.routes.join(
-                  ", "
+                  ", ",
                 )}`
               }
             }
@@ -5491,7 +5563,7 @@
             .filter((route) => route.length > 0)
           console.log(
             "📈 使用預計算路線過濾趟次 (無API調用):",
-            passengerAvailableRoutes
+            passengerAvailableRoutes,
           )
         }
 
@@ -5513,7 +5585,7 @@
             // 使用預計算路線，無需 API 調用
             canTake = passengerAvailableRoutes.includes(trip.route)
             console.log(
-              `趟次 ${trip.route}: ${canTake ? "符合" : "不符合"} 預計算路線`
+              `趟次 ${trip.route}: ${canTake ? "符合" : "不符合"} 預計算路線`,
             )
           } else {
             // 降級處理：使用原有的 API 檢查方式
@@ -5528,7 +5600,7 @@
 
         if (availableTrips.length === 0) {
           showError(
-            `乘客 ${passenger.name} 沒有適合的趟次可供選擇，請檢查目的地站牌 "${passenger.destStop}" 或可用趟次座位`
+            `乘客 ${passenger.name} 沒有適合的趟次可供選擇，請檢查目的地站牌 "${passenger.destStop}" 或可用趟次座位`,
           )
           return
         }
@@ -5539,8 +5611,8 @@
               <span class="close" onclick="closeManualAssignModal()">&times;</span>
               <h3>手動排班 - ${passenger.name}</h3>
               <p><strong>路線:</strong> ${passenger.keepStop} → ${
-          passenger.destStop
-        }</p>
+                passenger.destStop
+              }</p>
               <p><strong>座位需求:</strong> ${passenger.seatCount || 1} 位</p>
               <p><strong>電話:</strong> <span style="font-size:16px;font-weight:800;">${
                 passenger.phone || "無"
@@ -5560,14 +5632,14 @@
               <strong>${trip.route} - ${trip.vehicleNumber}</strong><br>
               發車時間: ${trip.departureTime}<br>
               座位狀況: ${passengerCount}/${
-            trip.keepCount
-          } (剩餘 ${remainingSeats} 位)<br>
+                trip.keepCount
+              } (剩餘 ${remainingSeats} 位)<br>
               狀態: ${
                 trip.status === "pending"
                   ? "準備發車"
                   : trip.status === "notified"
-                  ? "已通知"
-                  : "待分配..."
+                    ? "已通知"
+                    : "待分配..."
               }
             </div>
           `
@@ -5602,7 +5674,7 @@
       async function removePassengerFromTrip(
         passengerId,
         tripId,
-        seatCount = 1
+        seatCount = 1,
       ) {
         if (!confirm("確定要將此乘客從趟次中移除嗎？")) {
           return
@@ -5629,7 +5701,7 @@
         // 顯示確認對話框，要求輸入取消原因
         const reason = prompt(
           `確定要代替「${passengerName}」取消預約嗎？\n\n系統將自動發送 LINE 通知給乘客。\n請輸入取消原因（可選）：`,
-          "已電話通知乘客同意取消"
+          "已電話通知乘客同意取消",
         )
 
         // 如果用戶按下取消，則不執行
@@ -5649,7 +5721,7 @@
                 keepSeatId: keepSeatId,
                 reason: reason || "服務人員協助取消",
               }),
-            }
+            },
           )
 
           if (response.ok) {
@@ -5657,7 +5729,7 @@
             showSuccess(
               result?.message
                 ? `${result.message}\n乘客：${result.passengerName}`
-                : "已成功代替乘客取消預約並發送通知"
+                : "已成功代替乘客取消預約並發送通知",
             )
 
             // 重新載入趟次和待分配乘客列表
@@ -5668,7 +5740,7 @@
             if (tripId) {
               const passengersHtml = await renderTripPassengers(tripId)
               const passengersContainer = document.getElementById(
-                `passengers-${tripId}`
+                `passengers-${tripId}`,
               )
               if (passengersContainer) {
                 passengersContainer.innerHTML = passengersHtml
@@ -5731,7 +5803,7 @@
       function updateTripSeatDisplay(
         tripId,
         currentSeatsOverride,
-        keepCountOverride
+        keepCountOverride,
       ) {
         const trip = trips.find((t) => t.tripId === tripId)
         if (!trip) {
@@ -5748,7 +5820,7 @@
             ? keepCountOverride
             : trip.keepCount
         const seatIndicator = document.querySelector(
-          `.trip-card[data-trip-id="${tripId}"] .seat-indicator`
+          `.trip-card[data-trip-id="${tripId}"] .seat-indicator`,
         )
 
         if (seatIndicator) {
@@ -5757,12 +5829,12 @@
             currentSeats >= effectiveKeep
               ? "full"
               : currentSeats > 0
-              ? "pending"
-              : ""
+                ? "pending"
+                : ""
           }`
         } else {
           console.error(
-            `Seat indicator for trip ID ${tripId} not found in DOM.`
+            `Seat indicator for trip ID ${tripId} not found in DOM.`,
           )
         }
       }
@@ -6031,7 +6103,7 @@
             console.log(
               `📈 拖拽檢查 (無API調用): 趟次 ${trip.route} ${
                 canTake ? "符合" : "不符合"
-              } 預計算路線`
+              } 預計算路線`,
             )
           } else {
             // 降級處理：使用原有的 API 檢查方式
@@ -6042,7 +6114,7 @@
           if (!canTake) {
             const passengerName = passenger ? passenger.name : "未知乘客"
             showError(
-              `${passengerName} 無法搭乘路線 ${trip.route}，請檢查目的地站牌是否正確`
+              `${passengerName} 無法搭乘路線 ${trip.route}，請檢查目的地站牌是否正確`,
             )
             return
           }
@@ -6097,7 +6169,7 @@
 
           const totalSeats = passengers.reduce(
             (a, p) => a + (p.seatCount || 1),
-            0
+            0,
           )
           const qrCodeUrl = await generateQRCodeURL("SIMULATE-PRINT")
           const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
@@ -6121,8 +6193,8 @@
             const hMm = (hPx * 25.4) / 96
             console.log(
               `[PRINT-DEBUG] simulate content height=${hPx}px (~${hMm.toFixed(
-                1
-              )}mm)  count=${count}`
+                1,
+              )}mm)  count=${count}`,
             )
           })
           const beforePrintHandler = () => {}
@@ -6155,7 +6227,7 @@
       function toggleTripDetails(tripId) {
         const details = document.getElementById(`details-${tripId}`)
         const toggleBtn = document.querySelector(
-          `[data-trip-id="${tripId}"] .toggle-btn`
+          `[data-trip-id="${tripId}"] .toggle-btn`,
         )
 
         if (details && toggleBtn) {
@@ -6233,15 +6305,15 @@
           const removedReservations = pendingPassengers.filter(
             (oldPassenger) =>
               !todayPassengers.some(
-                (newPassenger) => newPassenger.id === oldPassenger.id
-              )
+                (newPassenger) => newPassenger.id === oldPassenger.id,
+              ),
           )
 
           const addedReservations = todayPassengers.filter(
             (newPassenger) =>
               !pendingPassengers.some(
-                (oldPassenger) => oldPassenger.id === newPassenger.id
-              )
+                (oldPassenger) => oldPassenger.id === newPassenger.id,
+              ),
           )
 
           if (removedReservations.length > 0) {
@@ -6249,7 +6321,7 @@
               trips.forEach((trip) => {
                 if (trip.passengers) {
                   trip.passengers = trip.passengers.filter(
-                    (passenger) => passenger.id !== removedPassenger.id
+                    (passenger) => passenger.id !== removedPassenger.id,
                   )
                 }
                 // 僅更新受影響的座位顯示
@@ -6292,7 +6364,7 @@
             console.warn("AudioContext 未啟用，無法播放音效")
             showVisualNotification(
               "請點擊「啟用音效通知」按鈕來啟用音效",
-              "warning"
+              "warning",
             )
             return
           }
@@ -6443,7 +6515,8 @@
           top: auto !important;
           width: 75mm !important;
           height: auto !important;
-          font-family: "Microsoft JhengHei", "Courier New", monospace !important;
+          font-family:
+            "Microsoft JhengHei", "Courier New", monospace !important;
           font-size: 10pt !important;
           line-height: 1.2 !important;
           color: black !important;
