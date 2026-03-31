@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh">
   <head>
     <meta charset="UTF-8" />
@@ -474,6 +474,7 @@
             <option value="(三重客運)蘆一站">(三重客運)蘆一站</option>
             <option value="(三重客運)蘆二站">(三重客運)蘆二站</option>
             <option value="(三重客運)迴龍站">(三重客運)迴龍站</option>
+            <option value="(三重客運)交九站">(三重客運)交九站</option>
             <option value="(大都會客運)中和站">(大都會客運)中和站</option>
             <option value="(大都會客運)內湖站">(大都會客運)內湖站</option>
             <option value="(大都會客運)凌雲站">(大都會客運)凌雲站</option>
@@ -569,6 +570,7 @@
             <option value="(三重客運)蘆一站">(三重客運)蘆一站</option>
             <option value="(三重客運)蘆二站">(三重客運)蘆二站</option>
             <option value="(三重客運)迴龍站">(三重客運)迴龍站</option>
+            <option value="(三重客運)交九站">(三重客運)交九站</option>
             <option value="(大都會客運)中和站">(大都會客運)中和站</option>
             <option value="(大都會客運)內湖站">(大都會客運)內湖站</option>
             <option value="(大都會客運)凌雲站">(大都會客運)凌雲站</option>
@@ -1085,11 +1087,11 @@
       function setupCheckboxListeners() {
         const privacyCheckbox = document.getElementById("privacyConsent")
         const dataCollectionCheckbox = document.getElementById(
-          "dataCollectionConsent"
+          "dataCollectionConsent",
         )
         const privacyAgreeBtn = document.getElementById("privacyAgreeBtn")
         const dataCollectionAgreeBtn = document.getElementById(
-          "dataCollectionAgreeBtn"
+          "dataCollectionAgreeBtn",
         )
 
         if (privacyCheckbox && privacyAgreeBtn) {
@@ -1144,10 +1146,10 @@
 
         // 檢查是否已經同意過政策
         const previousDataAgreement = localStorage.getItem(
-          "dataCollectionAgreed"
+          "dataCollectionAgreed",
         )
         const previousPrivacyAgreement = localStorage.getItem(
-          "privacyPolicyAgreed"
+          "privacyPolicyAgreed",
         )
 
         if (previousDataAgreement === "true") {
@@ -1163,7 +1165,7 @@
           "政策狀態初始化完成 - 個人資料:",
           dataCollectionAgreed,
           "隱私權:",
-          privacyPolicyAgreed
+          privacyPolicyAgreed,
         )
       }
 
@@ -1256,7 +1258,7 @@
           console.error("LIFF 初始化失敗:", error)
           showStatusMessage(
             "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
-            "error"
+            "error",
           )
           showDebugInfo("LIFF 初始化失敗: " + error.message)
           liffInitialized = false
@@ -1276,7 +1278,7 @@
 
         console.log(
           "當前政策狀態 - dataCollectionAgreed:",
-          dataCollectionAgreed
+          dataCollectionAgreed,
         )
         console.log("localStorage中的狀態:", dataCollectionFromStorage)
 
@@ -1339,7 +1341,7 @@
         // 不自動跳轉，讓用戶手動點擊下一個政策
         showStatusMessage(
           "隱私權政策同意成功！請點擊「個資搜集政策」繼續",
-          "success"
+          "success",
         )
       }
 
@@ -1469,12 +1471,12 @@
         if (privacyPolicyAgreed) {
           showStatusMessage(
             "感謝您同意所有政策，現在可以提交表單進行綁定",
-            "success"
+            "success",
           )
         } else {
           showStatusMessage(
             "個資搜集政策同意成功！請點擊「隱私權政策」繼續",
-            "success"
+            "success",
           )
         }
       }
@@ -1530,8 +1532,8 @@
               : userData.dept || ""
             userInfoDisplay.innerHTML = `
                         <strong>${userData.name || "用戶"}${
-              userData.empId ? " " + userData.empId : ""
-            }</strong>您好，您目前已綁定並可使用相關功能：<br>
+                          userData.empId ? " " + userData.empId : ""
+                        }</strong>您好，您目前已綁定並可使用相關功能：<br>
                        公司：${userData.company || ""}<br>
                        部門：${deptDisplay}<br>
                        職稱：${userData.job || ""}<br>
@@ -1607,7 +1609,7 @@
           console.error("解除綁定失敗:", error)
           showStatusMessage(
             "解除綁定失敗: " + (error.message || "請稍後再試"),
-            "error"
+            "error",
           )
           setTimeout(closeWindowSafely, 3000)
         } finally {
@@ -1701,7 +1703,7 @@
           console.log("不在 LINE 瀏覽器內，顯示提示訊息")
           showStatusMessage(
             "操作已完成。由於您不在 LINE 應用內，請手動關閉此視窗",
-            "success"
+            "success",
           )
         }
       }
@@ -1724,13 +1726,13 @@
           "記憶體狀態 - dataCollectionAgreed:",
           dataCollectionAgreed,
           "privacyPolicyAgreed:",
-          privacyPolicyAgreed
+          privacyPolicyAgreed,
         )
         console.log(
           "localStorage狀態 - dataCollectionAgreed:",
           dataCollectionFromStorage,
           "privacyPolicyAgreed:",
-          privacyFromStorage
+          privacyFromStorage,
         )
 
         // 檢查是否已同意兩個政策
@@ -1738,7 +1740,7 @@
           console.log("政策檢查失敗，阻止提交")
           showStatusMessage(
             "請先同意隱私權政策和個資搜集政策後再提交表單",
-            "error"
+            "error",
           )
           return
         }
@@ -1767,7 +1769,7 @@
           validateField(
             "superiorDept",
             superiorDept !== "",
-            "上級部門為必填欄位"
+            "上級部門為必填欄位",
           ) && isValid
 
         // 驗證員工編號 (必填)
@@ -1777,7 +1779,7 @@
           validateField(
             "empId",
             empIdPattern.test(empid),
-            "員工編號為4到6碼數字"
+            "員工編號為4到6碼數字",
           ) && isValid
 
         // 驗證姓名 (必填)
@@ -1839,7 +1841,7 @@
           console.error("錯誤:", error)
           showStatusMessage(
             "綁定失敗: " + (error.message || "請稍後再試"),
-            "error"
+            "error",
           )
           showDebugInfo("綁定失敗: " + error.message)
 
