@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.50</h1>
+        <h1>都會之星座位保留系統 v1.0.0.51</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -2766,7 +2766,7 @@
           (v) => (v.plateNumber || "").trim().toUpperCase() === normalizedPlate,
         )
 
-        if (matchedVehicle && matchedVehicle.hasTripHistory === false) {
+        if (!matchedVehicle || matchedVehicle.hasTripHistory === false) {
           showNotification(VEHICLE_HISTORY_WARNING_MESSAGE, "warning")
           if (inputElement) {
             inputElement.dataset.lastVehicleWarned = normalizedPlate
