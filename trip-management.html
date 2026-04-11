@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.49</h1>
+        <h1>都會之星座位保留系統 v1.0.0.50</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -1901,6 +1901,8 @@
       let selectedSuggestionIndex = -1
       let visibleSuggestions = []
       let lastInputValue = ""
+      const VEHICLE_HISTORY_WARNING_MESSAGE =
+        "此車號之前未曾排過趟次，請注意車號是否正確"
 
       // 自動更新控制
       let autoRefreshEnabled = true
@@ -2608,6 +2610,7 @@
           if (value !== lastInputValue) {
             selectedSuggestionIndex = -1
             lastInputValue = value
+            delete inputElement.dataset.lastVehicleWarned
             showVehicleSuggestions(value, inputElement)
           }
         })
@@ -2655,6 +2658,7 @@
               )
             } else {
               hideVehicleSuggestions()
+              warnIfVehicleNeverUsed(inputElement.value, inputElement)
               nextFocusElement.focus()
             }
           } else if (e.key === "Escape") {
@@ -2662,6 +2666,13 @@
             hideVehicleSuggestions()
             selectedSuggestionIndex = -1
           }
+        })
+
+        inputElement.addEventListener("blur", function () {
+          // 讓點擊建議項目的 click 先完成
+          setTimeout(() => {
+            warnIfVehicleNeverUsed(inputElement.value, inputElement)
+          }, 120)
         })
       }
 
@@ -2736,7 +2747,31 @@
         targetInput.value = plateNumber
         hideVehicleSuggestions()
         selectedSuggestionIndex = -1
+        warnIfVehicleNeverUsed(plateNumber, targetInput)
         nextElement.focus()
+      }
+
+      function warnIfVehicleNeverUsed(plateNumber, inputElement = null) {
+        const normalizedPlate = (plateNumber || "").trim().toUpperCase()
+        if (!normalizedPlate) return
+
+        if (
+          inputElement &&
+          inputElement.dataset.lastVehicleWarned === normalizedPlate
+        ) {
+          return
+        }
+
+        const matchedVehicle = vehicleData.find(
+          (v) => (v.plateNumber || "").trim().toUpperCase() === normalizedPlate,
+        )
+
+        if (matchedVehicle && matchedVehicle.hasTripHistory === false) {
+          showNotification(VEHICLE_HISTORY_WARNING_MESSAGE, "warning")
+          if (inputElement) {
+            inputElement.dataset.lastVehicleWarned = normalizedPlate
+          }
+        }
       }
 
       function selectVehicleFromSuggestion(plateNumber, inputId) {
@@ -2756,7 +2791,7 @@
       async function loadVehicleData() {
         try {
           const response = await fetch(
-            `${BASE_URL}/BusVehicle/for-trips?operatorName=大都會客運`,
+            `${BASE_URL}/BusVehicle/search-for-trips?operatorName=大都會客運`,
           )
           const result = await response.json()
           if (result.success && result.data) {
