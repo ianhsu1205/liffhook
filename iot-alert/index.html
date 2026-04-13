@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IoT 通報管理</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --card: #ffffff;
+        --ink: #1f2a44;
+        --muted: #657188;
+        --primary: #0d9488;
+        --danger: #dc2626;
+        --line: #dce4f0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top right, #d7f7f3, var(--bg));
+        color: var(--ink);
+        font-family: "Noto Sans TC", sans-serif;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      .hero {
+        background: linear-gradient(120deg, #0f766e, #14b8a6);
+        color: #fff;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+      h3 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 8px 0 4px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 72px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .btns {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      button {
+        border: none;
+        border-radius: 8px;
+        background: var(--primary);
+        color: #fff;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      button.ghost {
+        background: #64748b;
+      }
+      button.danger {
+        background: var(--danger);
+      }
+      .table-wrap {
+        max-height: 320px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f8fafc;
+        position: sticky;
+        top: 0;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #ecfeff;
+        color: #155e75;
+      }
+      .leave-pill {
+        display: inline-block;
+        min-width: 52px;
+        text-align: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-weight: 700;
+      }
+      .log {
+        height: 160px;
+        overflow: auto;
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 12px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="hero">
+        <h1 style="margin: 0">IoT 通報管理</h1>
+        <div style="opacity: 0.9">事件 CRUD / 通知規則 / SignalR 即時推播</div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>事件管理 (AlertEvents)</h2>
+          <input type="hidden" id="eventId" />
+          <div class="row">
+            <div>
+              <label>category</label>
+              <input id="category" placeholder="例如：車機異常" />
+            </div>
+            <div>
+              <label>event</label>
+              <input id="eventName" placeholder="例如：GPS 斷線" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>location</label>
+              <input id="location" placeholder="例如：民生站" />
+            </div>
+            <div>
+              <label>eventDt (yyyy-MM-dd HH:mm:ss)</label>
+              <input id="eventDt" placeholder="例如：2026-04-13 09:30:00" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>alertLeave (1-5)</label>
+              <input id="alertLeave" type="number" min="1" max="5" value="3" />
+            </div>
+            <div>
+              <label>source</label>
+              <input id="source" placeholder="通報人/設備/車號" />
+            </div>
+          </div>
+          <div class="btns">
+            <button onclick="saveEvent()">儲存事件</button>
+            <button class="ghost" onclick="resetEventForm()">清空</button>
+            <button class="ghost" onclick="loadEvents()">重新整理</button>
+          </div>
+
+          <h3 style="margin-top: 16px">事件清單</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>時間</th>
+                  <th>類別/事件</th>
+                  <th>地點</th>
+                  <th>等級</th>
+                  <th>來源</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="eventTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>通知規則管理</h2>
+          <input type="hidden" id="ruleId" />
+          <div class="row">
+            <div>
+              <label>RuleName</label>
+              <input id="ruleName" placeholder="例如：高等級車機告警" />
+            </div>
+            <div>
+              <label>IsActive</label>
+              <select id="isActive">
+                <option value="true">啟用</option>
+                <option value="false">停用</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>EventMatchMode</label>
+              <select id="eventMatchMode">
+                <option value="all">all (全部條件成立)</option>
+                <option value="any">any (任一條件成立)</option>
+              </select>
+            </div>
+            <div>
+              <label>UserMatchMode</label>
+              <select id="userMatchMode">
+                <option value="all">all (全部條件成立)</option>
+                <option value="any">any (任一條件成立)</option>
+              </select>
+            </div>
+          </div>
+
+          <label
+            >事件條件: category,event,location,alertLeave,source
+            (逗號分隔多值)</label
+          >
+          <div class="row">
+            <input id="cCategory" placeholder="category 條件" />
+            <input id="cEvent" placeholder="event 條件" />
+          </div>
+          <div class="row">
+            <input id="cLocation" placeholder="location 條件" />
+            <input id="cAlertLeave" placeholder="alertLeave 條件，例如 3,4,5" />
+          </div>
+          <input
+            id="cSource"
+            placeholder="source 條件（目前忽略，不參與比對）"
+            disabled
+          />
+
+          <label
+            >收件者條件: Company,GroupCode,job,Dept,EmpId,SuperiorDept
+            (逗號分隔多值)</label
+          >
+          <div class="row">
+            <input id="uCompany" placeholder="Company" />
+            <input id="uGroupCode" placeholder="GroupCode" />
+          </div>
+          <div class="row">
+            <input id="uJob" placeholder="job" />
+            <input id="uDept" placeholder="Dept" />
+          </div>
+          <div class="row">
+            <input id="uEmpId" placeholder="EmpId" />
+            <input id="uSuperiorDept" placeholder="SuperiorDept" />
+          </div>
+
+          <label>MessageTemplate</label>
+          <textarea
+            id="messageTemplate"
+            placeholder="支援 {Category} {Event} {Location} {EventDt}/{Time} {AlertLeave} {Source}，可用 Enter 或 \n 或 <br> 斷行"
+          ></textarea>
+
+          <div class="btns">
+            <button class="ghost" onclick="fillRuleFromCurrentEvent()">
+              一鍵帶入目前事件值
+            </button>
+            <button onclick="saveRule()">儲存規則</button>
+            <button class="ghost" onclick="resetRuleForm()">清空</button>
+            <button class="ghost" onclick="loadRules()">重新整理</button>
+          </div>
+
+          <h3 style="margin-top: 16px">規則清單</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>名稱</th>
+                  <th>狀態</th>
+                  <th>條件</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="ruleTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top: 16px">
+        <h2>即時推播狀態 (SignalR)</h2>
+        <div class="hint">
+          連線端點:
+          /hubs/alert-events。當事件新增/修改/刪除與通知送出時，會即時收到訊息。
+        </div>
+        <div style="margin: 8px 0">
+          <span id="signalState" class="pill">連線中...</span>
+        </div>
+        <div id="rtLog" class="log"></div>
+      </section>
+    </div>
+
+    <script>
+      const BASE_URL = (() => {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/api"
+        }
+        return "https://35.221.146.143.nip.io/linehook"
+      })()
+
+      const HUB_URL = (() => {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return window.location.origin + "/hubs/alert-events"
+        }
+        return "https://35.221.146.143.nip.io/linehook/hubs/alert-events"
+      })()
+
+      let events = []
+      let rules = []
+
+      function log(message, payload) {
+        const el = document.getElementById("rtLog")
+        const ts = new Date().toLocaleString("zh-TW", { hour12: false })
+        const text = `[${ts}] ${message}${payload ? " " + JSON.stringify(payload) : ""}`
+        el.innerHTML = (text + "\n" + el.innerHTML).slice(0, 12000)
+      }
+
+      function toText(v) {
+        return (v || "").toString().trim()
+      }
+
+      function eventPayload() {
+        return {
+          category: toText(document.getElementById("category").value),
+          event: toText(document.getElementById("eventName").value),
+          location: toText(document.getElementById("location").value),
+          eventDt: toText(document.getElementById("eventDt").value),
+          alertLeave: Number(document.getElementById("alertLeave").value || 0),
+          source: toText(document.getElementById("source").value),
+        }
+      }
+
+      function rulePayload() {
+        return {
+          ruleName: toText(document.getElementById("ruleName").value),
+          isActive: document.getElementById("isActive").value === "true",
+          eventMatchMode: document.getElementById("eventMatchMode").value,
+          userMatchMode: document.getElementById("userMatchMode").value,
+          categoryCondition: toText(document.getElementById("cCategory").value),
+          eventCondition: toText(document.getElementById("cEvent").value),
+          locationCondition: toText(document.getElementById("cLocation").value),
+          alertLeaveCondition: toText(
+            document.getElementById("cAlertLeave").value,
+          ),
+          sourceCondition: toText(document.getElementById("cSource").value),
+          companyCondition: toText(document.getElementById("uCompany").value),
+          groupCodeCondition: toText(
+            document.getElementById("uGroupCode").value,
+          ),
+          jobCondition: toText(document.getElementById("uJob").value),
+          deptCondition: toText(document.getElementById("uDept").value),
+          empIdCondition: toText(document.getElementById("uEmpId").value),
+          superiorDeptCondition: toText(
+            document.getElementById("uSuperiorDept").value,
+          ),
+          messageTemplate: toText(
+            document.getElementById("messageTemplate").value,
+          ),
+        }
+      }
+
+      async function loadEvents() {
+        const res = await fetch(`${BASE_URL}/AlertEvent`)
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.message || "載入事件失敗")
+        events = json.data || []
+        renderEvents()
+      }
+
+      async function loadRules() {
+        const res = await fetch(`${BASE_URL}/AlertEvent/notify-rules`)
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.message || "載入規則失敗")
+        rules = json.data || []
+        renderRules()
+      }
+
+      function renderEvents() {
+        const tbody = document.getElementById("eventTable")
+        if (!events.length) {
+          tbody.innerHTML = `<tr><td colspan="6">尚無資料</td></tr>`
+          return
+        }
+
+        tbody.innerHTML = events
+          .map(
+            (e) => `
+            <tr>
+              <td>${e.eventDt || ""}</td>
+              <td>${e.category || ""}<br/>${e.event || ""}</td>
+              <td>${e.location || ""}</td>
+              <td><span class="leave-pill" style="background:${leaveColor(e.alertLeave)}">L${e.alertLeave}</span></td>
+              <td>${e.source || ""}</td>
+              <td>
+                <button class="ghost" onclick="editEvent('${e.id}')">編輯</button>
+                <button class="danger" onclick="deleteEvent('${e.id}')">刪除</button>
+                <button onclick="simulateNotify('${e.id}')">模擬通知</button>
+              </td>
+            </tr>
+          `,
+          )
+          .join("")
+      }
+
+      function leaveColor(leave) {
+        const level = Number(leave || 1)
+        if (level >= 5) return "#dc2626"
+        if (level === 4) return "#ea580c"
+        if (level === 3) return "#ca8a04"
+        if (level === 2) return "#16a34a"
+        return "#0284c7"
+      }
+
+      function renderRules() {
+        const tbody = document.getElementById("ruleTable")
+        if (!rules.length) {
+          tbody.innerHTML = `<tr><td colspan="4">尚無資料</td></tr>`
+          return
+        }
+
+        tbody.innerHTML = rules
+          .map(
+            (r) => `
+            <tr>
+              <td>${r.ruleName}</td>
+              <td>${r.isActive ? "啟用" : "停用"}</td>
+              <td>
+                E:${r.eventMatchMode} / U:${r.userMatchMode}<br/>
+                ${[
+                  r.categoryCondition,
+                  r.eventCondition,
+                  r.locationCondition,
+                  r.alertLeaveCondition,
+                  r.sourceCondition,
+                ]
+                  .filter(Boolean)
+                  .join(" | ")}
+              </td>
+              <td>
+                <button class="ghost" onclick="editRule('${r.id}')">編輯</button>
+                <button class="danger" onclick="deleteRule('${r.id}')">刪除</button>
+              </td>
+            </tr>
+          `,
+          )
+          .join("")
+      }
+
+      function resetEventForm() {
+        document.getElementById("eventId").value = ""
+        document.getElementById("category").value = ""
+        document.getElementById("eventName").value = ""
+        document.getElementById("location").value = ""
+        document.getElementById("eventDt").value = ""
+        document.getElementById("alertLeave").value = "3"
+        document.getElementById("source").value = ""
+      }
+
+      function resetRuleForm() {
+        document.getElementById("ruleId").value = ""
+        document.getElementById("ruleName").value = ""
+        document.getElementById("isActive").value = "true"
+        document.getElementById("eventMatchMode").value = "all"
+        document.getElementById("userMatchMode").value = "all"
+        ;[
+          "cCategory",
+          "cEvent",
+          "cLocation",
+          "cAlertLeave",
+          "uCompany",
+          "uGroupCode",
+          "uJob",
+          "uDept",
+          "uEmpId",
+          "uSuperiorDept",
+          "messageTemplate",
+        ].forEach((id) => {
+          document.getElementById(id).value = ""
+        })
+        document.getElementById("cSource").value = ""
+      }
+
+      function fillRuleFromCurrentEvent() {
+        const payload = eventPayload()
+        document.getElementById("cCategory").value = payload.category || ""
+        document.getElementById("cEvent").value = payload.event || ""
+        document.getElementById("cLocation").value = payload.location || ""
+        document.getElementById("cAlertLeave").value =
+          payload.alertLeave && payload.alertLeave > 0
+            ? String(payload.alertLeave)
+            : ""
+        document.getElementById("cSource").value = payload.source || ""
+      }
+
+      function editEvent(id) {
+        const e = events.find((x) => x.id === id)
+        if (!e) return
+        document.getElementById("eventId").value = e.id
+        document.getElementById("category").value = e.category || ""
+        document.getElementById("eventName").value = e.event || ""
+        document.getElementById("location").value = e.location || ""
+        document.getElementById("eventDt").value = e.eventDt || ""
+        document.getElementById("alertLeave").value = e.alertLeave || 3
+        document.getElementById("source").value = e.source || ""
+      }
+
+      function editRule(id) {
+        const r = rules.find((x) => x.id === id)
+        if (!r) return
+        document.getElementById("ruleId").value = r.id
+        document.getElementById("ruleName").value = r.ruleName || ""
+        document.getElementById("isActive").value = String(!!r.isActive)
+        document.getElementById("eventMatchMode").value =
+          r.eventMatchMode || "all"
+        document.getElementById("userMatchMode").value =
+          r.userMatchMode || "all"
+        document.getElementById("cCategory").value = r.categoryCondition || ""
+        document.getElementById("cEvent").value = r.eventCondition || ""
+        document.getElementById("cLocation").value = r.locationCondition || ""
+        document.getElementById("cAlertLeave").value =
+          r.alertLeaveCondition || ""
+        document.getElementById("cSource").value = r.sourceCondition || ""
+        document.getElementById("uCompany").value = r.companyCondition || ""
+        document.getElementById("uGroupCode").value = r.groupCodeCondition || ""
+        document.getElementById("uJob").value = r.jobCondition || ""
+        document.getElementById("uDept").value = r.deptCondition || ""
+        document.getElementById("uEmpId").value = r.empIdCondition || ""
+        document.getElementById("uSuperiorDept").value =
+          r.superiorDeptCondition || ""
+        document.getElementById("messageTemplate").value =
+          r.messageTemplate || ""
+      }
+
+      async function saveEvent() {
+        const id = document.getElementById("eventId").value
+        const payload = eventPayload()
+        if (!payload.category || !payload.event || !payload.source) {
+          alert("category/event/source 必填")
+          return
+        }
+
+        const url = id
+          ? `${BASE_URL}/AlertEvent/${id}`
+          : `${BASE_URL}/AlertEvent`
+        const method = id ? "PUT" : "POST"
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          alert(json.message || "儲存失敗")
+          return
+        }
+
+        log(`事件${id ? "更新" : "新增"}成功`, json.notification)
+        resetEventForm()
+        await loadEvents()
+      }
+
+      async function deleteEvent(id) {
+        if (!confirm("確定刪除事件？")) return
+        const res = await fetch(`${BASE_URL}/AlertEvent/${id}`, {
+          method: "DELETE",
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          alert(json.message || "刪除失敗")
+          return
+        }
+        await loadEvents()
+      }
+
+      async function simulateNotify(id) {
+        const res = await fetch(
+          `${BASE_URL}/AlertEvent/simulate-notify/${id}`,
+          { method: "POST" },
+        )
+        const json = await res.json()
+        if (!res.ok) {
+          alert(json.message || "模擬失敗")
+          return
+        }
+        log("模擬通知完成", json.notification)
+      }
+
+      async function saveRule() {
+        const id = document.getElementById("ruleId").value
+        const payload = rulePayload()
+        if (!payload.ruleName) {
+          alert("RuleName 必填")
+          return
+        }
+
+        const url = id
+          ? `${BASE_URL}/AlertEvent/notify-rules/${id}`
+          : `${BASE_URL}/AlertEvent/notify-rules`
+        const method = id ? "PUT" : "POST"
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          alert(json.message || "儲存規則失敗")
+          return
+        }
+
+        resetRuleForm()
+        await loadRules()
+      }
+
+      async function deleteRule(id) {
+        if (!confirm("確定刪除規則？")) return
+        const res = await fetch(`${BASE_URL}/AlertEvent/notify-rules/${id}`, {
+          method: "DELETE",
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          alert(json.message || "刪除規則失敗")
+          return
+        }
+        await loadRules()
+      }
+
+      async function initSignalR() {
+        const signalState = document.getElementById("signalState")
+        const conn = new signalR.HubConnectionBuilder()
+          .withUrl(HUB_URL)
+          .withAutomaticReconnect()
+          .build()
+
+        conn.on("alertEventCreated", (data) => {
+          log("收到即時事件新增", data)
+          loadEvents()
+        })
+
+        conn.on("alertEventUpdated", (data) => {
+          log("收到即時事件更新", data)
+          loadEvents()
+        })
+
+        conn.on("alertEventDeleted", (data) => {
+          log("收到即時事件刪除", data)
+          loadEvents()
+        })
+
+        conn.on("alertEventNotified", (data) => {
+          log("收到即時通知結果", data)
+        })
+
+        try {
+          await conn.start()
+          signalState.textContent = "已連線"
+          signalState.style.background = "#dcfce7"
+          signalState.style.color = "#166534"
+          log("SignalR 已連線", { hub: HUB_URL })
+        } catch (err) {
+          signalState.textContent = "連線失敗"
+          signalState.style.background = "#fee2e2"
+          signalState.style.color = "#991b1b"
+          log("SignalR 連線失敗", { message: err.message })
+        }
+      }
+
+      ;(async function bootstrap() {
+        try {
+          await Promise.all([loadEvents(), loadRules()])
+        } catch (e) {
+          alert(e.message)
+        }
+        await initSignalR()
+      })()
+    </script>
+  </body>
+</html>
