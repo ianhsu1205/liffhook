@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.51</h1>
+        <h1>都會之星座位保留系統 v1.0.0.52</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -1903,6 +1903,8 @@
       let lastInputValue = ""
       const VEHICLE_HISTORY_WARNING_MESSAGE =
         "此車號之前未曾排過趟次，請注意車號是否正確"
+      let isVehicleDataRefreshing = false
+      let hasQueuedVehicleDataRefresh = false
 
       // 自動更新控制
       let autoRefreshEnabled = true
@@ -2803,6 +2805,30 @@
         } catch (error) {
           console.error("載入車輛資料失敗:", error)
           vehicleData = []
+        }
+      }
+
+      // 非阻塞背景更新車輛清單，避免影響當前操作流暢度
+      async function refreshVehicleDataInBackground(reason = "manual") {
+        if (isVehicleDataRefreshing) {
+          hasQueuedVehicleDataRefresh = true
+          return
+        }
+
+        isVehicleDataRefreshing = true
+        try {
+          let refreshReason = reason
+          do {
+            hasQueuedVehicleDataRefresh = false
+            await loadVehicleData()
+            console.log(`車輛資料背景更新完成 (${refreshReason})`)
+            // 若刷新期間又收到新請求，至少再做一輪尾端刷新
+            refreshReason = "queued-refresh"
+          } while (hasQueuedVehicleDataRefresh)
+        } catch (error) {
+          console.error(`車輛資料背景更新失敗 (${reason}):`, error)
+        } finally {
+          isVehicleDataRefreshing = false
         }
       }
 
@@ -4199,6 +4225,7 @@
 
             await loadTrips()
             await renderTrips(true) // 新增趟次後強制完全渲染
+            refreshVehicleDataInBackground("create-trip")
             // 統計區已移除
           } else {
             throw new Error("建立趟次失敗")
@@ -4660,6 +4687,7 @@
             await loadTrips()
             await renderTrips(true) // 編輯後強制完全渲染
             await loadPendingPassengers()
+            refreshVehicleDataInBackground("update-trip")
             // 統計區已移除
           } else {
             throw new Error("更新趟次失敗")
@@ -4684,6 +4712,7 @@
             await loadTrips()
             await renderTrips(true) // 刪除後強制完全渲染
             await loadPendingPassengers()
+            refreshVehicleDataInBackground("delete-trip")
             updateStatistics()
           } else {
             // 嘗試讀取後端錯誤訊息
