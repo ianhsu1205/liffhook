@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.53</h1>
+        <h1>都會之星座位保留系統 v1.0.0.54</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -1901,6 +1901,7 @@
       let selectedSuggestionIndex = -1
       let visibleSuggestions = []
       let lastInputValue = ""
+      const vehicleHistoryLookupCache = new Map()
       const VEHICLE_HISTORY_WARNING_MESSAGE =
         "此車號之前未曾排過趟次，請注意車號是否正確"
       let isVehicleDataRefreshing = false
@@ -2751,7 +2752,58 @@
         nextElement.focus()
       }
 
-      function warnIfVehicleNeverUsed(plateNumber, inputElement = null) {
+      async function checkVehicleHasTripHistory(plateNumber) {
+        const normalizedPlate = (plateNumber || "").trim().toUpperCase()
+        if (!normalizedPlate) return false
+
+        if (vehicleHistoryLookupCache.has(normalizedPlate)) {
+          return vehicleHistoryLookupCache.get(normalizedPlate)
+        }
+
+        const hasTripInCurrentList = Array.isArray(trips)
+          ? trips.some(
+              (trip) =>
+                (trip.vehicleNumber || "").trim().toUpperCase() ===
+                normalizedPlate,
+            )
+          : false
+
+        if (hasTripInCurrentList) {
+          vehicleHistoryLookupCache.set(normalizedPlate, true)
+          return true
+        }
+
+        try {
+          const response = await fetch(
+            `${BASE_URL}/BusVehicle/search-for-trips?keyword=${encodeURIComponent(normalizedPlate)}`,
+          )
+
+          if (!response.ok) {
+            vehicleHistoryLookupCache.set(normalizedPlate, false)
+            return false
+          }
+
+          const result = await response.json()
+          const exactMatch = Array.isArray(result?.data)
+            ? result.data.find(
+                (v) =>
+                  (v.plateNumber || "").trim().toUpperCase() ===
+                  normalizedPlate,
+              )
+            : null
+
+          const hasHistory = !!(
+            exactMatch && exactMatch.hasTripHistory === true
+          )
+          vehicleHistoryLookupCache.set(normalizedPlate, hasHistory)
+          return hasHistory
+        } catch (error) {
+          console.error("查詢車號歷史失敗:", error)
+          return false
+        }
+      }
+
+      async function warnIfVehicleNeverUsed(plateNumber, inputElement = null) {
         const normalizedPlate = (plateNumber || "").trim().toUpperCase()
         if (!normalizedPlate) return
 
@@ -2779,7 +2831,15 @@
           (matchedVehicle && matchedVehicle.hasTripHistory !== false) ||
           hasTripInCurrentList
 
-        if (!hasVehicleHistory) {
+        if (hasVehicleHistory) {
+          vehicleHistoryLookupCache.set(normalizedPlate, true)
+          return
+        }
+
+        const hasHistoryByLookup =
+          await checkVehicleHasTripHistory(normalizedPlate)
+
+        if (!hasHistoryByLookup) {
           showNotification(VEHICLE_HISTORY_WARNING_MESSAGE, "warning")
           if (inputElement) {
             inputElement.dataset.lastVehicleWarned = normalizedPlate
@@ -2797,6 +2857,7 @@
 
         if (existingVehicle) {
           existingVehicle.hasTripHistory = true
+          vehicleHistoryLookupCache.set(normalizedPlate, true)
           return
         }
 
@@ -2805,6 +2866,7 @@
           operatorName: "",
           hasTripHistory: true,
         })
+        vehicleHistoryLookupCache.set(normalizedPlate, true)
       }
 
       function selectVehicleFromSuggestion(plateNumber, inputId) {
