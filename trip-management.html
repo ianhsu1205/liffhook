@@ -5290,8 +5290,11 @@
 
       // 生成 QR 碼 URL
       async function generateQRCodeURL(text) {
-        // 使用簡單的 QR 碼 API
-        const encodedText = encodeURIComponent(text)
+        // 產生可直接導向 LINE 的 LIFF 深連結，並帶入 tripId
+        const liffId = "2007942695-y4qpaekB"
+        const tripId = String(text || "").trim()
+        const liffDeepLink = `https://liff.line.me/${liffId}?tripId=${encodeURIComponent(tripId)}`
+        const encodedText = encodeURIComponent(liffDeepLink)
         return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedText}`
       }
 
