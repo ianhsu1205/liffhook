@@ -440,6 +440,15 @@
       .submit-button:hover {
         background-color: #04a73e;
       }
+
+      .silent-submit-button {
+        background-color: #17a2b8;
+        color: white;
+      }
+
+      .silent-submit-button:hover {
+        background-color: #138496;
+      }
       
       .remove-button {
         background-color: #f8d7da;
@@ -930,8 +939,19 @@ button, .utility-button, .quick-item, .simple-bus-item {
   }
 .input-actions {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   margin-top: 15px;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.action-row.single-column {
+  grid-template-columns: 1fr;
 }
 
 .cancel-button {
@@ -1741,9 +1761,15 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   /* 調整按鈕容器在小螢幕上的排列 */
   @media (max-width: 480px) {
     .input-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 10px;
+    }
+
+    .action-row {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .action-row.single-column {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -2032,17 +2058,26 @@ content: "　"; /* 使用單個全角空格作為間隔 */
   <textarea id="memo" rows="3" style="width: 100%; margin-top: 6px; margin-bottom: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
 
     <div class="input-actions">
-      <div class="action-button submit-button" onclick="submitSelectedBus()">
-        <i class="fas fa-check"></i> 送出
+      <div class="action-row">
+        <div class="action-button submit-button" onclick="submitSelectedBus(true)">
+          <i class="fas fa-check"></i> 送出並通知
+        </div>
+        <div class="action-button silent-submit-button" onclick="submitSelectedBus(false)">
+          <i class="fas fa-user-secret"></i> 暗哨不通知
+        </div>
       </div>
+      <div class="action-row">
         <div class="action-button postpone-button" onclick="postponeEditing()">
-    <i class="fas fa-clock"></i> 稍待
-   </div>
-   <div class="action-button submit-backdated-button" onclick="showBackdatedSubmitModal()">
-    <i class="fas fa-history"></i> 補送
-  </div>
-      <div class="action-button cancel-button" onclick="cancelBusInput(true)">
-        <i class="fas fa-times"></i> 取消
+          <i class="fas fa-clock"></i> 稍待
+        </div>
+        <div class="action-button submit-backdated-button" onclick="showBackdatedSubmitModal()">
+          <i class="fas fa-history"></i> 補送
+        </div>
+      </div>
+      <div class="action-row single-column">
+        <div class="action-button cancel-button" onclick="cancelBusInput(true)">
+          <i class="fas fa-times"></i> 取消
+        </div>
       </div>
     </div>
   </div>
@@ -2151,7 +2186,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.2.2(瀏覽器模式)
+      <div class="line-brand">多功能平台-車輛查核-v1.2.2.3
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
@@ -5583,9 +5618,9 @@ function showDetectedBuses() {
 
 let isSubmitting = false; // 確保全局變量保留
 // 修改 submitSelectedBus 函數，使其調用通用的提交函數
-function submitSelectedBus() {
+function submitSelectedBus(shouldNotify = true) {
   // 使用共用提交函數，不包含日期和時間參數
-  submitBusRecordCommon();
+  submitBusRecordCommon({}, shouldNotify);
 }
 // function submitSelectedBus() {
 //   // 防止重複提交
@@ -5790,7 +5825,7 @@ function showBackdatedSubmitModal() {
   document.getElementById("backdatedSubmitModal").style.display = "block";
 }
 // 共用的提交記錄函數 - 統一處理邏輯
-function submitBusRecordCommon(additionalData = {}) {
+function submitBusRecordCommon(additionalData = {}, shouldNotify = true) {
   // 防止重複提交
   if (isSubmitting) return;
   isSubmitting = true;
@@ -5846,8 +5881,10 @@ function submitBusRecordCommon(additionalData = {}) {
       }
       
       // 防止重複點擊
-      const submitButton = document.querySelector(".action-button.submit-button");
-      if (submitButton) submitButton.classList.add("disabled");
+      const submitButtons = document.querySelectorAll(
+        ".action-button.submit-button, .action-button.silent-submit-button, .action-button.submit-backdated-button",
+      );
+      submitButtons.forEach((button) => button.classList.add("disabled"));
       
       // 分類項目
       const positiveItems = [];
@@ -5894,7 +5931,8 @@ function submitBusRecordCommon(additionalData = {}) {
         mainItem: bus.selectedMainItem,
         otherItem: finalNegativeItems.join(", "), // 負向項目和未分類項目
         goodItem: positiveItems.join(", "), // 正向項目
-        memo: document.getElementById("memo").value // 新增備註欄位
+        memo: document.getElementById("memo").value, // 新增備註欄位
+        notify: shouldNotify
       };
       
       // 添加額外數據（如補送記錄的日期和時間）
@@ -5919,9 +5957,11 @@ function submitBusRecordCommon(additionalData = {}) {
         handleSubmitSuccess(bus);
         
         // 顯示成功訊息，包含可能的日期時間信息
-        let successMsg = `成功送出記錄：${bus.plateNumber} (${bus.operatorName || "未知公司"} ${routeName})`;
+        let successMsg = shouldNotify
+          ? `成功送出並通知：${bus.plateNumber} (${bus.operatorName || "未知公司"} ${routeName})`
+          : `成功送出暗哨記錄，未通知：${bus.plateNumber} (${bus.operatorName || "未知公司"} ${routeName})`;
         if (additionalData.createdDate) {
-          successMsg += ` (${additionalData.createdDate} ${additionalData.createdTime})`;
+          successMsg = `成功補送記錄，未通知：${bus.plateNumber} (${bus.operatorName || "未知公司"} ${routeName}) (${additionalData.createdDate} ${additionalData.createdTime})`;
         }
         showFloatingNotification(successMsg, "success");
       })
@@ -5931,7 +5971,7 @@ function submitBusRecordCommon(additionalData = {}) {
       })
       .finally(() => {
         // 恢復按鈕狀態
-        if (submitButton) submitButton.classList.remove("disabled");
+        submitButtons.forEach((button) => button.classList.remove("disabled"));
         
         isSubmitting = false;
       });
@@ -5959,7 +5999,7 @@ function submitBackdatedRecord() {
   submitBusRecordCommon({
     createdDate: backdatedDate,
     createdTime: backdatedTime
-  });
+  }, false);
   
   // 關閉模態框
   closeBackdatedSubmitModal();
