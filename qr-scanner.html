@@ -295,10 +295,10 @@
       .status-message.error {
         background: rgba(231, 76, 60, 0.95);
         color: white;
-        padding: 30px 25px;
+        padding: 22px 20px;
         text-align: center;
-        font-size: 22px;
-        line-height: 1.8;
+        font-size: 17px;
+        line-height: 1.6;
         top: 50%;
         transform: translate(-50%, -50%);
         max-width: 85%;
@@ -608,11 +608,70 @@
       function getTripIdFromQuery() {
         try {
           const params = new URLSearchParams(window.location.search)
-          return (params.get("tripId") || "").trim()
+          const directTripId = (params.get("tripId") || "").trim()
+          if (directTripId) {
+            return directTripId
+          }
+
+          // LIFF 有時會把參數包在 liff.state
+          const liffState = (params.get("liff.state") || "").trim()
+          if (liffState) {
+            const decodedState = decodeURIComponent(liffState)
+            const stateQuery = decodedState.startsWith("?")
+              ? decodedState.slice(1)
+              : decodedState
+            const stateParams = new URLSearchParams(stateQuery)
+            return (stateParams.get("tripId") || "").trim()
+          }
+
+          return ""
         } catch (error) {
           console.warn("解析 tripId 參數失敗:", error)
           return ""
         }
+      }
+
+      function isGuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(value || "").trim(),
+        )
+      }
+
+      function resolveTripId(value) {
+        const raw = String(value || "").trim()
+        if (!raw) return ""
+
+        // 1) 直接就是 GUID
+        if (isGuid(raw)) return raw
+
+        // 2) 嘗試當作 URL 解析（支援掃到 LIFF 連結）
+        const extractFromUrl = (urlValue) => {
+          try {
+            const url = new URL(urlValue)
+            const direct = (url.searchParams.get("tripId") || "").trim()
+            if (direct) return direct
+
+            const liffState = (url.searchParams.get("liff.state") || "").trim()
+            if (liffState) {
+              const decodedState = decodeURIComponent(liffState)
+              const stateQuery = decodedState.startsWith("?")
+                ? decodedState.slice(1)
+                : decodedState
+              const stateParams = new URLSearchParams(stateQuery)
+              return (stateParams.get("tripId") || "").trim()
+            }
+          } catch (_) {}
+          return ""
+        }
+
+        let extracted = extractFromUrl(raw)
+        if (!extracted) {
+          try {
+            extracted = extractFromUrl(decodeURIComponent(raw))
+          } catch (_) {}
+        }
+
+        return isGuid(extracted) ? extracted : ""
       }
 
       async function getCurrentUserId() {
@@ -632,8 +691,14 @@
       }
 
       async function handleDirectBoardingFromQuery(tripId) {
-        const normalizedTripId = (tripId || "").trim()
+        const normalizedTripId = resolveTripId(tripId)
         if (!normalizedTripId) {
+          updateStatusIndicator("❌ QRCode 內容格式錯誤", "error")
+          showStatusMessageWithClose(
+            "QRCode 內容缺少有效的 tripId，請重新列印後再試",
+            "error",
+            true,
+          )
           return false
         }
 
@@ -1476,8 +1541,18 @@
           updateStatusIndicator("🔍 查詢中...", "info")
           showLoading("查詢保留座位申請...")
 
-          // QR Code 只包含 tripId 是正確的設計
-          const tripId = qrValue.trim()
+          // 支援純 tripId 或 LIFF URL 兩種掃描內容
+          const tripId = resolveTripId(qrValue)
+          if (!tripId) {
+            hideLoading()
+            updateStatusIndicator("❌ QRCode 內容格式錯誤", "error")
+            showStatusMessage(
+              "無法解析 tripId，請確認使用最新列印的 QRCode",
+              "error",
+            )
+            setTimeout(closePage, AUTO_CLOSE_DELAY)
+            return
+          }
 
           // 獲取當前用戶ID
           let userId
@@ -1913,8 +1988,57 @@
         const contentDiv = document.getElementById("scanResultContent")
 
         resultDiv.className = `scan-result ${type}`
-        contentDiv.textContent = message
+        contentDiv.textContent =
+          type === "error" ? toBilingualErrorMessage(message) : message
         resultDiv.style.display = "block"
+      }
+
+      function toBilingualErrorMessage(message) {
+        const raw = String(message || "").trim()
+        if (!raw) {
+          return "系統發生錯誤，請稍後再試 / An error occurred. Please try again later."
+        }
+
+        // 已經是中英雙語就直接使用
+        if (raw.includes(" / ")) {
+          return raw
+        }
+
+        const known = [
+          {
+            test: /(One or more validation errors occurred|validation errors?)/i,
+            zh: "欄位驗證失敗，請檢查輸入資料",
+            en: "Validation failed. Please check your input.",
+          },
+          {
+            test: /網路錯誤|network/i,
+            zh: "網路連線異常，請稍後再試",
+            en: "Network error. Please try again later.",
+          },
+          {
+            test: /尚未發車|未發車/i,
+            zh: "本趟次尚未發車，暫時無法核銷",
+            en: "This trip has not departed yet. Boarding cannot be confirmed now.",
+          },
+          {
+            test: /無法解析.*tripId|tripId/i,
+            zh: "QRCode 內容無效，請使用最新列印的 QRCode",
+            en: "Invalid QRCode content. Please use the latest printed QRCode.",
+          },
+        ]
+
+        const matched = known.find((item) => item.test.test(raw))
+        if (matched) {
+          return `${matched.zh} / ${matched.en}`
+        }
+
+        // 若原文偏中文，補通用英文；若偏英文，補通用中文
+        const hasChinese = /[\u4e00-\u9fff]/.test(raw)
+        if (hasChinese) {
+          return `${raw} / An error occurred. Please try again.`
+        }
+
+        return `系統發生錯誤，請稍後再試 / ${raw}`
       }
 
       // 顯示狀態消息（帶關閉按鈕的版本）
@@ -1923,9 +2047,13 @@
         type,
         showCloseButton = false,
       ) {
+        const displayMessage =
+          type === "error" ? toBilingualErrorMessage(message) : message
+
         // 避免重複顯示訊息
         // 1. 掃描中避免創建太多 DOM 元素（但 error 類型訊息必須顯示）
-        if (isScanning && type !== "error" && !message.includes("錯誤")) return
+        if (isScanning && type !== "error" && !displayMessage.includes("錯誤"))
+          return
 
         // 2. 檢查是否已經有相同訊息正在顯示
         const existingMessage = document.querySelector(".status-message")
@@ -1933,7 +2061,7 @@
           // 使用正則表達式移除所有HTML標籤進行比較
           const stripHtml = (html) => html.replace(/<[^>]*>?/gm, "")
           const existingText = stripHtml(existingMessage.innerHTML)
-          const newText = stripHtml(message)
+          const newText = stripHtml(displayMessage)
 
           // 如果已有相同訊息，則不重複顯示
           if (
@@ -1953,7 +2081,7 @@
         if (showCloseButton) {
           // 簡化按鈕樣式，使用基本樣式
           messageElement.innerHTML = `
-            <div style="margin-bottom: 15px; line-height: 1.6;">${message}</div>
+            <div style="margin-bottom: 15px; line-height: 1.6;">${displayMessage}</div>
             <button 
               data-close="1" data-direct-close="1" onclick="attemptDirectClose()" 
               style="background: white; color: #333; border: none; padding: 12px 32px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); min-width: 120px;"
@@ -1964,7 +2092,7 @@
             </button>
           `
         } else {
-          messageElement.textContent = message
+          messageElement.textContent = displayMessage
         }
 
         document.body.appendChild(messageElement)
@@ -1995,7 +2123,7 @@
 
         // 調試輸出 (在控制台顯示訊息建立時間)
         console.log(
-          `訊息已建立: ${message.substring(
+          `訊息已建立: ${displayMessage.substring(
             0,
             20,
           )}... (${type}), ID: ${messageId}, 將在 ${timeout / 1000}秒後關閉`,
@@ -2041,7 +2169,7 @@
         border-radius: 3px;
       "
     >
-      版本: 20250909-10
+      版本: 20260422-02
     </div>
   </body>
 </html>
