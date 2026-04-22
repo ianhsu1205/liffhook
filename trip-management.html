@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.52</h1>
+        <h1>都會之星座位保留系統 v1.0.0.53</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -2660,7 +2660,6 @@
               )
             } else {
               hideVehicleSuggestions()
-              warnIfVehicleNeverUsed(inputElement.value, inputElement)
               nextFocusElement.focus()
             }
           } else if (e.key === "Escape") {
@@ -2749,7 +2748,6 @@
         targetInput.value = plateNumber
         hideVehicleSuggestions()
         selectedSuggestionIndex = -1
-        warnIfVehicleNeverUsed(plateNumber, targetInput)
         nextElement.focus()
       }
 
@@ -2768,12 +2766,45 @@
           (v) => (v.plateNumber || "").trim().toUpperCase() === normalizedPlate,
         )
 
-        if (!matchedVehicle || matchedVehicle.hasTripHistory === false) {
+        // 也納入目前已載入的趟次資料（包含剛新增成功且尚未完成車輛清單刷新）
+        const hasTripInCurrentList = Array.isArray(trips)
+          ? trips.some(
+              (trip) =>
+                (trip.vehicleNumber || "").trim().toUpperCase() ===
+                normalizedPlate,
+            )
+          : false
+
+        const hasVehicleHistory =
+          (matchedVehicle && matchedVehicle.hasTripHistory !== false) ||
+          hasTripInCurrentList
+
+        if (!hasVehicleHistory) {
           showNotification(VEHICLE_HISTORY_WARNING_MESSAGE, "warning")
           if (inputElement) {
             inputElement.dataset.lastVehicleWarned = normalizedPlate
           }
         }
+      }
+
+      function markVehicleAsUsedInMemory(plateNumber) {
+        const normalizedPlate = (plateNumber || "").trim().toUpperCase()
+        if (!normalizedPlate) return
+
+        const existingVehicle = vehicleData.find(
+          (v) => (v.plateNumber || "").trim().toUpperCase() === normalizedPlate,
+        )
+
+        if (existingVehicle) {
+          existingVehicle.hasTripHistory = true
+          return
+        }
+
+        vehicleData.push({
+          plateNumber: normalizedPlate,
+          operatorName: "",
+          hasTripHistory: true,
+        })
       }
 
       function selectVehicleFromSuggestion(plateNumber, inputId) {
@@ -4203,6 +4234,8 @@
           })
 
           if (response.ok) {
+            markVehicleAsUsedInMemory(vehicleNumber)
+
             // 先保存目前選擇的路線ID
             const currentRouteId =
               document.getElementById("selectedRoute").value
