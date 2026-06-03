@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh">
   <head>
     <meta charset="UTF-8" />
@@ -590,6 +590,7 @@
               <th>業者</th>
               <th>路線</th>
               <th>車號</th>
+              <th>站牌</th>
               <th>查核結果</th>
               <th>其它</th>
               <th>備註</th>
@@ -613,7 +614,7 @@
         尚無查詢結果，請選擇日期並點擊查詢按鈕
       </div>
 
-      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.1.1</div>
+      <div class="line-brand">多功能平台-查核記錄查詢-v1.0.1.2</div>
     </div>
 
     <!-- 確認刪除對話框 -->
@@ -677,6 +678,43 @@
             <div id="editOtherItemsContainer" class="quick-other-items">
               <!-- 其他項目將在這裡生成 -->
             </div>
+          </div>
+
+          <!-- 站牌資訊 -->
+          <div class="form-group">
+            <label for="editStopName">站牌名稱</label>
+            <input
+              type="text"
+              id="editStopName"
+              class="form-control"
+              placeholder="站牌名稱（選填）"
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                margin-bottom: 10px;
+              "
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="editStopStatus">站牌狀態</label>
+            <select
+              id="editStopStatus"
+              class="form-control"
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                margin-bottom: 10px;
+              "
+            >
+              <option value="">未設定</option>
+              <option value="進站">進站</option>
+              <option value="離站">離站</option>
+            </select>
           </div>
 
           <!-- 備註欄位移動到視窗下方 -->
@@ -890,7 +928,7 @@
           console.error("LIFF 初始化失敗:", error)
           showStatusMessage(
             "LINE 應用程式初始化失敗，請確認網路連接並重新嘗試",
-            "error"
+            "error",
           )
           liffInitialized = false
           hideLoading()
@@ -954,7 +992,7 @@
           }
 
           const response = await fetch(
-            `${base_url}monitor/records/user/${userId}?date=${searchDate}`
+            `${base_url}monitor/records/user/${userId}?date=${searchDate}`,
           )
 
           if (!response.ok) {
@@ -1010,9 +1048,8 @@
         if (recordCount > 0) {
           // 顯示查詢信息，加入查核筆數
           infoSection.classList.remove("hidden")
-          document.getElementById(
-            "dateInfo"
-          ).textContent = `查核日期: ${data.date}`
+          document.getElementById("dateInfo").textContent =
+            `查核日期: ${data.date}`
 
           // 獲取最近一筆記錄的位置
           const latestRecord = records[records.length - 1]
@@ -1033,8 +1070,8 @@
               record.direction === "0"
                 ? '<span class="direction-tag go-tag">去程</span>'
                 : record.direction === "1"
-                ? '<span class="direction-tag back-tag">返程</span>'
-                : ""
+                  ? '<span class="direction-tag back-tag">返程</span>'
+                  : ""
 
             // 合併 otherItem 和 goodItem
             let combinedItems = []
@@ -1048,10 +1085,26 @@
               combinedItems.length > 0 ? combinedItems.join(", ") : "-"
 
             const row = document.createElement("tr")
+
+            // 處理站牌資訊
+            let stopInfo = ""
+            if (record.stopName) {
+              const stopStatusText =
+                record.stopStatus === 1
+                  ? "進站"
+                  : record.stopStatus === 0
+                    ? "離站"
+                    : ""
+              stopInfo = stopStatusText
+                ? `${stopStatusText}-${record.stopName}`
+                : record.stopName
+            }
+
             row.innerHTML = `
                 <td>${companyName}</td>
                 <td>${record.routeName || "-"}</td>
                 <td>${record.plateNumber || "-"}</td>
+                <td>${stopInfo || "-"}</td>
                 <td>${record.mainItem || "-"}</td>
                 <td>${combinedItemsDisplay}</td>
                 <td>${record.memo || "-"}</td> <!-- 新增備註欄位 -->
@@ -1071,6 +1124,21 @@
             // 填充卡片視圖 - 修改為更精簡的版本
             const card = document.createElement("div")
             card.className = "data-card"
+
+            // 處理站牌資訊
+            let stopInfo = ""
+            if (record.stopName) {
+              const stopStatusText =
+                record.stopStatus === 1
+                  ? "進站"
+                  : record.stopStatus === 0
+                    ? "離站"
+                    : ""
+              stopInfo = stopStatusText
+                ? `${stopStatusText}-${record.stopName}`
+                : record.stopName
+            }
+
             card.innerHTML = `
                 <div class="data-card-header">
                     <div class="header-grid">
@@ -1085,6 +1153,10 @@
                     </div>
                 </div>
                 <div class="data-card-body">
+                    <div class="data-card-item">
+                        <div class="data-card-label"><strong>站牌:</strong></div>
+                        <div class="data-card-value">${stopInfo || "-"}</div>
+                    </div>
                     <div class="data-card-item">
                         <div class="data-card-label"><strong>查核結果:</strong></div>
                         <div class="data-card-value">${
@@ -1137,9 +1209,14 @@
         // 設置備註欄位的值
         document.getElementById("editMemo").value = record.memo || ""
 
+        // 設置站牌欄位的值
+        document.getElementById("editStopName").value = record.stopName || ""
+        document.getElementById("editStopStatus").value =
+          record.stopStatus || ""
+
         // 填充主要項目選項 (保持不變)
         const mainItemsContainer = document.getElementById(
-          "editMainItemsContainer"
+          "editMainItemsContainer",
         )
         mainItemsContainer.innerHTML = ""
 
@@ -1162,7 +1239,7 @@
 
         // 填充其他項目選項 - 使用與 busMonitor.html 相似的分類方式
         const otherItemsContainer = document.getElementById(
-          "editOtherItemsContainer"
+          "editOtherItemsContainer",
         )
         otherItemsContainer.innerHTML = ""
 
@@ -1372,7 +1449,7 @@
 
                 // 確保編輯區域也滾動到底部
                 const editContent = document.querySelector(
-                  ".edit-content-wrapper"
+                  ".edit-content-wrapper",
                 )
                 if (editContent) {
                   editContent.scrollTop = editContent.scrollHeight
@@ -1443,10 +1520,10 @@
 
           // 獲取選中的主要項目
           const mainItemsContainer = document.getElementById(
-            "editMainItemsContainer"
+            "editMainItemsContainer",
           )
           const selectedMainItem = mainItemsContainer.querySelector(
-            ".quick-item.selected"
+            ".quick-item.selected",
           )
 
           if (!selectedMainItem) {
@@ -1458,7 +1535,7 @@
 
           // 獲取選中的其他項目 - 從所有分類頁中收集
           const otherItemsContainer = document.getElementById(
-            "editOtherItemsContainer"
+            "editOtherItemsContainer",
           )
           const allPages =
             otherItemsContainer.querySelectorAll(".category-page")
@@ -1470,7 +1547,7 @@
           // 從所有頁面中收集選中的項目
           allPages.forEach((page) => {
             const selectedItems = page.querySelectorAll(
-              ".quick-other-item.selected"
+              ".quick-other-item.selected",
             )
             selectedItems.forEach((item) => {
               const itemValue = item.dataset.value
@@ -1494,6 +1571,13 @@
           })
           // 獲取備註欄位的值
           const memoValue = document.getElementById("editMemo").value || ""
+
+          // 獲取站牌資訊
+          const stopNameValue =
+            document.getElementById("editStopName").value || ""
+          const stopStatusValue =
+            document.getElementById("editStopStatus").value || ""
+
           // 構建更新數據，分別填入 otherItem 和 goodItem
           // 即使為空陣列，也要確保傳遞空字串，而不是undefined
           const updateData = {
@@ -1501,6 +1585,8 @@
             otherItem: negativeItems.length > 0 ? negativeItems.join(", ") : "", // 負向項目和未分類項目
             goodItem: positiveItems.length > 0 ? positiveItems.join(", ") : "", // 正向項目
             memo: memoValue, // 加入備註欄位
+            stopName: stopNameValue, // 加入站牌名稱
+            stopStatus: stopStatusValue, // 加入站牌狀態
           }
 
           // 顯示載入中
@@ -1513,7 +1599,7 @@
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(updateData),
-            }
+            },
           )
 
           if (!response.ok) {
@@ -1566,7 +1652,7 @@
             `${base_url}monitor/records/${recordId}`,
             {
               method: "DELETE",
-            }
+            },
           )
 
           if (!response.ok) {
