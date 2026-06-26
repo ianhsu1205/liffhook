@@ -1895,12 +1895,13 @@
       // 顯示已發車趟次的偏好
       let showCompletedTrips = false
 
-      // Android MX20 藍牙直印（EZPL/ZPL）
+      // Android MX20 藍牙直印（GZPL/ZPL；僅 BLE 機型可用）
       const MX20_BT_SERVICE_UUIDS = [
         "0000ffe0-0000-1000-8000-00805f9b34fb",
         "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
         "49535343-fe7d-4ae5-8fa9-9fafd205e455",
       ]
+      const MX20_WEB_BLUETOOTH_ENABLED = false
       let mx20BluetoothDevice = null
       let mx20BluetoothServer = null
       let mx20BluetoothCharacteristic = null
@@ -2263,6 +2264,13 @@
         const connectMx20Btn = document.getElementById("connectMx20Btn")
         if (connectMx20Btn) {
           connectMx20Btn.addEventListener("click", async () => {
+            if (!isMx20WebBluetoothEnabled()) {
+              showDetailedError(
+                "這台 MX20 目前不能用瀏覽器藍牙直印",
+                "你已確認掃描清單中沒有出現這台印表機的名稱或 Address，這代表它大概率不是 BLE 廣播裝置，而是 Classic Bluetooth。\n\nWeb Bluetooth 只能掃描 BLE，所以這頁無法直接連到它。\n\n目前本頁輸出的指令語言是 ZPL，因此若你要設定印表機的 PL Simulation，應選 GZPL。\n\n建議做法：\n1. 用 Android 廠商 App 直印\n2. 或改成手機送單、Windows 代印",
+              )
+              return
+            }
             try {
               await connectMx20Printer(true)
               showSuccess("MX20 已連線，可直接藍牙列印")
@@ -5207,6 +5215,7 @@
       function startPrintFromUserGesture(tripId, useBrowserFallback = false) {
         const shouldPrepareBluetooth =
           isAndroidDevice() &&
+          isMx20WebBluetoothEnabled() &&
           !useBrowserFallback &&
           window.__MX20_DIRECT_PRINT__ !== false
 
@@ -5285,9 +5294,10 @@
             totalSeats += p.seatCount || 1
           })
 
-          // Android 優先走 MX20 藍牙直印（EZPL/ZPL）；失敗才回退瀏覽器列印
+          // Android 優先走 MX20 藍牙直印（GZPL/ZPL；僅 BLE 機型）；失敗才回退瀏覽器列印
           const shouldTryBluetoothDirect =
             isAndroidDevice() &&
+            isMx20WebBluetoothEnabled() &&
             !useBrowserFallback &&
             window.__MX20_DIRECT_PRINT__ !== false
           if (shouldTryBluetoothDirect) {
@@ -5390,6 +5400,13 @@
 
       function isAndroidDevice() {
         return /Android/i.test(navigator.userAgent || "")
+      }
+
+      function isMx20WebBluetoothEnabled() {
+        return (
+          MX20_WEB_BLUETOOTH_ENABLED === true ||
+          window.__MX20_FORCE_WEB_BLUETOOTH__ === true
+        )
       }
 
       function supportsBluetoothDirectPrint() {
