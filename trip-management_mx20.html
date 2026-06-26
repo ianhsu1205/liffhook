@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.56</h1>
+        <h1>都會之星座位保留系統 v1.0.0.57</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -1435,9 +1435,9 @@
             type="button"
             class="btn btn-info"
             id="connectMx20Btn"
-            title="Android 藍牙直印需先配對一次"
+            title="優先使用 Android WebView 列印橋接，無橋接時改用瀏覽器藍牙"
           >
-            🔗 連線 MX20
+            🔗 連線列印服務
           </button>
           <span id="mx20ConnectionStatus" style="font-size: 12px; color: #666"
             >未連線</span
@@ -1906,6 +1906,9 @@
       let mx20BluetoothServer = null
       let mx20BluetoothCharacteristic = null
       let isBluetoothPrinting = false
+      const ANDROID_PRINT_BRIDGE_NAME = "AndroidPrinterBridge"
+      let androidPrintRequestSeq = 0
+      const androidPrintPending = new Map()
 
       // 路線 ID 對應顯示名稱的全域映射
       const ROUTE_DISPLAY_NAMES = {
@@ -1957,6 +1960,7 @@
       function initializePage() {
         // 清除今日以前的趟次記錄
         cleanupOldTripRecords()
+        refreshMx20PrintChannelStatus()
 
         // 顯示當前日期
         updateCurrentDate()
@@ -2123,6 +2127,8 @@
       }
 
       function setupEventListeners() {
+        refreshMx20PrintChannelStatus()
+
         // 趟次自動更新開關
         const autoRefreshToggle = document.getElementById("autoRefreshToggle")
         if (autoRefreshToggle) {
@@ -2264,14 +2270,21 @@
         const connectMx20Btn = document.getElementById("connectMx20Btn")
         if (connectMx20Btn) {
           connectMx20Btn.addEventListener("click", async () => {
-            if (!isMx20WebBluetoothEnabled()) {
-              showDetailedError(
-                "這台 MX20 目前不能用瀏覽器藍牙直印",
-                "你已確認掃描清單中沒有出現這台印表機的名稱或 Address，這代表它大概率不是 BLE 廣播裝置，而是 Classic Bluetooth。\n\nWeb Bluetooth 只能掃描 BLE，所以這頁無法直接連到它。\n\n目前本頁輸出的指令語言是 ZPL，因此若你要設定印表機的 PL Simulation，應選 GZPL。\n\n建議做法：\n1. 用 Android 廠商 App 直印\n2. 或改成手機送單、Windows 代印",
-              )
-              return
-            }
             try {
+              if (isAndroidWebViewPrintAvailable()) {
+                await ensureAndroidPrintBridgeReady(true)
+                showSuccess("Android 列印橋接已就緒，可直接列印")
+                return
+              }
+
+              if (!isMx20WebBluetoothEnabled()) {
+                showDetailedError(
+                  "目前未偵測到 Android WebView 列印橋接",
+                  "若你使用 Android WebView App，請確認 App 已注入 AndroidPrinterBridge。\n\n若你現在是一般瀏覽器，且印表機不是 BLE，瀏覽器無法直接列印。\n\n建議：\n1. 先改用 Android WebView App（推薦）\n2. 或啟用後端列印佇列 + Windows 代印",
+                )
+                return
+              }
+
               await connectMx20Printer(true)
               showSuccess("MX20 已連線，可直接藍牙列印")
             } catch (e) {
@@ -5215,6 +5228,7 @@
       function startPrintFromUserGesture(tripId, useBrowserFallback = false) {
         const shouldPrepareBluetooth =
           isAndroidDevice() &&
+          !isAndroidWebViewPrintAvailable() &&
           isMx20WebBluetoothEnabled() &&
           !useBrowserFallback &&
           window.__MX20_DIRECT_PRINT__ !== false
@@ -5294,20 +5308,48 @@
             totalSeats += p.seatCount || 1
           })
 
+          const ezpl = buildReservationEzpl(
+            tripData,
+            qrCodeUrl,
+            totalSeats,
+            tripId,
+          )
+
+          // Android WebView 橋接優先：可支援 Classic Bluetooth 與廠商 SDK
+          const shouldTryAndroidBridge =
+            isAndroidWebViewPrintAvailable() && !useBrowserFallback
+          if (shouldTryAndroidBridge) {
+            try {
+              await ensureAndroidPrintBridgeReady(false)
+              await sendEzplViaAndroidBridge(ezpl, {
+                tripId,
+                departureTime: tripData.trip.departureTime || "",
+                vehicleNumber: tripData.trip.vehicleNumber || "",
+                route: tripData.trip.route || "",
+                passengerCount: tripData.passengers.length,
+                totalSeats,
+              })
+              showSuccess(
+                `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 直印完成(Android)`,
+              )
+              recordTripAction(tripId, "print")
+              renderTripsSync()
+              return
+            } catch (bridgeError) {
+              console.warn("Android 橋接列印失敗，回退其他模式:", bridgeError)
+              showNotification("Android 橋接列印失敗，改用備援列印", "warning")
+            }
+          }
+
           // Android 優先走 MX20 藍牙直印（GZPL/ZPL；僅 BLE 機型）；失敗才回退瀏覽器列印
           const shouldTryBluetoothDirect =
             isAndroidDevice() &&
+            !isAndroidWebViewPrintAvailable() &&
             isMx20WebBluetoothEnabled() &&
             !useBrowserFallback &&
             window.__MX20_DIRECT_PRINT__ !== false
           if (shouldTryBluetoothDirect) {
             try {
-              const ezpl = buildReservationEzpl(
-                tripData,
-                qrCodeUrl,
-                totalSeats,
-                tripId,
-              )
               await sendEzplToMx20(ezpl)
               showSuccess(
                 `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 直印完成`,
@@ -5411,6 +5453,174 @@
 
       function supportsBluetoothDirectPrint() {
         return !!(window.isSecureContext && navigator.bluetooth)
+      }
+
+      function getAndroidPrintBridge() {
+        try {
+          const bridge = window[ANDROID_PRINT_BRIDGE_NAME]
+          if (!bridge) return null
+          const hasPrintMethod =
+            typeof bridge.printReservation === "function" ||
+            typeof bridge.printRaw === "function"
+          return hasPrintMethod ? bridge : null
+        } catch (_) {
+          return null
+        }
+      }
+
+      function isAndroidWebViewPrintAvailable() {
+        return isAndroidDevice() && !!getAndroidPrintBridge()
+      }
+
+      function parseBridgeBoolean(value) {
+        if (typeof value === "boolean") return value
+        if (typeof value === "number") return value !== 0
+        if (typeof value === "string") {
+          const normalized = value.trim().toLowerCase()
+          if (!normalized) return true
+          if (["false", "0", "no", "fail", "failed"].includes(normalized)) {
+            return false
+          }
+          return true
+        }
+        return value != null
+      }
+
+      function resolveAndroidPrintRequest(requestId, success, message) {
+        const pending = androidPrintPending.get(requestId)
+        if (!pending) return
+        clearTimeout(pending.timeoutId)
+        androidPrintPending.delete(requestId)
+        pending.resolve({
+          success: !!success,
+          message: message || (success ? "OK" : "列印失敗"),
+        })
+      }
+
+      window.__onAndroidPrintResult = function (requestId, success, message) {
+        resolveAndroidPrintRequest(requestId, success, message)
+      }
+
+      async function sendEzplViaAndroidBridge(ezplText, metadata) {
+        const bridge = getAndroidPrintBridge()
+        if (!bridge) {
+          throw new Error("未偵測到 AndroidPrinterBridge")
+        }
+
+        const requestId = `mx20_${Date.now()}_${++androidPrintRequestSeq}`
+        const payload = {
+          requestId,
+          language: "GZPL",
+          command: ezplText,
+          copies: 1,
+          metadata: metadata || {},
+        }
+
+        const resultPromise = new Promise((resolve) => {
+          const timeoutId = setTimeout(() => {
+            androidPrintPending.delete(requestId)
+            resolve({
+              success: false,
+              message: "Android 列印橋接逾時，請檢查 App 與印表機連線",
+            })
+          }, 20000)
+
+          androidPrintPending.set(requestId, { resolve, timeoutId })
+        })
+
+        try {
+          let immediate = null
+          if (typeof bridge.printReservation === "function") {
+            immediate = bridge.printReservation(JSON.stringify(payload))
+          } else if (typeof bridge.printRaw === "function") {
+            immediate = bridge.printRaw(payload.command, payload.requestId)
+          } else {
+            throw new Error(
+              "AndroidPrinterBridge 缺少 printReservation/printRaw",
+            )
+          }
+
+          if (immediate && typeof immediate === "string") {
+            try {
+              const parsed = JSON.parse(immediate)
+              if (Object.prototype.hasOwnProperty.call(parsed, "success")) {
+                resolveAndroidPrintRequest(
+                  requestId,
+                  !!parsed.success,
+                  parsed.message || "",
+                )
+              }
+            } catch (_) {
+              if (
+                ["ok", "accepted", "queued"].includes(immediate.toLowerCase())
+              ) {
+                resolveAndroidPrintRequest(requestId, true, "列印工作已送出")
+              }
+            }
+          } else if (typeof immediate === "boolean") {
+            resolveAndroidPrintRequest(
+              requestId,
+              immediate,
+              immediate ? "列印工作已送出" : "列印工作送出失敗",
+            )
+          }
+        } catch (error) {
+          resolveAndroidPrintRequest(
+            requestId,
+            false,
+            error.message || "橋接呼叫失敗",
+          )
+        }
+
+        const result = await resultPromise
+        if (!result.success) {
+          throw new Error(result.message || "Android 列印失敗")
+        }
+
+        updateMx20ConnectionStatus(true, "Android 列印橋接已連線")
+      }
+
+      async function ensureAndroidPrintBridgeReady(forceConnect = false) {
+        const bridge = getAndroidPrintBridge()
+        if (!bridge) {
+          throw new Error(
+            "尚未注入 AndroidPrinterBridge，請改用 WebView App 開啟",
+          )
+        }
+
+        if (forceConnect && typeof bridge.connectPrinter === "function") {
+          const connectResult = bridge.connectPrinter()
+          if (!parseBridgeBoolean(connectResult)) {
+            throw new Error("印表機尚未連線，請在 App 內完成連線")
+          }
+        }
+
+        if (typeof bridge.isPrinterConnected === "function") {
+          const connected = bridge.isPrinterConnected()
+          if (!parseBridgeBoolean(connected)) {
+            throw new Error("印表機尚未連線，請先連線 MX20")
+          }
+        }
+
+        updateMx20ConnectionStatus(true, "Android 列印橋接已就緒")
+      }
+
+      function refreshMx20PrintChannelStatus() {
+        const connectBtn = document.getElementById("connectMx20Btn")
+        if (isAndroidWebViewPrintAvailable()) {
+          if (connectBtn) connectBtn.textContent = "🔗 連線 Android 列印"
+          updateMx20ConnectionStatus(true, "已偵測 Android 列印橋接")
+          return
+        }
+
+        if (isAndroidDevice() && isMx20WebBluetoothEnabled()) {
+          if (connectBtn) connectBtn.textContent = "🔗 連線 MX20(BLE)"
+          updateMx20ConnectionStatus(false, "尚未連線(BLE)")
+          return
+        }
+
+        if (connectBtn) connectBtn.textContent = "🔗 連線列印服務"
+        updateMx20ConnectionStatus(false, "請使用 Android WebView App")
       }
 
       function updateMx20ConnectionStatus(connected, message) {
