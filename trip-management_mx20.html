@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.55</h1>
+        <h1>都會之星座位保留系統 v1.0.0.56</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -5434,26 +5434,14 @@
         }
 
         const requestOptions = {
-          filters: [
-            { namePrefix: "MX" },
-            { namePrefix: "GoDEX" },
-            { namePrefix: "GODEX" },
-          ],
+          acceptAllDevices: true,
           optionalServices: MX20_BT_SERVICE_UUIDS,
         }
 
         // 第一次配對或強制重選裝置
         if (!mx20BluetoothDevice || forceDevicePicker) {
-          try {
-            mx20BluetoothDevice =
-              await navigator.bluetooth.requestDevice(requestOptions)
-          } catch (e) {
-            // 某些機型名稱不含關鍵字，改為全裝置挑選
-            mx20BluetoothDevice = await navigator.bluetooth.requestDevice({
-              acceptAllDevices: true,
-              optionalServices: MX20_BT_SERVICE_UUIDS,
-            })
-          }
+          mx20BluetoothDevice =
+            await navigator.bluetooth.requestDevice(requestOptions)
           mx20BluetoothDevice.addEventListener(
             "gattserverdisconnected",
             () => {
