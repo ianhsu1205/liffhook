@@ -3496,7 +3496,7 @@
                         <button class="btn btn-danger" onclick="deleteTrip('${trip.tripId}')">
                             🗑️ 刪除
                         </button>
-                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}')" style="position: relative;">
+                        <button class="btn btn-primary" onclick="handlePrintAction('${trip.tripId}')" style="position: relative;">
                             🖨️ 列印
                             <span id="print-count-${trip.tripId}" class="count-badge" style="display: none;"></span>
                         </button>
@@ -3508,7 +3508,7 @@
                             ✅ 發車
                         </button>`
                             : `
-                        <button class="btn btn-primary" onclick="printReservation('${trip.tripId}', window.enableBrowserFallback)" style="position: relative;">
+                        <button class="btn btn-primary" onclick="handlePrintAction('${trip.tripId}', window.enableBrowserFallback)" style="position: relative;">
                             🖨️ 列印
                             <span id="print-count-${trip.tripId}" class="count-badge" style="display: none;"></span>
                         </button>
@@ -5191,6 +5191,31 @@
           }
         }
       })
+
+      async function handlePrintAction(tripId, useBrowserFallback = false) {
+        try {
+          const shouldPrepareBluetooth =
+            isAndroidDevice() &&
+            !useBrowserFallback &&
+            window.__MX20_DIRECT_PRINT__ !== false
+
+          // requestDevice 必須在使用者點擊手勢當下觸發，不能等到後面的 fetch 後才呼叫
+          if (shouldPrepareBluetooth) {
+            try {
+              await connectMx20Printer(false)
+            } catch (bluetoothError) {
+              console.warn("列印前藍牙連線準備失敗:", bluetoothError)
+              showNotification("MX20 尚未連線，將改用瀏覽器列印", "warning")
+              useBrowserFallback = true
+            }
+          }
+
+          await printReservation(tripId, useBrowserFallback)
+        } catch (error) {
+          console.error("handlePrintAction 錯誤:", error)
+          showError(`列印失敗: ${error.message}`)
+        }
+      }
 
       // 列印趟次預約單
       async function printReservation(tripId, useBrowserFallback = false) {
