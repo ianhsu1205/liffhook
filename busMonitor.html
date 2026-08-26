@@ -442,6 +442,7 @@
       }
 
       .silent-submit-button {
+        display: none !important;
         background-color: #17a2b8;
         color: white;
       }
@@ -2068,19 +2069,17 @@ content: "　"; /* 使用單個全角空格作為間隔 */
         <div class="action-button submit-button" onclick="submitSelectedBus(true)">
           <i class="fas fa-check"></i> 送出並通知
         </div>
-        <div class="action-button silent-submit-button" onclick="submitSelectedBus(false)">
+        <div class="action-button silent-submit-button" onclick="submitSelectedBus(false)" style="display: none;">
           <i class="fas fa-user-secret"></i> 暗哨不通知
         </div>
-      </div>
-      <div class="action-row">
         <div class="action-button postpone-button" onclick="postponeEditing()">
           <i class="fas fa-clock"></i> 稍待
         </div>
+      </div>
+      <div class="action-row">
         <div class="action-button submit-backdated-button" onclick="showBackdatedSubmitModal()">
           <i class="fas fa-history"></i> 補送
         </div>
-      </div>
-      <div class="action-row single-column">
         <div class="action-button cancel-button" onclick="cancelBusInput(true)">
           <i class="fas fa-times"></i> 取消
         </div>
@@ -2192,7 +2191,7 @@ content: "　"; /* 使用單個全角空格作為間隔 */
     </div>
   </div>
 </div>
-      <div class="line-brand">多功能平台-車輛查核-v1.2.2.4
+      <div class="line-brand">多功能平台-車輛查核-v1.2.2.5
         <div style="font-size: 12px; margin-top: 5px;">
     GPS精準度已強化，請確保開啟位置服務
   </div>
