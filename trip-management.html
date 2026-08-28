@@ -1266,7 +1266,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>都會之星座位保留系統 v1.0.0.55</h1>
+        <h1>都會之星座位保留系統 v1.0.0.56</h1>
         <p><span id="currentDate"></span></p>
         <div
           style="
@@ -5157,9 +5157,8 @@
         }
       })
 
-      // 列印趟次預約單
+      // 列印趟次預約單：分兩聯列印（因印表機無自動剪紙，需操作人員撕紙後手動確認下一聯）
       async function printReservation(tripId, useBrowserFallback = false) {
-        // (buildReservationHtml 與 isPrinting 會在下方重新定義搬到前面以避免未定義)
         try {
           console.log("🖨️ 開始列印趟次預約單，趟次ID:", tripId)
 
@@ -5198,9 +5197,6 @@
             return
           }
 
-          // 通知開始列印（已確認有乘客）
-          // showNotification("正在準備列印...", "info")
-
           // 生成 QR 碼 URL (使用趟次ID)
           const qrCodeUrl = await generateQRCodeURL(tripId)
 
@@ -5210,70 +5206,46 @@
             totalSeats += p.seatCount || 1
           })
 
-          // 使用瀏覽器列印（配合 Chrome --kiosk --kiosk-printing 可靜默列印）
-          const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
-          const printContent =
-            document.getElementById("print-content") ||
-            createPrintContentElement()
-          printContent.innerHTML = html
-          await waitForQRCodeLoading()
+          const dateStr = new Date().toLocaleDateString("zh-TW", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
 
-          // 靜默列印專用：額外等待確保圖片完全渲染到列印緩衝區
-          await new Promise((resolve) => setTimeout(resolve, 1500))
+          // 兩聯共用同一組核對碼，方便操作人員配對，避免撕紙後對應錯誤
+          const matchCode = generateMatchCode()
 
-          try {
-            if (isPrinting) {
-              console.warn("[PRINT] 上一次列印尚未完成，忽略本次呼叫。")
-              return
-            }
-            isPrinting = true
-            printContent.style.display = "block"
-            // Debug 高度以確認是否超出單頁
-            requestAnimationFrame(() => {
-              const hPx = printContent.scrollHeight
-              const hMm = (hPx * 25.4) / 96
-              console.log(
-                `[PRINT-DEBUG] reservation content height=${hPx}px (~${hMm.toFixed(
-                  1,
-                )}mm)`,
-              )
-            })
-            const beforePrintHandler = () => {}
-            const afterPrintHandler = () => {
-              printContent.style.display = "none"
-              window.removeEventListener("beforeprint", beforePrintHandler)
-              window.removeEventListener("afterprint", afterPrintHandler)
-              isPrinting = false
-              showSuccess(
-                `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`,
-              )
-            }
-            window.addEventListener("beforeprint", beforePrintHandler)
-            window.addEventListener("afterprint", afterPrintHandler)
-            // showNotification("正在使用瀏覽器列印...", "info")
-            window.print()
+          // 第一聯：核銷用 QR 碼（僅含班次資訊，不含乘客資料）
+          const qrHtml = buildQrPageHtml(
+            tripData,
+            qrCodeUrl,
+            dateStr,
+            matchCode,
+          )
+          await printSinglePage(qrHtml, { waitQr: true })
 
-            // 記錄列印次數（在列印完成後）
-            setTimeout(() => {
-              recordTripAction(tripId, "print")
-              // 重新渲染趟次以更新顯示的計數
-              renderTripsSync()
-            }, 1000)
-            setTimeout(() => {
-              if (printContent.style.display !== "none") {
-                printContent.style.display = "none"
-                window.removeEventListener("beforeprint", beforePrintHandler)
-                window.removeEventListener("afterprint", afterPrintHandler)
-                isPrinting = false
-              }
-            }, 8000)
-          } catch (printError) {
-            console.error("列印過程錯誤:", printError)
-            const el = document.getElementById("print-content")
-            if (el) el.style.display = "none"
-            isPrinting = false
-            showError(`列印過程發生錯誤: ${printError.message}`)
+          const proceed = confirm(
+            "核銷碼已送出列印，請先撕下該聯。\n按「確定」繼續列印預約清單聯。",
+          )
+          if (!proceed) {
+            showNotification("已取消列印預約清單聯", "info")
+            return
           }
+
+          // 第二聯：乘客名單（不含 QR 碼）
+          const listHtml = buildPassengerListHtml(
+            tripData,
+            totalSeats,
+            dateStr,
+            matchCode,
+          )
+          await printSinglePage(listHtml, { waitQr: false })
+
+          recordTripAction(tripId, "print")
+          renderTripsSync()
+          showSuccess(
+            `${tripData.trip.departureTime}發車的${tripData.trip.vehicleNumber} 列印完成`,
+          )
         } catch (error) {
           console.error("列印失敗:", error)
           showError(`列印失敗: ${error.message}`)
@@ -5284,8 +5256,89 @@
       // 全域列印旗標，避免重複呼叫造成多印或空白頁
       let isPrinting = false
 
-      // 建立列印 HTML（80mm 寬紙張，內容高度自適應）
-      function buildReservationHtml(tripData, qrCodeUrl, totalSeats) {
+      // 送出單一聯列印並等待列印動作結束，供分聯列印依序呼叫
+      function printSinglePage(html, { waitQr = false } = {}) {
+        return new Promise(async (resolve, reject) => {
+          try {
+            if (isPrinting) {
+              console.warn("[PRINT] 上一次列印尚未完成，忽略本次呼叫。")
+              resolve()
+              return
+            }
+
+            const printContent =
+              document.getElementById("print-content") ||
+              createPrintContentElement()
+            printContent.innerHTML = html
+
+            if (waitQr) {
+              await waitForQRCodeLoading()
+              // 靜默列印專用：額外等待確保圖片完全渲染到列印緩衝區
+              await new Promise((r) => setTimeout(r, 1500))
+            }
+
+            isPrinting = true
+            printContent.style.display = "block"
+
+            requestAnimationFrame(() => {
+              const hPx = printContent.scrollHeight
+              const hMm = (hPx * 25.4) / 96
+              console.log(
+                `[PRINT-DEBUG] content height=${hPx}px (~${hMm.toFixed(1)}mm)`,
+              )
+            })
+
+            const afterPrintHandler = () => {
+              printContent.style.display = "none"
+              window.removeEventListener("afterprint", afterPrintHandler)
+              isPrinting = false
+              resolve()
+            }
+            window.addEventListener("afterprint", afterPrintHandler)
+            window.print()
+
+            setTimeout(() => {
+              if (printContent.style.display !== "none") {
+                printContent.style.display = "none"
+                window.removeEventListener("afterprint", afterPrintHandler)
+                isPrinting = false
+                resolve()
+              }
+            }, 8000)
+          } catch (error) {
+            isPrinting = false
+            reject(error)
+          }
+        })
+      }
+
+      // 產生兩聯共用的核對碼：短碼、視覺上足以區分不同批次列印
+      function generateMatchCode() {
+        const ts = Date.now().toString(36).toUpperCase().slice(-3)
+        const rand = Math.floor(Math.random() * 36 * 36)
+          .toString(36)
+          .toUpperCase()
+          .padStart(2, "0")
+        return `${ts}${rand}`
+      }
+
+      // 建立第一聯核銷用 HTML：僅含日期/路線/車號/發車時間 + QR 碼
+      function buildQrPageHtml(tripData, qrCodeUrl, dateStr, matchCode) {
+        const route = getRouteDisplayName(tripData.trip.route) || "未知"
+        const car = tripData.trip.vehicleNumber || "未知"
+        const time = tripData.trip.departureTime || "未知"
+        const now = new Date().toLocaleString()
+
+        return `\n          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:1.2;color:#000;padding:0 1mm 1mm;text-align:center;page-break-after:avoid;page-break-before:avoid;">\n            <div style=\"font-size:16pt;font-weight:700;margin:0 0 1mm;\">大都會客運核銷碼</div>\n            <div style=\"font-size:14pt;font-weight:700;letter-spacing:2px;border:2px solid #000;display:inline-block;padding:1mm 3mm;margin:1mm 0;\">對應碼 ${matchCode}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">日期: ${dateStr}</div>\n            <div style=\"font-size:13pt;\">路線: ${route}</div>\n            <div style=\"font-size:13pt;\">車號: ${car}</div>\n            <div style=\"font-size:13pt;\">發車時間: ${time}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div class=\"qr-code\" style=\"margin:2mm 0;min-height:32mm;display:flex;align-items:center;justify-content:center;\"><img src=\"${qrCodeUrl}\" style=\"width:30mm;height:30mm;\"/></div>\n            <div>列印時間: ${now}</div>\n            <div style=\"height:2mm;\"></div>\n          </div>\n        `
+      }
+
+      // 建立第二聯乘客名單 HTML：不含 QR 碼，電話僅顯示後五碼
+      function buildPassengerListHtml(
+        tripData,
+        totalSeats,
+        dateStr,
+        matchCode,
+      ) {
         // 按預約時間排序 (早到晚)
         const sortedPassengers = [...(tripData.passengers || [])].sort(
           (a, b) => {
@@ -5306,8 +5359,8 @@
             const to = p.destStop || p.DestStop || "未知"
             const rawPhone = p.phone || p.Phone || ""
             const digitsOnly = String(rawPhone).replace(/\D/g, "")
-            const tail3 = digitsOnly ? digitsOnly.slice(-3) : ""
-            return `${i + 1}. ${name} (${seats}位) → ${to}  ${tail3}`
+            const tail5 = digitsOnly ? digitsOnly.slice(-5) : ""
+            return `${i + 1}. ${name} (${seats}位) → ${to}  ${tail5}`
           })
           .join("<br/>")
 
@@ -5316,7 +5369,7 @@
         const time = tripData.trip.departureTime || "未知"
         const now = new Date().toLocaleString()
 
-        return `\n          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;page-break-after:avoid;page-break-before:avoid;">\n            <div style=\"font-size:16pt;font-weight:700;margin:0 0 1mm;\">大都會客運保留座位清單</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">路線: ${route}</div>\n            <div style=\"font-size:13pt;\">車號: ${car}</div>\n            <div style=\"font-size:13pt;\">發車時間: ${time}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"text-align:left;display:inline-block;width:90%;font-size:12pt;\">${list}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">總計: ${totalSeats} 位乘客</div>\n            <div class=\"qr-code\" style=\"margin:2mm 0;min-height:32mm;display:flex;align-items:center;justify-content:center;\"><img src=\"${qrCodeUrl}\" style=\"width:30mm;height:30mm;\"/></div>\n            <div>列印時間: ${now}</div>\n            <div style=\"height:2mm;\"></div>\n          </div>\n        `
+        return `\n          <div style="width:75mm;font-family:'Microsoft JhengHei','Courier New',monospace;font-size:10pt;line-height:0.9;color:#000;padding:0 1mm 1mm;text-align:center;page-break-after:avoid;page-break-before:avoid;">\n            <div style=\"font-size:16pt;font-weight:700;margin:0 0 1mm;\">大都會客運預約清單</div>\n            <div style=\"font-size:14pt;font-weight:700;letter-spacing:2px;border:2px solid #000;display:inline-block;padding:1mm 3mm;margin:1mm 0;\">對應碼 ${matchCode}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">日期: ${dateStr}</div>\n            <div style=\"font-size:13pt;\">路線: ${route}</div>\n            <div style=\"font-size:13pt;\">車號: ${car}</div>\n            <div style=\"font-size:13pt;\">發車時間: ${time}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"text-align:left;display:inline-block;width:90%;font-size:12pt;\">${list}</div>\n            <div style=\"border-top:1px dashed #000;margin:2mm 0;\"></div>\n            <div style=\"font-size:13pt;\">總計: ${totalSeats} 位乘客</div>\n            <div>列印時間: ${now}</div>\n            <div style=\"height:2mm;\"></div>\n          </div>\n        `
       }
 
       // 等待 QR 碼圖片載入
@@ -6333,16 +6386,16 @@
             (a, p) => a + (p.seatCount || 1),
             0,
           )
-          const qrCodeUrl = await generateQRCodeURL("SIMULATE-PRINT")
-          const html = buildReservationHtml(tripData, qrCodeUrl, totalSeats)
+          const dateStr = new Date().toLocaleDateString("zh-TW", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+          const html = buildPassengerListHtml(tripData, totalSeats, dateStr)
           const printContent =
             document.getElementById("print-content") ||
             createPrintContentElement()
           printContent.innerHTML = html
-          await waitForQRCodeLoading()
-
-          // 靜默列印專用：額外等待確保圖片完全渲染到列印緩衝區
-          await new Promise((resolve) => setTimeout(resolve, 1500))
 
           if (isPrinting) {
             showNotification("上一份列印尚未完成", "info")
