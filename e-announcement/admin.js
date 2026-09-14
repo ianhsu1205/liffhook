@@ -1903,10 +1903,12 @@ function removeSignature() {
 // ==================== 記錄管理功能 ====================
 
 let currentAnnouncementId = null;
+let currentAnnouncementTitle = '';
 let currentRecordsPage = 1;
 let currentRecordsPageSize = 50;
 let currentRecordsFilter = '';
 let allRecords = [];
+let currentPendingCount = 0;
 
 // 檢視簽名記錄
 async function viewRecords(announcementId) {
@@ -1969,6 +1971,8 @@ function displayAnnouncementInfo(announcement) {
         return;
     }
     
+    currentAnnouncementTitle = announcement.title || '';
+    
     const container = document.getElementById('announcementInfo');
     
     container.innerHTML = `
@@ -2007,6 +2011,8 @@ function displayAnnouncementInfo(announcement) {
 
 // 顯示統計資訊
 function displayStatistics(stats) {
+    currentPendingCount = Math.max((stats.targetCount || 0) - (stats.signedCount || 0), 0);
+    
     const container = document.getElementById('statisticsContainer');
     
     container.innerHTML = `
@@ -2445,6 +2451,192 @@ async function downloadRecordsPDF() {
         showAlert('下載失敗，請重新嘗試', 'error');
     }
     */
+}
+
+// 開啟簽到表 PDF 匯出 Modal
+function openSignInSheetModal() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+    document.getElementById('signInSheetScopeAll').checked = true;
+    document.getElementById('signInSheetLocation').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('signInSheetModal'));
+    modal.show();
+}
+
+// 下載簽到表 PDF（可選全部或僅已簽名）
+async function downloadSignInSheetPDF() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+
+    try {
+        const onlySigned = document.getElementById('signInSheetScopeSigned').checked;
+        const location = document.getElementById('signInSheetLocation').value.trim();
+
+        showAlert('正在產生簽到表PDF，請稍候...', 'info');
+
+        const params = new URLSearchParams({
+            onlySigned: onlySigned ? 'true' : 'false',
+            location: location
+        });
+
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/export-signin-sheet?${params.toString()}`);
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `${currentAnnouncementTitle || '宣導專案'}-簽到表.pdf`;
+
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
+                if (fileNameMatch) {
+                    const encodedFileName = fileNameMatch[1].trim();
+                    if (encodedFileName.startsWith("UTF-8''")) {
+                        filename = decodeURIComponent(encodedFileName.substring(7));
+                    } else {
+                        filename = encodedFileName.replace(/"/g, '');
+                    }
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            const modalEl = document.getElementById('signInSheetModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+
+            showAlert('簽到表 PDF 已下載完成', 'success');
+        } else {
+            const errorResult = await response.json();
+            showAlert('下載失敗: ' + (errorResult.message || '未知錯誤'), 'error');
+        }
+    } catch (error) {
+        console.error('下載簽到表PDF失敗:', error);
+        showAlert('下載失敗，請重新嘗試', 'error');
+    }
+}
+
+// 下載電子宣導教育訓練清單 Excel
+async function downloadTrainingListExcel() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+
+    try {
+        showAlert('正在產生教育訓練清單，請稍候...', 'info');
+
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/export-training-list`);
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `${currentAnnouncementTitle || '宣導專案'}-電子宣導教育訓練清單.xlsx`;
+
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename\*?=([^;]+)/);
+                if (fileNameMatch) {
+                    const encodedFileName = fileNameMatch[1].trim();
+                    if (encodedFileName.startsWith("UTF-8''")) {
+                        filename = decodeURIComponent(encodedFileName.substring(7));
+                    } else {
+                        filename = encodedFileName.replace(/"/g, '');
+                    }
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showAlert('教育訓練清單已下載完成', 'success');
+        } else {
+            const errorResult = await response.json();
+            showAlert('下載失敗: ' + (errorResult.message || '未知錯誤'), 'error');
+        }
+    } catch (error) {
+        console.error('下載教育訓練清單失敗:', error);
+        showAlert('下載失敗，請重新嘗試', 'error');
+    }
+}
+
+// 開啟未簽名提醒通知 Modal
+function openRemindModal() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+
+    document.getElementById('remindPendingCount').textContent = currentPendingCount;
+
+    const textarea = document.getElementById('remindMessage');
+    if (!textarea.value.trim()) {
+        textarea.value = `您好 {name}，\n提醒您尚未完成「{title}」的電子宣導簽名確認，請盡速點擊下方連結完成簽署：\n{link}\n謝謝您的配合！`;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('remindModal'));
+    modal.show();
+}
+
+// 執行發送未簽名提醒通知
+async function executeRemindUnsigned() {
+    if (!currentAnnouncementId) {
+        showAlert('無法取得宣導專案資訊', 'error');
+        return;
+    }
+
+    const message = document.getElementById('remindMessage').value.trim();
+    if (!message) {
+        showAlert('請輸入提醒通知內容', 'warning');
+        return;
+    }
+
+    const sendBtn = document.getElementById('remindSendBtn');
+    sendBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/EAnnouncement/${currentAnnouncementId}/remind-unsigned`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showAlert(result.message, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('remindModal'));
+            if (modal) modal.hide();
+        } else {
+            showAlert('發送失敗: ' + (result.message || '未知錯誤'), 'error');
+        }
+    } catch (error) {
+        console.error('發送提醒通知失敗:', error);
+        showAlert('發送失敗，請重新嘗試', 'error');
+    } finally {
+        sendBtn.disabled = false;
+    }
 }
 
 // 記錄管理相關事件處理函數

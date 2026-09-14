@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
@@ -259,6 +259,28 @@
                     >
                       <i class="fas fa-download me-2"></i>下載 PDF 報表
                     </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary"
+                      onclick="openSignInSheetModal()"
+                    >
+                      <i class="fas fa-clipboard-list me-2"></i>下載簽到表 PDF
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-success"
+                      onclick="downloadTrainingListExcel()"
+                    >
+                      <i class="fas fa-file-excel me-2"></i
+                      >下載教育訓練清單(Excel)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-warning"
+                      onclick="openRemindModal()"
+                    >
+                      <i class="fas fa-bell me-2"></i>發送提醒通知(未簽名)
+                    </button>
                   </div>
                 </div>
               </div>
@@ -275,7 +297,7 @@
                       class="form-control"
                       id="recordSearch"
                       placeholder="搜尋姓名或員工編號"
-                      onkeypress="if(event.key==='Enter') filterRecords()"
+                      onkeypress="if (event.key === 'Enter') filterRecords()"
                     />
                     <button
                       class="btn btn-primary"
@@ -584,6 +606,88 @@
       </div>
     </div>
 
+    <!-- 簽到表 PDF 匯出 Modal -->
+    <div
+      class="modal fade"
+      id="signInSheetModal"
+      tabindex="-1"
+      aria-labelledby="signInSheetModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="signInSheetModalLabel">
+              <i class="fas fa-clipboard-list me-2"></i>下載簽到表 PDF
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">匯出範圍</label>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="signInSheetScope"
+                  id="signInSheetScopeAll"
+                  value="all"
+                  checked
+                />
+                <label class="form-check-label" for="signInSheetScopeAll">
+                  全部人員（未簽名者保留空白欄供現場簽名）
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="signInSheetScope"
+                  id="signInSheetScopeSigned"
+                  value="signed"
+                />
+                <label class="form-check-label" for="signInSheetScopeSigned">
+                  僅已簽名人員
+                </label>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="signInSheetLocation" class="form-label"
+                >教育訓練地點</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="signInSheetLocation"
+                placeholder="請輸入教育訓練地點（選填）"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="downloadSignInSheetPDF()"
+            >
+              <i class="fas fa-download me-1"></i>下載
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 簽名 Modal -->
     <div
       class="modal fade"
@@ -853,6 +957,71 @@
               onclick="executePublish()"
             >
               <i class="fas fa-paper-plane me-1"></i>確認發佈
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 未簽名提醒通知 Modal -->
+    <div
+      class="modal fade"
+      id="remindModal"
+      tabindex="-1"
+      aria-labelledby="remindModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="remindModalLabel">
+              <i class="fas fa-bell me-2"></i>發送提醒通知（僅未簽名人員）
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              此訊息僅會發送給尚未完成簽名確認的人員，目前尚未簽名人數：
+              <strong id="remindPendingCount">-</strong> 人
+            </div>
+            <div class="mb-3">
+              <label for="remindMessage" class="form-label"
+                >通知內容 <span class="text-danger">*</span></label
+              >
+              <textarea
+                class="form-control"
+                id="remindMessage"
+                rows="8"
+              ></textarea>
+              <div class="form-text">
+                支援換行，並可使用以下佔位符，發送時會自動替換為個別人員資料：<br />
+                <code>{title}</code> 宣導標題、<code>{name}</code> 姓名、
+                <code>{company}</code> 單位、<code>{department}</code> 部門、
+                <code>{link}</code> 簽名確認連結
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times me-1"></i>取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-warning"
+              onclick="executeRemindUnsigned()"
+              id="remindSendBtn"
+            >
+              <i class="fas fa-paper-plane me-1"></i>確認發送
             </button>
           </div>
         </div>
